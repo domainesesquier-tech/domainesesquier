@@ -2744,14 +2744,10 @@
             { name: "Jasmin", cap: 4, beds: "1 lit double conv, 1 canapé 1p, 1 appoint", remarks: "Lit double convertible + lit d'appoint" }
         ];
 
-        // ===== Airtable config =====
-        const AIRTABLE_CONFIG = window.AIRTABLE_CONFIG || {};
-        const AIRTABLE_BASE_ID = AIRTABLE_CONFIG.baseId || window.AIRTABLE_BASE_ID || 'app6AAb5nlRHVnGzW';
-        const AIRTABLE_TOKEN = AIRTABLE_CONFIG.token || window.AIRTABLE_TOKEN || (window.AIRTABLE_DISABLE_PROMPT ? '' : (prompt('Colle ton Airtable PAT (temporaire)') || ''));
-        const AIRTABLE_RESERVATIONS_TABLE = AIRTABLE_CONFIG.reservationsTable || window.AIRTABLE_RESERVATIONS_TABLE || 'Réservation';
-        const AIRTABLE_PRICING_TABLE = AIRTABLE_CONFIG.pricingTable || window.AIRTABLE_PRICING_TABLE || 'Politique tarifaire';
-        const AIRTABLE_RESERVATIONS_API_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_RESERVATIONS_TABLE)}`;
-        const AIRTABLE_PRICING_API_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_PRICING_TABLE)}`;
+        // ===== API Proxy config (Cloudflare Worker) =====
+        const API_BASE = (window.CONFIGURATEUR_API_BASE || '').replace(/\/+$/, '');
+        const API_RESERVATIONS_URL = `${API_BASE}/api/reservations`;
+        const API_PRICING_URL = `${API_BASE}/api/pricing`;
 
         // Dates indisponibles chargées depuis Airtable (format YYYY-MM-DD)
         let UNAVAILABLE_DATES = [];
@@ -2813,46 +2809,19 @@
             return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
         }
 
-        async function fetchAllAirtableRecords(apiUrl, queryParams = '') {
-            if (!AIRTABLE_TOKEN) return [];
-
-            const all = [];
-            let offset = null;
-
-            while (true) {
-                const query = new URLSearchParams(queryParams);
-                if (offset) query.set('offset', offset);
-                const sep = apiUrl.includes('?') ? '&' : '?';
-                const url = `${apiUrl}${sep}${query.toString()}`;
-
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
-                });
-                const data = await res.json();
-
-                if (!res.ok || (data && data.error)) {
-                    throw new Error((data && data.error && data.error.message) || `Erreur Airtable (${res.status})`);
-                }
-
-                if (Array.isArray(data.records)) all.push(...data.records);
-                if (!data.offset) break;
-                offset = data.offset;
+        async function fetchProxyJson(url, options = {}) {
+            const response = await fetch(url, options);
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || (data && data.error)) {
+                throw new Error((data && data.error && data.error.message) || `Erreur API (${response.status})`);
             }
-
-            return all;
+            return data;
         }
 
         async function loadReservationsFromAirtable() {
-            if (!AIRTABLE_TOKEN) {
-                console.warn('Airtable token absent: calendrier en mode fallback.');
-                return;
-            }
-
             try {
-                const records = await fetchAllAirtableRecords(
-                    AIRTABLE_RESERVATIONS_API_URL,
-                    'filterByFormula=AND({Date arrivée}, {Date départ})'
-                );
+                const payload = await fetchProxyJson(API_RESERVATIONS_URL);
+                const records = Array.isArray(payload.records) ? payload.records : [];
 
                 const blocked = new Set();
                 reservationsFromAirtable = records;
@@ -2888,13 +2857,9 @@
         }
 
         async function loadPricingFromAirtable() {
-            if (!AIRTABLE_TOKEN) {
-                console.warn('Airtable token absent: tarifs en fallback local.');
-                return;
-            }
-
             try {
-                const records = await fetchAllAirtableRecords(AIRTABLE_PRICING_API_URL);
+                const payload = await fetchProxyJson(API_PRICING_URL);
+                const records = Array.isArray(payload.records) ? payload.records : [];
                 const pricing = {};
 
                 records.forEach((record) => {
@@ -4151,21 +4116,10 @@
                 cta.style.pointerEvents = 'none';
             }
 
-            if (!AIRTABLE_TOKEN) {
-                if (cta) {
-                    cta.innerText = previousLabel;
-                    cta.style.pointerEvents = 'auto';
-                }
-                alert("Token Airtable manquant. Ouverture de l'email de demande.");
-                sendMailFallback();
-                return;
-            }
-
             try {
-                const response = await fetch(AIRTABLE_RESERVATIONS_API_URL, {
+                const response = await fetch(API_RESERVATIONS_URL, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(airtablePayload)
@@ -4173,7 +4127,7 @@
                 const result = await response.json();
 
                 if (!response.ok || !result.id) {
-                    throw new Error((result && result.error && result.error.message) || `Erreur Airtable (${response.status})`);
+                    throw new Error((result && result.error && result.error.message) || `Erreur API (${response.status})`);
                 }
 
                 await loadReservationsFromAirtable();
@@ -4185,12 +4139,12 @@
                 }
                 alert(`Merci ${firstname || ''} ! Votre demande a été enregistrée sur Airtable.`);
             } catch (error) {
-                console.error('Erreur envoi Airtable:', error);
+                console.error('Erreur envoi API:', error);
                 if (cta) {
                     cta.innerText = previousLabel || 'Recevoir mon devis';
                     cta.style.pointerEvents = 'auto';
                 }
-                alert("Impossible d'envoyer sur Airtable. Ouverture de l'email de secours.");
+                alert("Impossible d'envoyer la demande au serveur. Ouverture de l'email de secours.");
                 sendMailFallback();
             }
         }
@@ -4236,11 +4190,6 @@
         window.addEventListener('load', async () => {
             restoreDraft();
             renderCalendar();
-
-            if (!AIRTABLE_TOKEN) {
-                console.warn('Airtable non configure: definir window.AIRTABLE_TOKEN ou window.AIRTABLE_CONFIG avant chargement.');
-                return;
-            }
 
             await Promise.all([
                 loadReservationsFromAirtable(),
