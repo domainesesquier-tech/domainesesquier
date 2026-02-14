@@ -2745,7 +2745,7 @@
         ];
 
         // ===== API Proxy config (Cloudflare Worker) =====
-        const API_BASE = (window.CONFIGURATEUR_API_BASE || '').replace(/\/+$/, '');
+        const API_BASE = (window.CONFIGURATEUR_API_BASE || 'https://domainesesquier-api.domainesesquier.workers.dev').replace(/\/+$/, '');
         const API_RESERVATIONS_URL = `${API_BASE}/api/reservations`;
         const API_PRICING_URL = `${API_BASE}/api/pricing`;
 
