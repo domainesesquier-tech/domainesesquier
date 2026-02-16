@@ -3545,17 +3545,18 @@
                             </div>
                         </div>
 
-                        <!-- Collation Après-midi -->
+                        <!-- Collation Après-midi (PRO ONLY) -->
+                        ${currentMode === 'pro' ? `
                         <div class="meal-option-row" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px dashed #eee;">
                             <div style="display: flex; flex-direction: column;">
-                                <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Collation après-midi <span id="day-${i}-colA-price-tag" style="font-weight: 400; opacity: 0.6; font-size: 0.8rem;">(5€ ${currentMode === 'pro' ? 'HT' : ''})</span></span>
+                                <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Collation après-midi <span id="day-${i}-colA-price-tag" style="font-weight: 400; opacity: 0.6; font-size: 0.8rem;">(5€ HT)</span></span>
                             </div>
                             <div class="number-input-wrapper" style="padding: 2px 4px;">
                                  <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'collationAprem', -1)"><i class="fas fa-minus" style="font-size: 0.7rem;"></i></button>
                                  <input type="number" class="meal-input-collationAprem" id="meal-${i}-collationAprem" value="0" min="0" onchange="updateCalculations()" style="width: 35px; font-size: 0.95rem;">
                                  <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'collationAprem', 1)"><i class="fas fa-plus" style="font-size: 0.7rem;"></i></button>
                             </div>
-                        </div>
+                        </div>` : ''}
 
                         ${(!isLastDay || isPension) ? `
                         <div class="meal-option-row" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
