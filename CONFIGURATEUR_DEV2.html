@@ -591,6 +591,39 @@
             font-weight: 600;
         }
 
+        .custom-radio-circle {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            transition: all 0.2s;
+        }
+
+        .custom-radio-circle::after {
+            content: '';
+            width: 10px;
+            height: 10px;
+            background: #007bff;
+            /* Blue as requested */
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: all 0.2s;
+        }
+
+        .checkbox-item input:checked+.checkbox-label .custom-radio-circle {
+            border-color: #007bff;
+        }
+
+        .checkbox-item input:checked+.checkbox-label .custom-radio-circle::after {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
         .sleeping-row {
             background: #FDFCFB;
             border: 1px solid var(--border);
@@ -2115,7 +2148,9 @@
                         <div id="accommodation-grid" class="sleeping-grid">
                             <div class="sleeping-row" id="row-individuel">
                                 <div class="sleeping-info">
-                                    <h4 class="perso-only">Voyageurs en chambre individuelle</h4>
+                                    <h4 class="perso-only">Voyageurs en chambre individuelle <span
+                                            style="font-weight: 400; opacity: 0.6; font-size: 0.85rem; margin-left: 5px;">(+
+                                            30€ / nuit / pers)</span></h4>
                                     <h4 class="pro-only">Participants en chambre individuelle <span
                                             style="font-weight: 400; opacity: 0.6; font-size: 0.85rem; margin-left: 5px;">(+
                                             30€ HT)</span></h4>
@@ -2200,25 +2235,32 @@
                             style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div class="checkbox-item pro-only" style="margin-bottom:0;">
                                 <input type="radio" id="repasPension" name="repasType" value="pension"
-                                    onchange="toggleMeals('pension')">
+                                    onchange="toggleMeals('pension')" style="display:none;">
                                 <label for="repasPension" class="checkbox-label"
-                                    style="height: 100%; justify-content: center; text-align: center;">
-                                    <span class="checkbox-name">Pension complète <span
-                                            style="font-size: 0.7rem; opacity: 0.7; font-weight: 500; display:block;">(recommandé)</span></span>
+                                    style="height: 100%; display: flex; flex-direction: column; align-items: start; justify-content: center; text-align: center; position: relative; padding: 20px;">
+                                    <div class="custom-radio-circle"></div>
+                                    <div style="width: 100%; margin-top: 5px;">
+                                        <span class="checkbox-name" style="font-size: 1.1rem;">Pension complète</span>
+                                        <span
+                                            style="font-size: 0.75rem; opacity: 0.7; font-weight: 500; display:block; margin-top: 4px;">(recommandé)</span>
+                                    </div>
                                 </label>
                             </div>
                             <div class="checkbox-item" style="margin-bottom:0;">
                                 <input type="radio" id="repasLibre" name="repasType" value="libre" checked
-                                    onchange="toggleMeals('libre')">
+                                    onchange="toggleMeals('libre')" style="display:none;">
                                 <label for="repasLibre" class="checkbox-label"
-                                    style="height: 100%; justify-content: center; text-align: center;">
-                                    <span class="checkbox-name">Gestion libre</span>
+                                    style="height: 100%; display: flex; flex-direction: column; align-items: start; justify-content: center; text-align: center; position: relative; padding: 20px;">
+                                    <div class="custom-radio-circle"></div>
+                                    <div style="width: 100%; margin-top: 5px;">
+                                        <span class="checkbox-name" style="font-size: 1.1rem;">Gestion libre</span>
+                                    </div>
                                 </label>
                             </div>
                             <!-- Perso legacy tab (hidden in Pro, shown in Perso as fallback if needed) -->
                             <div class="checkbox-item perso-only" style="grid-column: span 2; display:none;">
                                 <input type="radio" id="repasSurPlace" name="repasType" value="traiteur"
-                                    onchange="toggleMeals('custom')">
+                                    onchange="toggleMeals('custom')" style="display:none;">
                                 <label for="repasSurPlace" class="checkbox-label">
                                     <span class="checkbox-name">Restauration gérée</span>
                                 </label>
@@ -2226,7 +2268,7 @@
                         </div>
 
                         <div id="mealSelectionHelp"
-                            style="margin-top: 15px; border-radius: 12px; border: 1px solid var(--border);">
+                            style="margin-top: 35px; border-radius: 12px; border: 1px solid var(--border);">
                             <div id="pensionInfo"
                                 style="display:none; padding: 1.25rem; background: rgba(58, 85, 56, 0.04); position: relative;">
                                 <div
