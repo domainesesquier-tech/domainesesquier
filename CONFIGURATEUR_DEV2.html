@@ -2192,24 +2192,27 @@
                     <div class="card" id="step-meals">
                         <h2 class="card-title">4. Restauration & pauses</h2>
                         <!-- Multi-Tabs selection for Pro/Perso -->
-                        <div class="checkbox-grid meal-tabs">
-                            <div class="checkbox-item pro-only">
+                        <div class="checkbox-grid meal-tabs"
+                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="checkbox-item pro-only" style="margin-bottom:0;">
                                 <input type="radio" id="repasPension" name="repasType" value="pension"
                                     onchange="toggleMeals('pension')">
-                                <label for="repasPension" class="checkbox-label">
+                                <label for="repasPension" class="checkbox-label"
+                                    style="height: 100%; justify-content: center; text-align: center;">
                                     <span class="checkbox-name">Pension complète <span
-                                            style="font-size: 0.7rem; opacity: 0.7; font-weight: 500;">(recommandé)</span></span>
+                                            style="font-size: 0.7rem; opacity: 0.7; font-weight: 500; display:block;">(recommandé)</span></span>
                                 </label>
                             </div>
-                            <div class="checkbox-item">
+                            <div class="checkbox-item" style="margin-bottom:0;">
                                 <input type="radio" id="repasLibre" name="repasType" value="libre" checked
                                     onchange="toggleMeals('libre')">
-                                <label for="repasLibre" class="checkbox-label">
+                                <label for="repasLibre" class="checkbox-label"
+                                    style="height: 100%; justify-content: center; text-align: center;">
                                     <span class="checkbox-name">Gestion libre</span>
                                 </label>
                             </div>
-                            <!-- Perso legacy tab -->
-                            <div class="checkbox-item perso-only">
+                            <!-- Perso legacy tab (hidden in Pro, shown in Perso as fallback if needed) -->
+                            <div class="checkbox-item perso-only" style="grid-column: span 2; display:none;">
                                 <input type="radio" id="repasSurPlace" name="repasType" value="traiteur"
                                     onchange="toggleMeals('custom')">
                                 <label for="repasSurPlace" class="checkbox-label">
@@ -2221,7 +2224,11 @@
                         <div id="mealSelectionHelp"
                             style="margin-top: 15px; border-radius: 12px; border: 1px solid var(--border);">
                             <div id="pensionInfo"
-                                style="display:none; padding: 1.25rem; background: rgba(58, 85, 56, 0.04);">
+                                style="display:none; padding: 1.25rem; background: rgba(58, 85, 56, 0.04); position: relative;">
+                                <div
+                                    style="position: absolute; top: 12px; right: 12px; font-size: 0.8rem; font-weight: 700; color: var(--accent); background: rgba(185, 138, 77, 0.1); padding: 4px 8px; border-radius: 6px;">
+                                    70€ HT / pers / jour
+                                </div>
                                 <div style="display: flex; gap: 12px; align-items: flex-start; margin-bottom: 20px;">
                                     <i class="fas fa-certificate"
                                         style="color: var(--primary); font-size: 1.2rem; margin-top: 3px;"></i>
@@ -2229,7 +2236,9 @@
                                         <div
                                             style="font-weight: 700; color: var(--primary); margin-bottom: 4px; font-size: 1rem;">
                                             Pack Séminaire Résidentiel</div>
-                                        <div style="color: #666; font-size: 0.85rem; line-height: 1.5;">Inclus :
+                                        <div
+                                            style="color: #666; font-size: 0.85rem; line-height: 1.5; padding-right: 90px;">
+                                            Inclus :
                                             Petit-déjeuner, Déjeuner, Dîner et pauses gourmandes.</div>
                                     </div>
                                 </div>
@@ -2962,6 +2971,7 @@
             salle: 500,
             menage: 300,
             privatisation: 650, // Forfait privatisation perso obligatoire
+            chambreIndiv: 30, // Supplément perso
             kitSoiree: 500, // Forfait matériel son & lumière
             accueilLogistique: 150 // Référent sur place
         };
@@ -3972,6 +3982,7 @@
             const toggleList = [
                 { id: 'draps', cardId: 'card-draps' },
                 { id: 'menage', cardId: 'card-menage' },
+                { id: 'chambreIndiv', cardId: 'card-chambre-indiv' },
                 { id: 'lateArrival', cardId: 'card-late' },
                 { id: 'salleReunion', cardId: 'card-salle' },
                 { id: 'sallePro', cardId: 'card-salle-pro' },
@@ -4198,6 +4209,10 @@
                         const menagePrice = getHT('OPTION_PERSO_MENAGE', PRICES.menage);
                         optionsCost += menagePrice; total += menagePrice;
                         selectedOptions.push("Ménage");
+                    }
+                    if (document.getElementById('chambreIndiv').checked) {
+                        optionsCost += PRICES.chambreIndiv; total += PRICES.chambreIndiv;
+                        selectedOptions.push("Chambre individuelle");
                     }
                 }
 
