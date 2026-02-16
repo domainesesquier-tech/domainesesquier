@@ -606,8 +606,8 @@
             content: '';
             width: 10px;
             height: 10px;
-            background: #007bff;
-            /* Blue as requested */
+            background: var(--accent);
+            /* Terracotta as requested */
             border-radius: 50%;
             position: absolute;
             top: 50%;
@@ -617,7 +617,7 @@
         }
 
         .checkbox-item input:checked+.checkbox-label .custom-radio-circle {
-            border-color: #007bff;
+            border-color: var(--accent);
         }
 
         .checkbox-item input:checked+.checkbox-label .custom-radio-circle::after {
