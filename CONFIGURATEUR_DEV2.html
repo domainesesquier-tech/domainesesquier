@@ -1622,10 +1622,10 @@
         }
 
         .pro-sleeping-card {
-            background: #FDFCF9;
-            border: 1px solid #E5E1D8;
+            background: #FFFEFC;
+            border: 1px solid #E2DDD5;
             border-radius: 20px;
-            padding: 1.8rem 1.2rem 1.5rem;
+            padding: 2rem 1.5rem 1.8rem;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             text-align: center;
@@ -1633,30 +1633,31 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
             position: relative;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            min-height: 160px;
         }
 
         /* --- UI Radio Button --- */
         .pro-sleeping-card::before {
             content: '';
             position: absolute;
-            top: 15px;
-            left: 15px;
-            width: 18px;
-            height: 18px;
-            border: 2px solid #E5E1D8;
+            top: 18px;
+            left: 18px;
+            width: 22px;
+            height: 22px;
+            border: 2px solid #D1CDC5;
             border-radius: 50%;
             transition: all 0.2s ease;
-            background: white;
+            background: transparent;
         }
 
         .pro-sleeping-card::after {
             content: '';
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 25px;
+            left: 25px;
             width: 8px;
             height: 8px;
             background: var(--primary);
@@ -1666,8 +1667,21 @@
             opacity: 0;
         }
 
+        .pro-sleeping-card:hover {
+            border-color: #B0A89A;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(44, 95, 45, 0.08);
+        }
+
+        .pro-sleeping-card.active {
+            border: 2px solid var(--primary);
+            background: #F4F7F4;
+            box-shadow: 0 8px 25px rgba(44, 95, 45, 0.12);
+        }
+
         .pro-sleeping-card.active::before {
             border-color: var(--primary);
+            background: white;
         }
 
         .pro-sleeping-card.active::after {
@@ -1675,45 +1689,42 @@
             opacity: 1;
         }
 
-        .pro-sleeping-card:hover {
-            border-color: var(--primary);
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px rgba(44, 95, 45, 0.06);
-        }
-
-        .pro-sleeping-card.active {
-            border-color: var(--primary);
-            background: #F8F9F3;
-            box-shadow: 0 6px 18px rgba(44, 95, 45, 0.1);
-            border-width: 2px;
-        }
-
         .pro-sleeping-card i {
-            font-size: 1.6rem;
+            font-size: 1.8rem;
             color: var(--primary);
-            margin-bottom: 4px;
-            opacity: 0.9;
+            margin-bottom: 5px;
+            margin-top: 10px;
+            /* Space for radio/badge */
+            opacity: 0.85;
+            transition: opacity 0.3s;
+        }
+
+        .pro-sleeping-card.active i {
+            opacity: 1;
+            transform: scale(1.05);
         }
 
         .pro-sleeping-card span {
             font-weight: 700;
             color: var(--primary);
-            font-size: 1.05rem;
+            font-size: 1.1rem;
             display: block;
-            line-height: 1.25;
+            line-height: 1.3;
+            letter-spacing: -0.01em;
         }
 
         .pro-sleeping-card .pro-badge {
             position: absolute;
-            top: 12px;
-            right: 12px;
+            top: 15px;
+            right: 15px;
             font-size: 0.7rem;
-            color: var(--accent);
+            color: #9D5F4A;
             font-weight: 700;
-            background: rgba(173, 102, 84, 0.08);
-            padding: 2px 8px;
-            border-radius: 8px;
-            border: 1px solid rgba(173, 102, 84, 0.1);
+            background: rgba(157, 95, 74, 0.08);
+            padding: 5px 12px;
+            border-radius: 50px;
+            border: 1px solid rgba(157, 95, 74, 0.15);
+            white-space: nowrap;
         }
 
         /* Modal Styles */
