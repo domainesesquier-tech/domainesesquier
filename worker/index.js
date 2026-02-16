@@ -1,7 +1,7 @@
 function corsHeaders(env) {
   return {
     "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN || "*",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   };
 }
@@ -76,6 +76,12 @@ export default {
       }
 
       if (url.pathname === "/api/reservations" && method === "GET") {
+        const id = url.searchParams.get("id");
+        if (id) {
+          const record = await airtableRequest(env, `${buildAirtableUrl(env, env.AIRTABLE_RESERVATIONS_TABLE)}/${id}`);
+          return json({ records: [record] }, 200, env);
+        }
+
         const formula = "AND({Date arrivée}, {Date départ})";
         const records = await fetchAllRecords(
           env,
@@ -100,6 +106,19 @@ export default {
           body: JSON.stringify({ fields }),
         });
         return json(result, 201, env);
+      }
+
+      if (url.pathname === "/api/reservations" && method === "PATCH") {
+        const body = await request.json().catch(() => ({}));
+        const recordId = body.id;
+        const fields = body.fields;
+        if (!recordId || !fields) return json({ error: { message: "Invalid payload: expected { id, fields }." } }, 400, env);
+
+        const result = await airtableRequest(env, `${buildAirtableUrl(env, env.AIRTABLE_RESERVATIONS_TABLE)}/${recordId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ fields }),
+        });
+        return json(result, 200, env);
       }
 
       return json({ error: { message: "Not found" } }, 404, env);

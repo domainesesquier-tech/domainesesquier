@@ -14,21 +14,23 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
-            --primary: #3A5538;
-            /* Olive sourd méditerranéen */
-            --primary-light: #4F6D4D;
-            --accent: #9E5D4C;
-            /* Terre cuite subtile */
-            --accent-light: #C19A82;
+            /* Palette Domaine Sesquier WordPress Style */
+            --primary: #4F6553;
+            /* Olive Premium */
+            --primary-light: #6B8470;
+            --accent: #9D5F4A;
+            /* Terracotta */
+            --ocre: #B98A4D;
+            /* Ocre Doré */
             --dark: #2D302A;
             /* Anthracite chaud */
-            --light: #F7F3EB;
-            /* Chaux chaude */
+            --light: #FAF9F6;
+            /* Sable très clair */
             --white: #ffffff;
-            --border: #E2DDD5;
-            /* Sable */
-            --shadow: rgba(58, 85, 56, 0.06);
-            --transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+            --border: #E8E4DE;
+            /* Pierre fine */
+            --shadow: rgba(45, 48, 42, 0.04);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         * {
@@ -42,231 +44,170 @@
             font-family: 'Inter', sans-serif;
             background: var(--light);
             background-image:
-                radial-gradient(circle at center, transparent 0%, rgba(58, 85, 56, 0.03) 100%),
-                url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.015'/%3E%3C/svg%3E");
+                radial-gradient(circle at 20% 20%, rgba(185, 138, 77, 0.02) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(79, 101, 83, 0.02) 0%, transparent 40%);
             color: var(--dark);
-            line-height: 1.7;
+            line-height: 1.8;
             min-height: 100vh;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 2rem;
         }
 
         .header {
             text-align: center;
-            padding: 4.5rem 1rem 2rem 1rem;
-            background: transparent;
+            padding: 5rem 1rem 3rem 1rem;
             color: var(--primary);
-            margin-bottom: 1.5rem;
-            position: relative;
+            margin-bottom: 2rem;
         }
 
         .header h1 {
             font-family: 'Cormorant Garamond', serif;
-            font-size: clamp(2.2rem, 5vw, 3.2rem);
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            letter-spacing: 0.02em;
+            font-size: clamp(2.5rem, 6vw, 3.8rem);
+            font-weight: 500;
+            margin-bottom: 0.8rem;
+            letter-spacing: -0.01em;
             color: var(--primary);
         }
 
         .header p {
             font-family: 'Inter', sans-serif;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             text-transform: uppercase;
-            letter-spacing: 0.2em;
-            opacity: 0.7;
-            font-weight: 600;
+            letter-spacing: 0.25em;
+            opacity: 0.6;
+            font-weight: 500;
             color: var(--primary);
         }
 
-
         .simulator-grid {
             display: grid;
-            grid-template-columns: 3fr 1fr;
-            gap: 2.5rem;
+            grid-template-columns: 1.8fr 1fr;
+            gap: 3.5rem;
             align-items: start;
         }
 
         .card {
-            position: relative;
             background: var(--white);
-            border-radius: 20px;
-            padding: 2.2rem 2.5rem;
-            box-shadow: 0 4px 15px var(--shadow);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 10px 40px var(--shadow);
             border: 1px solid var(--border);
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
             transition: var(--transition);
-            animation: fadeInUp 0.6s ease-out forwards;
+            animation: fadeInUp 0.8s ease-out forwards;
         }
 
         .card:hover {
-            box-shadow: 0 8px 30px rgba(58, 85, 56, 0.12);
+            box-shadow: 0 15px 50px rgba(45, 48, 42, 0.08);
+            border-color: #DAD3C8;
         }
 
-        /* Étape 0 — Accueil Premium */
+        /* Step 0 — Start Screen */
         .step0-container {
-            max-width: 850px;
+            max-width: 900px;
             margin: 0 auto;
             text-align: center;
-            padding: 1rem 0 2rem;
+            padding: 2rem 0;
         }
 
         .step0-container h2 {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 2.8rem;
+            font-size: 3.2rem;
             color: var(--primary);
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            position: relative;
-            display: inline-block;
-        }
-
-        .step0-container h2::after {
-            content: '';
-            position: absolute;
-            bottom: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40px;
-            height: 2px;
-            background: var(--accent);
-            border-radius: 2px;
+            font-weight: 400;
+            margin-bottom: 1rem;
         }
 
         .step0-subtitle {
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             color: var(--primary);
-            opacity: 0.7;
+            opacity: 0.6;
             font-weight: 400;
-            letter-spacing: 0.01em;
+            max-width: 600px;
+            margin: 0 auto 3.5rem;
         }
 
         .step0-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-top: 2rem;
+            gap: 2rem;
         }
 
         .step0-card {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 240, 240, 0.7) 100%);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            border-radius: 20px;
-            padding: 2rem 1.5rem;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            padding: 3.5rem 2.5rem;
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            gap: 1rem;
+            gap: 1.5rem;
             cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            position: relative;
-            box-shadow:
-                0 10px 30px -5px rgba(0, 0, 0, 0.03),
-                inset 0 0 40px rgba(255, 255, 255, 0.8);
-            /* Effet miroir interne */
-            overflow: hidden;
-            height: 100%;
-        }
-
-        .step0-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.8), transparent 70%);
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .step0-card:hover {
-            transform: translateY(-8px) scale(1.01);
-            border-color: rgba(44, 95, 45, 0.4);
-            /* Effet Néon Rétro-éclairé + Miroir */
-            box-shadow:
-                0 0 25px rgba(44, 95, 45, 0.3),
-                /* Glow principal (Néon vert) */
-                0 0 60px rgba(44, 95, 45, 0.1),
-                /* Aura diffuse */
-                inset 0 0 20px rgba(255, 255, 255, 1);
-            /* Éclat miroir renforcé */
-            background: linear-gradient(135deg, #ffffff 0%, #f4f8f4 100%);
-        }
-
-        .step0-card .step0-icon {
-            font-size: 3rem;
-            color: var(--primary);
-            width: 80px;
-            height: 80px;
-            background: transparent;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             transition: var(--transition);
         }
 
-        .step0-card:hover .step0-icon {
-            transform: scale(1.1);
+        .step0-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--ocre);
+            box-shadow: 0 20px 60px rgba(185, 138, 77, 0.1);
+        }
+
+        .step0-card .step0-icon {
+            font-size: 2.5rem;
+            color: var(--ocre);
+            margin-bottom: 0.5rem;
         }
 
         .step0-card h3 {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 2.2rem;
+            font-size: 2.4rem;
             color: var(--primary);
-            font-weight: 700;
-            margin-bottom: -0.5rem;
+            font-weight: 500;
         }
 
         .step0-card p {
             font-size: 0.95rem;
-            color: #706B62;
-            line-height: 1.5;
-            max-width: 280px;
+            color: var(--dark);
+            opacity: 0.7;
+            line-height: 1.6;
         }
 
         .step0-cta {
-            margin-top: auto;
+            margin-top: 1rem;
             font-size: 0.8rem;
-            font-weight: 700;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 24px;
-            border: 1px solid var(--primary);
+            letter-spacing: 0.15em;
+            color: var(--ocre);
+            padding: 12px 32px;
+            border: 1px solid var(--ocre);
             border-radius: 50px;
             transition: var(--transition);
         }
 
         .step0-card:hover .step0-cta {
-            background: var(--primary);
+            background: var(--ocre);
             color: var(--white);
-            gap: 14px;
-        }
-
-        #main-configurator {
-            display: none;
         }
 
         .back-btn {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             color: var(--primary);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
             font-weight: 600;
             cursor: pointer;
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
             transition: var(--transition);
-            opacity: 0.7;
+            opacity: 0.5;
         }
 
         .back-btn:hover {
@@ -276,164 +217,260 @@
 
         .card-title {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 1.8rem;
-            font-weight: 700;
+            font-size: 2.2rem;
+            font-weight: 500;
             color: var(--primary);
-            margin-bottom: 1.8rem;
+            margin-bottom: 2.5rem;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 15px;
         }
 
-        .card-title::before {
+        .card-title::after {
             content: '';
-            width: 5px;
-            height: 32px;
-            background: var(--accent);
-            border-radius: 4px;
+            flex: 1;
+            height: 1px;
+            background: var(--border);
         }
 
         .calendar-container {
-            background: var(--light);
+            background: #FDFCFB;
             border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 1.5rem;
-            margin-top: 1rem;
+            border-radius: 24px;
+            padding: 2rem;
         }
 
         .calendar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
         }
 
         .calendar-nav {
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             border: 1px solid var(--border);
             background: var(--white);
-            border-radius: 12px;
+            border-radius: 50%;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: var(--transition);
-            font-size: 1.1rem;
         }
 
         .calendar-nav:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-            transform: translateY(-2px);
+            border-color: var(--ocre);
+            color: var(--ocre);
+            transform: scale(1.05);
         }
 
         .calendar-month {
-            font-weight: 700;
-            font-size: 1.2rem;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.6rem;
+            font-weight: 600;
             color: var(--primary);
-            font-family: 'Playfair Display', serif;
-        }
-
-        .calendar-weekdays {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-            margin-bottom: 8px;
         }
 
         .calendar-weekday {
-            text-align: center;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--accent);
-            text-transform: uppercase;
-            padding: 8px;
-        }
-
-        .calendar-days {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
+            color: var(--ocre);
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
         }
 
         .calendar-day {
-            min-height: 32px;
-            padding: 4px 0;
-            border-radius: 8px;
+            min-height: 48px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: var(--transition);
             font-weight: 500;
-            background: var(--white);
-            font-size: 0.95rem;
-            border: 1px solid transparent;
+            font-size: 0.9rem;
             position: relative;
-        }
-
-        .avail-dot {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-        }
-
-        .dot-available {
-            background: #4CAF50;
-        }
-
-        .dot-unavailable {
-            background: #F44336;
-        }
-
-        .range-selected {
-            border-radius: 0;
-            font-weight: 700;
-        }
-
-        .range-selected.is-available {
-            background: var(--primary) !important;
-            color: var(--white) !important;
-        }
-
-        .range-selected.is-unavailable {
-            background: rgba(244, 67, 54, 0.2) !important;
-            color: #c62828 !important;
-        }
-
-        .range-selected.range-start {
-            border-top-left-radius: 10px;
-            border-bottom-left-radius: 10px;
-        }
-
-        .range-selected.range-end {
-            border-top-right-radius: 10px;
-            border-bottom-right-radius: 10px;
-        }
-
-        .calendar-day:hover:not(.disabled):not(.other-month) {
-            background: var(--white);
-            border-color: var(--primary);
-            color: var(--primary);
             z-index: 1;
         }
 
+        .calendar-day::before {
+            content: '';
+            position: absolute;
+            top: 4px;
+            bottom: 4px;
+            left: 0;
+            right: 0;
+            z-index: -1;
+            transition: var(--transition);
+        }
+
+        /* Range Selection Robust Styles */
+        .range-selected.is-available {
+            color: var(--white) !important;
+        }
+
+        .range-selected.is-available::before {
+            background: var(--primary);
+        }
+
+        .range-start::before {
+            border-top-left-radius: 24px;
+            border-bottom-left-radius: 24px;
+            left: 2px !important;
+        }
+
+        .range-end::before {
+            border-top-right-radius: 24px;
+            border-bottom-right-radius: 24px;
+            right: 2px !important;
+        }
+
+        .range-single::before {
+            border-radius: 24px;
+            left: 2px !important;
+            right: 2px !important;
+        }
+
+
+        .number-input-wrapper {
+            background: #FDFCFB;
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            padding: 6px 12px;
+        }
+
+        .number-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--white);
+            border: 1px solid var(--border);
+            color: var(--primary);
+        }
+
+        .number-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .checkbox-label {
+            background: #FDFCFB;
+            border-radius: 18px;
+            padding: 1.2rem 1.5rem;
+        }
+
+        .checkbox-item input:checked+.checkbox-label {
+            border-color: var(--primary);
+            background: #F6F8F6;
+            box-shadow: 0 4px 15px rgba(79, 101, 83, 0.08);
+        }
+
+        .sleeping-row {
+            background: #FDFCFB;
+            border-radius: 20px;
+            padding: 1.2rem 1.5rem;
+        }
+
+        .summary-total-box {
+            background: var(--primary);
+            color: var(--white);
+            padding: 2.5rem 2rem;
+            border-radius: 28px;
+            margin-top: 1.5rem;
+            box-shadow: 0 15px 35px rgba(79, 101, 83, 0.12);
+            text-align: center;
+        }
+
+        .estimation-box {
+            background: #F8F6F2;
+            padding: 1.5rem;
+            border-radius: 20px;
+            margin: 1.5rem 0;
+            border: 1px solid rgba(185, 138, 77, 0.1);
+        }
+
+        .total-amount {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.8rem;
+            font-weight: 500;
+            line-height: 1.1;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .cta-button {
+            background: var(--accent);
+            color: var(--white);
+            padding: 1.2rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            cursor: pointer;
+            transition: var(--transition);
+            width: 100%;
+            margin-top: 1rem;
+            box-shadow: 0 8px 25px rgba(157, 95, 74, 0.2);
+        }
+
+        .cta-button:hover {
+            background: #A96B54;
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(157, 95, 74, 0.3);
+        }
+
+        .mode-selector {
+            background: #F3F1ED;
+            padding: 8px;
+            border-radius: 50px;
+        }
+
+        .mode-pill {
+            padding: 12px 28px;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
+
+        .mode-pill.active {
+            box-shadow: 0 5px 15px rgba(79, 101, 83, 0.15);
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-bottom: 10px;
+        }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+
+        .range-selected.is-unavailable::before {
+            background: rgba(157, 95, 74, 0.1);
+        }
+
+        .range-selected.is-unavailable {
+            color: var(--accent) !important;
+        }
+
+        .calendar-day:hover:not(.disabled):not(.other-month):not(.range-selected) {
+            background: #F3F1ED;
+            border-radius: 50%;
+        }
+
         .calendar-day.other-month {
-            opacity: 0.2;
+            opacity: 0.1;
             pointer-events: none;
         }
 
         .date-display {
             display: flex;
             gap: 1.5rem;
-            margin-top: 1.5rem;
-            padding: 1.2rem;
-            background: var(--white);
-            border-radius: 16px;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #FDFCFB;
+            border-radius: 20px;
             border: 1px solid var(--border);
             align-items: center;
         }
@@ -444,46 +481,46 @@
         }
 
         .date-display-label {
-            font-size: 0.75rem;
-            color: var(--accent);
+            font-size: 0.7rem;
+            color: var(--ocre);
             text-transform: uppercase;
-            font-weight: 700;
-            margin-bottom: 4px;
+            letter-spacing: 0.15em;
+            font-weight: 600;
+            margin-bottom: 6px;
         }
 
         .date-display-value {
-            font-weight: 600;
+            font-weight: 500;
             color: var(--primary);
-            font-size: 1.1rem;
+            font-size: 1.15rem;
+            font-family: 'Cormorant Garamond', serif;
         }
 
         .date-display-arrow {
-            color: var(--accent);
-            font-size: 1.2rem;
-            opacity: 0.5;
+            color: var(--ocre);
+            font-size: 1rem;
+            opacity: 0.4;
         }
 
         .number-input-wrapper {
             display: flex;
             align-items: center;
-            gap: 1rem;
-            background: #FDFCF9;
+            gap: 0.8rem;
+            background: #FDFCFB;
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 4px 8px;
+            border-radius: 50px;
+            padding: 4px 6px;
             width: fit-content;
         }
 
         .number-btn {
             width: 32px;
             height: 32px;
-            border: none;
+            border: 1px solid var(--border);
             background: var(--white);
             color: var(--primary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 50%;
             cursor: pointer;
-            font-size: 1rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -500,95 +537,74 @@
             border: none;
             text-align: center;
             font-size: 1.1rem;
-            font-weight: 700;
+            font-weight: 600;
             background: transparent;
-            width: 40px;
+            width: 35px;
             color: var(--primary);
-            font-family: 'Inter', sans-serif;
         }
 
         .form-group {
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 0.8rem;
-            font-weight: 600;
-            color: var(--dark);
-            font-size: 1rem;
-        }
-
-        .checkbox-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-
-        .checkbox-item {
-            position: relative;
-        }
-
-        .checkbox-item input {
-            position: absolute;
-            opacity: 0;
+            margin-bottom: 1rem;
+            font-weight: 500;
+            color: var(--primary);
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .checkbox-label {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 1rem 1.2rem;
+            padding: 1.2rem 1.5rem;
             border: 1px solid var(--border);
-            border-radius: 14px;
+            border-radius: 20px;
             cursor: pointer;
             transition: var(--transition);
-            background: #FDFCF9;
+            background: #FDFCFB;
         }
 
         .checkbox-item input:checked+.checkbox-label {
-            border-color: var(--primary);
-            background: rgba(44, 95, 45, 0.03);
-            box-shadow: 0 4px 12px rgba(44, 95, 45, 0.08);
+            border-color: var(--ocre);
+            background: #FDF8F0;
+            box-shadow: 0 8px 20px rgba(185, 138, 77, 0.08);
         }
 
         .checkbox-name {
-            font-weight: 600;
-            display: block;
+            font-weight: 500;
             color: var(--primary);
         }
 
         .checkbox-price {
             font-size: 0.85rem;
-            color: var(--accent);
-            font-weight: 500;
-        }
-
-        .sleeping-grid {
-            display: grid;
-            gap: 1rem;
+            color: var(--ocre);
+            font-weight: 600;
         }
 
         .sleeping-row {
-            background: #FDFCF9;
+            background: #FDFCFB;
             border: 1px solid var(--border);
-            border-radius: 18px;
-            padding: 1rem 1.25rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: var(--transition);
+            border-radius: 20px;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 1rem;
         }
 
         .sleeping-info h4 {
-            font-size: 1.05rem;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.3rem;
             font-weight: 600;
-            margin-bottom: 2px;
+            color: var(--primary);
         }
 
         .sleeping-info p {
             font-size: 0.85rem;
-            color: var(--accent);
+            color: var(--ocre);
+            opacity: 0.8;
         }
 
         .summary-card-wrapper {
@@ -597,17 +613,13 @@
             z-index: 10;
         }
 
-        .summary-card-wrapper .card {
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-        }
-
         .summary-total-box {
             background: var(--primary);
             color: var(--white);
-            padding: 2.2rem;
-            border-radius: 20px;
-            margin-top: 1.8rem;
-            box-shadow: 0 12px 30px rgba(58, 85, 56, 0.2);
+            padding: 3rem 2.5rem;
+            border-radius: 32px;
+            margin-top: 2rem;
+            box-shadow: 0 20px 40px rgba(79, 101, 83, 0.15);
         }
 
         .summary-total-label {
@@ -1777,7 +1789,16 @@
         </div>
 
         <!-- Flow du configurateur (caché au départ) -->
-        <div id="main-configurator">
+        <div id="main-configurator" style="display: none;">
+            <div class="header" style="padding: 2rem 0 3rem 0; margin-bottom: 0;">
+                <h1 id="main-title"
+                    style="font-family: 'Cormorant Garamond', serif; font-size: 3rem; color: var(--primary); font-weight: 400; margin-bottom: 0.5rem;">
+                    Votre Séjour</h1>
+                <p id="main-subtitle"
+                    style="text-transform: uppercase; letter-spacing: 0.2em; font-size: 0.75rem; opacity: 0.6; color: var(--primary); font-weight: 600;">
+                    Personnalisez votre expérience</p>
+            </div>
+
             <div class="back-btn" onclick="goToStep0()">
                 <i class="fas fa-arrow-left"></i> Changer de type de séjour
             </div>
@@ -2083,7 +2104,9 @@
                             <div class="sleeping-row" id="row-individuel">
                                 <div class="sleeping-info">
                                     <h4 class="perso-only">Voyageurs en chambre individuelle</h4>
-                                    <h4 class="pro-only">Participants en chambre individuelle</h4>
+                                    <h4 class="pro-only">Participants en chambre individuelle <span
+                                            style="font-weight: 400; opacity: 0.6; font-size: 0.85rem; margin-left: 5px;">(+
+                                            30€ HT)</span></h4>
                                     <p id="info-individuel" class="perso-only">0 voyageur → 0 chambre</p>
                                     <p id="info-individuel-pro" class="pro-only">0 participant → 0 chambre</p>
                                 </div>
@@ -2482,6 +2505,13 @@
                                     Disponible ✓
                                 </span>
                             </div>
+                            <button type="button" onclick="confirmReset(event)"
+                                style="background: rgba(231, 76, 60, 0.05); border: none; cursor: pointer; color: #aaa; font-size: 1.1rem; padding: 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center; justify-content: center;"
+                                onmouseover="this.style.color='#e74c3c'; this.style.background='rgba(231, 76, 60, 0.1)'"
+                                onmouseout="this.style.color='#aaa'; this.style.background='rgba(231, 76, 60, 0.05)'"
+                                title="Tout réinitialiser (vider le formulaire)">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
                         </div>
 
                         <!-- 2) DÉTAILS SÉJOUR (PRIORITAIRES, COMPACTS) -->
@@ -2577,9 +2607,10 @@
     <script>
         // --- State Management & Stepper Logic ---
         let bookingDraft = {
+            id: null, // ID Airtable si on édite un devis existant
             step: 'step-dates',
             type: 'perso',
-            objective: 'strategy', // 'strategy' (CODIR) or 'cohesion' (Equipe)
+            objective: 'strategy',
             dates: { start: null, end: null },
             group: { total: 0, adult: 0, child: 0, baby: 0 },
             sleeping: { mode: 'auto', indiv: 0, partage: 0, couple: 0 },
@@ -2588,6 +2619,8 @@
             activities: { requested: false, type: '', budget: '', ambiance: '', message: '' },
             contact: { first: '', last: '', email: '', phone: '', msg: '' }
         };
+
+        let isEditingMode = false;
 
         function saveDraft() {
             if (!document.getElementById('main-configurator') || document.getElementById('main-configurator').style.display === 'none') return;
@@ -2704,12 +2737,99 @@
             }
         }
 
-        function confirmReset() {
-            console.log("Reset requested");
-            if (confirm("Voulez-vous vraiment réinitialiser tout le formulaire ?")) {
-                localStorage.clear(); // Clear everything to be safe
-                window.location.href = window.location.pathname; // Reload without hash or params
+        async function loadFromAirtable(recordId) {
+            console.log(`[EDIT] Chargement du devis ${recordId} depuis Airtable...`);
+            try {
+                // On utilise un cache-buster pour être sûr d'avoir la donnée fraîche
+                const response = await fetch(`${API_RESERVATIONS_URL}?id=${recordId}&t=${Date.now()}`);
+                if (!response.ok) throw new Error("Impossible de charger le devis");
+
+                const data = await response.json();
+                const record = data.records ? data.records[0] : data;
+                if (!record || !record.fields) throw new Error("Devis introuvable");
+
+                const fields = record.fields;
+                isEditingMode = true;
+                bookingDraft.id = recordId;
+
+                // On priorité les données brutes d'Airtable, puis le JSON technique si présent
+                if (fields["Date arrivée"]) {
+                    startDate = new Date(fields["Date arrivée"]);
+                    currentMonth = new Date(fields["Date arrivée"]);
+                }
+                if (fields["Date départ"]) endDate = new Date(fields["Date départ"]);
+
+                document.getElementById('nbTotal').value = fields["Nombre de personnes"] || 0;
+                document.getElementById('firstname').value = fields["Prénom"] || fields["Nom client"]?.split(' ')[0] || '';
+                document.getElementById('lastname').value = fields["Nom"] || fields["Nom client"]?.split(' ').slice(1).join(' ') || '';
+                document.getElementById('email').value = fields["Email"] || '';
+                document.getElementById('phone').value = fields["Téléphone"] || '';
+                document.getElementById('message').value = fields["Message"] || '';
+
+                // Chargement du JSON technique s'il existe
+                if (fields["Détails JSON"]) {
+                    try {
+                        const details = JSON.parse(fields["Détails JSON"]);
+                        if (details.type) {
+                            currentMode = details.type;
+                            document.body.classList.toggle('mode-pro', currentMode === 'pro');
+                        }
+                        if (details.sleeping?.mode) setSleepingMode(details.sleeping.mode);
+                        document.getElementById('nbIndividuel').value = details.sleeping?.indiv || 0;
+                        document.getElementById('nbPartage').value = details.sleeping?.partage || 0;
+                        document.getElementById('nbCouple').value = details.sleeping?.couple || 0;
+
+                        if (details.meals) {
+                            const radio = document.querySelector(`input[name="repasType"][value="${details.meals.mode}"]`);
+                            if (radio) {
+                                radio.checked = true;
+                                toggleMeals(details.meals.mode);
+                            }
+                        }
+
+                        if (details.options) {
+                            if (details.options.draps) document.getElementById('draps').checked = true;
+                            if (details.options.menage) document.getElementById('menage').checked = true;
+                            if (details.options.lateArrival) document.getElementById('lateArrival').checked = true;
+                            if (details.options.salleReunion) document.getElementById('salleReunion').checked = true;
+                        }
+                    } catch (e) {
+                        console.warn("Erreur parsing Détails JSON, utilisation des champs standards", e);
+                    }
+                }
+
+                updateDateDisplay();
+                renderCalendar();
+                updateCalculations();
+
+                // On cache l'étape 0 et on montre le configurateur
+                document.getElementById('step0').style.display = 'none';
+                document.getElementById('main-configurator').style.display = 'block';
+
+                console.log(`[EDIT] Devis ${recordId} chargé avec succès.`);
+            } catch (err) {
+                console.error("Erreur loadFromAirtable:", err);
+                alert("Erreur lors du chargement du devis depuis Airtable. Nous chargeons votre dernier brouillon local.");
+                restoreDraft();
             }
+        }
+
+        function confirmReset(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            // On utilise un petit délai pour s'assurer que l'événement de clic est totalement traité
+            // et éviter que le navigateur ne ferme la boîte de dialogue prématurément.
+            setTimeout(() => {
+                if (confirm("Voulez-vous vraiment réinitialiser tout le formulaire pour repartir à zéro ?")) {
+                    localStorage.removeItem('domaineBookingDraft');
+                    localStorage.clear();
+                    // Redirection forcée vers l'URL propre
+                    window.location.replace(window.location.origin + window.location.pathname);
+                }
+            }, 50);
         }
 
         function validateStep(stepId) {
@@ -2844,7 +2964,9 @@
             HEBERGEMENT_PERSO_NUITEE_1NUIT: { priceHT: 55, unit: '/pers/nuit' },
             HEBERGEMENT_PERSO_NUITEE_2NUITS: { priceHT: 50, unit: '/pers/nuit' },
             HEBERGEMENT_PERSO_NUITEE_3PLUS: { priceHT: 40, unit: '/pers/nuit' },
-            SALLE_SEMINAIRE_TRAVAIL: { priceHT: 500, unit: '/jour' },
+            SALLE_TRAVAIL_SEMINAIRE: { priceHT: 500, unit: '/jour' }, // Backup de base
+            SALLE_TRAVAIL_SEMINAIRE_BASE: { priceHT: 500, unit: '/jour' },
+            SALLE_TRAVAIL_SEMINAIRE_UP: { priceHT: 600, unit: '/jour' },
             HEBERGEMENT_SEMINAIRE_TWIN: { priceHT: 70, unit: '/pers/nuit' },
             HEBERGEMENT_SEMINAIRE_SINGLE: { priceHT: 100, unit: '/pers/nuit' },
             FORFAIT_DRAPS_PERSO_DRAPS: { priceHT: 7, unit: '/pers (forfait)' },
@@ -2854,8 +2976,8 @@
             REPAS_PERSO_PDJ: { priceHT: 11, unit: '/pers' },
             REPAS_PERSO_DEJ: { priceHT: 24, unit: '/pers' },
             REPAS_PERSO_DINER: { priceHT: 27, unit: '/pers' },
-            REPAS_SEMINAIRE_PDJ: { priceHT: 13, unit: '/pers' },
-            REPAS_SEMINAIRE_DEJ: { priceHT: 25, unit: '/pers' },
+            REPAS_SEMINAIRE_PDJ: { priceHT: 14, unit: '/pers' },
+            REPAS_SEMINAIRE_DEJ: { priceHT: 26, unit: '/pers' },
             REPAS_SEMINAIRE_DINER: { priceHT: 30, unit: '/pers' }
         };
 
@@ -2975,18 +3097,18 @@
                         priceTTC: toNumberOrNull(fields['Prix TTC (calculé)']),
                         unit: fields['Unité'],
                         category: fields['Catégorie'],
-                        typeClient: normalizeCode(fields['Type client']),
+                        typeClient: normalizeCode(fields['Type client'] || fields['Type'] || fields['Type Client'] || fields['Cible']),
                         title: fields['Intitulé'],
-                        minPers: toNumberOrNull(fields['Nb pers min']) || 0,
-                        maxPers: toNumberOrNull(fields['Nb pers max']) || 999,
-                        minNights: toNumberOrNull(fields['Durée min nuits']) || 0,
-                        maxNights: toNumberOrNull(fields['Durée max nuits']) || 999
+                        minPers: toNumberOrNull(fields['Nb pers min'] || fields['Nb Pers Min']) || 0,
+                        maxPers: toNumberOrNull(fields['Nb pers max'] || fields['Nb Pers Max']) || 999,
+                        minNights: toNumberOrNull(fields['Durée min nuits'] || fields['Nuits Min']) || 0,
+                        maxNights: toNumberOrNull(fields['Durée max nuits'] || fields['Nuits Max']) || 999
                     });
                 });
 
                 window.PRICING_DB = pricing; // On stocke la base complète
+                console.log(`[AIRTABLE] ${pricing.length} tarifs chargés avec succès.`);
                 updateCalculations();
-                console.log(`Tarifs Airtable charges: ${Object.keys(window.PRICING).length}`);
             } catch (error) {
                 console.error('Erreur chargement tarifs Airtable:', error);
             }
@@ -3005,17 +3127,27 @@
                 const dinEl = document.getElementById(`meal-${i}-diner`);
                 const din = dinEl ? (parseInt(dinEl.value) || 0) : 0;
 
-                let dayTotal = 0;
+                const colM = parseInt(document.getElementById(`meal-${i}-collationMatin`)?.value) || 0;
+                const colA = parseInt(document.getElementById(`meal-${i}-collationAprem`)?.value) || 0;
+
+                let dayTotal = (p * 14) + (d * 26) + (din * 30) + (colM * 5) + (colA * 5);
+
+                const tagM = document.getElementById(`day-${i}-colM-price-tag`);
+                const tagA = document.getElementById(`day-${i}-colA-price-tag`);
+                [tagM, tagA].forEach(tag => {
+                    if (tag) {
+                        tag.innerText = `(5€ ${modeIsPro ? 'HT' : ''})`;
+                        tag.style.color = "";
+                        tag.style.fontWeight = "400";
+                        tag.style.opacity = "0.6";
+                    }
+                });
+
                 if (modeIsPro && mealMode === 'pension') {
-                    // Logique Déduction : 70€ - prix des repas manquants
-                    dayTotal = totalVisitors * 70;
-                    dayTotal -= (totalVisitors - p) * 12;
-                    dayTotal -= (totalVisitors - d) * 25;
-                    if (dinEl) dayTotal -= (totalVisitors - din) * 30;
-                } else {
-                    // Logique Somme (À la carte ou perso)
-                    dayTotal = (p * 12) + (d * 25) + (din * 30);
-                    // On pourrait ajouter les collations ici si besoin
+                    const eligible = Math.min(p, d, din);
+                    if (eligible > 0) {
+                        dayTotal -= (eligible * 10);
+                    }
                 }
 
                 const display = document.getElementById(`day-${i}-total-val`);
@@ -3027,19 +3159,49 @@
             const normalizedBase = normalizeCode(baseCode);
             if (!normalizedBase || !window.PRICING_DB) return null;
 
-            // 1. On cherche d'abord dans la DB Airtable avec filtres de paliers
-            const match = window.PRICING_DB.find(item => {
-                // Le code doit COMMENCER par notre base (ex: HEBERGEMENT_PERSO_NUITEE match HEBERGEMENT_PERSO_NUITEE_2NUITS)
-                const isCodeMatch = item.code.includes(normalizedBase);
+            const targetType = (currentMode === 'pro') ? 'PROFESSIONNEL' : 'PERSONNEL';
+
+            // On cherche dans la DB Airtable avec filtres de paliers + type client
+            const matches = window.PRICING_DB.filter(item => {
+                const isCodeMatch = item.code === normalizedBase || item.code.startsWith(normalizedBase + '_');
                 const isPersoMatch = nbPers >= item.minPers && nbPers <= item.maxPers;
                 const isNightMatch = nbNights >= item.minNights && nbNights <= item.maxNights;
 
-                return isCodeMatch && isPersoMatch && isNightMatch;
+                // Si le type client est défini en base, il doit correspondre
+                // On accepte 'SEMINAIRE' ou 'PRO' comme synonymes de 'PROFESSIONNEL'
+                let isTypeMatch = !item.typeClient;
+                if (item.typeClient) {
+                    if (targetType === 'PROFESSIONNEL') {
+                        isTypeMatch = ['PROFESSIONNEL', 'PRO', 'SEMINAIRE'].includes(item.typeClient);
+                    } else {
+                        isTypeMatch = (item.typeClient === 'PERSONNEL');
+                    }
+                }
+
+                return isCodeMatch && isPersoMatch && isNightMatch && isTypeMatch;
             });
 
-            if (match) return match;
+            if (matches.length > 0) {
+                // S'il y a plusieurs correspondances, on prend la plus spécifique 
+                // (celle avec le palier de personnes le plus restreint)
+                const best = matches.sort((a, b) => (a.maxPers - a.minPers) - (b.maxPers - b.minPers))[0];
+                console.log(`[PRICING] Match trouvé pour ${normalizedBase} (${nbPers} pers, ${nbNights} nuits): ${best.priceHT}€ (Source: Airtable)`);
+                return best;
+            }
 
-            // 2. Si pas trouvé, on regarde dans le backup (ancien système)
+            console.warn(`[PRICING] Aucun match Airtable pour ${normalizedBase} (${nbPers} pers, ${nbNights} nuits). Tentative backup...`);
+
+            // 2. Si pas trouvé dans Airtable, on regarde dans le backup (ancien système)
+            // On essaie d'abord un match par palier dans le backup pour la salle
+            if (normalizedBase === 'SALLE_TRAVAIL_SEMINAIRE' || normalizedBase === 'SALLE_SEMINAIRE_TRAVAIL') {
+                if (nbPers >= 30 && PRICING_BACKUP['SALLE_TRAVAIL_SEMINAIRE_UP']) {
+                    return { ...PRICING_BACKUP['SALLE_TRAVAIL_SEMINAIRE_UP'], source: 'backup' };
+                }
+                if (nbPers >= 20 && PRICING_BACKUP['SALLE_TRAVAIL_SEMINAIRE_BASE']) {
+                    return { ...PRICING_BACKUP['SALLE_TRAVAIL_SEMINAIRE_BASE'], source: 'backup' };
+                }
+            }
+
             const backup = PRICING_BACKUP[normalizedBase];
             return backup ? { ...backup, source: 'backup' } : null;
         }
@@ -3145,26 +3307,28 @@
             const dep = document.getElementById('displayDepart');
             const statusBadge = document.getElementById('availabilityStatus');
 
-            arr.innerText = startDate ? startDate.toLocaleDateString('fr-FR') : '--/--/----';
-            dep.innerText = endDate ? endDate.toLocaleDateString('fr-FR') : '--/--/----';
+            if (arr) arr.innerText = startDate ? startDate.toLocaleDateString('fr-FR') : '--/--/----';
+            if (dep) dep.innerText = endDate ? endDate.toLocaleDateString('fr-FR') : '--/--/----';
 
             if (startDate && endDate) {
                 const nights = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
                 const isAvailable = isRangeAvailable(startDate, endDate);
 
-                statusBadge.style.display = 'inline-flex';
+                if (statusBadge) {
+                    statusBadge.style.display = 'inline-flex';
 
-                if (!isAvailable) {
-                    statusBadge.innerHTML = 'Indisponible <i class="fas fa-times"></i>';
-                    statusBadge.style.background = 'rgba(244, 67, 54, 0.1)';
-                    statusBadge.style.color = '#F44336';
-                } else {
-                    statusBadge.innerHTML = 'Dates disponibles <i class="fas fa-check"></i>';
-                    statusBadge.style.background = 'rgba(76, 175, 80, 0.1)';
-                    statusBadge.style.color = '#4CAF50';
+                    if (!isAvailable) {
+                        statusBadge.innerHTML = 'Indisponible <i class="fas fa-times"></i>';
+                        statusBadge.style.background = 'rgba(244, 67, 54, 0.1)';
+                        statusBadge.style.color = '#F44336';
+                    } else {
+                        statusBadge.innerHTML = 'Dates disponibles <i class="fas fa-check"></i>';
+                        statusBadge.style.background = 'rgba(76, 175, 80, 0.1)';
+                        statusBadge.style.color = '#4CAF50';
+                    }
                 }
             } else {
-                statusBadge.style.display = 'none';
+                if (statusBadge) statusBadge.style.display = 'none';
             }
         }
 
@@ -3188,8 +3352,8 @@
 
             if (mode === 'pro') {
                 configContainer.classList.add('is-pro-mode');
-                title.innerText = "Votre Séminaire Pro";
-                subtitle.innerText = "Un cadre inspirant pour vos équipes";
+                if (title) title.innerText = "Votre Séminaire Pro";
+                if (subtitle) subtitle.innerText = "Un cadre inspirant pour vos équipes";
                 setSleepingMode('pro-double'); // Default to shared rooms for Pro
                 document.getElementById('salleReunion').checked = true;
 
@@ -3198,8 +3362,8 @@
                 toggleMeals('libre');
             } else {
                 configContainer.classList.add('is-perso-mode');
-                title.innerText = "Votre Séjour Personnel";
-                subtitle.innerText = "Des moments précieux en famille ";
+                if (title) title.innerText = "Votre Séjour Personnel";
+                if (subtitle) subtitle.innerText = "Des moments précieux en famille ";
                 setSleepingMode('auto'); // Default for Perso
 
                 // Set default meal mode for Perso
@@ -3216,9 +3380,10 @@
             document.getElementById('step0').style.display = 'block';
             configContainer.style.display = 'none';
             document.getElementById('main-stepper').classList.remove('visible');
-            configContainer.classList.remove('is-pro-mode', 'is-perso-mode');
-            document.getElementById('main-title').innerText = "Estimez votre séjour";
-            document.getElementById('main-subtitle').innerText = "Domaine Sesquier — Esprit de famille & Art de vivre";
+            const title = document.getElementById('main-title');
+            const subtitle = document.getElementById('main-subtitle');
+            if (title) title.innerText = "Estimez votre séjour";
+            if (subtitle) subtitle.innerText = "Domaine Sesquier — Esprit de famille & Art de vivre";
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -3336,12 +3501,12 @@
                             ${!isPension ? `
                             <button type="button" class="meal-action-btn" style="font-size: 0.7rem; padding: 4px 10px; opacity: 0.8; height: 26px; display: flex; align-items: center; gap: 4px;" onclick="setDayMeals(${i})">
                                 <i class="fas fa-plus-circle"></i> Tout pour ce jour
-                            </button>` : `<span style="font-size: 0.75rem; color: var(--primary); font-weight: 700;"><i class="fas fa-check-circle"></i> Inclus Pack @ 70€ ${currentMode === 'pro' ? 'HT' : ''}</span>`}
+                            </button>` : `<span style="font-size: 0.75rem; color: var(--primary); font-weight: 700;"><i class="fas fa-check-circle"></i> Pension complète</span>`}
                         </div>
                         
                         <div class="meal-option-row" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
                             <div style="display: flex; flex-direction: column;">
-                                <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Petit-déjeuner <span style="font-weight: 400; opacity: 0.6; font-size: 0.8rem;">(12€ ${currentMode === 'pro' ? 'HT' : ''})</span></span>
+                                <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Petit-déjeuner <span style="font-weight: 400; opacity: 0.6; font-size: 0.8rem;">(14€ ${currentMode === 'pro' ? 'HT' : ''})</span></span>
                             </div>
                             <div class="number-input-wrapper" style="padding: 2px 4px;">
                                  <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'petitDej', -1)"><i class="fas fa-minus" style="font-size: 0.7rem;"></i></button>
@@ -3350,14 +3515,38 @@
                             </div>
                         </div>
 
+                        <!-- Collation Matin -->
+                        <div class="meal-option-row" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px dashed #eee;">
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Collation matin <span id="day-${i}-colM-price-tag" style="font-weight: 400; opacity: 0.6; font-size: 0.8rem;">(5€ ${currentMode === 'pro' ? 'HT' : ''})</span></span>
+                            </div>
+                            <div class="number-input-wrapper" style="padding: 2px 4px;">
+                                 <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'collationMatin', -1)"><i class="fas fa-minus" style="font-size: 0.7rem;"></i></button>
+                                 <input type="number" class="meal-input-collationMatin" id="meal-${i}-collationMatin" value="0" min="0" onchange="updateCalculations()" style="width: 35px; font-size: 0.95rem;">
+                                 <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'collationMatin', 1)"><i class="fas fa-plus" style="font-size: 0.7rem;"></i></button>
+                            </div>
+                        </div>
+
                         <div class="meal-option-row" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
                             <div style="display: flex; flex-direction: column;">
-                                <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Déjeuner <span style="font-weight: 400; opacity: 0.6; font-size: 0.8rem;">(25€ ${currentMode === 'pro' ? 'HT' : ''})</span></span>
+                                <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Déjeuner <span style="font-weight: 400; opacity: 0.6; font-size: 0.8rem;">(26€ ${currentMode === 'pro' ? 'HT' : ''})</span></span>
                             </div>
                             <div class="number-input-wrapper" style="padding: 2px 4px;">
                                  <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'dejeuner', -1)"><i class="fas fa-minus" style="font-size: 0.7rem;"></i></button>
                                  <input type="number" class="meal-input-dejeuner" id="meal-${i}-dejeuner" value="0" min="0" onchange="updateCalculations()" style="width: 35px; font-size: 0.95rem;">
                                  <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'dejeuner', 1)"><i class="fas fa-plus" style="font-size: 0.7rem;"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Collation Après-midi -->
+                        <div class="meal-option-row" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px dashed #eee;">
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Collation après-midi <span id="day-${i}-colA-price-tag" style="font-weight: 400; opacity: 0.6; font-size: 0.8rem;">(5€ ${currentMode === 'pro' ? 'HT' : ''})</span></span>
+                            </div>
+                            <div class="number-input-wrapper" style="padding: 2px 4px;">
+                                 <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'collationAprem', -1)"><i class="fas fa-minus" style="font-size: 0.7rem;"></i></button>
+                                 <input type="number" class="meal-input-collationAprem" id="meal-${i}-collationAprem" value="0" min="0" onchange="updateCalculations()" style="width: 35px; font-size: 0.95rem;">
+                                 <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'collationAprem', 1)"><i class="fas fa-plus" style="font-size: 0.7rem;"></i></button>
                             </div>
                         </div>
 
@@ -3372,40 +3561,6 @@
                                 <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'diner', 1)"><i class="fas fa-plus" style="font-size: 0.7rem;"></i></button>
                             </div>
                         </div>` : ''}
-
-                        ${isPension ? `
-                        <div class="meal-option-row" style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px dashed #eee;">
-                            <div style="display: flex; flex-direction: column;">
-                                <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Pauses gourmandes</span>
-                                <span style="font-size: 0.8rem; color: #666;">Incluses : 2 / jour • ${totalVisitors} participants</span>
-                            </div>
-                            <div style="display: none; align-items: center; gap: 10px;">
-                                 <input type="hidden" class="meal-input-collationMatin" id="meal-${i}-collationMatin" value="${totalVisitors}">
-                                 <input type="hidden" class="meal-input-collationAprem" id="meal-${i}-collationAprem" value="${totalVisitors}">
-                            </div>
-                        </div>
-                        ` : `
-                        <div class="meal-option-row" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px dashed #eee;">
-                            <div style="display: flex; flex-direction: column;">
-                                <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Collation matin</span>
-                            </div>
-                            <div class="number-input-wrapper" style="padding: 2px 4px;">
-                                <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'collationMatin', -1)"><i class="fas fa-minus" style="font-size: 0.7rem;"></i></button>
-                                <input type="number" class="meal-input-collationMatin" id="meal-${i}-collationMatin" value="0" min="0" onchange="updateCalculations()" style="width: 35px; font-size: 0.95rem;">
-                                <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'collationMatin', 1)"><i class="fas fa-plus" style="font-size: 0.7rem;"></i></button>
-                            </div>
-                        </div>
-                        <div class="meal-option-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <div style="display: flex; flex-direction: column;">
-                                <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Collation après-midi</span>
-                            </div>
-                            <div class="number-input-wrapper" style="padding: 2px 4px;">
-                                <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'collationAprem', -1)"><i class="fas fa-minus" style="font-size: 0.7rem;"></i></button>
-                                <input type="number" class="meal-input-collationAprem" id="meal-${i}-collationAprem" value="0" min="0" onchange="updateCalculations()" style="width: 35px; font-size: 0.95rem;">
-                                <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'collationAprem', 1)"><i class="fas fa-plus" style="font-size: 0.7rem;"></i></button>
-                            </div>
-                        </div>
-                        `}
 
                         <div id="day-${i}-total" style="margin-top: 15px; padding-top: 12px; border-top: 2px solid #f8f8f8; display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-size: 0.85rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em;">Total du jour</span>
@@ -3812,6 +3967,22 @@
             let html = '';
             const available = isRangeAvailable(startDate, endDate);
 
+            // MISE À JOUR DYNAMIQUE DES BADGES DE PRIX (AVANT LE BLOC DE CALCUL TOTAL)
+            if (currentMode === 'pro') {
+                const indicativeNights = Math.max(1, nights);
+                const pricing = getPricing('SALLE_TRAVAIL_SEMINAIRE', totalVisitors, indicativeNights);
+                const price = (pricing && pricing.priceHT) ? pricing.priceHT : 500;
+
+                const badge = document.getElementById('salle-price-badge');
+                if (badge) {
+                    const oldText = badge.innerText;
+                    badge.innerText = `${price}€ HT / jour`;
+                    if (oldText !== badge.innerText) {
+                        console.log(`[UI] Mise à jour prix salle: ${price}€ (NbPers: ${totalVisitors}, Nights: ${indicativeNights})`);
+                    }
+                }
+            }
+
             if (totalVisitors > 0 && nights >= 1) {
                 const getHT = (code, p = null, n = null, fallback = 0) => {
                     const price = getPriceHT(code, p, n);
@@ -3860,49 +4031,28 @@
                     document.querySelectorAll('.meal-input-collationMatin').forEach(inp => countCollation += parseInt(inp.value) || 0);
                     document.querySelectorAll('.meal-input-collationAprem').forEach(inp => countCollation += parseInt(inp.value) || 0);
 
-                    // Calcul spécifique PRO Pension complète (Forfait - Déductions)
+                    // Calcul spécifique PRO Pension complète (Forfait Packé avec remise déduite)
                     if (modeIsPro && mealMode === 'pension') {
+                        repasCost = 0;
                         const totalDays = nights + 1;
-                        const basePensionHT = 70; // Forfait de base
-                        const pricePDJ = 12;
-                        const priceDEJ = 25;
-                        const priceDINER = 30;
 
-                        // On commence par le forfait plein
-                        repasCost = totalVisitors * totalDays * basePensionHT;
+                        for (let i = 0; i < totalDays; i++) {
+                            const pVal = parseInt(document.getElementById(`meal-${i}-petitDej`)?.value) || 0;
+                            const dVal = parseInt(document.getElementById(`meal-${i}-dejeuner`)?.value) || 0;
+                            const dinEl = document.getElementById(`meal-${i}-diner`);
+                            const dinVal = dinEl ? (parseInt(dinEl.value) || 0) : 0;
+                            const colMVal = parseInt(document.getElementById(`meal-${i}-collationMatin`)?.value) || 0;
+                            const colAVal = parseInt(document.getElementById(`meal-${i}-collationAprem`)?.value) || 0;
 
-                        // On déduit les repas manquants par rapport au nombre total de participants
-                        for (let i = 0; i <= nights; i++) {
-                            const pId = `meal-${i}-petitDej`;
-                            const dId = `meal-${i}-dejeuner`;
-                            const dinId = `meal-${i}-diner`;
+                            const eligible = Math.min(pVal, dVal, dinVal);
+                            let dayCost = (pVal * 14) + (dVal * 26) + (dinVal * 30) + (colMVal * 5) + (colAVal * 5);
+                            dayCost -= (eligible * 10);
 
-                            const pVal = document.getElementById(pId) ? (parseInt(document.getElementById(pId).value) || 0) : 0;
-                            const dVal = document.getElementById(dId) ? (parseInt(document.getElementById(dId).value) || 0) : 0;
-                            const dinVal = document.getElementById(dinId) ? (parseInt(document.getElementById(dinId).value) || 0) : 0;
-
-                            repasCost -= (totalVisitors - pVal) * pricePDJ;
-                            repasCost -= (totalVisitors - dVal) * priceDEJ;
-
-                            // Pour le dîner, on vérifie si l'élément existe (pas de dîner le dernier jour en standard)
-                            if (document.getElementById(dinId)) {
-                                repasCost -= (totalVisitors - dinVal) * priceDINER;
-                            }
+                            repasCost += dayCost;
                         }
                     } else {
-                        // Calcul classique à la carte
-                        const mealPrefix = modeIsPro ? 'REPAS_SEMINAIRE' : 'REPAS_PERSO';
-                        const pricePetitDej = getHT(`${mealPrefix}_PDJ`, totalVisitors, nights, PRICES.petitDej);
-                        const priceDejeuner = getHT(`${mealPrefix}_DEJ`, totalVisitors, nights, PRICES.dejeuner);
-                        const priceDiner = getHT(`${mealPrefix}_DINER`, totalVisitors, nights, PRICES.diner);
-                        const priceCollation = getHT(`${mealPrefix}_COLLATION`, totalVisitors, nights, PRICES.pauseCafe);
-
-                        repasCost = Math.round(
-                            (countPtDej * pricePetitDej) +
-                            (countDejeuner * priceDejeuner) +
-                            (countDiner * priceDiner) +
-                            (countCollation * priceCollation)
-                        );
+                        // Mode classique : Somme simple des repas + collations (14/26/30 + 5)
+                        repasCost = (countPtDej * 14) + (countDejeuner * 26) + (countDiner * 30) + (countCollation * 5);
                     }
                 }
                 total += repasCost;
@@ -4015,20 +4165,32 @@
                 }
 
                 let roomDisplayHtml = '';
-                if (currentMode === 'pro' && document.getElementById('salleReunion').checked) {
-                    const sallePricing = getPricing('SALLE_SEMINAIRE_TRAVAIL', totalVisitors, nights);
-                    const sallePrice = getHT('SALLE_SEMINAIRE_TRAVAIL', totalVisitors, nights, 500);
+                // On récupère le prix dynamique pour l'afficher dans le badge, même si non coché
+                // La logique de badge est maintenant centralisée dans le bloc 'pro' ci-dessous.
 
+                if (currentMode === 'pro') {
+                    // On récupère le prix dynamique pour le calcul réel
+                    let pricing = getPricing('SALLE_TRAVAIL_SEMINAIRE', totalVisitors, nights);
+                    if (!pricing || pricing.source === 'backup') {
+                        const legacy = getPricing('SALLE_SEMINAIRE_TRAVAIL', totalVisitors, nights);
+                        if (legacy && legacy.source !== 'backup') pricing = legacy;
+                    }
+                    const realPrice = (pricing && pricing.priceHT) ? pricing.priceHT : 500;
+                    console.log(`[DEBUG] Salle de réunion - Prix réel calculé: ${realPrice}€ HT`);
+
+                    // On s'assure que le badge est aussi à jour ici (sécurité)
                     const badge = document.getElementById('salle-price-badge');
-                    if (badge) badge.innerText = `${sallePrice}€ HT / jour`;
+                    if (badge) badge.innerText = `${realPrice}€ HT / jour`;
 
-                    const billDays = Math.max(1, nights);
-                    const isPerDay = !!(sallePricing && typeof sallePricing.unit === 'string' && sallePricing.unit.toLowerCase().includes('jour'));
-                    const salleCost = Math.round(isPerDay ? sallePrice * billDays : sallePrice);
+                    if (document.getElementById('salleReunion').checked) {
+                        const isForfait = pricing && typeof pricing.unit === 'string' && pricing.unit.toLowerCase().includes('forfait');
+                        const billDays = nights;
+                        const salleCost = Math.round(isForfait ? realPrice : realPrice * billDays);
 
-                    optionsCost += salleCost; total += salleCost;
-                    const roomLabel = isPerDay ? `Salle équipée (${billDays} jour${billDays > 1 ? 's' : ''})` : "Salle équipée (Forfait)";
-                    roomDisplayHtml = `<div style="margin-bottom:15px;"><strong>Location :</strong> ${roomLabel}</div>`;
+                        optionsCost += salleCost; total += salleCost;
+                        const roomLabel = isForfait ? "Salle équipée (Forfait)" : `Salle équipée (${billDays} jours)`;
+                        roomDisplayHtml = `<div style="margin-bottom:15px;"><strong>Location :</strong> ${roomLabel}</div>`;
+                    }
                 }
 
                 if (document.getElementById('lateArrival').checked) {
@@ -4076,15 +4238,19 @@
                 const rangeText = `${minPrice}€ - ${maxPrice}€${htSuffix}`;
                 const perPersText = nights > 0 ? `Env. ${Math.round(total / (totalVisitors * nights))}€${htSuffix} / pers / nuit` : "N/A";
 
-                document.getElementById('totalTTC').innerText = rangeText;
-                document.getElementById('perPersonDisplay').innerText = `Équivalent ${perPersText}`;
+                const totalTTCEl = document.getElementById('totalTTC');
+                if (totalTTCEl) totalTTCEl.innerText = rangeText;
+
+                const perPersonDisplayEl = document.getElementById('perPersonDisplay');
+                if (perPersonDisplayEl) perPersonDisplayEl.innerText = `Équivalent ${perPersText}`;
 
                 // === NOUVELLE CARTE RÉSUMÉ ===
 
                 // Type de séjour
                 const typeCompact = document.getElementById('summary-type-compact');
                 if (typeCompact) {
-                    document.getElementById('summary-type-val').innerText = currentMode === 'pro' ? 'Professionnel' : 'Personnel';
+                    const typeValEl = document.getElementById('summary-type-val');
+                    if (typeValEl) typeValEl.innerText = currentMode === 'pro' ? 'Professionnel' : 'Personnel';
                     typeCompact.style.display = 'block';
                 }
 
@@ -4104,17 +4270,20 @@
                 if (datesCompact && startDate && endDate) {
                     const startStr = startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
                     const endStr = endDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-                    document.getElementById('summary-dates-val').innerText = `${startStr} → ${endStr}`;
+                    const datesValEl = document.getElementById('summary-dates-val');
+                    if (datesValEl) datesValEl.innerText = `${startStr} → ${endStr}`;
                     datesCompact.style.display = 'block';
                 }
 
                 if (nightsCompact && nights > 0) {
-                    document.getElementById('summary-nights-val-compact').innerText = nights;
+                    const nightsValEl = document.getElementById('summary-nights-val-compact');
+                    if (nightsValEl) nightsValEl.innerText = nights;
                     nightsCompact.style.display = 'block';
                 }
 
                 if (participantsCompact && totalVisitors > 0) {
-                    document.getElementById('summary-participants-val').innerText = totalVisitors;
+                    const participantsValEl = document.getElementById('summary-participants-val');
+                    if (participantsValEl) participantsValEl.innerText = totalVisitors;
                     participantsCompact.style.display = 'block';
                 }
 
@@ -4133,7 +4302,8 @@
                         mCount.forEach(i => totalM += parseInt(i.value) || 0);
                         mealStatus = totalM > 0 ? `Traiteur (${totalM} repas)` : "Traiteur (0 repas)";
                     }
-                    document.getElementById('summary-meals-val').innerText = mealStatus;
+                    const mealsValEl = document.getElementById('summary-meals-val');
+                    if (mealsValEl) mealsValEl.innerText = mealStatus;
                     mealsCompact.style.display = 'block';
                 }
 
@@ -4150,20 +4320,30 @@
 
                 if (budgetBlock) {
                     const heroEl = document.getElementById('summary-total-hero');
-                    if (currentMode === 'pro') {
-                        heroEl.innerHTML = `${minPrice}€ - ${maxPrice}€ <span style="font-size: 0.85rem; font-family: sans-serif; opacity: 0.8; font-weight: 600;">HT</span>`;
-                    } else {
-                        heroEl.innerText = rangeText;
+                    if (heroEl) {
+                        if (currentMode === 'pro') {
+                            heroEl.innerHTML = `${minPrice}€ - ${maxPrice}€ <span style="font-size: 0.85rem; font-family: sans-serif; opacity: 0.8; font-weight: 600;">HT</span>`;
+                        } else {
+                            heroEl.innerText = rangeText;
+                        }
                     }
                     const pNuitLine = (totalVisitors > 0 && nights > 0) ? `≈ ${Math.round(total / (totalVisitors * nights))}€${htSuffix} / pers / nuit` : "";
-                    document.getElementById('summary-per-person-line').innerText = pNuitLine;
+                    const perPersonLineEl = document.getElementById('summary-per-person-line');
+                    if (perPersonLineEl) perPersonLineEl.innerText = pNuitLine;
                     budgetBlock.style.display = 'block';
 
                     // Breakdown avec gestion intelligente
-                    document.getElementById('breakdown-hebergement-new').innerText = `${hebergementCost}€${htSuffix}`;
-                    document.getElementById('breakdown-repas-new').innerText = repasCost > 0 ? `${repasCost}€${htSuffix}` : "Non sélectionné";
-                    document.getElementById('breakdown-options-new').innerText = optionsCost > 0 ? `${optionsCost}€${htSuffix}` : "Aucune";
-                    document.getElementById('budget-breakdown-lines').style.display = 'block';
+                    const breakdownH = document.getElementById('breakdown-hebergement-new');
+                    if (breakdownH) breakdownH.innerText = `${hebergementCost}€${htSuffix}`;
+
+                    const breakdownR = document.getElementById('breakdown-repas-new');
+                    if (breakdownR) breakdownR.innerText = repasCost > 0 ? `${repasCost}€${htSuffix}` : "Non sélectionné";
+
+                    const breakdownO = document.getElementById('breakdown-options-new');
+                    if (breakdownO) breakdownO.innerText = optionsCost > 0 ? `${optionsCost}€${htSuffix}` : "Aucune";
+
+                    const breakdownLinesEl = document.getElementById('budget-breakdown-lines');
+                    if (breakdownLinesEl) breakdownLinesEl.style.display = 'block';
                 }
 
                 if (ctaBlock) {
@@ -4181,8 +4361,11 @@
                 if (budgetBlock) budgetBlock.style.display = 'none';
                 if (ctaBlock) ctaBlock.style.display = 'none';
 
-                document.getElementById('cta-quote').innerText = "Veuillez compléter vos choix";
-                document.getElementById('cta-quote').style.background = "#ccc";
+                const ctaQuoteEl = document.getElementById('cta-quote');
+                if (ctaQuoteEl) {
+                    ctaQuoteEl.innerText = "Veuillez compléter vos choix";
+                    ctaQuoteEl.style.background = "#ccc";
+                }
             }
 
             saveDraft();
@@ -4261,8 +4444,9 @@
 
         async function sendQuoteRequest() {
             const btn = document.getElementById('cta-quote');
-            const originalText = btn.innerText;
-            const total = document.getElementById('totalTTC').innerText;
+            const originalText = btn ? btn.innerText : "Demander un devis";
+            const totalEl = document.getElementById('totalTTC');
+            const total = totalEl ? totalEl.innerText : "0€";
             const email = document.getElementById('email').value;
             const firstName = document.getElementById('firstname').value;
             const lastName = document.getElementById('lastname').value;
@@ -4278,6 +4462,110 @@
                 activitiesInfo = `\n\nActivités: ${bookingDraft.activities.type} (Budget: ${bookingDraft.activities.budget}€, Ambiance: ${bookingDraft.activities.ambiance})\nNotes: ${bookingDraft.activities.message}`;
             }
 
+            // --- Capture Meal Details ---
+            let mealInfo = "";
+            const mealMode = getSelectedMealMode();
+
+            let totalPtDej = 0;
+            let totalDejeuner = 0;
+            let totalDiner = 0;
+            let totalPauses = 0;
+
+            if (mealMode === 'libre') {
+                mealInfo = "\nRestauration: Gestion Libre";
+            } else {
+                document.querySelectorAll('.meal-input-petitDej').forEach(inp => totalPtDej += parseInt(inp.value) || 0);
+                document.querySelectorAll('.meal-input-dejeuner').forEach(inp => totalDejeuner += parseInt(inp.value) || 0);
+                document.querySelectorAll('.meal-input-diner').forEach(inp => totalDiner += parseInt(inp.value) || 0);
+
+                let pausesMatin = 0;
+                let pausesAprem = 0;
+                document.querySelectorAll('.meal-input-collationMatin').forEach(inp => pausesMatin += parseInt(inp.value) || 0);
+                document.querySelectorAll('.meal-input-collationAprem').forEach(inp => pausesAprem += parseInt(inp.value) || 0);
+                totalPauses = pausesMatin + pausesAprem;
+
+                const label = mealMode === 'pension' ? 'Pension Complète' : 'Traiteur / À la carte';
+                mealInfo = `\nRestauration: ${label}\n- Petits-déjeuners: ${totalPtDej}\n- Déjeuners: ${totalDejeuner}\n- Dîners: ${totalDiner}\n- Pauses/Collations: ${totalPauses}`;
+
+                const diet = document.getElementById('dietary');
+                if (diet && diet.value) mealInfo += `\nRégimes/Allergies: ${diet.value}`;
+            }
+
+            // --- Récupération des Coûts Détaillés depuis le DOM ---
+            const parseAmount = (id) => {
+                const el = document.getElementById(id);
+                if (!el || !el.innerText || el.innerText.includes('Non') || el.innerText.includes('Aucun')) return 0;
+                // On extrait juste les chiffres pour avoir un nombre pur
+                const matches = el.innerText.match(/[\d.]+/);
+                return matches ? parseFloat(matches[0]) : 0;
+            };
+
+            const amountHebergement = parseAmount('breakdown-hebergement-new');
+            const amountRepas = parseAmount('breakdown-repas-new');
+            const amountOptions = parseAmount('breakdown-options-new');
+
+            // On calcule un total numérique propre pour Airtable
+            const estimatedTotalNumeric = amountHebergement + amountRepas + amountOptions;
+
+            // --- Construction de l'objet Technique JSON complet ---
+            const bookingDetails = {
+                group: {
+                    total: nbTotal,
+                    adult: parseInt(document.getElementById('nbAdult').value) || 0,
+                    child: parseInt(document.getElementById('nbChild').value) || 0,
+                    baby: parseInt(document.getElementById('nbBaby').value) || 0
+                },
+                dates: {
+                    start: startDate ? startDate.toISOString().split('T')[0] : null,
+                    end: endDate ? endDate.toISOString().split('T')[0] : null,
+                    nights: startDate && endDate ? Math.ceil((endDate - startDate) / (86400000)) : 0
+                },
+                sleeping: {
+                    mode: sleepingMode,
+                    indiv: parseInt(document.getElementById('nbIndividuel').value) || 0,
+                    partage: parseInt(document.getElementById('nbPartage').value) || 0,
+                    couple: parseInt(document.getElementById('nbCouple').value) || 0
+                },
+                meals: {
+                    mode: mealMode,
+                    counts: []
+                },
+                options: {
+                    draps: document.getElementById('draps')?.checked || false,
+                    menage: document.getElementById('menage')?.checked || false,
+                    lateArrival: document.getElementById('lateArrival')?.checked || false,
+                    salleReunion: document.getElementById('salleReunion')?.checked || false,
+                    kitSoiree: document.getElementById('kitSoiree')?.checked || false,
+                    activities: bookingDraft.activities || {}
+                }
+            };
+
+            // Capture détaillée des repas jour par jour
+            if (mealMode !== 'libre' && startDate && endDate) {
+                const diffDays = Math.ceil((endDate - startDate) / (86400000));
+                for (let i = 0; i <= diffDays; i++) {
+                    bookingDetails.meals.counts.push({
+                        day: i,
+                        petitDej: parseInt(document.getElementById(`meal-${i}-petitDej`)?.value) || 0,
+                        dejeuner: parseInt(document.getElementById(`meal-${i}-dejeuner`)?.value) || 0,
+                        diner: parseInt(document.getElementById(`meal-${i}-diner`)?.value) || 0,
+                        collationMatin: parseInt(document.getElementById(`meal-${i}-collationMatin`)?.value) || 0,
+                        collationAprem: parseInt(document.getElementById(`meal-${i}-collationAprem`)?.value) || 0
+                    });
+                }
+            }
+
+            // Récupération de la fourchette de budget en texte pour Airtable (Type: Texte court)
+            const budgetRangeText = totalEl ? totalEl.innerText : "0€";
+
+            // Détermination du Type exact (Sélection multiple)
+            let typeSejour = "séjour personnel";
+            if (currentMode === 'pro') {
+                typeSejour = "séminaire professionnel";
+            } else if (nbTotal > 15) {
+                typeSejour = "séjour de groupe";
+            }
+
             const payload = {
                 fields: {
                     "Nom client": `${firstName} ${lastName}`.trim() || "Client Web",
@@ -4286,30 +4574,70 @@
                     "Date arrivée": startDate.toISOString().split('T')[0],
                     "Date départ": endDate.toISOString().split('T')[0],
                     "Nombre de personnes": nbTotal,
-                    "Message": message + activitiesInfo, // On garde Message, tu vas demander à l'IA de le créer
-                    "Type": [currentMode === 'pro' ? 'séminaire professionnel' : 'séjour personnel'],
-                    "Budget estimé": total,
-                    "Statut": ["à traiter"] // On garde 'à traiter', tu vas demander à l'IA de le créer
+
+                    // Détails du Séjour
+                    "Type": [typeSejour],
+                    "Statut": ["à traiter"],
+                    "Budget estimé": budgetRangeText,
+                    "Message": (message + mealInfo + activitiesInfo).trim(),
+
+                    // Hébergement & Options
+                    "Option draps": document.getElementById('draps')?.checked ? "Oui" : "Non",
+                    "Option ménage": document.getElementById('menage')?.checked ? "Oui" : "Non",
+
+                    // Montants Financiers (Devise)
+                    "Montant Hébergement HT": amountHebergement,
+                    "Montant Repas HT": amountRepas,
+                    "Montant Options HT": amountOptions,
+
+                    // Quantités Repas (Entier)
+                    "Repas petit-déj": totalPtDej,
+                    "Repas déjeuner": totalDejeuner,
+                    "Repas dîner": totalDiner,
+                    "Qté Collation": totalPauses,
+
+                    "Détails JSON": JSON.stringify(bookingDetails, null, 2)
                 }
             };
 
             try {
-                btn.disabled = true;
-                btn.innerText = "Envoi en cours...";
-                btn.style.opacity = "0.7";
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerText = "Envoi en cours...";
+                    btn.style.opacity = "0.7";
+                }
 
-                const response = await fetch(API_RESERVATIONS_URL, {
-                    method: 'POST',
+                const method = isEditingMode ? 'PATCH' : 'POST';
+                const endpoint = API_RESERVATIONS_URL;
+
+                if (isEditingMode) payload.id = bookingDraft.id;
+
+                const response = await fetch(endpoint, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) throw new Error("Échec de l'envoi");
+                if (!response.ok) throw new Error(`Échec de l'envoi (${method})`);
+
+                const result = await response.json();
+                const recordId = result.id;
 
                 // Succès
-                btn.style.background = "#27ae60";
-                btn.innerText = "Demande envoyée ! ✓";
-                alert("Merci ! Votre demande d'estimation a bien été reçue. Vous allez recevoir une confirmation par e-mail sous peu.");
+                if (btn) {
+                    btn.style.background = "#27ae60";
+                    btn.innerText = "Demande envoyée ! ✓";
+                }
+
+                // On affiche une proposition de voir le devis éditable
+                if (recordId) {
+                    const confirmOpen = confirm("Merci ! Votre demande a été reçue.\n\nSouhaitez-vous ouvrir l'éditeur de devis pour personnaliser ce document maintenant ?");
+                    if (confirmOpen) {
+                        window.location.href = `DOMAINE_SESQUIER_DEVIS.html?id=${recordId}`;
+                    }
+                } else {
+                    alert("Merci ! Votre demande d'estimation a bien été reçue.");
+                }
 
                 // Optionnel: Reset ou redirection après 3s
                 setTimeout(() => {
@@ -4321,9 +4649,11 @@
 
             } catch (error) {
                 console.error("Erreur envoi devis:", error);
-                btn.disabled = false;
-                btn.innerText = "Erreur - Réessayer";
-                btn.style.background = "#e74c3c";
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "Erreur - Réessayer";
+                    btn.style.background = "#e74c3c";
+                }
                 alert("Une erreur est survenue lors de l'envoi. Veuillez réessayer ou nous contacter directement.");
             }
         }
@@ -4367,7 +4697,15 @@
 
         // Auto-restore + synchro Airtable au chargement
         window.addEventListener('load', async () => {
-            restoreDraft();
+            const urlParams = new URLSearchParams(window.location.search);
+            const recordId = urlParams.get('id');
+
+            if (recordId) {
+                await loadFromAirtable(recordId);
+            } else {
+                restoreDraft();
+            }
+
             renderCalendar();
 
             await Promise.all([

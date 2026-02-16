@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devis Séminaire - Domaine Sesquier</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #3A5538;
+            /* Olive Sourd */
+            --primary-light: #527050;
+            --accent: #9E5D4C;
+            /* Terracotta */
+            --bg-paper: #F9F8F6;
+            /* Sable très clair */
+            --text-main: #2D302A;
+            --text-light: #666;
+            --border: #E5E1D8;
+            --width-a4: 210mm;
+            --height-a4: 297mm;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 0;
+            min-height: 100vh;
+        }
+
+        /* --- UI Controls (Screen Only) --- */
+        .controls-bar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .btn {
+            background: var(--text-main);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+        }
+
+        .btn-accent {
+            background: var(--accent);
+        }
+
+        /* --- A4 Page Structure --- */
+        .page {
+            width: var(--width-a4);
+            min-height: var(--height-a4);
+            background: var(--bg-paper);
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.1);
+            padding: 15mm 15mm;
+            /* Marges d'impression */
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        /* --- Typo & Colors --- */
+        h1,
+        h2,
+        h3,
+        .serif {
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        .text-accent {
+            color: var(--accent);
+        }
+
+        .text-primary {
+            color: var(--primary);
+        }
+
+        /* --- Editable Fields Styling --- */
+        [contenteditable="true"] {
+            outline: none;
+            transition: background 0.2s;
+            border-radius: 2px;
+        }
+
+        [contenteditable="true"]:hover {
+            background-color: rgba(58, 85, 56, 0.05);
+            cursor: text;
+        }
+
+        [contenteditable="true"]:focus {
+            background-color: rgba(58, 85, 56, 0.1);
+            border-bottom: 1px solid var(--primary);
+        }
+
+        /* --- Header Section --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+        }
+
+        .brand-col h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+
+        .brand-col .subtitle {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--accent);
+            margin-bottom: 15px;
+        }
+
+        .brand-details {
+            font-size: 9pt;
+            color: var(--text-light);
+            line-height: 1.4;
+        }
+
+        .meta-col {
+            text-align: right;
+        }
+
+        .doc-type {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 10px;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: auto auto;
+            gap: 4px 15px;
+            font-size: 9pt;
+        }
+
+        .meta-label {
+            color: var(--text-light);
+            text-align: right;
+        }
+
+        .meta-value {
+            font-weight: 600;
+            text-align: right;
+        }
+
+        /* --- Client & Summary Section --- */
+        .info-section {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .info-box {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 15px;
+            flex: 1;
+        }
+
+        .box-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            font-weight: 700;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+        }
+
+        /* Client Info */
+        .client-info {
+            font-size: 10pt;
+            line-height: 1.5;
+            color: var(--text-main);
+        }
+
+        .client-info strong {
+            display: block;
+            font-size: 12pt;
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        /* Snapshot Table */
+        .snapshot-table {
+            width: 100%;
+            font-size: 10pt;
+            border-collapse: collapse;
+        }
+
+        .snapshot-table td {
+            padding: 4px 0;
+            vertical-align: top;
+        }
+
+        .snapshot-key {
+            color: var(--text-light);
+            font-weight: 400;
+            width: 35%;
+        }
+
+        .snapshot-val {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* --- Sleeping Distribution (Editable) --- */
+        .sleeping-section {
+            margin-bottom: 25px;
+        }
+
+        .sleeping-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+            border: 1px solid var(--border);
+        }
+
+        .sleeping-table th {
+            background: rgba(58, 85, 56, 0.05);
+            color: var(--primary);
+            text-align: left;
+            padding: 8px;
+            font-weight: 600;
+            font-size: 8pt;
+            text-transform: uppercase;
+        }
+
+        .sleeping-table td {
+            border-bottom: 1px solid var(--border);
+            padding: 8px;
+        }
+
+        .sleeping-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* --- Pricing Table --- */
+        .pricing-section {
+            margin-bottom: 20px;
+        }
+
+        .pricing-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+        }
+
+        .pricing-table th {
+            text-align: left;
+            padding: 10px 5px;
+            border-bottom: 2px solid var(--primary);
+            color: var(--primary);
+            font-size: 8pt;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .pricing-table td {
+            padding: 8px 5px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+
+        /* Category Row */
+        .category-row td {
+            background-color: rgba(158, 93, 76, 0.08);
+            /* Light Terracotta */
+            color: var(--accent);
+            font-weight: 700;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 11pt;
+            padding-top: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--accent);
+        }
+
+        .col-detail {
+            width: 50%;
+        }
+
+        .col-qty {
+            width: 8%;
+            text-align: center;
+        }
+
+        .col-price {
+            width: 12%;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .col-total {
+            width: 15%;
+            text-align: right;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .col-tva {
+            width: 8%;
+            text-align: right;
+            font-size: 8pt;
+            color: #999;
+        }
+
+        /* --- Totals & Conditions (New Vertical Layout) --- */
+        .bottom-section {
+            display: flex;
+            flex-direction: column;
+            margin-top: 10px;
+            page-break-inside: avoid;
+        }
+
+        /* Totals First */
+        .totals-col {
+            width: 100%;
+            /* Pleine largeur */
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 15px 25px;
+            margin-bottom: 30px;
+            /* Espace avant les conditions */
+            align-self: flex-end;
+            /* Si dans un container flex column */
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: flex-end;
+            /* Alignement droite */
+            gap: 40px;
+            /* Espace entre Label et Valeur */
+            margin-bottom: 8px;
+            font-size: 10pt;
+        }
+
+        .total-row span:first-child {
+            /* Label */
+            font-weight: 500;
+            color: var(--text-light);
+            text-align: right;
+            min-width: 150px;
+        }
+
+        .total-row span:last-child {
+            /* Value */
+            font-weight: 600;
+            color: var(--text-main);
+            width: 100px;
+            text-align: right;
+        }
+
+        .total-row.final {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px solid var(--primary);
+            font-size: 14pt;
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* Conditions Below */
+        .conditions-col {
+            width: 100%;
+            font-size: 8pt;
+            color: var(--text-light);
+            padding-right: 0;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
+
+        .conditions-col h4 {
+            font-size: 10pt;
+            color: var(--primary);
+            margin-bottom: 8px;
+            border-bottom: none;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+        }
+
+        .cond-list {
+            list-style: none;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        /* --- Signature --- */
+        .signature-section {
+            margin-top: 30px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            page-break-inside: avoid;
+        }
+
+        .sig-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .sig-box-title {
+            font-size: 9pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 40px;
+            color: var(--text-main);
+        }
+
+        .sig-line {
+            border-bottom: 1px dotted #ccc;
+            margin-bottom: 5px;
+        }
+
+        /* --- Print Tweaks --- */
+        .page-break {
+            page-break-before: always;
+            break-before: page;
+            margin-top: 2rem;
+            display: block;
+            height: 1px;
+        }
+
+        .no-break {
+            page-break-inside: avoid;
+            break-inside: avoid;
+            margin-top: 20px;
+        }
+
+        tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        /* Hidden on screen, visible on print */
+        .print-only {
+            display: none;
+        }
+
+        @media print {
+            @page {
+                margin: 12mm;
+                size: A4;
+            }
+
+            body {
+                background: none;
+                padding: 0;
+                margin: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .controls-bar {
+                display: none;
+            }
+
+            .page {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                min-height: auto;
+                border: none;
+                padding: 0;
+                /* Let @page handle margins */
+            }
+
+            .print-only {
+                display: block;
+            }
+
+            /* Page 2 Header */
+            .print-header-p2 {
+                display: flex;
+                justify-content: space-between;
+                border-bottom: 2px solid var(--primary);
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+                padding-top: 20px;
+                /* Space after break */
+            }
+
+            .print-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                text-align: center;
+                font-size: 8pt;
+                color: #999;
+                border-top: 1px solid #eee;
+                padding-top: 8px;
+                background: white;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Controls -->
+    <div class="controls-bar no-print">
+        <button class="btn" onclick="saveToAirtable()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            Enregistrer (Airtable)
+        </button>
+        <button class="btn btn-primary" onclick="window.print()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            Imprimer / PDF
+        </button>
+    </div>
+
+    <!-- Page A4 -->
+    <div class="page" id="devis-content">
+
+        <!-- A. Header -->
+        <header>
+            <div class="brand-col">
+                <h1>Domaine Sesquier</h1>
+                <div class="subtitle">Esprit de famille & Art de vivre</div>
+                <div class="brand-details">
+                    4, plan du sesquier, 34140 Mèze<br>
+                    Tél : +33 7 68 77 85 27<br>
+                    Email : contact@domainesesquier.com<br>
+                    <strong>OZZA SASU</strong> — SIRET : 903 246 478 00015
+                </div>
+            </div>
+            <div class="meta-col">
+                <div class="doc-type">DEVIS</div>
+                <div class="meta-grid">
+                    <div class="meta-label">Numéro :</div>
+                    <div class="meta-value" contenteditable="true" id="devis-number">2026-02-XXX</div>
+
+                    <div class="meta-label">Date :</div>
+                    <div class="meta-value" contenteditable="true" id="today-date">--/--/----</div>
+
+                    <div class="meta-label">Validité :</div>
+                    <div class="meta-value" contenteditable="true">15 jours</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- B. & C. Client & Summary -->
+        <section class="info-section">
+            <div class="info-box">
+                <div class="box-title">Client / Entreprise</div>
+                <div class="client-info" contenteditable="true">
+                    Chargement...
+                </div>
+            </div>
+
+            <div class="info-box">
+                <div class="box-title">Résumé du Séjour</div>
+                <table class="snapshot-table">
+                    <tr>
+                        <td class="snapshot-key">Type :</td>
+                        <td class="snapshot-val" contenteditable="true">...</td>
+                    </tr>
+                    <tr>
+                        <td class="snapshot-key">Dates :</td>
+                        <td class="snapshot-val" contenteditable="true">...</td>
+                    </tr>
+                    <tr>
+                        <td class="snapshot-key">Durée :</td>
+                        <td class="snapshot-val" contenteditable="true">...</td>
+                    </tr>
+                    <tr>
+                        <td class="snapshot-key">Participants :</td>
+                        <td class="snapshot-val" contenteditable="true">...</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+
+
+        <!-- E. Pricing Table -->
+        <section class="pricing-section">
+            <h2 class="serif"
+                style="color: var(--primary); font-size: 18pt; margin-bottom: 5px; border-bottom: 1px solid var(--border); padding-bottom: 5px;">
+                Proposition de séminaire</h2>
+            <div id="stay-synthesis"
+                style="font-size: 11pt; font-weight: 500; color: var(--text-main); margin-bottom: 20px;">
+                <!-- Dynamiquement rempli par JS -->
+            </div>
+
+            <table class="pricing-table">
+                <thead>
+                    <tr>
+                        <th class="col-detail">Description des Prestations</th>
+                        <th class="col-qty">Qté</th>
+                        <th class="col-price">PU HT (€)</th>
+                        <th class="col-tva">TVA</th>
+                        <th class="col-total">Total HT</th>
+                        <th class="no-print" style="width: 40px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="pricing-body">
+                    <!-- Dynamic Rows Here -->
+                </tbody>
+            </table>
+
+        </section>
+
+        <div class="print-footer"
+            style="position: absolute; bottom: 15mm; width: calc(100% - 30mm); font-size: 8pt; color: #999;">
+            Domaine Sesquier — <span class="devis-num-footer">2026-02-XXX</span> — Page 1/2
+        </div>
+    </div>
+
+    <!-- Page 2 -->
+    <div class="page" id="page2">
+        <div class="print-header-p2">
+            <div>
+                <span class="serif" style="font-size: 14pt; font-weight: 700; color: var(--primary);">Domaine
+                    Sesquier</span>
+                <span
+                    style="font-size: 9pt; color: var(--accent); margin-left: 10px; text-transform: uppercase; letter-spacing: 0.1em;">Suite
+                    du Devis</span>
+            </div>
+            <div style="font-size: 9pt; text-align: right;">
+                <div style="font-weight: 600;" class="devis-num-footer">N° 2026-02-XXX</div>
+                <div style="color: #666;" class="devis-date-footer">Date : --/--/----</div>
+            </div>
+
+            <!-- Activités & Loisirs (Style Sous-section) -->
+            <section id="activities-proposal" style="margin-bottom: 25px;">
+                <div
+                    style="background-color: rgba(158, 93, 76, 0.08); color: var(--accent); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 11pt; padding: 8px 15px; border-bottom: 1px solid var(--accent); margin-bottom: 10px;">
+                    Activités & Loisirs (sur devis)
+                </div>
+
+                <table class="pricing-table" style="width: 100%; margin-bottom: 5px;">
+                    <tbody id="activities-body">
+                        <!-- Rempli par JS -->
+                    </tbody>
+                </table>
+
+                <div
+                    style="margin-top: 15px; font-size: 8.5pt; color: #666; border-top: 1px dashed #ddd; padding-top: 10px; padding-left: 5px;">
+                    • Tarifs variables selon prestataire / saison / effectif<br>
+                    • Réservation confirmée après validation de disponibilité
+                </div>
+            </section>
+
+            <section class="bottom-section no-break">
+                <div class="totals-col">
+                    <div class="total-row"><span>Total HT</span><span id="display-total-ht">0,00 €</span></div>
+                    <div class="total-row"><span>TVA (estimée)</span><span id="display-total-tva">0,00 €</span></div>
+                    <div class="total-row"
+                        style="color: var(--accent); margin-top: 5px; border-top: 1px dashed #ddd; padding-top: 5px;">
+                        <span contenteditable="true">Acompte à régler (30%)</span>
+                        <span id="display-deposit" style="font-weight: 600;">0,00 €</span>
+                    </div>
+                    <div class="total-row final"><span>NET À PAYER TTC</span><span id="display-total-ttc">0,00 €</span>
+                    </div>
+
+
+                    <!-- Synthèse Prix Global -->
+                    <div id="price-synthesis"
+                        style="margin-top: 20px; text-align: right; border-top: 1px dashed var(--border); padding-top: 15px; font-size: 9pt; line-height: 1.6;">
+                        <div id="price-total-summary" style="font-weight: 600; color: var(--text-main);">
+                            <!-- "Montant total du séjour : XXX € HT (XXX € TTC)" -->
+                        </div>
+                        <div id="price-per-person" style="color: var(--primary); font-weight: 500; font-size: 8.5pt;">
+                            <!-- "Soit XXX € HT / personne" -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="conditions-col">
+                    <h4>Conditions & Modalités</h4>
+                    <ul class="cond-list">
+                        <li contenteditable="true"><strong>Validité du devis :</strong> 30 jours à compter de sa date
+                            d'émission.</li>
+                        <li contenteditable="true"><strong>Conditions de règlement :</strong> Acompte de 30% à régler
+                            lors
+                            de la signature pour confirmer la réservation. Le solde est à régler au plus tard le jour de
+                            l'arrivée par virement bancaire.</li>
+                        <li contenteditable="true"><strong>Conditions d'annulation :</strong> L'acompte de 30% est
+                            conservé
+                            pour toute annulation. Entre 29 et 15 jours : 50% dû. Entre 14 et 8 jours : 75% dû. À 7
+                            jours ou
+                            moins : 100% dû.</li>
+                        <li contenteditable="true"><strong>Restauration :</strong> Allergies et régimes spécifiques à
+                            communiquer au plus tard à J-7. Horaires des repas adaptables selon vos besoins.</li>
+                        <li contenteditable="true"><strong>Logiciel & Accès :</strong> Hébergements disponibles dès
+                            16h00
+                            (arrivée) et libérés avant 11h00 (départ), sauf accord spécifique.</li>
+                    </ul>
+                    <div style="font-size: 7.5pt; color: #999; line-height: 1.3; margin-top: 15px;">
+                        <strong>OZZA SASU</strong> — SIRET 903 246 478 00015 — MÈZE<br>
+                        BNP PARIBAS — <strong>IBAN : FR76 3000 4006 4000 0107 8926 886</strong> — BIC : BNPAFRPPXXX
+                    </div>
+                </div>
+            </section>
+
+            <section class="signature-section no-break">
+                <div class="sig-grid">
+                    <div>
+                        <div class="sig-box-title">Pour le Client</div>
+                        <div style="font-size: 9pt;">Date : <span contenteditable="true">__/__/____</span><br>Signature
+                            :
+                        </div>
+                    </div>
+                    <div>
+                        <div class="sig-box-title">Pour le Domaine Sesquier</div>
+                        <div style="font-size: 9pt;">Noureddine Smali, Gérant</div>
+                    </div>
+                </div>
+            </section>
+
+
+
+            <div class="print-footer"
+                style="position: absolute; bottom: 15mm; width: calc(100% - 30mm); font-size: 8pt; color: #999;">
+                Domaine Sesquier — <span class="devis-num-footer">2026-02-XXX</span> — Page 2/2
+            </div>
+        </div>
+
+        <script>
+            const API_BASE = 'https://domainesesquier-api.domainesesquier.workers.dev';
+            const API_RESERVATIONS_URL = `${API_BASE}/api/reservations`;
+
+            let currentRecord = null;
+            const urlParams = new URLSearchParams(window.location.search);
+            let currentRequestId = urlParams.get('id');
+
+            // Init UI
+            document.getElementById('today-date').innerText = new Date().toLocaleDateString('fr-FR');
+            document.querySelectorAll('.devis-date-footer').forEach(el => el.innerText = "Date : " + new Date().toLocaleDateString('fr-FR'));
+
+            if (currentRequestId) {
+                loadReservationData(currentRequestId);
+            } else {
+                document.querySelector('.client-info').innerHTML = "<span style='color: var(--accent); font-weight: 600;'>⚠ Aucun ID de réservation n'a été fourni dans l'adresse (URL).</span><br>Veuillez passer par le configurateur pour générer un devis.";
+            }
+
+            async function loadReservationData(id) {
+                try {
+                    console.log("Fetching ID:", id);
+                    const response = await fetch(`${API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Erreur API (${response.status}) : ${errorText || "Impossible de récupérer les données"}`);
+                    }
+                    const data = await response.json();
+
+                    // L'API peut renvoyer soit {records: [record]}, soit le record directement
+                    currentRecord = data.records ? data.records[0] : data;
+
+                    if (!currentRecord || !currentRecord.fields) {
+                        throw new Error("Aucune donnée trouvée pour cette réservation.");
+                    }
+
+                    populateDevis(currentRecord.fields);
+                } catch (err) {
+                    console.error("Erreur de chargement:", err);
+                    alert("Erreur lors du chargement : " + err.message);
+                }
+            }
+
+            function populateDevis(fields) {
+                if (!fields) return;
+
+                // Number & Footer
+                const num = (fields["Numéro Devis"] || fields["ID"] || currentRequestId || "").toString().slice(-6).toUpperCase();
+                document.getElementById('devis-number').innerText = `2026-02-${num}`;
+                document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `2026-02-${num}`);
+
+                // Client
+                const clientInfoEl = document.querySelector('.client-info');
+                if (clientInfoEl) {
+                    clientInfoEl.innerHTML = `
+                    <strong>${fields["Nom client"] || "Client"}</strong><br>
+                    ${fields["Téléphone"] ? "Tél : " + fields["Téléphone"] + "<br>" : ""}
+                    Email : ${fields["Email"] || "N/A"}
+                `;
+                }
+
+                // Summary
+                const rows = document.querySelectorAll('.snapshot-table tr');
+                if (rows.length >= 4) {
+                    if (rows[0] && rows[0].querySelector('.snapshot-val')) rows[0].querySelector('.snapshot-val').innerText = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
+                    if (rows[1] && rows[1].querySelector('.snapshot-val')) {
+                        const dArr = fields["Date arrivée"] ? new Date(fields["Date arrivée"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : "?";
+                        const dDep = fields["Date départ"] ? new Date(fields["Date départ"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : "?";
+                        rows[1].querySelector('.snapshot-val').innerText = `${dArr} → ${dDep}`;
+                    }
+                    if (rows[2] && rows[2].querySelector('.snapshot-val')) rows[2].querySelector('.snapshot-val').innerText = `${fields["Nuits"] || "?"} Nuits`;
+                    if (rows[3] && rows[3].querySelector('.snapshot-val')) rows[3].querySelector('.snapshot-val').innerText = `${fields["Nombre de personnes"] || 0} personnes`;
+                }
+
+                // Sleeping
+                const capEl = document.getElementById('capacity-summary');
+                if (capEl) capEl.innerText = `${fields["Nombre de personnes"] || 0} participants`;
+
+                // Pricing Table
+                const tbody = document.getElementById('pricing-body');
+                tbody.innerHTML = '';
+
+                // 1. Accommodation
+                addCategoryRow("Hébergement");
+
+                let nbNights = fields["Nuits"] || 1;
+                let hasSleepingDetails = false;
+
+                try {
+                    if (fields["Détails JSON"]) {
+                        const details = JSON.parse(fields["Détails JSON"]);
+                        if (details.sleeping && details.sleeping.details) {
+                            hasSleepingDetails = true;
+                            const d = details.sleeping.details;
+
+                            // Twin
+                            if (d.twinCount > 0) {
+                                const twinLabel = `Chambre twin - ${d.twinCount * 2} personnes - ${nbNights} nuits`;
+                                const twinPrice = d.twinPrice * nbNights;
+                                addPricingRow(twinLabel, d.twinCount, twinPrice, "10%");
+                            }
+                            // Solo
+                            if (d.soloCount > 0) {
+                                const soloLabel = `Chambre individuelle - ${d.soloCount} personnes - ${nbNights} nuits`;
+                                const soloPrice = d.soloPrice * nbNights;
+                                addPricingRow(soloLabel, d.soloCount, soloPrice, "10%");
+                            }
+                        }
+                    }
+                } catch (e) { console.error("Err sleep details:", e); }
+
+                if (!hasSleepingDetails) {
+                    let sleepingLabel = "Mise à disposition du domaine & chambres";
+                    let nbPers = fields["Nombre de personnes"] || 0;
+                    let totalHeberg = fields["Montant Hébergement HT"] || 0;
+                    let unitPrice = nbPers > 0 ? (totalHeberg / nbPers) : totalHeberg;
+                    addPricingRow(sleepingLabel, nbPers, unitPrice, "10%");
+                }
+
+                if (fields["Option ménage"] === "Oui") addPricingRow("Forfait Ménage fin de séjour", 1, 150, "20%");
+                addSubtotalRow("Hébergement", "subtotal-hebergement");
+
+                // 2. Catering
+                let isPension = false;
+                try {
+                    if (fields["Détails JSON"]) {
+                        const details = JSON.parse(fields["Détails JSON"]);
+                        isPension = (details.meals?.mode === 'pension');
+                    }
+                } catch (e) { }
+
+                if (fields["Montant Repas HT"] > 0 || isPension) {
+                    addCategoryRow("Restauration");
+
+                    // New logic for Pauses & Collations
+                    let qtyMatin = 0;
+                    let qtyAprem = 0;
+                    let totalEligible = 0;
+                    try {
+                        if (fields["Détails JSON"]) {
+                            const details = JSON.parse(fields["Détails JSON"]);
+                            if (details.meals && details.meals.counts) {
+                                details.meals.counts.forEach(c => {
+                                    // Handle both old and new format
+                                    if (c.collationMatin !== undefined) qtyMatin += c.collationMatin || 0;
+                                    else if (c.collation !== undefined) qtyMatin += (c.collation / 2); // Split old single field
+
+                                    if (c.collationAprem !== undefined) qtyAprem += c.collationAprem || 0;
+                                    else if (c.collation !== undefined) qtyAprem += (c.collation / 2);
+
+                                    // NEW: Eligible for discount = MIN(PetitDej, Déj, Dîner)
+                                    const p = c.petitDej || 0;
+                                    const d = c.dejeuner || 0;
+                                    const din = c.diner || 0;
+                                    totalEligible += Math.min(p, d, din);
+                                });
+                            }
+                        }
+                    } catch (e) { }
+
+                    // Fallback to defaults if nothing found
+                    const nights = fields["Nuits"] || 0;
+                    const days = nights + 1;
+                    if (qtyMatin === 0 && qtyAprem === 0) {
+                        qtyMatin = nbPers * (nights + 1);
+                        qtyAprem = nbPers * (nights + 1);
+                    }
+
+                    // Logic: totalEligible cannot exceed the absolute minimum of the 3 meal types
+                    const pTotal = fields["Repas petit-déj"] || 0;
+                    const dTotal = fields["Repas déjeuner"] || 0;
+                    const diTotal = fields["Repas dîner"] || 0;
+                    const logicalMax = Math.min(pTotal, dTotal, diTotal);
+
+                    if (totalEligible === 0 && isPension) totalEligible = logicalMax;
+                    else totalEligible = Math.min(totalEligible, logicalMax);
+
+                    if (fields["Repas petit-déj"] > 0) {
+                        addPricingRow("Petits-déjeuners - 14€ ht", fields["Repas petit-déj"], 14, "10%");
+                    }
+
+                    if (qtyMatin > 0) {
+                        addPricingRow(`Collation matin - 5€ ht<br><small style='color: #666; font-size: 8pt; font-weight: 400;'>Boissons chaudes & viennoiseries</small>`, qtyMatin, 5, "10%");
+                    }
+
+                    if (fields["Repas déjeuner"] > 0) {
+                        addPricingRow("Déjeuners - 26€ ht", fields["Repas déjeuner"], 26, "10%");
+                    }
+
+                    if (qtyAprem > 0) {
+                        addPricingRow(`Collation après-midi - 5€ ht<br><small style='color: #666; font-size: 8pt; font-weight: 400;'>Boissons fraîches & buffet de douceurs</small>`, qtyAprem, 5, "10%");
+                    }
+
+                    if (fields["Repas dîner"] > 0) {
+                        addPricingRow("Dîners - 30€ ht", fields["Repas dîner"], 30, "10%");
+                    }
+
+                    if (isPension && totalEligible > 0) {
+                        addPricingRow("<span style='color: var(--accent); font-weight: 600;'>Remise forfait pension complète</span><br><small style='color: #666; font-size: 8pt;'>Optimisation tarifaire (Pack 70€)</small>", totalEligible, -10.00, "10%");
+                    }
+
+                    addSubtotalRow("Restauration", "subtotal-restauration");
+                }
+
+                // --- NOUVEAU : Synthèse Narrative ---
+                try {
+                    const nights = fields["Nuits"] || 0;
+                    const days = nights + 1;
+                    const nbPers = fields["Nombre de personnes"] || 0;
+                    let mealLabel = "Restauration à la carte";
+                    if (isPension) mealLabel = "Pension Complète";
+                    else {
+                        // Vérification via JSON si autre mode
+                        const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
+                        if (details.meals?.mode === 'demi') mealLabel = "Demi-pension";
+                        else if (details.meals?.mode === 'libre') mealLabel = "Gestion libre";
+                    }
+
+                    const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
+                    const synthesisText = `${typeLabel} de ${nbPers} personnes — ${days} jours / ${nights} nuits — ${mealLabel}`;
+                    document.getElementById('stay-synthesis').innerText = synthesisText;
+
+                    // --- NOUVEAU : Activités & Loisirs (Tableau dynamique) ---
+                    const activitiesBody = document.getElementById('activities-body');
+                    if (activitiesBody) {
+                        activitiesBody.innerHTML = ''; // Reset
+                        const activeActivities = Object.keys(activities).filter(k => activities[k] === true);
+
+                        if (activeActivities.length > 0) {
+                            const activityMap = {
+                                'huitres': 'Dégustation d’huîtres & vin blanc (Producteur local)',
+                                'bateau': 'Sortie en bateau sur l’Étang de Thau',
+                                'velo': 'Location de vélos & Balade guidée',
+                                'rallye': 'Rallye en 2CV dans l’arrière-pays',
+                                'yoga': 'Séance de Yoga ou Bien-être au Domaine',
+                                'culturel': 'Visite culturelle (Mèze / Sète)'
+                            };
+                            activeActivities.forEach(key => {
+                                const tr = createPricingRow(activityMap[key] || key, 1, 0, "20%");
+                                activitiesBody.appendChild(tr);
+                            });
+                        } else {
+                            activitiesBody.innerHTML = '<tr><td colspan="6" style="padding:15px; color:#999; font-style:italic; text-align:center;">Aucune activité sélectionnée pour le moment.</td></tr>';
+                        }
+                        // Ajout ligne sous-total activités
+                        addSubtotalRow("Activités & Loisirs", "subtotal-activities", "activities-body");
+                    }
+                } catch (e) {
+                    console.error("Erreur synthèse/activités:", e);
+                }
+
+                // 3. Others (Salles & Options)
+                if (fields["Montant Options HT"] > 0) {
+                    addCategoryRow("Options & Salles");
+                    const optionLabel = `
+                    Location Salles & Coordination logistique
+                    <div style="color: #666; font-size: 8.5pt; font-weight: 400; line-height: 1.4; margin-top: 4px;">
+                        • Mise à dispo salle équipée (vidéoprojecteur/paperboard)<br>
+                        • Installation + support technique de base<br>
+                        • Coordination sur site (check-in, logistique, ajustements)
+                    </div>
+                `.trim();
+                    const qtySalles = fields["Nuits"] || 1;
+                    const priceSalle = fields["Montant Options HT"] / qtySalles;
+                    addPricingRow(optionLabel, qtySalles, priceSalle, "20%");
+                    addSubtotalRow("Options", "subtotal-salles");
+                }
+
+                updateCalculations();
+            }
+
+            function addCategoryRow(title) {
+                const tr = document.createElement('tr');
+                tr.className = "category-row no-edit";
+                tr.innerHTML = `<td colspan="6">${title}</td>`;
+                document.getElementById('pricing-body').appendChild(tr);
+            }
+
+            function addPricingRow(label, qty, price, tva) {
+                const tr = createPricingRow(label, qty, price, tva);
+                document.getElementById('pricing-body').appendChild(tr);
+            }
+
+            function createPricingRow(label, qty, price, tva) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                <td contenteditable="true">${label}</td>
+                <td contenteditable="true" class="qty" style="text-align: center;">${qty}</td>
+                <td contenteditable="true" class="price" style="text-align: right;">${price.toFixed(2)}</td>
+                <td class="tva-rate" contenteditable="true" style="text-align: right;">${tva}</td>
+                <td class="row-total" style="text-align: right; font-weight: 600;">0.00</td>
+                <td class="no-print" style="text-align: center; vertical-align: middle;">
+                    <button onclick="removeRow(this)" style="background: none; border: none; color: #ff4d4d; cursor: pointer; font-size: 14pt; padding: 0 5px; line-height: 1;">&times;</button>
+                </td>
+            `;
+                return tr;
+            }
+
+
+            function removeRow(btn) {
+                if (confirm("Supprimer cette ligne ?")) {
+                    btn.closest('tr').remove();
+                    updateCalculations();
+                }
+            }
+
+
+            function addSubtotalRow(label, id, targetId = 'pricing-body') {
+                const tr = document.createElement('tr');
+                tr.className = "subtotal-row";
+                tr.style.background = "#f9f9f9";
+                tr.style.fontWeight = "600";
+                tr.innerHTML = `
+                <td colspan="4" style="padding: 6px 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <button class="no-print" onclick="addRowBefore(this)" style="background: white; border: 1px solid var(--border); border-radius: 4px; padding: 4px 12px; font-size: 9.5pt; cursor: pointer; color: var(--primary); font-style: normal; font-weight: 500; font-family: 'Inter', sans-serif;">+ Ajouter une ligne à cette section</button>
+                        <span style="font-style: italic; color: var(--text-light);">Sous-total ${label} HT</span>
+                    </div>
+                </td>
+                <td class="subtotal-value" id="${id}" style="text-align: right; padding-right: 5px;">0.00</td>
+                <td class="no-print"></td>
+            `;
+                document.getElementById(targetId).appendChild(tr);
+            }
+
+
+
+            function addRowBefore(btn) {
+                const subtotalRow = btn.closest('tr');
+                const newRow = createPricingRow("Nouvelle prestation...", 1, 0, "20%");
+                subtotalRow.parentNode.insertBefore(newRow, subtotalRow);
+                updateCalculations();
+            }
+
+            function formatDate(d) {
+                if (!d) return "?";
+                return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+            }
+
+            function updateCalculations() {
+                const tbody = document.getElementById('pricing-body');
+                const allRows = Array.from(tbody.querySelectorAll('tr:not(.category-row):not(.subtotal-row)'));
+
+                // On récupère les quantités des 3 repas principaux pour le calcul
+                let qPDJ = 0, qDEJ = 0, qDIN = 0;
+
+                allRows.forEach(row => {
+                    const label = (row.cells[0]?.innerText || "").toLowerCase();
+                    const qty = parseFloat(row.querySelector('.qty')?.innerText) || 0;
+
+                    // Détection précise pour éviter les chevauchements
+                    // On ne teste plus seulement includes("déjeuner") car "petit-déjeuner" le contient
+                    if (label.includes("petit")) {
+                        qPDJ += qty;
+                    } else if (label.includes("diner") || label.includes("dîner")) {
+                        qDIN += qty;
+                    } else if (label.includes("déjeuner") || label.includes("dejeuner")) {
+                        // Ici on est sûr que ce n'est pas un petit-déj car le "if" précédent l'a déjà pris
+                        qDEJ += qty;
+                    }
+                });
+
+                // --- Logique intelligente : Forfait Pension ---
+                const remiseRow = allRows.find(r => r.cells[0]?.innerText.toLowerCase().includes("remise forfait pension"));
+
+                if (remiseRow) {
+                    const priceEl = remiseRow.querySelector('.price');
+                    const qtyEl = remiseRow.querySelector('.qty');
+
+                    // La remise est bridée par le minimum des repas présents (mais ne remonte pas seule)
+                    const limit = Math.min(qPDJ, qDEJ, qDIN);
+                    let currentRemiseQty = parseFloat(qtyEl.innerText) || 0;
+
+                    if (currentRemiseQty > limit) {
+                        currentRemiseQty = limit;
+                        qtyEl.innerText = limit;
+                    }
+
+                    if (priceEl && (parseFloat(priceEl.innerText) === 0 || isNaN(parseFloat(priceEl.innerText)))) {
+                        priceEl.innerText = "-10.00";
+                    }
+
+                    remiseRow.style.display = (currentRemiseQty <= 0 && limit === 0) ? 'none' : '';
+                }
+                // -------------------------------------------------------------
+
+                let totalHT = 0, totalTVA = 0;
+                let subHeberg = 0, subRestau = 0, subOpt = 0, subActiv = 0;
+                let currentCat = 'hebergement';
+
+                // Scan Prestations
+                document.querySelectorAll('#pricing-body tr').forEach(row => {
+                    if (row.classList.contains('category-row')) {
+                        const t = row.innerText.toLowerCase();
+                        if (t.includes('héberg')) currentCat = 'hebergement';
+                        else if (t.includes('restau')) currentCat = 'restauration';
+                        else currentCat = 'options';
+                        return;
+                    }
+                    if (row.classList.contains('subtotal-row')) return;
+
+                    const q = parseFloat(row.querySelector('.qty')?.innerText) || 0;
+                    const p = parseFloat(row.querySelector('.price')?.innerText) || 0;
+                    const lineHT = q * p;
+
+                    const totalEl = row.querySelector('.row-total');
+                    if (totalEl) totalEl.innerText = lineHT.toFixed(2);
+
+                    totalHT += lineHT;
+                    if (currentCat === 'hebergement') subHeberg += lineHT;
+                    else if (currentCat === 'restauration') subRestau += lineHT;
+                    else subOpt += lineHT;
+
+                    const tvaText = row.querySelector('.tva-rate')?.innerText || "10%";
+                    const tvaRate = parseFloat(tvaText) / 100 || 0.1;
+                    totalTVA += lineHT * tvaRate;
+                });
+
+                // Scan Activités
+                document.querySelectorAll('#activities-body tr').forEach(row => {
+                    if (row.classList.contains('subtotal-row')) return;
+
+                    const q = parseFloat(row.querySelector('.qty')?.innerText) || 0;
+                    const p = parseFloat(row.querySelector('.price')?.innerText) || 0;
+                    const lineHT = q * p;
+
+                    const totalEl = row.querySelector('.row-total');
+                    if (totalEl) totalEl.innerText = lineHT.toFixed(2);
+
+                    totalHT += lineHT;
+                    subActiv += lineHT;
+
+                    const tvaText = row.querySelector('.tva-rate')?.innerText || "20%";
+                    const tvaRate = parseFloat(tvaText) / 100 || 0.2;
+                    totalTVA += lineHT * tvaRate;
+                });
+
+                if (document.getElementById('subtotal-hebergement')) document.getElementById('subtotal-hebergement').innerText = subHeberg.toFixed(2) + " €";
+                if (document.getElementById('subtotal-restauration')) document.getElementById('subtotal-restauration').innerText = subRestau.toFixed(2) + " €";
+                if (document.getElementById('subtotal-salles')) document.getElementById('subtotal-salles').innerText = subOpt.toFixed(2) + " €";
+                if (document.getElementById('subtotal-activities')) document.getElementById('subtotal-activities').innerText = subActiv.toFixed(2) + " €";
+
+                document.getElementById('display-total-ht').innerText = formatEuro(totalHT);
+                document.getElementById('display-total-tva').innerText = formatEuro(totalTVA);
+                const totalTTC = totalHT + totalTVA;
+                document.getElementById('display-total-ttc').innerText = formatEuro(totalTTC);
+                document.getElementById('display-deposit').innerText = formatEuro(totalTTC * 0.3);
+
+                // --- NOUVEAU : Synthèse Financière ---
+                const nbPers = currentRecord?.fields?.["Nombre de personnes"] || 0;
+                if (nbPers > 0) {
+                    const perPersHT = Math.round(totalHT / nbPers);
+                    document.getElementById('price-total-summary').innerText = `Montant total du séjour : ${formatEuro(totalHT)} HT (${formatEuro(totalTTC)} TTC)`;
+                    document.getElementById('price-per-person').innerText = `Soit ${perPersHT} € HT / personne`;
+                    document.getElementById('price-synthesis').style.display = 'block';
+                } else {
+                    document.getElementById('price-synthesis').style.display = 'none';
+                }
+            }
+
+            function formatEuro(n) {
+                return n.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + " €";
+            }
+
+            function addRow() {
+                // Cette fonction n'est plus utilisée directement par le bouton global si supprimé
+                // mais on la garde pour compatibilité ou ajout en fin de tableau
+                const tbody = document.getElementById('pricing-body');
+                addPricingRow("Nouvelle ligne", 1, 0, "20%");
+                updateCalculations();
+            }
+
+            document.getElementById('pricing-body').addEventListener('input', updateCalculations);
+
+            async function saveToAirtable() {
+                if (!currentRequestId) return;
+                const btn = document.querySelector('button[onclick="saveToAirtable()"]');
+
+                try {
+                    if (btn) {
+                        btn.innerText = "Sauvegarde...";
+                        btn.disabled = true;
+                    }
+
+                    // On extrait proprement le nombre (ex: "1 200,00 €" -> 1200)
+                    const parsePrice = (id) => {
+                        const el = document.getElementById(id);
+                        if (!el) return 0;
+                        let val = el.innerText.replace(/[^\d.,]/g, '').replace(',', '.');
+                        return parseFloat(val) || 0;
+                    };
+
+                    const payload = {
+                        id: currentRequestId,
+                        fields: {
+                            "Montant Hébergement HT": parsePrice('subtotal-hebergement'),
+                            "Montant Repas HT": parsePrice('subtotal-restauration'),
+                            "Montant Options HT": parsePrice('subtotal-salles'),
+                            "Statut": ["devis envoyé"] // On change le statut automatiquement
+                        }
+                    };
+
+                    const response = await fetch(API_RESERVATIONS_URL, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error?.message || "Échec de la mise à jour");
+
+                    alert("✅ Devis sauvegardé ! Les montants sont à jour dans Airtable et le statut est passé en 'devis envoyé'.");
+                } catch (e) {
+                    console.error("Save error:", e);
+                    alert("❌ Erreur de sauvegarde : " + e.message);
+                } finally {
+                    if (btn) {
+                        btn.innerText = "Enregistrer (Airtable)";
+                        btn.disabled = false;
+                    }
+                }
+            }
+        </script>
+</body>
+
+</html>
