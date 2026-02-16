@@ -4864,14 +4864,14 @@
                 const rCost = document.getElementById('breakdown-repas-new').innerText;
                 const oCost = document.getElementById('breakdown-options-new').innerText;
 
-                // Création d'un élément temporaire pour le rendu - On le met en FIXED derrière tout
+                // Création d'un élément temporaire pour le rendu - On le met hors écran (off-screen)
                 const tempDiv = document.createElement('div');
                 tempDiv.id = 'temp-pdf-content';
-                tempDiv.style.position = 'fixed';
-                tempDiv.style.left = '0';
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.left = '-9999px';
                 tempDiv.style.top = '0';
                 tempDiv.style.width = '700px';
-                tempDiv.style.zIndex = '-10000';
+                tempDiv.style.zIndex = '9999'; // Ensure it's on top of everything nicely
                 tempDiv.style.background = '#ffffff';
 
                 tempDiv.innerHTML = `
@@ -4890,7 +4890,7 @@
 
                         <h2 style="font-size: 18px; border-bottom: 2px solid #3A5538; padding-bottom: 8px; color: #3A5538;">Votre Projet de Séjour</h2>
                         <table style="width: 100%; margin-bottom: 30px; font-size: 14px;">
-                            <tr><td style="padding: 5px 0;"><strong>Client :</strong> ${document.getElementById('firstname').value} ${document.getElementById('lastname').value}</td></tr>
+                            <tr><td style="padding: 5px 0;"><strong>Client :</strong> ${document.getElementById('firstname').value || 'Non renseigné'} ${document.getElementById('lastname').value || ''}</td></tr>
                             <tr><td style="padding: 5px 0;"><strong>Type de séjour :</strong> ${modeStr}</td></tr>
                             <tr><td style="padding: 5px 0;"><strong>Dates :</strong> Du ${arrivee} au ${depart}</td></tr>
                             <tr><td style="padding: 5px 0;"><strong>Participants :</strong> ${totalVisitors} personnes</td></tr>
@@ -4901,15 +4901,15 @@
                             <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
                                 <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
                                     <td style="padding: 10px 0;">Hébergement (Gîtes)</td>
-                                    <td style="text-align: right; font-weight: bold;">${hCost}</td>
+                                    <td style="text-align: right; font-weight: bold;">${hCost || '0€'}</td>
                                 </tr>
                                 <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
                                     <td style="padding: 10px 0;">Restauration</td>
-                                    <td style="text-align: right; font-weight: bold;">${rCost}</td>
+                                    <td style="text-align: right; font-weight: bold;">${rCost || 'Non sélectionné'}</td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 10px 0;">Options & Services</td>
-                                    <td style="text-align: right; font-weight: bold;">${oCost}</td>
+                                    <td style="text-align: right; font-weight: bold;">${oCost || 'Aucune'}</td>
                                 </tr>
                             </table>
                         </div>
@@ -4929,18 +4929,23 @@
 
                 document.body.appendChild(tempDiv);
 
-                // IMPORTANTE : On attend que le navigateur ait réellement fini de dessiner
-                await new Promise(resolve => setTimeout(resolve, 250));
+                // Check library
+                if (typeof html2pdf === 'undefined') {
+                    alert("La librairie PDF n'est pas chargée. Vérifiez votre connexion internet.");
+                    throw new Error("html2pdf not found");
+                }
+
+                // Wait for rendering
+                await new Promise(resolve => setTimeout(resolve, 500));
 
                 const opt = {
                     margin: 10,
-                    filename: `Estimation_Sesquier.pdf`,
+                    filename: `Estimation_Sesquier_${new Date().toISOString().slice(0, 10)}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: {
                         scale: 2,
                         useCORS: true,
-                        backgroundColor: '#ffffff',
-                        logging: false
+                        scrollY: 0
                     },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
