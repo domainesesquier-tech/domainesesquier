@@ -2329,6 +2329,26 @@
                                 </div>
                             </div>
 
+                            <!-- Options de base -->
+                            <!-- Privatisation (Perso uniquement - OBLIGATOIRE) -->
+                            <div class="option-card perso-only active" id="card-privatisation"
+                                style="cursor: default; opacity: 1;">
+                                <div class="option-added-badge" style="display:block; background:var(--primary);"><i
+                                        class="fas fa-lock"></i> Inclus</div>
+                                <div class="option-icon"><i class="fas fa-key"></i></div>
+                                <div class="option-info">
+                                    <h4 class="option-title">Privatisation du domaine</h4>
+                                    <p class="option-caption">Accès exclusif aux espaces communs & extérieurs</p>
+                                </div>
+                                <div class="option-right">
+                                    <div class="option-badge">650€ / séjour</div>
+                                    <label class="premium-switch-label" style="pointer-events: none; height: 22px;">
+                                        <input type="checkbox" checked disabled style="display:none;">
+                                        <div class="premium-switch"><span class="premium-switch-handle"></span></div>
+                                    </label>
+                                </div>
+                            </div>
+
                             <!-- Ménage (Perso uniquement) -->
                             <div class="option-card perso-only" id="card-menage" onclick="toggleOption('menage')">
                                 <div class="option-added-badge"><i class="fas fa-check"></i> Ajouté</div>
@@ -2940,6 +2960,7 @@
             pauseCafe: 5,
             salle: 500,
             menage: 150,
+            privatisation: 650, // Forfait privatisation perso obligatoire
             kitSoiree: 500, // Forfait matériel son & lumière
             accueilLogistique: 150 // Référent sur place
         };
@@ -4160,6 +4181,12 @@
                     selectedOptions.push("Lits préparés & Ménage (Inclus)");
                     selectedOptions.push("Accueil & Logistique (Inclus)");
                 } else {
+                    // Forfait Privatisation Obligatoire
+                    optionsCost += PRICES.privatisation;
+                    total += PRICES.privatisation;
+                    // On l'ajoute en premier pour qu'il soit bien visible
+                    selectedOptions.push(`Privatisation & Espaces (${PRICES.privatisation}€)`);
+
                     if (document.getElementById('draps').checked) {
                         const drapsPrice = getHT('FORFAIT_DRAPS_PERSO_DRAPS', PRICES.draps);
                         const c = Math.round(totalVisitors * drapsPrice);
