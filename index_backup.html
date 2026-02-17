@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bons Plans - Domaine Sesquier | Mèze & Occitanie</title>
+    <meta name="description" content="Découvrez les meilleures adresses et pépites locales autour du Domaine Sesquier à Mèze. Plages, gastronomie, villages et nature.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+    <style>
+        :root {
+            --color-pierre: #F9F7F2;
+            --color-terre: #AD6654;
+            --color-terre-dark: #8E5344;
+            --color-olive: #6B705C;
+            --color-ardoise: #2C3E50;
+            --color-text-muted: #5D6D7E;
+            --font-serif: 'Playfair Display', serif;
+            --font-sans: 'Inter', sans-serif;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow: 0 4px 20px rgba(0,0,0,0.06);
+            --border-radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--color-pierre);
+            color: var(--color-ardoise);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3 {
+            font-family: var(--font-serif);
+            font-weight: 700;
+        }
+
+        /* --- HERO SECTION --- */
+        .hero {
+            height: 70vh;
+            min-height: 500px;
+            background: linear-gradient(rgba(44, 62, 80, 0.4), rgba(44, 62, 80, 0.2)), 
+                        url('https://images.unsplash.com/photo-1505912707406-7d3d63b2f153?auto=format&fit=crop&q=80&w=1920') center/cover no-repeat;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            padding: 2rem;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            margin-bottom: 1.5rem;
+            line-height: 1.1;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            margin-bottom: 2.5rem;
+            font-style: italic;
+            opacity: 0.95;
+            font-family: var(--font-serif);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background-color: var(--color-terre);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-terre-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background-color: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+        }
+
+        .btn-outline:hover {
+            background-color: white;
+            color: var(--color-ardoise);
+        }
+
+        /* --- FILTERS --- */
+        .filter-section {
+            padding: 3rem 1rem 1rem;
+            background: var(--color-pierre);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.03);
+            text-align: center;
+        }
+
+        .filters {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .filter-btn {
+            background: white;
+            border: 1px solid #e0ddd7;
+            padding: 0.6rem 1.2rem;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--color-ardoise);
+            font-family: var(--font-sans);
+        }
+
+        .filter-btn:hover {
+            border-color: var(--color-terre);
+            color: var(--color-terre);
+        }
+
+        .filter-btn.active {
+            background: var(--color-terre);
+            color: white;
+            border-color: var(--color-terre);
+            box-shadow: 0 4px 12px rgba(173, 102, 84, 0.3);
+        }
+
+        /* --- MAP SECTION --- */
+        .map-section {
+            max-width: 1300px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        #map {
+            height: 600px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            z-index: 10;
+        }
+
+        /* Custom Leaflet Styling */
+        .leaflet-container {
+            background: #f0ede5;
+            font-family: var(--font-sans) !important;
+        }
+
+        .custom-popup .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            padding: 0;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .custom-popup .leaflet-popup-content {
+            margin: 0;
+            width: 280px !important;
+        }
+
+        .popup-card {
+            padding: 0;
+        }
+
+        .popup-img {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+        }
+
+        .popup-info {
+            padding: 1.25rem;
+        }
+
+        .popup-info h3 {
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+            color: var(--color-ardoise);
+        }
+
+        .popup-meta {
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .popup-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .popup-btn {
+            display: block;
+            width: 100%;
+            text-align: center;
+            background: var(--color-terre);
+            color: white;
+            text-decoration: none;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .popup-btn:hover {
+            background: var(--color-terre-dark);
+        }
+
+        /* --- GRID SECTIONS --- */
+        .grid-container {
+            max-width: 1300px;
+            margin: 4rem auto;
+            padding: 0 1rem;
+        }
+
+        .category-group {
+            margin-bottom: 5rem;
+        }
+
+        .category-title {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            color: var(--color-ardoise);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .category-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e0ddd7;
+        }
+
+        .places-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .place-card {
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            transition: var(--transition);
+            border: 1px solid #f0ede5;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .place-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.08);
+            border-color: #e0ddd7;
+        }
+
+        .place-card-img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+        }
+
+        .place-card-content {
+            padding: 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .place-card-type {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--color-olive);
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .place-card h3 {
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            color: var(--color-ardoise);
+            line-height: 1.3;
+        }
+
+        .place-card p {
+            color: var(--color-text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 4.5em;
+        }
+
+        .place-card-footer {
+            margin-top: auto;
+            padding-top: 1.25rem;
+            border-top: 1px solid #f9f7f2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+        }
+
+        .place-card-footer span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .place-link {
+            color: var(--color-terre);
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .place-link:hover {
+            color: var(--color-terre-dark);
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 768px) {
+            .hero { height: 60vh; }
+            #map { height: 450px; }
+            .filter-section { padding: 1.5rem 0.5rem; }
+            .filter-btn { padding: 0.5rem 1rem; font-size: 0.8rem; }
+            .category-title { font-size: 1.6rem; }
+        }
+
+        /* Leaflet Overrides */
+        .leaflet-bar a {
+            background-color: #fff !important;
+            color: var(--color-ardoise) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="hero-content">
+            <p>Esprit de famille & Art de vivre</p>
+            <h1>Bons plans autour du Domaine Sesquier</h1>
+            <div class="btn-group">
+                <a href="https://domaine-sesquier.com/reserver" class="btn btn-primary">Réserver un séjour</a>
+                <a href="#map" class="btn btn-outline">Voir la carte</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Filters -->
+    <nav class="filter-section">
+        <div class="filters" id="categorySelection">
+            <button class="filter-btn active" data-category="all">Tous les lieux</button>
+            <button class="filter-btn" data-category="Plages">Plages</button>
+            <button class="filter-btn" data-category="Balades nature">Nature</button>
+            <button class="filter-btn" data-category="Villages">Villages</button>
+            <button class="filter-btn" data-category="Restos">Restaurants</button>
+            <button class="filter-btn" data-category="Domaines viticoles">Vins & Domaines</button>
+            <button class="filter-btn" data-category="Activités en famille">Famille</button>
+            <button class="filter-btn" data-category="Marchés">Marchés</button>
+        </div>
+    </nav>
+
+    <!-- Map Section -->
+    <main class="map-section" id="mapSection">
+        <div id="map"></div>
+    </main>
+
+    <!-- Grid Layout -->
+    <div class="grid-container" id="gridContent">
+        <!-- Will be populated by JS -->
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        // DATA
+        const locations = [
+          {
+            "id": 1,
+            "name": "Domaine Sesquier",
+            "category": "Domaine",
+            "description": "Votre havre de paix méditerranéen. 8 gîtes de charme au cœur d'une oliveraie préservée.",
+            "lat": 43.4355,
+            "lng": 3.5958,
+            "duration_car": "0 min",
+            "distance": "0 km",
+            "url": "https://domaine-sesquier.com",
+            "image": "https://images.unsplash.com/photo-1548143004-be6c6bf9776d?auto=format&fit=crop&q=80&w=600"
+          },
+          {
+            "id": 2,
+            "name": "Les Étalais - Huîtres de Thau",
+            "category": "Restos",
+            "description": "Une cabane de dégustation authentique au bord de l'Étang. Huîtres et moules ultra-fraîches.",
+            "lat": 43.428,
+            "lng": 3.615,
+            "duration_car": "8 min",
+            "distance": "4 km",
+            "url": "https://www.google.com/maps/search/?api=1&query=meze+huitres+les+etalais",
+            "image": "https://images.unsplash.com/photo-1551021703-352fe8012d56?auto=format&fit=crop&q=80&w=600"
+          },
+          {
+            "id": 3,
+            "name": "Cirque de Mourèze",
+            "category": "Balades nature",
+            "description": "Labyrinthe de rochers blancs sculptés par l'érosion. Paysage lunaire unique en Occitanie.",
+            "lat": 43.618,
+            "lng": 3.358,
+            "duration_car": "35 min",
+            "distance": "28 km",
+            "url": "https://www.google.com/maps/search/?api=1&query=Cirque+de+Moureze",
+            "image": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=600"
+          },
+          {
+            "id": 4,
+            "name": "Pézenas - Ville d'Art",
+            "category": "Villages",
+            "description": "Plongez dans le XVIe siècle. Entre hôtels particuliers, antiquaires et héritage de Molière.",
+            "lat": 43.461,
+            "lng": 3.423,
+            "duration_car": "18 min",
+            "distance": "12 km",
+            "url": "https://www.google.com/maps/search/?api=1&query=Pezenas+Centre",
+            "image": "https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?auto=format&fit=crop&q=80&w=600"
+          },
+          {
+            "id": 5,
+            "name": "Plage du Lazaret - Sète",
+            "category": "Plages",
+            "description": "Une plage familiale plus calme que le Lido, avec vue sur l'entrée du port de Sète.",
+            "lat": 43.388,
+            "lng": 3.665,
+            "duration_car": "25 min",
+            "distance": "18 km",
+            "url": "https://www.google.com/maps/search/?api=1&query=Plage+du+Lazaret+Sete",
+            "image": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=600"
+          },
+          {
+            "id": 6,
+            "name": "Marché de Mèze",
+            "category": "Marchés",
+            "description": "Les producteurs locaux et les senteurs de garrigue sous les halles historiques. Un incontournable.",
+            "lat": 43.425,
+            "lng": 3.606,
+            "duration_car": "5 min",
+            "distance": "3 km",
+            "url": "https://www.google.com/maps/search/?api=1&query=Marche+Meze",
+            "image": "https://images.unsplash.com/photo-1488459711635-0c4a4349758a?auto=format&fit=crop&q=80&w=600"
+          },
+          {
+            "id": 7,
+            "name": "Abbaye de Valmagne",
+            "category": "Domaines viticoles",
+            "description": "Chef-d'œuvre cistercien reconverti en domaine viticole. Les foudres géants sont dans l'église.",
+            "lat": 43.485,
+            "lng": 3.562,
+            "duration_car": "12 min",
+            "distance": "8 km",
+            "url": "https://www.google.com/maps/search/?api=1&query=Abbaye+de+Valmagne",
+            "image": "https://images.unsplash.com/photo-1628172909439-ced35fdf0af6?auto=format&fit=crop&q=80&w=600"
+          },
+          {
+            "id": 8,
+            "name": "Village de Bouzigues",
+            "category": "Villages",
+            "description": "La capitale des coquillages. Promenez-vous sur le petit port aux embarcations colorées.",
+            "lat": 43.448,
+            "lng": 3.658,
+            "duration_car": "12 min",
+            "distance": "8 km",
+            "url": "https://www.google.com/maps/search/?api=1&query=Bouzigues+Port",
+            "image": "https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?auto=format&fit=crop&q=80&w=600"
+          }
+        ];
+
+        // INITIALIZE MAP
+        const map = L.map('map', {
+            scrollWheelZoom: false,
+            gestureHandling: true
+        }).setView([43.44, 3.55], 11);
+
+        // Custom Tile Layer (Muted)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        const markersLayer = L.layerGroup().addTo(map);
+        let activeMarkers = [];
+
+        // DOM Elements
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const gridContent = document.getElementById('gridContent');
+
+        function createCard(item) {
+            return `
+                <article class="place-card" data-category="${item.category}">
+                    <img src="${item.image}" alt="${item.name}" class="place-card-img">
+                    <div class="place-card-content">
+                        <span class="place-card-type">${item.category}</span>
+                        <h3>${item.name}</h3>
+                        <p>${item.description}</p>
+                        <div class="place-card-footer">
+                            <span>🚗 ${item.duration_car} (${item.distance})</span>
+                            <a href="${item.url}" target="_blank" class="place-link">Voir l'itinéraire →</a>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function initData(category = 'all') {
+            markersLayer.clearLayers();
+            gridContent.innerHTML = '';
+            
+            const filtered = category === 'all' 
+                ? locations 
+                : locations.filter(l => l.category === category || (category === 'Balades nature' && l.category === 'Nature'));
+
+            // Group by category for the grid
+            const groups = {};
+            filtered.forEach(item => {
+                if (!groups[item.category]) groups[item.category] = [];
+                groups[item.category].push(item);
+
+                // Add to Map
+                const marker = L.marker([item.lat, item.lng])
+                    .bindPopup(`
+                        <div class="custom-popup">
+                            <div class="popup-card">
+                                <img src="${item.image}" class="popup-img">
+                                <div class="popup-info">
+                                    <h3>${item.name}</h3>
+                                    <div class="popup-meta">
+                                        <span>🚗 ${item.duration_car}</span>
+                                        <span>📍 ${item.distance}</span>
+                                    </div>
+                                    <a href="${item.url}" target="_blank" class="popup-btn">Ouvrir dans Google Maps</a>
+                                </div>
+                            </div>
+                        </div>
+                    `, { closeButton: false });
+                markersLayer.addLayer(marker);
+            });
+
+            // Build Grid
+            Object.keys(groups).forEach(cat => {
+                const section = document.createElement('section');
+                section.className = 'category-group';
+                section.innerHTML = `
+                    <h2 class="category-title">${cat}</h2>
+                    <div class="places-grid">
+                        ${groups[cat].map(item => createCard(item)).join('')}
+                    </div>
+                `;
+                gridContent.appendChild(section);
+            });
+
+            // Specific handling for Domaine auto-centering
+            if (category === 'all' && filtered.length > 0) {
+                map.setView([43.435, 3.595], 11);
+            } else if (filtered.length > 0) {
+                const group = new L.featureGroup(markersLayer.getLayers());
+                map.fitBounds(group.getBounds(), { padding: [50, 50] });
+            }
+        }
+
+        // Event Listeners
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                initData(btn.dataset.category);
+            });
+        });
+
+        // Init
+        initData();
+
+    </script>
+</body>
+</html>
