@@ -4798,10 +4798,8 @@
 
                 // On affiche une proposition de voir le devis éditable
                 if (recordId) {
-                    const confirmOpen = confirm("Merci ! Votre demande a été reçue.\n\nSouhaitez-vous ouvrir l'éditeur de devis pour personnaliser ce document maintenant ?");
-                    if (confirmOpen) {
-                        window.location.href = `DOMAINE_SESQUIER_DEVIS.html?id=${recordId}`;
-                    }
+                    // Succès simple pour le client
+                    alert("Merci ! Votre demande a bien été reçue. Nous reviendrons vers vous sous 24h.");
                 } else {
                     alert("Merci ! Votre demande d'estimation a bien été reçue.");
                 }
