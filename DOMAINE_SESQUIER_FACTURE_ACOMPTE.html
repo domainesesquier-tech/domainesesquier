@@ -663,10 +663,6 @@
             }
         }
 
-        function formatEuro(n) {
-            return n.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + " €";
-        }
-
         async function saveToAirtable() {
             if (!currentRequestId) return;
             const btn = document.querySelector('button[onclick="saveToAirtable()"]');
@@ -682,7 +678,7 @@
                         "Montant Hébergement HT": parse('subtotal-hebergement'),
                         "Montant Repas HT": parse('subtotal-restauration'),
                         "Montant Options HT": parse('subtotal-salles'),
-                        "Statut": ["devis envoyé"]
+                        "Statut": "devis envoyé"
                     }
                 };
                 const res = await fetch(API_RESERVATIONS_URL, {

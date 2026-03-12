@@ -343,8 +343,6 @@
             updateCalculations();
         }
 
-        function formatEuro(n) { return n.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + " €"; }
-
         async function saveToAirtable() { alert("Facture enregistrée localement."); }
 
         document.body.addEventListener('input', (e) => {

@@ -4365,18 +4365,21 @@
                     // On l'ajoute en premier pour qu'il soit bien visible
                     selectedOptions.push(`Privatisation & Espaces (${privPrice}€)`);
 
-                    if (document.getElementById('draps').checked) {
+                    const drapsEl = document.getElementById('draps');
+                    if (drapsEl && drapsEl.checked) {
                         const drapsPrice = getHT('FORFAIT_DRAPS_PERSO_DRAPS', totalVisitors, nights, 7);
                         const c = Math.round(totalVisitors * drapsPrice);
                         optionsCost += c; total += c;
                         selectedOptions.push("Draps & linge");
                     }
-                    if (document.getElementById('menage').checked) {
+                    const menageEl = document.getElementById('menage');
+                    if (menageEl && menageEl.checked) {
                         const menagePrice = getHT('OPTION_PERSO_MENAGE', totalVisitors, nights, 300);
                         optionsCost += menagePrice; total += menagePrice;
                         selectedOptions.push("Ménage");
                     }
-                    if (document.getElementById('chambreIndiv').checked) {
+                    const indivEl = document.getElementById('chambreIndiv');
+                    if (indivEl && indivEl.checked) {
                         const indivPrice = getHT('OPTION_PERSO_CHAMBRE_INDIV', totalVisitors, nights, 30);
                         optionsCost += indivPrice; total += indivPrice;
                         selectedOptions.push("Chambre individuelle");

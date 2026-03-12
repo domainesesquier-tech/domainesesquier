@@ -350,7 +350,7 @@
             try {
                 console.log("Fetching ID:", id);
                 if (clientInfoEl) clientInfoEl.innerHTML = "Chargement des données depuis Airtable...";
-                
+
                 const response = await fetch(`${API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
                 if (!response.ok) {
                     const errorJson = await response.json().catch(() => ({}));
@@ -700,10 +700,6 @@
             }
         }
 
-        function formatEuro(n) {
-            return n.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + " €";
-        }
-
         async function saveToAirtable() {
             if (!currentRequestId) return;
             const btn = document.querySelector('button[onclick="saveToAirtable()"]');
@@ -719,7 +715,7 @@
                         "Montant Hébergement HT": parse('subtotal-hebergement'),
                         "Montant Repas HT": parse('subtotal-restauration'),
                         "Montant Options HT": parse('subtotal-salles'),
-                        "Statut": ["devis envoyé"]
+                        "Statut": "devis envoyé"
                     }
                 };
                 const res = await fetch(API_RESERVATIONS_URL, {
