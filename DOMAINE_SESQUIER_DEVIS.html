@@ -244,14 +244,21 @@
         if (typeof SesquierUtils === 'undefined') {
             document.querySelector('.client-info').innerHTML = "<span style='color:red'>Erreur : assets/utils.js non chargé !</span>";
         }
-        const { API_RESERVATIONS_URL, formatEuro, fetchJson } = SesquierUtils || {};
+        // NOTE: API_RESERVATIONS_URL est un getter dans SesquierUtils.
+        // On ne le destructure PAS pour éviter de perdre la valeur dynamique.
+        const formatEuro = SesquierUtils ? SesquierUtils.formatEuro.bind(SesquierUtils) : (n) => n + ' €';
+        const API_RESERVATIONS_URL = SesquierUtils ? SesquierUtils.API_RESERVATIONS_URL : '';
 
         let currentRecord = null;
         const urlParams = new URLSearchParams(window.location.search);
         let currentRequestId = urlParams.get('id');
 
+        console.log('[DEVIS] API URL =', API_RESERVATIONS_URL);
+        console.log('[DEVIS] ID demandé =', currentRequestId);
+
         // Init UI basics
-        document.getElementById('today-date').innerText = new Date().toLocaleDateString('fr-FR');
+        const todayEl = document.getElementById('today-date');
+        if (todayEl) todayEl.innerText = new Date().toLocaleDateString('fr-FR');
         document.querySelectorAll('.devis-date-footer').forEach(el => el.innerText = "Date : " + new Date().toLocaleDateString('fr-FR'));
 
         if (currentRequestId) {
