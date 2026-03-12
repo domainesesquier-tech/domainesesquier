@@ -37,9 +37,11 @@ const SesquierUtils = {
         try {
             const response = await fetch(url, options);
             if (!response.ok) {
-                const error = await response.json().catch(() => ({}));
-                console.error(`[API] Erreur ${response.status}:`, error);
-                throw new Error(error.message || `Erreur Serveur (${response.status})`);
+                const errorText = await response.text();
+                console.error(`[API] Erreur ${response.status}:`, errorText);
+                let errorJson = {};
+                try { errorJson = JSON.parse(errorText); } catch (e) { }
+                throw new Error(errorJson.error?.message || `Erreur Serveur (${response.status})`);
             }
             const data = await response.json();
             console.log(`[API] Succès :`, data);

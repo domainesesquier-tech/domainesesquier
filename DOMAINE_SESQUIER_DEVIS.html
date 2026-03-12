@@ -241,7 +241,10 @@
     </div>
 
     <script>
-        const { API_RESERVATIONS_URL, formatEuro, fetchJson } = SesquierUtils;
+        if (typeof SesquierUtils === 'undefined') {
+            document.querySelector('.client-info').innerHTML = "<span style='color:red'>Erreur : assets/utils.js non chargé !</span>";
+        }
+        const { API_RESERVATIONS_URL, formatEuro, fetchJson } = SesquierUtils || {};
 
         let currentRecord = null;
         const urlParams = new URLSearchParams(window.location.search);
@@ -386,7 +389,8 @@
 
             // 1. Meta & Footer
             const num = (fields["Numéro Devis"] || fields["ID"] || currentRequestId || "").toString().slice(-6).toUpperCase();
-            document.getElementById('devis-number').innerText = `2026-02-${num}`;
+            const devNumEl = document.getElementById('devis-number');
+            if (devNumEl) devNumEl.innerText = `2026-02-${num}`;
             document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `2026-02-${num}`);
 
             // 2. Client Info
@@ -429,7 +433,8 @@
                 const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
                 const jourTxt = days > 1 ? "jours" : "jour";
                 const nuitTxt = nights > 1 ? "nuits" : "nuit";
-                document.getElementById('stay-synthesis').innerText = `${typeLabel} de ${nbPers} personnes — ${days} ${jourTxt} / ${nights} ${nuitTxt} — ${mealLabel}`;
+                const synthEl = document.getElementById('stay-synthesis');
+                if (synthEl) synthEl.innerText = `${typeLabel} de ${nbPers} personnes — ${days} ${jourTxt} / ${nights} ${nuitTxt} — ${mealLabel}`;
             } catch (e) { console.error("Synthesis error:", e); }
 
             // 5. Build Main Pricing Table

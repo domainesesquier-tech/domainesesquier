@@ -3221,7 +3221,7 @@
         async function fetchAllAirtableRecords(url, queryParams = '') {
             const sep = url.includes('?') ? '&' : '?';
             const fullUrl = queryParams ? `${url}${sep}${queryParams}` : url;
-            const data = await fetchProxyJson(fullUrl);
+            const data = await fetchJson(fullUrl);
             return data.records || [];
         }
 
@@ -3262,6 +3262,13 @@
                 console.log(`Reservations Airtable chargees: ${reservationsFromAirtable.length}, dates bloquees: ${UNAVAILABLE_DATES.length}`);
             } catch (error) {
                 console.error('Erreur chargement reservations Airtable:', error);
+                const calHeader = document.querySelector('.calendar-header');
+                if (calHeader) {
+                    const errDisp = document.createElement('div');
+                    errDisp.style.cssText = "color: #e74c3c; font-size: 10px; margin-top: 5px;";
+                    errDisp.innerText = "⚠ Erreur de synchronisation calendrier";
+                    calHeader.appendChild(errDisp);
+                }
             }
         }
 
