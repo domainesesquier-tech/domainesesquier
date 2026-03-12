@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Devis Séminaire - Domaine Sesquier</title>
+    <title>Facture d'Acompte - Domaine Sesquier</title>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,9 +15,10 @@
     <link rel="stylesheet" href="assets/document.css">
     <script src="assets/utils.js"></script>
     <style>
-        /* Specific overrides for Devis if any */
+        /* Specific overrides for Facture Acompte if any */
         .doc-type {
             color: var(--text-main);
+            font-size: 26px;
         }
     </style>
 </head>
@@ -62,16 +63,16 @@
                 </div>
             </div>
             <div class="meta-col">
-                <div class="doc-type">DEVIS</div>
+                <div class="doc-type" style="font-size: 26px;">FACTURE D'ACOMPTE</div>
                 <div class="meta-grid">
                     <div class="meta-label">Numéro :</div>
-                    <div class="meta-value" contenteditable="true" id="devis-number">2026-02-XXX</div>
+                    <div class="meta-value" contenteditable="true" id="facture-number">FA2026-02-XXX</div>
 
                     <div class="meta-label">Date :</div>
                     <div class="meta-value" contenteditable="true" id="today-date">--/--/----</div>
 
-                    <div class="meta-label">Validité :</div>
-                    <div class="meta-value" contenteditable="true">15 jours</div>
+                    <div class="meta-label">Réf. Devis :</div>
+                    <div class="meta-value" contenteditable="true" id="devis-number">2026-02-XXX</div>
                 </div>
             </div>
         </header>
@@ -147,7 +148,7 @@
                     Sesquier</span>
                 <span
                     style="font-size: 9pt; color: var(--accent); margin-left: 10px; text-transform: uppercase; letter-spacing: 0.1em;">Suite
-                    du Devis</span>
+                    de la Facture</span>
             </div>
             <div style="font-size: 9pt; text-align: right;">
                 <div style="font-weight: 600;" class="devis-num-footer">N° 2026-02-XXX</div>
@@ -177,16 +178,12 @@
 
         <section class="bottom-section no-break">
             <div class="totals-col">
-                <div class="total-row"><span>Total HT</span><span id="display-total-ht">0,00 €</span></div>
+                <div class="total-row"><span>Total Prestations HT</span><span id="display-total-ht">0,00 €</span></div>
                 <div class="total-row"><span>TVA (estimée)</span><span id="display-total-tva">0,00 €</span></div>
-                <div class="total-row"><span>Taxe de séjour (Hors TVA)</span><span id="display-taxe-sejour"
-                        contenteditable="true">0,00 €</span></div>
-                <div class="total-row"
-                    style="color: var(--accent); margin-top: 5px; border-top: 1px dashed #ddd; padding-top: 5px;">
-                    <span contenteditable="true">Acompte à régler (30%)</span>
-                    <span id="display-deposit" style="font-weight: 600;">0,00 €</span>
+                <div class="total-row"><span>Total Prestations TTC</span><span id="display-total-ttc">0,00 €</span>
                 </div>
-                <div class="total-row final"><span>NET À PAYER TTC</span><span id="display-total-ttc">0,00 €</span>
+                <div class="total-row final" style="color: var(--accent); border-top: 2px solid var(--accent);">
+                    <span>ACOMPTE (30%) TTC À RÉGLER</span><span id="display-deposit">0,00 €</span>
                 </div>
 
                 <!-- Synthèse Prix Global -->
@@ -200,18 +197,13 @@
             <div class="conditions-col">
                 <h4>Conditions & Modalités</h4>
                 <ul class="cond-list">
-                    <li contenteditable="true"><strong>Validité du devis :</strong> 15 jours à compter de sa date
-                        d'émission.</li>
-                    <li contenteditable="true"><strong>Conditions de règlement :</strong> Acompte de 30% à régler lors
-                        de la signature pour confirmer la réservation. Le solde est à régler au plus tard le jour de
-                        l'arrivée par virement bancaire.</li>
-                    <li contenteditable="true"><strong>Conditions d'annulation :</strong> L'acompte de 30% est conservé
-                        pour toute annulation. Entre 29 et 15 jours : 50% dû. Entre 14 et 8 jours : 75% dû. À 7 jours ou
-                        moins : 100% dû.</li>
-                    <li contenteditable="true"><strong>Restauration :</strong> Allergies et régimes spécifiques à
-                        communiquer au plus tard à J-7. Horaires des repas adaptables selon vos besoins.</li>
-                    <li contenteditable="true"><strong>Hébergement :</strong> Chambres disponibles dès 16h00 (arrivée)
-                        et libérées avant 11h00 (départ), sauf accord spécifique.</li>
+                    <li contenteditable="true"><strong>Modalités :</strong> Facture d'acompte de 30% payable à réception
+                        pour confirmer définitivement la réservation des lieux.</li>
+                    <li contenteditable="true"><strong>Règlement :</strong> Par virement bancaire sur le compte
+                        ci-dessous. Veuillez indiquer la référence de la facture.</li>
+                    <li contenteditable="true"><strong>Annulation :</strong> En cas de désistement, cet acompte restera
+                        acquis au Domaine Sesquier conformément à nos conditions générales de vente.</li>
+                    <li contenteditable="true"><strong>Escompte :</strong> Aucun escompte pour paiement anticipé.</li>
                 </ul>
                 <div style="font-size: 7.5pt; color: #999; line-height: 1.3; margin-top: 15px;">
                     <strong>OZZA SASU</strong> — SIRET 903 246 478 00015 — MÈZE<br>
@@ -241,7 +233,7 @@
     </div>
 
     <script>
-        const { API_RESERVATIONS_URL, formatEuro, fetchJson } = SesquierUtils;
+        const { API_RESERVATIONS_URL, formatEuro } = SesquierUtils;
 
         let currentRecord = null;
         const urlParams = new URLSearchParams(window.location.search);
@@ -325,14 +317,14 @@
                     "Téléphone": draft.contact?.phone || "",
                     "Option ménage": draft.options?.menage ? "Oui" : "Non",
                     "Détails JSON": JSON.stringify(details),
-                    "Numéro Devis": "APERÇU-WEB"
+                    "Numéro Devis": "WEB"
                 };
 
                 populateDevis(mockFields);
 
                 const synEl = document.getElementById('stay-synthesis');
                 if (synEl) {
-                    synEl.innerHTML += `<br><span style="color:var(--accent); font-size:10pt;">⚠ Mode Aperçu en temps réel: Ce devis est généré à partir de votre saisie, il n'est pas encore enregistré.</span>`;
+                    synEl.innerHTML += `<br><span style="color:var(--accent); font-size:10pt;">⚠ Mode Aperçu en temps réel: Cette facture est générée à partir de votre saisie, elle n'est pas encore enregistrée.</span>`;
                 }
 
                 // Masquage du bouton de sauvegarde Airtable car pas d'ID
@@ -346,15 +338,12 @@
         }
 
         async function loadReservationData(id) {
-            const clientInfoEl = document.querySelector('.client-info');
             try {
                 console.log("Fetching ID:", id);
-                if (clientInfoEl) clientInfoEl.innerHTML = "Chargement des données depuis Airtable...";
-                
                 const response = await fetch(`${API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
                 if (!response.ok) {
-                    const errorJson = await response.json().catch(() => ({}));
-                    throw new Error(errorJson.error?.message || `Erreur Serveur (${response.status})`);
+                    const errorText = await response.text();
+                    throw new Error(`Erreur API (${response.status}) : ${errorText || "Impossible de récupérer les données"}`);
                 }
                 const data = await response.json();
                 currentRecord = data.records ? data.records[0] : data;
@@ -366,15 +355,7 @@
                 populateDevis(currentRecord.fields);
             } catch (err) {
                 console.error("Erreur de chargement:", err);
-                if (clientInfoEl) {
-                    clientInfoEl.innerHTML = `
-                        <div style="color: #e74c3c; padding: 10px; border: 1px solid #e74c3c; border-radius: 4px; background: rgba(231, 76, 60, 0.05);">
-                            <strong>❌ Erreur de connexion</strong><br>
-                            ${err.message}<br><br>
-                            <small>Vérifiez que votre Worker est bien déployé et que le "Token" Airtable est configuré dans Cloudflare.</small>
-                        </div>
-                    `;
-                }
+                alert("Erreur lors du chargement : " + err.message);
             }
         }
 
@@ -387,7 +368,9 @@
             // 1. Meta & Footer
             const num = (fields["Numéro Devis"] || fields["ID"] || currentRequestId || "").toString().slice(-6).toUpperCase();
             document.getElementById('devis-number').innerText = `2026-02-${num}`;
-            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `2026-02-${num}`);
+            const facEl = document.getElementById('facture-number');
+            if (facEl) facEl.innerText = `FA2026-02-${num}`;
+            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `FA2026-02-${num}`);
 
             // 2. Client Info
             const clientInfoEl = document.querySelector('.client-info');
@@ -468,72 +451,68 @@
             addSubtotalRow("Hébergement", "subtotal-hebergement");
 
             // --- B. Catering ---
-            addCategoryRow("Restauration");
             let isPension = (details.meals?.mode === 'pension');
-            let mealRowsAdded = false;
-            let totalEligible = 0;
+            let wantsMeals = (details.meals?.mode && details.meals.mode !== 'libre' && details.meals.mode !== 'none');
+            if (fields["Montant Repas HT"] > 0 || isPension || wantsMeals) {
+                addCategoryRow("Restauration");
+                let mealRowsAdded = false;
+                let totalEligible = 0;
 
-            if (details.meals && details.meals.counts && details.meals.counts.length > 0) {
-                const arrivalDate = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null;
-                details.meals.counts.forEach((c, idx) => {
-                    let labelJour = `Jour ${idx + 1}`;
-                    if (arrivalDate) {
-                        const d = new Date(arrivalDate);
-                        d.setDate(arrivalDate.getDate() + idx);
-                        let dStr = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
-                        labelJour = dStr.charAt(0).toUpperCase() + dStr.slice(1);
-                    }
-                    const prefix = `<strong>${labelJour}</strong> — `;
+                if (details.meals && details.meals.counts) {
+                    const arrivalDate = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null;
+                    details.meals.counts.forEach((c, idx) => {
+                        let labelJour = `Jour ${idx + 1}`;
+                        if (arrivalDate) {
+                            const d = new Date(arrivalDate);
+                            d.setDate(arrivalDate.getDate() + idx);
+                            let dStr = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+                            labelJour = dStr.charAt(0).toUpperCase() + dStr.slice(1);
+                        }
+                        const prefix = `<strong>${labelJour}</strong> — `;
 
-                    let addedToThisDay = false;
-                    if (c.petitDej > 0) { addPricingRow(prefix + "Petit-Déjeuner", c.petitDej, 14, "10%"); addedToThisDay = true; }
-                    const qColM = c.collationMatin || (c.collation / 2) || 0;
-                    if (qColM > 0) { addPricingRow(prefix + "Collation Matin", qColM, 5, "10%"); addedToThisDay = true; }
-                    if (c.dejeuner > 0) { addPricingRow(prefix + "Déjeuner", c.dejeuner, 26, "10%"); addedToThisDay = true; }
-                    const qColA = c.collationAprem || (c.collation / 2) || 0;
-                    if (qColA > 0) { addPricingRow(prefix + "Collation Après-midi", qColA, 5, "10%"); addedToThisDay = true; }
-                    if (c.diner > 0) { addPricingRow(prefix + "Dîner", c.diner, 30, "10%"); addedToThisDay = true; }
+                        if (c.petitDej > 0) addPricingRow(prefix + "Petit-Déjeuner", c.petitDej, 14, "10%");
 
-                    if (addedToThisDay) {
+                        const qColM = c.collationMatin || (c.collation / 2) || 0;
+                        if (qColM > 0) addPricingRow(prefix + "Collation Matin", qColM, 5, "10%");
+
+                        if (c.dejeuner > 0) addPricingRow(prefix + "Déjeuner", c.dejeuner, 26, "10%");
+
+                        const qColA = c.collationAprem || (c.collation / 2) || 0;
+                        if (qColA > 0) addPricingRow(prefix + "Collation Après-midi", qColA, 5, "10%");
+
+                        if (c.diner > 0) addPricingRow(prefix + "Dîner", c.diner, 30, "10%");
+
                         totalEligible += Math.min(c.petitDej || 0, c.dejeuner || 0, (idx < details.meals.counts.length - 1 ? (c.diner || 0) : 0));
                         mealRowsAdded = true;
-                    }
-                });
+                    });
+                }
+
+                if (!mealRowsAdded) {
+                    // Fallback to global counts
+                    if (fields["Repas petit-déj"] > 0) addPricingRow("Petits-Déjeuners", fields["Repas petit-déj"], 14, "10%");
+                    if (fields["Repas déjeuner"] > 0) addPricingRow("Déjeuners", fields["Repas déjeuner"], 26, "10%");
+                    if (fields["Repas dîner"] > 0) addPricingRow("Dîners", fields["Repas dîner"], 30, "10%");
+                }
+
+                // Complete Pack Discount
+                const logicalMax = Math.min(fields["Repas petit-déj"] || 0, fields["Repas déjeuner"] || 0, fields["Repas dîner"] || 0);
+                if (totalEligible === 0 && isPension) totalEligible = logicalMax;
+                else totalEligible = Math.min(totalEligible, logicalMax);
+
+                if (isPension && totalEligible > 0) {
+                    addPricingRow("<span style='color: var(--accent); font-weight: 600;'>Remise forfait pension complète</span><br><small style='color: #666; font-size: 8pt;'>Optimisation tarifaire (70€ HT / jr / pers)</small>", totalEligible, -10.00, "10%");
+                }
+                addSubtotalRow("Restauration", "subtotal-restauration");
             }
-
-            if (!mealRowsAdded) {
-                // Fallback to global counts OR add empty default rows if no counts
-                const qPDJ = fields["Repas petit-déj"] || 0;
-                const qDEJ = fields["Repas déjeuner"] || 0;
-                const qDIN = fields["Repas dîner"] || 0;
-
-                addPricingRow("Petits-Déjeuners", qPDJ, 14, "10%");
-                addPricingRow("Déjeuners", qDEJ, 26, "10%");
-                addPricingRow("Dîners", qDIN, 30, "10%");
-
-                mealRowsAdded = true; // Section and lines are now handled
-            }
-
-            // Complete Pack Discount
-            const logicalMax = Math.min(fields["Repas petit-déj"] || 0, fields["Repas déjeuner"] || 0, fields["Repas dîner"] || 0);
-            if (totalEligible === 0 && isPension) totalEligible = logicalMax;
-            else totalEligible = Math.min(totalEligible, logicalMax);
-
-            if (isPension && totalEligible > 0) {
-                addPricingRow("<span style='color: var(--accent); font-weight: 600;'>Remise forfait pension complète</span><br><small style='color: #666; font-size: 8pt;'>Optimisation tarifaire (70€ HT / jr / pers)</small>", totalEligible, -10.00, "10%");
-            }
-            addSubtotalRow("Restauration", "subtotal-restauration");
 
             // --- C. Options & Salles ---
-            addCategoryRow("Options & Salles");
-            const salleLabel = `Location Salles & Coordination logistique<br><small style='color:#666; font-weight:400;'>Coordination on-site, Salle équipée, Support technique</small>`;
-            const qS = fields["Nuits"] || 1;
-            let salleAmountHT = fields["Montant Options HT"] || 0;
-
-            // If amount is 0 or undefined, we still show the row with 0
-            const unitPrice = salleAmountHT > 0 ? (salleAmountHT / qS) : 0;
-            addPricingRow(salleLabel, qS, unitPrice, "20%");
-            addSubtotalRow("Options", "subtotal-salles");
+            if (fields["Montant Options HT"] > 0) {
+                addCategoryRow("Options & Salles");
+                const label = `Location Salles & Coordination logistique<br><small style='color:#666; font-weight:400;'>Coordination on-site, Salle équipée, Support technique</small>`;
+                const qS = fields["Nuits"] || 1;
+                addPricingRow(label, qS, fields["Montant Options HT"] / qS, "20%");
+                addSubtotalRow("Options", "subtotal-salles");
+            }
 
             // --- D. Activities (Page 2) ---
             const actBody = document.getElementById('activities-body');
@@ -560,15 +539,6 @@
                     actBody.innerHTML = '<tr><td colspan="6" style="padding:15px; text-align:center; color:#999; font-style:italic;">Aucune activité définie.</td></tr>';
                 }
                 addSubtotalRow("Activités & Loisirs", "subtotal-activities", "activities-body");
-            }
-
-            // --- E. Initial Taxe de séjour Calculation ---
-            const nPers = fields["Nombre de personnes"] || 0;
-            const nNights = fields["Nuits"] || 0;
-            if (nPers > 0 && nNights > 0) {
-                const ts = nPers * nNights * 1.00; // Base: 1€ per person per night
-                const tsEl = document.getElementById('display-taxe-sejour');
-                if (tsEl) tsEl.innerText = formatEuro(ts);
             }
 
             updateCalculations();
@@ -681,14 +651,7 @@
 
             document.getElementById('display-total-ht').innerText = formatEuro(totalHT);
             document.getElementById('display-total-tva').innerText = formatEuro(totalTVA);
-
-            const tsEl = document.getElementById('display-taxe-sejour');
-            let taxeSejour = 0;
-            if (tsEl) {
-                taxeSejour = parseFloat(tsEl.innerText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-            }
-
-            const ttc = totalHT + totalTVA + taxeSejour;
+            const ttc = totalHT + totalTVA;
             document.getElementById('display-total-ttc').innerText = formatEuro(ttc);
             document.getElementById('display-deposit').innerText = formatEuro(ttc * 0.3);
 

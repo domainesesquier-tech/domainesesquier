@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facture - Domaine Sesquier</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="assets/document.css">
+    <script src="assets/utils.js"></script>
+    <style>
+        /* Specific overrides for Facture if any */
+        .doc-type {
+            color: var(--text-main);
+            font-size: 26px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="controls-bar no-print">
+        <button class="btn" onclick="saveToAirtable()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            Enregistrer
+        </button>
+        <button class="btn btn-primary" onclick="window.print()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            Imprimer / PDF
+        </button>
+    </div>
+
+    <div class="page" id="devis-content">
+        <header>
+            <div class="brand-col">
+                <h1>Domaine Sesquier</h1>
+                <div class="subtitle">Esprit de famille & Art de vivre</div>
+                <div class="brand-details">
+                    4, plan du sesquier, 34140 Mèze<br>
+                    Tél : +33 7 68 77 85 27<br>
+                    Email : contact@domainesesquier.com<br>
+                    <strong>OZZA SASU</strong> — SIRET : 903 246 478 00015
+                </div>
+            </div>
+            <div class="meta-col">
+                <div class="doc-type" style="font-size: 26px;">FACTURE</div>
+                <div class="meta-grid">
+                    <div class="meta-label">Numéro :</div>
+                    <div class="meta-value" contenteditable="true" id="facture-number">FAC2026-03-XXX</div>
+                    <div class="meta-label">Date :</div>
+                    <div class="meta-value" contenteditable="true" id="today-date">--/--/----</div>
+                    <div class="meta-label">Réf. Devis :</div>
+                    <div class="meta-value" contenteditable="true" id="devis-number">2026-02-XXX</div>
+                </div>
+            </div>
+        </header>
+
+        <section class="info-section">
+            <div class="info-box">
+                <div class="box-title">Client / Entreprise</div>
+                <div class="client-info" contenteditable="true">Chargement...</div>
+            </div>
+            <div class="info-box">
+                <div class="box-title">Résumé du Séjour</div>
+                <table class="snapshot-table">
+                    <tr>
+                        <td class="snapshot-key">Type :</td>
+                        <td class="snapshot-val" contenteditable="true">...</td>
+                    </tr>
+                    <tr>
+                        <td class="snapshot-key">Dates :</td>
+                        <td class="snapshot-val" contenteditable="true">...</td>
+                    </tr>
+                    <tr>
+                        <td class="snapshot-key">Durée :</td>
+                        <td class="snapshot-val" contenteditable="true">...</td>
+                    </tr>
+                    <tr>
+                        <td class="snapshot-key">Participants :</td>
+                        <td class="snapshot-val" contenteditable="true">...</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+        <div id="stay-synthesis"
+            style="font-size: 11pt; font-weight: 500; color: var(--text-main); margin-bottom: 20px; border-left: 4px solid var(--primary); padding-left: 15px;">
+        </div>
+
+        <section class="pricing-section">
+            <table class="pricing-table">
+                <thead>
+                    <tr>
+                        <th class="col-detail">Description des Prestations</th>
+                        <th class="col-qty">Qté</th>
+                        <th class="col-price">PU HT (€)</th>
+                        <th class="col-tva">TVA</th>
+                        <th class="col-total">Total HT</th>
+                        <th class="no-print" style="width: 40px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="pricing-body"></tbody>
+            </table>
+        </section>
+
+        <div class="print-footer"
+            style="position: absolute; bottom: 15mm; width: calc(100% - 30mm); font-size: 8pt; color: #999;">
+            Domaine Sesquier — <span class="devis-num-footer">2026-02-XXX</span> — Page 1/2
+        </div>
+    </div>
+
+    <div class="page" id="page2">
+        <div class="print-header-p2">
+            <div>
+                <span class="serif" style="font-size: 14pt; font-weight: 700; color: var(--primary);">Domaine
+                    Sesquier</span>
+                <span
+                    style="font-size: 9pt; color: var(--accent); margin-left: 10px; text-transform: uppercase; letter-spacing: 0.1em;">Suite
+                    de la Facture</span>
+            </div>
+            <div style="font-size: 9pt; text-align: right;">
+                <div style="font-weight: 600;" class="devis-num-footer">N° FAC2026-03-XXX</div>
+                <div style="color: #666;" class="devis-date-footer">Date : --/--/----</div>
+            </div>
+        </div>
+
+        <section id="activities-proposal" style="margin-bottom: 25px;">
+            <div
+                style="background-color: rgba(158, 93, 76, 0.08); color: var(--accent); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 11pt; padding: 8px 15px; border-bottom: 1px solid var(--accent); margin-bottom: 10px;">
+                Activités & Loisirs</div>
+            <table class="pricing-table" style="width: 100%;">
+                <tbody id="activities-body"></tbody>
+            </table>
+        </section>
+
+        <section class="bottom-section no-break">
+            <div class="totals-col">
+                <div class="total-row"><span>Total HT</span><span id="display-total-ht">0,00 €</span></div>
+                <div class="total-row"><span>TVA</span><span id="display-total-tva">0,00 €</span></div>
+                <div class="total-row" style="margin-bottom: 20px;"><span>TOTAL TTC</span><span
+                        id="display-total-ttc">0,00 €</span></div>
+
+                <div class="total-row" id="row-deposit" style="color: var(--accent); position: relative;">
+                    <button class="no-print" onclick="removeDeposit()"
+                        style="position: absolute; left: -30px; background: none; border: none; color: #ff4d4d; cursor: pointer; font-size: 14pt;">&times;</button>
+                    <span>Déduction Acompte réglé (30%)</span>
+                    <span id="display-deposit" contenteditable="true" oninput="updateCalculations()">0,00 €</span>
+                </div>
+
+                <div class="total-row final"
+                    style="border-top: 2px solid var(--primary); margin-top: 15px; padding-top: 15px;">
+                    <span>NET À PAYER</span>
+                    <span id="display-net-to-pay">0,00 €</span>
+                </div>
+            </div>
+
+            <div class="conditions-col">
+                <h4>Conditions de Règlement</h4>
+                <ul class="cond-list">
+                    <li>Paiement à réception de facture.</li>
+                    <li>Règlement par virement bancaire uniquement.</li>
+                </ul>
+                <div style="font-size: 7.5pt; color: #999; margin-top: 15px;">
+                    <strong>BNP PARIBAS</strong> — IBAN : FR76 3000 4006 4000 0107 8926 886 — BIC : BNPAFRPPXXX
+                </div>
+            </div>
+        </section>
+
+        <section class="signature-section no-break">
+            <div class="sig-grid">
+                <div>
+                    <div class="sig-box-title">Client</div>
+                </div>
+                <div>
+                    <div class="sig-box-title">Domaine Sesquier</div>
+                </div>
+            </div>
+        </section>
+
+        <div class="print-footer"
+            style="position: absolute; bottom: 15mm; width: calc(100% - 30mm); font-size: 8pt; color: #999;">
+            Domaine Sesquier — <span class="devis-num-footer">2026-02-XXX</span> — Page 2/2
+        </div>
+    </div>
+
+    <script>
+        const { API_RESERVATIONS_URL, formatEuro } = SesquierUtils;
+        let currentRecord = null;
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentRequestId = urlParams.get('id');
+
+        document.getElementById('today-date').innerText = new Date().toLocaleDateString('fr-FR');
+
+        if (currentRequestId) { loadReservationData(currentRequestId); }
+        else if (urlParams.get('live') === 'true') { loadFromDraftPreview(); }
+
+        function loadFromDraftPreview() {
+            try {
+                const ls = localStorage.getItem('domaineBookingDraft');
+                if (!ls) return;
+                const draft = JSON.parse(ls);
+
+                let nights = 1;
+                let dArr = null; let dDep = null;
+                if (draft.dates?.start && draft.dates?.end) {
+                    dArr = new Date(draft.dates.start); dDep = new Date(draft.dates.end);
+                    nights = Math.max(1, Math.round((dDep - dArr) / 86400000));
+                }
+                const totalPers = draft.group?.total || 1;
+
+                const mockFields = {
+                    "Type": draft.type === 'pro' ? "Séminaire" : "Séjour Privé",
+                    "Date arrivée": dArr ? dArr.toISOString().split('T')[0] : "",
+                    "Date départ": dDep ? dDep.toISOString().split('T')[0] : "",
+                    "Nuits": nights,
+                    "Nombre de personnes": totalPers,
+                    "Nom client": (draft.contact?.first || "") + " " + (draft.contact?.last || ""),
+                    "Email": draft.contact?.email || "",
+                    "Détails JSON": JSON.stringify(draft),
+                    "Numéro Devis": "BROUILLON"
+                };
+                populateDevis(mockFields);
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadReservationData(id) {
+            const response = await fetch(`${API_RESERVATIONS_URL}?id=${id}`);
+            const data = await response.json();
+            currentRecord = data.records ? data.records[0] : data;
+            populateDevis(currentRecord.fields);
+        }
+
+        function populateDevis(fields) {
+            const num = (fields["Numéro Devis"] || fields["ID"] || "").toString().slice(-6).toUpperCase();
+            document.getElementById('devis-number').innerText = `2026-02-${num}`;
+            document.getElementById('facture-number').innerText = `FAC2026-03-${num}`;
+            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `FAC2026-03-${num}`);
+
+            document.querySelector('.client-info').innerHTML = `<strong>${fields["Nom client"] || "Client"}</strong><br>Email : ${fields["Email"] || "N/A"}`;
+
+            const snapshot = document.querySelectorAll('.snapshot-val');
+            snapshot[0].innerText = fields["Type"] || "Séjour";
+            snapshot[1].innerText = `${fields["Date arrivée"] || "?"} → ${fields["Date départ"] || "?"}`;
+            snapshot[2].innerText = `${fields["Nuits"] || 0} nuits`;
+            snapshot[3].innerText = `${fields["Nombre de personnes"] || 0} personnes`;
+
+            const tbody = document.getElementById('pricing-body');
+            tbody.innerHTML = '';
+
+            // Simplified summary for standard invoice
+            addCategoryRow("Hébergement & Services");
+            const nbPers = fields["Nombre de personnes"] || 1;
+            const totalHeberg = fields["Montant Hébergement HT"] || 0;
+            addPricingRow("Mise à disposition du domaine et chambres", nbPers, totalHeberg / nbPers, "10%");
+
+            if (fields["Montant Repas HT"] > 0) {
+                addCategoryRow("Restauration");
+                addPricingRow("Prestations de restauration selon programme", 1, fields["Montant Repas HT"], "10%");
+            }
+
+            if (fields["Montant Options HT"] > 0) {
+                addCategoryRow("Salles & Options");
+                addPricingRow("Location salles et coordination logistique", 1, fields["Montant Options HT"], "20%");
+            }
+
+            updateCalculations();
+        }
+
+        function addCategoryRow(title) {
+            const tr = document.createElement('tr');
+            tr.className = "category-row";
+            tr.innerHTML = `<td colspan="6">${title}</td>`;
+            document.getElementById('pricing-body').appendChild(tr);
+        }
+
+        function addPricingRow(label, qty, price, tva) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td contenteditable="true">${label}</td>
+                <td contenteditable="true" class="qty" style="text-align: center;">${qty}</td>
+                <td contenteditable="true" class="price" style="text-align: right;">${parseFloat(price).toFixed(2)}</td>
+                <td class="tva-rate" contenteditable="true" style="text-align: right;">${tva}</td>
+                <td class="row-total" style="text-align: right; font-weight: 600;">0.00</td>
+                <td class="no-print"></td>
+            `;
+            document.getElementById('pricing-body').appendChild(tr);
+        }
+
+        function updateCalculations() {
+            let totalHT = 0, totalTVA = 0;
+            document.querySelectorAll('#pricing-body tr').forEach(row => {
+                if (row.classList.contains('category-row')) return;
+                const q = parseFloat(row.querySelector('.qty').innerText) || 0;
+                const p = parseFloat(row.querySelector('.price').innerText) || 0;
+                const line = q * p;
+                row.querySelector('.row-total').innerText = line.toFixed(2);
+                totalHT += line;
+                const rateStr = row.querySelector('.tva-rate').innerText;
+                const rate = parseFloat(rateStr) / 100 || 0.1;
+                totalTVA += line * rate;
+            });
+
+            document.getElementById('display-total-ht').innerText = formatEuro(totalHT);
+            document.getElementById('display-total-tva').innerText = formatEuro(totalTVA);
+            const ttc = totalHT + totalTVA;
+            document.getElementById('display-total-ttc').innerText = formatEuro(ttc);
+
+            // Deposit logic
+            const depositRow = document.getElementById('row-deposit');
+            let deposit = 0;
+            if (depositRow.style.display !== 'none') {
+                const depositEl = document.getElementById('display-deposit');
+                // If it's the first time or draft, we might want to auto-fill 30%
+                if (depositEl.innerText === '0,00 €' || depositEl.innerText === '') {
+                    deposit = ttc * 0.3;
+                    depositEl.innerText = formatEuro(deposit);
+                } else {
+                    deposit = parseFloat(depositEl.innerText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+                }
+            }
+
+            document.getElementById('display-net-to-pay').innerText = formatEuro(ttc - deposit);
+        }
+
+        function removeDeposit() {
+            document.getElementById('row-deposit').style.display = 'none';
+            // Trigger recalculation with 0 deposit
+            const depositEl = document.getElementById('display-deposit');
+            depositEl.innerText = '0,00 €';
+            updateCalculations();
+        }
+
+        function formatEuro(n) { return n.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + " €"; }
+
+        async function saveToAirtable() { alert("Facture enregistrée localement."); }
+
+        document.body.addEventListener('input', (e) => {
+            if (e.target.contentEditable === 'true') updateCalculations();
+        });
+    </script>
+</body>
+
+</html>

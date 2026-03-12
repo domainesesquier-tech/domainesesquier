@@ -82,7 +82,7 @@ export default {
           return json({ records: [record] }, 200, env);
         }
 
-        const formula = "AND({Date arrivée}, {Date départ})";
+        const formula = "AND({Date arrivée}, {Date départ}, {Statut} = 'confirmé')";
         const records = await fetchAllRecords(
           env,
           env.AIRTABLE_RESERVATIONS_TABLE,

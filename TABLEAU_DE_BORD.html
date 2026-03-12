@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centre de Contrôle - Domaine Sesquier</title>
+    <!-- Fonts & Icons -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="assets/utils.js"></script>
+
+    <style>
+        :root {
+            --primary: #3A5538;
+            --primary-light: #527050;
+            --accent: #9E5D4C;
+            --bg: #F9F8F6;
+            --surface: #FFFFFF;
+            --text: #2D302A;
+            --text-light: #666;
+            --border: #E5E1D8;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar Navigation --- */
+        .sidebar {
+            width: 280px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.03);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .logo-area {
+            padding: 30px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            background: rgba(58, 85, 56, 0.02);
+        }
+
+        .logo-area h1 {
+            margin: 0;
+            font-size: 24px;
+            color: var(--primary);
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 700;
+        }
+
+        .logo-area p {
+            margin: 5px 0 0;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .nav-list {
+            list-style: none;
+            padding: 20px 15px;
+            margin: 0;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-light);
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(58, 85, 56, 0.03);
+            color: var(--primary);
+            border-color: var(--border);
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(58, 85, 56, 0.2);
+            border-color: var(--primary);
+        }
+
+        .nav-item i {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* --- Devis Loader --- */
+        .devis-input-area {
+            margin-top: auto;
+            padding: 25px 20px;
+            border-top: 1px solid var(--border);
+            background: #FAFAFA;
+        }
+
+        .devis-input-area strong {
+            display: block;
+            font-size: 13px;
+            color: var(--text);
+            margin-bottom: 5px;
+        }
+
+        .devis-input-area p {
+            margin: 0 0 10px 0;
+            font-size: 12px;
+            color: var(--text-light);
+            line-height: 1.4;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-group input {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input:focus {
+            border-color: var(--primary);
+        }
+
+        .input-group button {
+            padding: 10px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            font-family: inherit;
+            transition: transform 0.1s, background 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .input-group button:hover {
+            background: #8E4C3C;
+            transform: translateY(-1px);
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            flex: 1;
+            position: relative;
+            background: var(--bg);
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        iframe.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* --- Toast Notification --- */
+        .sync-banner {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface);
+            padding: 12px 25px;
+            border-radius: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            font-size: 13px;
+            color: var(--primary);
+            font-weight: 600;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 100;
+            border: 1px solid var(--border);
+        }
+
+        .sync-banner.show {
+            display: flex;
+            animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes slideUp {
+            from {
+                bottom: -50px;
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }
+
+            to {
+                bottom: 30px;
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        /* --- Mobile Styles --- */
+        .mobile-header {
+            display: none;
+            background: var(--surface);
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .mobile-header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--primary);
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 1024px) {
+            body {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                transform: translateX(-100%);
+                width: 280px;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .mobile-header {
+                display: flex;
+            }
+
+            .main-content {
+                height: calc(100vh - 61px);
+            }
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 900;
+            display: none;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="mobile-header">
+        <h2>Domaine Sesquier</h2>
+        <button class="menu-toggle" onclick="toggleSidebar()">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+    </div>
+
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <h1>Domaine Sesquier</h1>
+            <p>Tableau de Bord</p>
+        </div>
+
+        <ul class="nav-list">
+            <li id="nav-prive" class="nav-item active" onclick="switchTab('iframe-prive', this)">
+                <i class="fa-solid fa-umbrella-beach"></i>
+                <span>Configurateur Privé</span>
+            </li>
+            <li id="nav-pro" class="nav-item" onclick="switchTab('iframe-pro', this)">
+                <i class="fa-solid fa-briefcase"></i>
+                <span>Config. Séminaire</span>
+            </li>
+            <li id="nav-devis" class="nav-item" onclick="switchTab('iframe-devis', this)">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+                <span>Aperçu Devis</span>
+            </li>
+            <li id="nav-facture" class="nav-item" onclick="switchTab('iframe-facture', this)">
+                <i class="fa-solid fa-file-lines"></i>
+                <span>Facture Acompte</span>
+            </li>
+            <li id="nav-facture-finale" class="nav-item" onclick="switchTab('iframe-facture-finale', this)">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span>Facture Finale</span>
+            </li>
+        </ul>
+
+        <div class="devis-input-area">
+            <strong>Modifier un Document existant</strong>
+            <p>Renseignez l'ID Airtable pour ouvrir un document finalisé depuis la base (impacte l'onglet sélectionné).
+            </p>
+            <div class="input-group">
+                <input type="text" id="dev-id-input" placeholder="ex: recCniBThJI...">
+                <button onclick="loadAirtableDevis()"><i class="fa-solid fa-cloud-arrow-down"></i> Ouvrir
+                    Document</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- Configurateur Privé = CONFIGURATEUR.html?mode=perso -->
+        <iframe src="CONFIGURATEUR.html?mode=perso" id="iframe-prive" class="active"></iframe>
+
+        <!-- Configurateur Séminaire = CONFIGURATEUR.html?mode=pro -->
+        <iframe src="CONFIGURATEUR.html?mode=pro" id="iframe-pro"></iframe>
+
+        <!-- Devis avec le paramètre live=true pour charger depuis le LocalStorage en temps réel -->
+        <iframe src="DOMAINE_SESQUIER_DEVIS.html?live=true" id="iframe-devis"></iframe>
+
+        <!-- Facture Acompte -->
+        <iframe src="DOMAINE_SESQUIER_FACTURE_ACOMPTE.html?live=true" id="iframe-facture"></iframe>
+
+        <!-- Facture Finale -->
+        <iframe src="DOMAINE_SESQUIER_FACTURE.html?live=true" id="iframe-facture-finale"></iframe>
+
+        <div class="sync-banner" id="syncBanner">
+            <i class="fa-solid fa-arrows-rotate fa-spin"></i> Données synchronisées entre les onglets
+        </div>
+    </div>
+
+    <script>
+        function switchTab(frameId, elem) {
+            // Actualiser l'état des onglets
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            elem.classList.add('active');
+
+            // Afficher le bon Iframe et orchestrer la synchronisation magique
+            document.querySelectorAll('iframe').forEach(fr => {
+                if (fr.id === frameId) {
+                    fr.classList.add('active');
+
+                    if (frameId === 'iframe-devis') {
+                        // Pour le devis, s'il n'y a pas d'ID spécifique renseigné, on charge l'Aperçu Live `?live=true`
+                        const inputVal = document.getElementById('dev-id-input').value.trim();
+                        if (inputVal) {
+                            fr.src = `DOMAINE_SESQUIER_DEVIS.html?id=${inputVal}`;
+                        } else {
+                            // On ajoute le timestamp pour forcer le devis à relire localStorage.domaineBookingDraft
+                            fr.src = `DOMAINE_SESQUIER_DEVIS.html?live=true&t=${Date.now()}`;
+                        }
+                    } else if (frameId === 'iframe-facture') {
+                        const inputVal = document.getElementById('dev-id-input').value.trim();
+                        if (inputVal) {
+                            fr.src = `DOMAINE_SESQUIER_FACTURE_ACOMPTE.html?id=${inputVal}`;
+                        } else {
+                            fr.src = `DOMAINE_SESQUIER_FACTURE_ACOMPTE.html?live=true&t=${Date.now()}`;
+                        }
+                    } else if (frameId === 'iframe-facture-finale') {
+                        const inputVal = document.getElementById('dev-id-input').value.trim();
+                        if (inputVal) {
+                            fr.src = `DOMAINE_SESQUIER_FACTURE.html?id=${inputVal}`;
+                        } else {
+                            fr.src = `DOMAINE_SESQUIER_FACTURE.html?live=true&t=${Date.now()}`;
+                        }
+                    } else {
+                        // Pour le nouveau configurateur unifié, on force le mode pour plus de sécurité
+                        const currentMode = frameId === 'iframe-pro' ? 'pro' : 'perso';
+                        if (!fr.src.includes('mode=')) {
+                            fr.src = `CONFIGURATEUR.html?mode=${currentMode}`;
+                        } else {
+                            fr.contentWindow.location.reload();
+                        }
+                    }
+
+                    showBanner();
+                } else {
+                    fr.classList.remove('active');
+                }
+            });
+        }
+
+        function loadAirtableDevis() {
+            const val = document.getElementById('dev-id-input').value.trim();
+            if (val) {
+                // Determine which tab to affect (Devis by default, Facture if currently active)
+                let targetFrame = 'iframe-devis';
+                let targetNavId = 'nav-devis';
+                if (document.getElementById('iframe-facture').classList.contains('active')) {
+                    targetFrame = 'iframe-facture';
+                    targetNavId = 'nav-facture';
+                } else if (document.getElementById('iframe-facture-finale').classList.contains('active')) {
+                    targetFrame = 'iframe-facture-finale';
+                    targetNavId = 'nav-facture-finale';
+                }
+                switchTab(targetFrame, document.getElementById(targetNavId));
+            } else {
+                alert("Veuillez saisir un ID Airtable valide.");
+            }
+        }
+
+        function showBanner() {
+            const banner = document.getElementById('syncBanner');
+            banner.classList.add('show');
+            setTimeout(() => {
+                banner.classList.remove('show');
+            }, 2500);
+        }
+
+        // Mobile Sidebar Toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+        }
+
+        // Close sidebar when clicking a nav item on mobile
+        const originalSwitchTab = switchTab;
+        switchTab = function (frameId, elem) {
+            originalSwitchTab(frameId, elem);
+            if (window.innerWidth <= 1024) {
+                toggleSidebar();
+            }
+        };
+
+        function initFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const recordId = urlParams.get('id');
+            const tabParam = urlParams.get('tab');
+
+            console.log("[DASHBOARD] Initialisation avec ID:", recordId);
+
+            if (recordId) {
+                document.getElementById('dev-id-input').value = recordId;
+                if (tabParam === 'facture') {
+                    switchTab('iframe-facture', document.getElementById('nav-facture'));
+                } else if (tabParam === 'facture-finale') {
+                    switchTab('iframe-facture-finale', document.getElementById('nav-facture-finale'));
+                } else {
+                    switchTab('iframe-devis', document.getElementById('nav-devis'));
+                }
+            } else {
+                console.log("[DASHBOARD] Aucun ID trouvé dans l'URL. Mode création par défaut.");
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', initFromURL);
+
+        // Communication avec les Iframes
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'devis_created') {
+                const newId = event.data.id;
+                console.log("[DASHBOARD] Nouveau devis créé:", newId);
+                const input = document.getElementById('dev-id-input');
+                if (input) {
+                    input.value = newId;
+                    // Mettre à jour l'URL sans recharger la page
+                    const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?id=' + newId;
+                    window.history.pushState({ path: newUrl }, '', newUrl);
+                    // Basculer automatiquement sur l'onglet Devis
+                    switchTab('iframe-devis', document.getElementById('nav-devis'));
+                }
+            }
+
+            if (event.data.type === 'SWITCH_TAB') {
+                const targetFrameMap = {
+                    'prive': { frame: 'iframe-prive', nav: 'nav-prive' },
+                    'pro': { frame: 'iframe-pro', nav: 'nav-pro' },
+                    'devis': { frame: 'iframe-devis', nav: 'nav-devis' },
+                    'facture': { frame: 'iframe-facture', nav: 'nav-facture' },
+                    'facture-finale': { frame: 'iframe-facture-finale', nav: 'nav-facture-finale' }
+                };
+                const target = targetFrameMap[event.data.tab];
+                if (target) {
+                    if (event.data.recordId) {
+                        document.getElementById('dev-id-input').value = event.data.recordId;
+                    }
+                    switchTab(target.frame, document.getElementById(target.nav));
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
