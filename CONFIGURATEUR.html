@@ -3834,7 +3834,8 @@
         }
 
         function toggleCoffeeInfo() {
-            const enabled = document.getElementById('enableCoffee').checked;
+            const coffeeEl = document.getElementById('enableCoffee');
+            const enabled = coffeeEl ? coffeeEl.checked : false;
             const details = document.getElementById('coffee-details');
             if (details) details.style.opacity = enabled ? '1' : '0.3';
             if (details) details.style.pointerEvents = enabled ? 'auto' : 'none';
@@ -4425,7 +4426,8 @@
                     const badge = document.getElementById('salle-price-badge');
                     if (badge) badge.innerText = `${realPrice}€ HT / jour`;
 
-                    if (document.getElementById('salleReunion').checked) {
+                    const salleEl = document.getElementById('salleReunion');
+                    if (salleEl && salleEl.checked) {
                         const isForfait = pricing && typeof pricing.unit === 'string' && pricing.unit.toLowerCase().includes('forfait');
                         const billDays = nights;
                         const salleCost = Math.round(isForfait ? realPrice : realPrice * billDays);
@@ -4436,7 +4438,8 @@
                     }
                 }
 
-                if (document.getElementById('lateArrival').checked) {
+                const lateEl = document.getElementById('lateArrival');
+                if (lateEl && lateEl.checked) {
                     selectedOptions.push("Arrivée/Départ flex");
                 }
                 if (currentMode === 'pro' && document.getElementById('kitSoiree') && document.getElementById('kitSoiree').checked) {
