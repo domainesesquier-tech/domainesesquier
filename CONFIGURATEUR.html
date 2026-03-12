@@ -3221,7 +3221,7 @@
         async function fetchAllAirtableRecords(url, queryParams = '') {
             const sep = url.includes('?') ? '&' : '?';
             const fullUrl = queryParams ? `${url}${sep}${queryParams}` : url;
-            const data = await fetchJson(fullUrl);
+            const data = await fetchProxyJson(fullUrl);
             return data.records || [];
         }
 

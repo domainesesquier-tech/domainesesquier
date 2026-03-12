@@ -354,12 +354,7 @@
                 console.log("Fetching ID:", id);
                 if (clientInfoEl) clientInfoEl.innerHTML = "Chargement des données depuis Airtable...";
 
-                const response = await fetch(`${API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
-                if (!response.ok) {
-                    const errorJson = await response.json().catch(() => ({}));
-                    throw new Error(errorJson.error?.message || `Erreur Serveur (${response.status})`);
-                }
-                const data = await response.json();
+                const data = await SesquierUtils.fetchJson(`${API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
                 currentRecord = data.records ? data.records[0] : data;
 
                 if (!currentRecord || !currentRecord.fields) {
@@ -723,12 +718,10 @@
                         "Statut": "devis envoyé"
                     }
                 };
-                const res = await fetch(API_RESERVATIONS_URL, {
+                const data = await SesquierUtils.fetchJson(API_RESERVATIONS_URL, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                if (!res.ok) throw new Error("Erreur Airtable");
                 alert("✅ Devis sauvegardé !");
             } catch (e) { alert("❌ Erreur : " + e.message); }
             finally { if (btn) { btn.innerText = "Enregistrer (Airtable)"; btn.disabled = false; } }
