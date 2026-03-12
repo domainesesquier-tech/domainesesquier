@@ -474,60 +474,46 @@
             if (fields["Option ménage"] === "Oui") addPricingRow("Forfait Ménage fin de séjour", 1, 150, "20%");
             addSubtotalRow("Hébergement", "subtotal-hebergement");
 
-            // --- B. Catering ---
+            // --- B. Catering (5 lignes consolidées) ---
             addCategoryRow("Restauration");
             let isPension = (details.meals?.mode === 'pension');
-            let mealRowsAdded = false;
-            let totalEligible = 0;
+
+            // Totaux cumulés sur tous les jours
+            let totalPDJ = 0, totalColM = 0, totalDEJ = 0, totalColA = 0, totalDIN = 0;
 
             if (details.meals && details.meals.counts && details.meals.counts.length > 0) {
-                const arrivalDate = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null;
-                details.meals.counts.forEach((c, idx) => {
-                    let labelJour = `Jour ${idx + 1}`;
-                    if (arrivalDate) {
-                        const d = new Date(arrivalDate);
-                        d.setDate(arrivalDate.getDate() + idx);
-                        let dStr = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
-                        labelJour = dStr.charAt(0).toUpperCase() + dStr.slice(1);
-                    }
-                    const prefix = `<strong>${labelJour}</strong> — `;
-
-                    let addedToThisDay = false;
-                    if (c.petitDej > 0) { addPricingRow(prefix + "Petit-Déjeuner", c.petitDej, 14, "10%"); addedToThisDay = true; }
-                    const qColM = c.collationMatin || (c.collation / 2) || 0;
-                    if (qColM > 0) { addPricingRow(prefix + "Collation Matin", qColM, 5, "10%"); addedToThisDay = true; }
-                    if (c.dejeuner > 0) { addPricingRow(prefix + "Déjeuner", c.dejeuner, 26, "10%"); addedToThisDay = true; }
-                    const qColA = c.collationAprem || (c.collation / 2) || 0;
-                    if (qColA > 0) { addPricingRow(prefix + "Collation Après-midi", qColA, 5, "10%"); addedToThisDay = true; }
-                    if (c.diner > 0) { addPricingRow(prefix + "Dîner", c.diner, 30, "10%"); addedToThisDay = true; }
-
-                    if (addedToThisDay) {
-                        totalEligible += Math.min(c.petitDej || 0, c.dejeuner || 0, (idx < details.meals.counts.length - 1 ? (c.diner || 0) : 0));
-                        mealRowsAdded = true;
-                    }
+                details.meals.counts.forEach(c => {
+                    totalPDJ += (c.petitDej || 0);
+                    totalColM += (c.collationMatin || Math.floor((c.collation || 0) / 2));
+                    totalDEJ += (c.dejeuner || 0);
+                    totalColA += (c.collationAprem || Math.ceil((c.collation || 0) / 2));
+                    totalDIN += (c.diner || 0);
                 });
+            } else {
+                // Fallback champs directs Airtable
+                totalPDJ = fields["Repas petit-déj"] || 0;
+                totalDEJ = fields["Repas déjeuner"] || 0;
+                totalDIN = fields["Repas dîner"] || 0;
             }
 
-            if (!mealRowsAdded) {
-                // Fallback to global counts OR add empty default rows if no counts
-                const qPDJ = fields["Repas petit-déj"] || 0;
-                const qDEJ = fields["Repas déjeuner"] || 0;
-                const qDIN = fields["Repas dîner"] || 0;
+            // 5 lignes uniques (cachées si quantité = 0)
+            if (totalPDJ > 0) addPricingRow("Petits-déjeuners", totalPDJ, 14, "10%");
+            if (totalColM > 0) addPricingRow("Collations matin", totalColM, 5, "10%");
+            if (totalDEJ > 0) addPricingRow("Déjeuners", totalDEJ, 26, "10%");
+            if (totalColA > 0) addPricingRow("Collations après-midi", totalColA, 5, "10%");
+            if (totalDIN > 0) addPricingRow("Dîners", totalDIN, 30, "10%");
 
-                addPricingRow("Petits-Déjeuners", qPDJ, 14, "10%");
-                addPricingRow("Déjeuners", qDEJ, 26, "10%");
-                addPricingRow("Dîners", qDIN, 30, "10%");
-
-                mealRowsAdded = true; // Section and lines are now handled
-            }
-
-            // Complete Pack Discount
-            const logicalMax = Math.min(fields["Repas petit-déj"] || 0, fields["Repas déjeuner"] || 0, fields["Repas dîner"] || 0);
-            if (totalEligible === 0 && isPension) totalEligible = logicalMax;
-            else totalEligible = Math.min(totalEligible, logicalMax);
-
-            if (isPension && totalEligible > 0) {
-                addPricingRow("<span style='color: var(--accent); font-weight: 600;'>Remise forfait pension complète</span><br><small style='color: #666; font-size: 8pt;'>Optimisation tarifaire (70€ HT / jr / pers)</small>", totalEligible, -10.00, "10%");
+            // Remise pension
+            if (isPension) {
+                const nbP = fields["Nombre de personnes"] || 0;
+                const nightsP = fields["Nuits"] || 0;
+                const eligiblePension = nbP * nightsP;
+                if (eligiblePension > 0) {
+                    addPricingRow(
+                        "<span style='color: var(--accent); font-weight: 600;'>Remise forfait pension complète</span><br><small style='color: #666; font-size: 8pt;'>Optimisation tarifaire (70€ HT / jr / pers)</small>",
+                        eligiblePension, -10.00, "10%"
+                    );
+                }
             }
             addSubtotalRow("Restauration", "subtotal-restauration");
 
