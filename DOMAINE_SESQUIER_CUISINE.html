@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Récapitulatif Cuisine - Domaine Sesquier</title>
+    <!-- Fonts & Icons -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/document.css">
+    <script src="assets/utils.js"></script>
+
+    <style>
+        .cuisine-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .cuisine-table th {
+            background: #4A6741;
+            color: white;
+            padding: 12px 10px;
+            text-align: center;
+            font-size: 9pt;
+            text-transform: uppercase;
+            border: 1px solid #3A5538;
+        }
+
+        .cuisine-table td {
+            padding: 15px 10px;
+            border: 1px solid #eee;
+            text-align: center;
+            font-size: 11pt;
+            font-weight: 500;
+        }
+
+        .cuisine-table td:first-child {
+            text-align: left;
+            background: #fdfdfd;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 13pt;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .day-label {
+            font-size: 8pt;
+            color: #999;
+            font-weight: 400;
+            display: block;
+        }
+
+        .meal-count {
+            font-size: 16pt;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .meal-count.zero {
+            color: #ddd;
+            font-weight: 400;
+        }
+
+        .diet-box {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fcf8f7;
+            border-left: 4px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .diet-title {
+            color: var(--accent);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 10pt;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .no-print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <button class="btn btn-primary no-print no-print-btn" onclick="window.print()">
+        <i class="fas fa-print"></i> Imprimer Récap Cuisine
+    </button>
+
+    <div class="page">
+        <header>
+            <div class="brand-col">
+                <h1>Domaine Sesquier</h1>
+                <div class="subtitle">Récapitulatif Restauration & Cuisine</div>
+                <div class="brand-details">
+                    Bon de commande traiteur<br>
+                    www.domainesesquier.com
+                </div>
+            </div>
+            <div class="meta-col">
+                <div class="doc-type">CUISINE</div>
+                <div class="meta-grid">
+                    <span>Date d'édition :</span> <strong id="display-today">—</strong>
+                    <span>Dossier :</span> <strong id="display-client">—</strong>
+                </div>
+            </div>
+        </header>
+
+        <section class="info-section">
+            <div class="info-box">
+                <div class="box-title">Informations Séjour</div>
+                <div class="client-info">
+                    <table style="width:100%; font-size:9.5pt;">
+                        <tr>
+                            <td style="opacity:0.6; width:45%;">Arrivée :</td>
+                            <td id="snap-arr"><strong>—</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="opacity:0.6;">Départ :</td>
+                            <td id="snap-dep"><strong>—</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="opacity:0.6;">Effectif Max :</td>
+                            <td id="snap-people">—</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="info-box">
+                <div class="box-title">Mémo Service</div>
+                <div style="font-size: 8.5pt; color: #666; line-height: 1.4;">
+                    <i class="fas fa-clock"></i> Petit-déjeuner : 8h00 - 9h30<br>
+                    <i class="fas fa-clock"></i> Déjeuner : 12h30 - 14h00<br>
+                    <i class="fas fa-clock"></i> Dîner : 19h30 - 21h00
+                </div>
+            </div>
+        </section>
+
+        <table class="cuisine-table">
+            <thead>
+                <tr>
+                    <th style="width:25%;">Jour / Date</th>
+                    <th>Petit-déj.</th>
+                    <th>Déjeuner</th>
+                    <th>Dîner</th>
+                    <th>Pauses</th>
+                </tr>
+            </thead>
+            <tbody id="cuisine-body">
+                <!-- Peuplé dynamiquement -->
+            </tbody>
+        </table>
+
+        <div class="diet-box" id="diet-section" style="display:none;">
+            <div class="diet-title">
+                <i class="fas fa-exclamation-triangle"></i> Régimes spéciaux & Allergies
+            </div>
+            <div id="diet-content" style="font-size:11pt; line-height:1.5;">—</div>
+        </div>
+
+        <div class="print-footer">
+            <span>Document généré le <span class="gen-date"></span></span>
+            <span>Domaine Sesquier — Fiche Cuisine</span>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const recordId = urlParams.get('id');
+            const isLive = urlParams.get('live') === 'true';
+
+            document.getElementById('display-today').innerText = new Date().toLocaleDateString('fr-FR');
+            document.querySelectorAll('.gen-date').forEach(el => el.innerText = new Date().toLocaleString('fr-FR'));
+
+            if (isLive) {
+                const saved = localStorage.getItem('domaineBookingDraft');
+                if (saved) {
+                    const draft = JSON.parse(saved);
+                    // On simule un objet "fields" pour réutiliser la même logique
+                    const fields = {
+                        "Nom client": (draft.contact.first + ' ' + draft.contact.last).trim() || "Brouillon Live",
+                        "Entreprise": draft.contact.organisation,
+                        "Date arrivée": draft.dates.start ? new Date(draft.dates.start).toISOString() : null,
+                        "Date départ": draft.dates.end ? new Date(draft.dates.end).toISOString() : null,
+                        "Nombre de personnes": draft.group.total,
+                        "Message": draft.contact.msg,
+                        "Détails JSON": JSON.stringify({
+                            meals: draft.meals || {}
+                        })
+                    };
+                    renderCuisine(fields);
+                }
+            } else if (recordId) {
+                try {
+                    const data = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${recordId}`);
+                    const fields = data.records ? data.records[0].fields : data.fields;
+                    renderCuisine(fields);
+                } catch (err) {
+                    console.error("Erreur chargement devis:", err);
+                }
+            }
+        });
+
+        function renderCuisine(fields) {
+            const client = fields["Nom client"] || "Client";
+            const org = fields["Entreprise"] || "";
+            document.getElementById('display-client').innerText = org ? `${org} (${client})` : client;
+
+            const dArr = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null;
+            const dDep = fields["Date départ"] ? new Date(fields["Date départ"]) : null;
+            const nbPers = fields["Nombre de personnes"] || 0;
+
+            if (dArr) document.getElementById('snap-arr').innerText = dArr.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+            if (dDep) document.getElementById('snap-dep').innerText = dDep.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+            document.getElementById('snap-people').innerText = nbPers;
+
+            const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
+            const mealsData = (details.meals && details.meals.counts) ? details.meals.counts : [];
+            const dietNote = details.meals?.dietary || "";
+
+            if (dietNote) {
+                document.getElementById('diet-section').style.display = 'block';
+                document.getElementById('diet-content').innerText = dietNote;
+            }
+
+            const tbody = document.getElementById('cuisine-body');
+            tbody.innerHTML = "";
+
+            if (!dArr || !dDep) return;
+
+            // On boucle sur chaque jour
+            const diffDays = Math.ceil((dDep - dArr) / 86400000);
+            for (let i = 0; i <= diffDays; i++) {
+                const currentDate = new Date(dArr);
+                currentDate.setDate(dArr.getDate() + i);
+
+                const dayMeta = mealsData.find(m => m.day === i) || { petitDej: 0, dejeuner: 0, diner: 0, collationMatin: 0, collationAprem: 0 };
+                const totalPauses = (dayMeta.collationMatin || 0) + (dayMeta.collationAprem || 0);
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <span class="day-label">Jour ${i + 1}</span>
+                        ${currentDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })}
+                    </td>
+                    <td><span class="meal-count ${dayMeta.petitDej ? '' : 'zero'}">${dayMeta.petitDej || 0}</span></td>
+                    <td><span class="meal-count ${dayMeta.dejeuner ? '' : 'zero'}">${dayMeta.dejeuner || 0}</span></td>
+                    <td><span class="meal-count ${dayMeta.diner ? '' : 'zero'}">${dayMeta.diner || 0}</span></td>
+                    <td><span class="meal-count ${totalPauses ? '' : 'zero'}">${totalPauses || 0}</span></td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+    </script>
+</body>
+
+</html>

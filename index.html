@@ -349,6 +349,14 @@
                 <i class="fa-solid fa-file-invoice"></i>
                 <span>Facture Finale</span>
             </li>
+            <li id="nav-rooming" class="nav-item" onclick="switchTab('iframe-rooming', this)">
+                <i class="fa-solid fa-bed"></i>
+                <span>Plan d'Occupation</span>
+            </li>
+            <li id="nav-cuisine" class="nav-item" onclick="switchTab('iframe-cuisine', this)">
+                <i class="fa-solid fa-utensils"></i>
+                <span>Récap Cuisine</span>
+            </li>
         </ul>
 
         <div class="devis-input-area">
@@ -379,6 +387,12 @@
         <!-- Facture Finale -->
         <iframe src="DOMAINE_SESQUIER_FACTURE?live=true" id="iframe-facture-finale"></iframe>
 
+        <!-- Plan d'Occupation -->
+        <iframe src="DOMAINE_SESQUIER_ROOMING?live=true" id="iframe-rooming"></iframe>
+
+        <!-- Récap Cuisine -->
+        <iframe src="DOMAINE_SESQUIER_CUISINE?live=true" id="iframe-cuisine"></iframe>
+
         <div class="sync-banner" id="syncBanner">
             <i class="fa-solid fa-arrows-rotate fa-spin"></i> Données synchronisées entre les onglets
         </div>
@@ -406,6 +420,16 @@
                         if (!fr.classList.contains('active') || !fr.src.includes(targetBase)) {
                             fr.src = `${targetBase}&t=${timestamp}`;
                         }
+                    } else if (frameId === 'iframe-rooming') {
+                        const targetBase = inputVal ? `DOMAINE_SESQUIER_ROOMING?id=${inputVal}` : `DOMAINE_SESQUIER_ROOMING?live=true`;
+                        if (!fr.classList.contains('active') || !fr.src.includes(targetBase)) {
+                            fr.src = `${targetBase}&t=${timestamp}`;
+                        }
+                    } else if (frameId === 'iframe-cuisine') {
+                        const targetBase = inputVal ? `DOMAINE_SESQUIER_CUISINE?id=${inputVal}` : `DOMAINE_SESQUIER_CUISINE?live=true`;
+                        if (!fr.classList.contains('active') || !fr.src.includes(targetBase)) {
+                            fr.src = `${targetBase}&t=${timestamp}`;
+                        }
                     } else if (frameId === 'iframe-facture-finale') {
                         const targetBase = inputVal ? `DOMAINE_SESQUIER_FACTURE?id=${inputVal}` : `DOMAINE_SESQUIER_FACTURE?live=true`;
                         if (!fr.classList.contains('active') || !fr.src.includes(targetBase)) {
@@ -418,7 +442,7 @@
                             fr.src = `CONFIGURATEUR?mode=${targetMode}`;
                         }
                     }
-                    
+
                     fr.classList.add('active');
                     showBanner();
                 } else {
@@ -436,6 +460,12 @@
                 if (document.getElementById('iframe-facture').classList.contains('active')) {
                     targetFrame = 'iframe-facture';
                     targetNavId = 'nav-facture';
+                } else if (document.getElementById('iframe-rooming').classList.contains('active')) {
+                    targetFrame = 'iframe-rooming';
+                    targetNavId = 'nav-rooming';
+                } else if (document.getElementById('iframe-cuisine').classList.contains('active')) {
+                    targetFrame = 'iframe-cuisine';
+                    targetNavId = 'nav-cuisine';
                 } else if (document.getElementById('iframe-facture-finale').classList.contains('active')) {
                     targetFrame = 'iframe-facture-finale';
                     targetNavId = 'nav-facture-finale';

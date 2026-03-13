@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plan d'Occupation - Domaine Sesquier</title>
+    <!-- Fonts & Icons -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/document.css">
+    <script src="assets/utils.js"></script>
+
+    <style>
+        .rooming-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .rooming-table th {
+            background: var(--primary);
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-size: 10pt;
+            text-transform: uppercase;
+        }
+
+        .rooming-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+
+        .gite-header {
+            background: #f9f9f9;
+            font-weight: 700;
+            color: var(--primary);
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 14pt;
+        }
+
+        .bed-info {
+            font-size: 9pt;
+            color: var(--text-light);
+        }
+
+        .occupant-cell {
+            border-left: 2px solid var(--primary);
+            background: #fffdfb;
+            width: 40%;
+        }
+
+        .occupant-line {
+            height: 25px;
+            border-bottom: 1px dashed #ccc;
+            margin-bottom: 5px;
+        }
+
+        .no-print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <button class="btn btn-primary no-print no-print-btn" onclick="window.print()">
+        <i class="fas fa-print"></i> Imprimer le Plan
+    </button>
+
+    <div class="page" id="document-content">
+        <header>
+            <div class="brand-col">
+                <h1>Domaine Sesquier</h1>
+                <div class="subtitle">Plan d'Occupation & Logistique</div>
+                <div class="brand-details">
+                    34560 Villeveyrac — France<br>
+                    www.domainesesquier.com
+                </div>
+            </div>
+            <div class="meta-col">
+                <div class="doc-type">ROOMING</div>
+                <div class="meta-grid">
+                    <span>Date :</span> <strong id="display-today">—</strong>
+                    <span>Dossier :</span> <strong id="display-client">—</strong>
+                </div>
+            </div>
+        </header>
+
+        <section class="info-section">
+            <div class="info-box">
+                <div class="box-title">Détails du Séjour</div>
+                <div class="client-info">
+                    <table style="width:100%; font-size:9.5pt;">
+                        <tr>
+                            <td style="opacity:0.6; width:45%;">Dates :</td>
+                            <td id="snap-dates"><strong>—</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="opacity:0.6;">Durée :</td>
+                            <td id="snap-duration">—</td>
+                        </tr>
+                        <tr>
+                            <td style="opacity:0.6;">Groupe :</td>
+                            <td id="snap-people">—</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="info-box">
+                <div class="box-title">Notes Logistiques</div>
+                <div style="font-size: 8.5pt; color: #666; line-height: 1.4;">
+                    <i class="fas fa-info-circle"></i> Lits préparés selon configuration.<br>
+                    <i class="fas fa-info-circle"></i> Ménage de fin de séjour inclus.<br>
+                    <i class="fas fa-info-circle"></i> Serviettes de toilette fournies.
+                </div>
+            </div>
+        </section>
+
+        <section id="rooming-list-section">
+            <table class="rooming-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Espace / Gîte</th>
+                        <th style="width: 30%;">Configuration Lits</th>
+                        <th class="occupant-cell">Occupants / Noms</th>
+                    </tr>
+                </thead>
+                <tbody id="rooming-body">
+                    <!-- Peuplé dynamiquement -->
+                </tbody>
+            </table>
+        </section>
+
+        <div class="print-footer">
+            <span>Document généré le <span class="gen-date"></span></span>
+            <span>Domaine Sesquier — Plan d'Occupation</span>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const recordId = urlParams.get('id');
+            const isLive = urlParams.get('live') === 'true';
+
+            document.getElementById('display-today').innerText = new Date().toLocaleDateString('fr-FR');
+            document.querySelectorAll('.gen-date').forEach(el => el.innerText = new Date().toLocaleString('fr-FR'));
+
+            if (isLive) {
+                const saved = localStorage.getItem('domaineBookingDraft');
+                if (saved) {
+                    const draft = JSON.parse(saved);
+                    // On simule un objet "fields" pour réutiliser la même logique
+                    const fields = {
+                        "Nom client": (draft.contact.first + ' ' + draft.contact.last).trim() || "Brouillon Live",
+                        "Entreprise": draft.contact.organisation,
+                        "Date arrivée": draft.dates.start ? new Date(draft.dates.start).toISOString() : null,
+                        "Date départ": draft.dates.end ? new Date(draft.dates.end).toISOString() : null,
+                        "Nombre de personnes": draft.group.total,
+                        "Détails JSON": JSON.stringify({
+                            sleeping: {
+                                usedGites: calculateUsedGitesFallback(draft)
+                            }
+                        })
+                    };
+                    renderRooming(fields);
+                }
+            } else if (recordId) {
+                try {
+                    const data = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${recordId}`);
+                    const fields = data.records ? data.records[0].fields : data.fields;
+                    renderRooming(fields);
+                } catch (err) {
+                    console.error("Erreur chargement devis:", err);
+                }
+            }
+        });
+
+        function calculateUsedGitesFallback(draft) {
+            // Si on n'a pas utilisé usedGites dans le draft, on refait le calcul simple
+            const GITES = [
+                { name: "Acacia", cap: 6, beds: "1 lit double, 2 simples, 1 canapé 2p" },
+                { name: "Hibiscus", cap: 8, beds: "1 lit double, 6 simples" },
+                { name: "Pivoine", cap: 4, beds: "1 lit double, 2 simples" },
+                { name: "Belle de nuit", cap: 6, beds: "1 lit double, 2 simples, 1 canapé 2p" },
+                { name: "Iris", cap: 4, beds: "1 lit double, 2 simples" },
+                { name: "Rose", cap: 4, beds: "1 lit double, 1 canapé 2p" },
+                { name: "Figuier", cap: 2, beds: "1 lit double" },
+                { name: "Jasmin", cap: 4, beds: "1 lit double conv, 1 canapé 1p" }
+            ];
+            let remaining = draft.group.total || 0;
+            let res = [];
+            for (let g of GITES) {
+                if (remaining <= 0) break;
+                let take = Math.min(remaining, g.cap);
+                res.push({ name: g.name, count: take, beds: g.beds });
+                remaining -= take;
+            }
+            return res;
+        }
+
+        function renderRooming(fields) {
+            const client = fields["Nom client"] || "Client";
+            const org = fields["Entreprise"] || "";
+            document.getElementById('display-client').innerText = org ? `${org} (${client})` : client;
+
+            const dArr = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null;
+            const dDep = fields["Date départ"] ? new Date(fields["Date départ"]) : null;
+            const nights = (dArr && dDep) ? Math.ceil((dDep - dArr) / 86400000) : 0;
+            const nbPers = fields["Nombre de personnes"] || 0;
+
+            if (dArr && dDep) {
+                document.getElementById('snap-dates').innerHTML = `<strong>${dArr.toLocaleDateString('fr-FR')} au ${dDep.toLocaleDateString('fr-FR')}</strong>`;
+            }
+            document.getElementById('snap-duration').innerText = `${nights} nuits / ${nights + 1} jours`;
+            document.getElementById('snap-people').innerText = `${nbPers} personnes`;
+
+            const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
+            const gitesUsed = (details.sleeping && details.sleeping.usedGites) ? details.sleeping.usedGites : calculateUsedGitesFallback({ group: { total: nbPers } });
+
+            const tbody = document.getElementById('rooming-body');
+            tbody.innerHTML = "";
+
+            gitesUsed.forEach(g => {
+                const tr = document.createElement('tr');
+
+                // On prépare les lignes d'occupants
+                let occupantLines = "";
+                for (let i = 0; i < g.count; i++) {
+                    occupantLines += '<div class="occupant-line"></div>';
+                }
+
+                tr.innerHTML = `
+                    <td class="gite-header">
+                        <i class="fas fa-house-user"></i> Gîte ${g.name}
+                        <div style="font-size: 8pt; font-weight: 400; color: #999; margin-top: 4px;">Capacité: ${g.count} occupants</div>
+                    </td>
+                    <td>
+                        <div class="bed-info">
+                            <strong>Configuration :</strong><br>
+                            ${g.beds || "Standard"}<br><br>
+                            <i class="fas fa-bed"></i> Linge de lit prévu<br>
+                            <i class="fas fa-bath"></i> Linge de toilette prévu
+                        </div>
+                    </td>
+                    <td class="occupant-cell">
+                        ${occupantLines}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+
+</html>

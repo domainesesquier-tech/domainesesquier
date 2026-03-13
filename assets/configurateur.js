@@ -1990,7 +1990,8 @@ async function sendQuoteRequest() {
             mode: sleepingMode,
             indiv: parseInt(document.getElementById('nbIndividuel').value) || 0,
             partage: parseInt(document.getElementById('nbPartage').value) || 0,
-            couple: parseInt(document.getElementById('nbCouple').value) || 0
+            couple: parseInt(document.getElementById('nbCouple').value) || 0,
+            usedGites: usedGites
         },
         meals: {
             mode: mealMode,
