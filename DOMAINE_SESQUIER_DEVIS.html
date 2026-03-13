@@ -208,8 +208,9 @@
                 <div class="total-row"><span>Total HT</span><span id="display-total-ht" style="font-weight: 600;">0,00
                         €</span></div>
                 <div class="total-row"><span>TVA (estimée)</span><span id="display-total-tva">0,00 €</span></div>
-                <div class="total-row"><span>Taxe de séjour</span><span id="display-taxe-sejour"
-                        contenteditable="true">0,00 €</span></div>
+                <div class="total-row"><span>Taxe de séjour <small
+                            style="font-size: 0.8em; opacity: 0.7;">(4,31€/pers/nuit)</small></span><span
+                        id="display-taxe-sejour" contenteditable="true">0,00 €</span></div>
 
                 <div class="total-row final"
                     style="margin-top: 10px; border-top: 2px solid var(--primary); padding-top: 10px;">
@@ -448,10 +449,10 @@
                 const tel = fields["Téléphone"] || "";
                 clientInfoEl.innerHTML =
                     `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; line-height:1.8;">
-                        <tr><td style="opacity:0.65; width:38%;">Organisation :</td><td><strong>${org || "—"}</strong></td></tr>
-                        <tr><td style="opacity:0.65;">Nom du référent :</td><td>${ref || "—"}</td></tr>
-                        <tr><td style="opacity:0.65;">Mail :</td><td>${mail || "—"}</td></tr>
-                        <tr><td style="opacity:0.65;">Téléphone :</td><td>${tel || "—"}</td></tr>
+                        <tr><td style="opacity:0.65; width:45%; white-space:nowrap;">Organisation :</td><td><strong>${org || "—"}</strong></td></tr>
+                        <tr><td style="opacity:0.65; white-space:nowrap;">Nom du référent :</td><td>${ref || "—"}</td></tr>
+                        <tr><td style="opacity:0.65; white-space:nowrap;">Mail :</td><td>${mail || "—"}</td></tr>
+                        <tr><td style="opacity:0.65; white-space:nowrap;">Téléphone :</td><td>${tel || "—"}</td></tr>
                     </table>`;
             }
 
@@ -617,53 +618,53 @@
 
             // Title styled like a category sub-header
             let html = `<td colspan="6">
-                <div style="background-color: rgba(58, 85, 56, 0.06); color: var(--primary); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 10pt; padding: 5px 10px; border-bottom: 1px solid var(--primary); margin-bottom: 4px; letter-spacing:0.03em;">
+                <div style="background-color: rgba(58, 85, 56, 0.04); color: var(--primary); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 11pt; padding: 8px 10px; border-bottom: 2px solid var(--primary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">
                     Planning prévisionnel de la restauration
                 </div>
                 <table class="meal-check-grid">
-                    <thead><tr><th>Prestation</th>`;
+                    <thead><tr><th>Jour</th>
+                        <th>Petit-déj.</th>
+                        <th>Collation AM</th>
+                        <th>Déjeuner</th>
+                        <th>Collation PM</th>
+                        <th>Dîner</th>
+                    </tr></thead>
+                    <tbody>`;
+
+            const mealKeys = ['petitDej', 'collationMatin', 'dejeuner', 'collationAprem', 'diner'];
 
             for (let i = 0; i < days; i++) {
-                let label;
+                let dayLabel;
                 if (dArr) {
                     const d = new Date(dArr);
                     d.setDate(d.getDate() + i);
-                    label = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
-                    label = label.charAt(0).toUpperCase() + label.slice(1);
+                    dayLabel = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+                    dayLabel = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1);
                 } else {
-                    label = `J${i + 1}`;
+                    dayLabel = `J${i + 1}`;
                 }
-                html += `<th>${label}</th>`;
-            }
-            html += `</tr></thead><tbody>`;
 
-            const mealRows = [
-                { key: 'petitDej', label: 'Petit-déjeuner' },
-                { key: 'collationMatin', label: 'Collation matin' },
-                { key: 'dejeuner', label: 'Déjeuner' },
-                { key: 'collationAprem', label: 'Collation après-midi' },
-                { key: 'diner', label: 'Dîner' }
-            ];
+                html += `<tr><td>${dayLabel}</td>`;
 
-            mealRows.forEach(row => {
-                html += `<tr data-meal-key="${row.key}"><td>${row.label}</td>`;
-                for (let i = 0; i < days; i++) {
+                mealKeys.forEach(key => {
                     let isChecked = false;
                     if (details.meals?.counts?.[i]) {
                         const dayData = details.meals.counts[i];
-                        let val = dayData[row.key];
-                        if (row.key === 'collationMatin' && val === undefined) val = Math.floor((dayData.collation || 0) / 2);
-                        if (row.key === 'collationAprem' && val === undefined) val = Math.ceil((dayData.collation || 0) / 2);
+                        let val = dayData[key];
+                        if (key === 'collationMatin' && val === undefined) val = Math.floor((dayData.collation || 0) / 2);
+                        if (key === 'collationAprem' && val === undefined) val = Math.ceil((dayData.collation || 0) / 2);
                         isChecked = (val > 0);
                     }
                     html += `<td>
-                        <span class="check-wrapper${isChecked ? ' is-checked' : ''}" onclick="toggleMealCheck(this, '${row.key}', ${nbPers})">
+                        <span class="check-wrapper${isChecked ? ' is-checked' : ''}" 
+                              data-meal-key="${key}"
+                              onclick="toggleMealCheck(this, '${key}', ${nbPers})">
                             <span class="check-box"></span>
                         </span>
                     </td>`;
-                }
+                });
                 html += `</tr>`;
-            });
+            }
 
             html += `</tbody></table></td>`;
             tr.innerHTML = html;
@@ -676,11 +677,8 @@
             // Toggle visual state
             wrapper.classList.toggle('is-checked');
 
-            // Count checked boxes in this meal row
-            const gridRow = document.querySelector(`.meal-check-grid tr[data-meal-key="${mealKey}"]`);
-            const checkedCount = gridRow
-                ? gridRow.querySelectorAll('.check-wrapper.is-checked').length
-                : 0;
+            // Count checked boxes for this specific meal type across all days
+            const checkedCount = document.querySelectorAll(`.meal-check-grid .check-wrapper.is-checked[data-meal-key="${mealKey}"]`).length;
 
             // Each checked day = nbPers repas
             const newQty = checkedCount * nbPers;
@@ -707,16 +705,14 @@
             const dayCount = headerCells.length - 1; // -1 pour retirer "Prestation"
 
             let fullDays = 0;
-            for (let i = 0; i < dayCount; i++) {
+            const rows = grid.querySelectorAll('tbody tr');
+            rows.forEach(row => {
                 const allFive = mealKeys.every(key => {
-                    const row = grid.querySelector(`tr[data-meal-key="${key}"]`);
-                    if (!row) return false;
-                    const cells = row.querySelectorAll('td');
-                    const cell = cells[i + 1]; // +1 pour sauter la colonne label
-                    return cell && cell.querySelector('.check-wrapper.is-checked') !== null;
+                    const wrap = row.querySelector(`.check-wrapper[data-meal-key="${key}"]`);
+                    return wrap && wrap.classList.contains('is-checked');
                 });
                 if (allFive) fullDays++;
-            }
+            });
 
             // Qté = jours complets × nbPersonnes, remise = -10€/unité
             const discountRow = document.querySelector('#pricing-body tr[data-meal-key="pensionDiscount"]');
