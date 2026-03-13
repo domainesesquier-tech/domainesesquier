@@ -194,11 +194,11 @@ const SesquierUtils = {
         tr.innerHTML = `
             <td colspan="4" style="padding: 6px 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <button class="no-print" onclick="SesquierUtils.addRowBefore(this)" style="background: white; border:1px solid #ddd; border-radius:4px; padding:3px 10px; cursor:pointer; font-size:9pt;">+ Ligne</button>
-                    <span style="font-style: italic; color:#666;">Sous-total ${label} HT</span>
+                    <button class="no-print" onclick="SesquierUtils.addRowBefore(this)" style="background: white; border:1.5px solid var(--primary); color: var(--primary); border-radius:4px; padding:4px 12px; cursor:pointer; font-size:8pt; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">+ Ligne</button>
+                    <span style="font-style: italic; color:#666; font-size:8.5pt;">Sous-total ${label} HT</span>
                 </div>
             </td>
-            <td class="subtotal-value" id="${id}" style="text-align: right; padding-right: 5px;">0.00</td>
+            <td class="subtotal-val" id="${id}" style="text-align: right; padding-right: 5px; font-size:9.5pt;">0.00</td>
             <td class="no-print"></td>
         `;
         tbody.appendChild(tr);

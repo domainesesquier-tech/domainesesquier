@@ -81,7 +81,7 @@
             <div class="info-box">
                 <div class="box-title">Client / Entreprise</div>
                 <div class="client-info" contenteditable="true">
-                    Chargement...
+                    <!-- Rempli par JS -->
                 </div>
             </div>
 
@@ -90,24 +90,24 @@
                 <table class="snapshot-table">
                     <tr>
                         <td class="snapshot-key">Type :</td>
-                        <td class="snapshot-val" contenteditable="true">...</td>
+                        <td class="snapshot-val" contenteditable="true" id="snap-type">...</td>
                     </tr>
                     <tr>
                         <td class="snapshot-key">Dates :</td>
-                        <td class="snapshot-val" contenteditable="true">...</td>
+                        <td class="snapshot-val" contenteditable="true" id="snap-dates">...</td>
                     </tr>
                     <tr>
                         <td class="snapshot-key">Durée :</td>
-                        <td class="snapshot-val" contenteditable="true">...</td>
+                        <td class="snapshot-val" contenteditable="true" id="snap-duration">...</td>
                     </tr>
                     <tr>
                         <td class="snapshot-key">Participants :</td>
-                        <td class="snapshot-val" contenteditable="true">...</td>
+                        <td class="snapshot-val" contenteditable="true" id="snap-people">...</td>
                     </tr>
                     <tr>
-                        <td class="snapshot-key">Prix HT/pers :</td>
+                        <td class="snapshot-key">Prix HT / pers :</td>
                         <td class="snapshot-val" id="snapshot-price-per-person"
-                            style="color: var(--primary); font-weight: 600;">—</td>
+                            style="color: var(--primary); font-weight: 700;">—</td>
                     </tr>
                 </table>
             </div>
@@ -115,7 +115,7 @@
 
         <!-- Stay Synthesis -->
         <div id="stay-synthesis" contenteditable="true"
-            style="font-size: 11pt; font-weight: 500; color: var(--text-main); margin-bottom: 20px; border-left: 4px solid var(--primary); padding-left: 15px; outline: none;">
+            style="font-size: 10pt; font-weight: 600; color: var(--primary); margin-bottom: 15px; border-left: 3px solid var(--primary); padding-left: 12px; outline: none;">
             <!-- Dynamically filled -->
         </div>
 
@@ -125,11 +125,11 @@
                 <thead>
                     <tr>
                         <th class="col-detail">Description des Prestations</th>
-                        <th class="col-qty">Qté</th>
-                        <th class="col-price">PU HT (€)</th>
-                        <th class="col-tva">TVA</th>
-                        <th class="col-total">Total HT</th>
-                        <th class="no-print" style="width: 40px;"></th>
+                        <th class="col-qty" style="text-align:center; width:60px;">Qté</th>
+                        <th class="col-price" style="text-align:right; width:80px;">PU HT</th>
+                        <th class="col-tva" style="text-align:right; width:60px;">TVA</th>
+                        <th class="col-total" style="text-align:right; width:100px;">Total HT</th>
+                        <th class="no-print" style="width: 30px;"></th>
                     </tr>
                 </thead>
                 <tbody id="pricing-body">
@@ -138,110 +138,120 @@
             </table>
         </section>
 
-        <div class="print-footer"
-            style="position: absolute; bottom: 15mm; width: calc(100% - 30mm); font-size: 8pt; color: #999;">
-            Domaine Sesquier — <span class="devis-num-footer">2026-02-XXX</span> — Page 1/2
+        <div class="print-footer no-print">
+            <span>Domaine Sesquier — DEVIS <span class="devis-num-footer">2026-02-XXX</span></span>
+            <span>Page 1 / 2</span>
         </div>
     </div>
 
     <!-- Page 2 -->
     <div class="page" id="page2">
-        <div class="print-header-p2">
-            <div>
-                <span class="serif" style="font-size: 14pt; font-weight: 700; color: var(--primary);">Domaine
-                    Sesquier</span>
-                <span
-                    style="font-size: 9pt; color: var(--accent); margin-left: 10px; text-transform: uppercase; letter-spacing: 0.1em;">Suite
-                    du Devis</span>
-            </div>
-            <div style="font-size: 9pt; text-align: right;">
-                <div style="font-weight: 600;" class="devis-num-footer">N° 2026-02-XXX</div>
-                <div style="color: #666;" class="devis-date-footer">Date : --/--/----</div>
-            </div>
-        </div>
+        <!-- C. Options & Salles (Forcé début Page 2) -->
+        <section id="options-proposal" style="margin-bottom: 20px;">
+            <table class="pricing-table">
+                <thead>
+                    <tr>
+                        <th class="col-detail">Options & Salles</th>
+                        <th class="col-qty" style="text-align:center; width:60px;">Qté</th>
+                        <th class="col-price" style="text-align:right; width:80px;">PU HT</th>
+                        <th class="col-tva" style="text-align:center; width:60px;">TVA</th>
+                        <th class="col-total" style="text-align:right; width:90px;">Total HT</th>
+                        <th class="no-print" style="width: 30px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="options-body">
+                    <!-- Rempli par JS -->
+                </tbody>
+            </table>
+        </section>
 
-        <!-- Activités & Loisirs (Style Sous-section) -->
-        <section id="activities-proposal" style="margin-bottom: 25px;">
-            <div
-                style="background-color: rgba(158, 93, 76, 0.08); color: var(--accent); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 11pt; padding: 8px 15px; border-bottom: 1px solid var(--accent); margin-bottom: 10px;">
-                Activités & Loisirs (sur devis)
-            </div>
-
-            <table class="pricing-table" style="width: 100%; margin-bottom: 5px;">
+        <!-- D. Activités & Loisirs (Suite Page 2) -->
+        <section id="activities-proposal" style="margin-bottom: 20px;">
+            <table class="pricing-table">
+                <thead>
+                    <tr>
+                        <th class="col-detail">Activités & Loisirs (sur devis)</th>
+                        <th class="col-qty" style="text-align:center; width:60px;"></th>
+                        <th class="col-price" style="text-align:right; width:80px;"></th>
+                        <th class="col-tva" style="text-align:center; width:60px;"></th>
+                        <th class="col-total" style="text-align:right; width:90px;">Total HT</th>
+                        <th class="no-print" style="width: 30px;"></th>
+                    </tr>
+                </thead>
                 <tbody id="activities-body">
                     <!-- Rempli par JS -->
                 </tbody>
             </table>
-
-            <div
-                style="margin-top: 15px; font-size: 8.5pt; color: #666; border-top: 1px dashed #ddd; padding-top: 10px; padding-left: 5px;">
-                • Tarifs variables selon prestataire / saison / effectif<br>
-                • Réservation confirmée après validation de disponibilité
-            </div>
         </section>
 
-        <section class="bottom-section no-break">
-            <div class="totals-col">
-                <div class="total-row"><span>Total HT</span><span id="display-total-ht">0,00 €</span></div>
-                <div class="total-row"><span>TVA (estimée)</span><span id="display-total-tva">0,00 €</span></div>
-                <div class="total-row"><span>Taxe de séjour (Hors TVA)</span><span id="display-taxe-sejour"
-                        contenteditable="true">0,00 €</span></div>
-                <div class="total-row"
-                    style="color: var(--accent); margin-top: 5px; border-top: 1px dashed #ddd; padding-top: 5px;">
-                    <span contenteditable="true">Acompte à régler (30%)</span>
-                    <span id="display-deposit" style="font-weight: 600;">0,00 €</span>
-                </div>
-                <div class="total-row final"><span>NET À PAYER TTC</span><span id="display-total-ttc">0,00 €</span>
-                </div>
-
-                <!-- Synthèse Prix Global -->
-                <div id="price-synthesis"
-                    style="margin-top: 20px; text-align: right; border-top: 1px dashed var(--border); padding-top: 15px; font-size: 9pt; line-height: 1.6;">
-                    <div id="price-total-summary" style="font-weight: 600; color: var(--text-main);"></div>
-                    <div id="price-per-person" style="color: var(--primary); font-weight: 500; font-size: 8.5pt;"></div>
-                </div>
-            </div>
-
-            <div class="conditions-col" style="font-size: 11px;">
-                <h4 style="font-size: 12px;">Conditions & Modalités</h4>
+        <section class="bottom-section" style="margin-bottom: 15px;">
+            <!-- Conditions à gauche -->
+            <div class="conditions-col">
+                <h4>Conditions & Modalités</h4>
                 <ul class="cond-list">
-                    <li contenteditable="true"><strong>Validité du devis :</strong> 15 jours à compter de sa date
-                        d'émission.</li>
-                    <li contenteditable="true"><strong>Conditions de règlement :</strong> Acompte de 30% à régler lors
-                        de la signature pour confirmer la réservation. Le solde est à régler au plus tard le jour de
-                        l'arrivée par virement bancaire.</li>
-                    <li contenteditable="true"><strong>Conditions d'annulation :</strong> L'acompte de 30% est conservé
-                        pour toute annulation. Entre 29 et 15 jours : 50% dû. Entre 14 et 8 jours : 75% dû. À 7 jours ou
-                        moins : 100% dû.</li>
-                    <li contenteditable="true"><strong>Restauration :</strong> Allergies et régimes spécifiques à
-                        communiquer au plus tard à J-7. Horaires des repas adaptables selon vos besoins.</li>
-                    <li contenteditable="true"><strong>Hébergement :</strong> Chambres disponibles dès 16h00 (arrivée)
-                        et libérées avant 11h00 (départ), sauf accord spécifique.</li>
+                    <li contenteditable="true">• <strong>Validité :</strong> 15 jours à compter de l'émission.</li>
+                    <li contenteditable="true">• <strong>Règlement :</strong> Acompte de 30% à la réservation, solde à
+                        l'arrivée.</li>
+                    <li contenteditable="true">• <strong>Annulation :</strong> Acompte conservé. J-29/J-15: 50%.
+                        J-14/J-8: 75%. < J-7: 100%.</li>
+                    <li contenteditable="true">• <strong>Divers :</strong> Chambres dispo 16h (arrivée) / Libérées 11h
+                        (départ).</li>
                 </ul>
-                <div style="font-size: 7.5pt; color: #999; line-height: 1.3; margin-top: 15px;">
-                    <strong>OZZA SASU</strong> — SIRET 903 246 478 00015 — MÈZE<br>
-                    BNP PARIBAS — <strong>IBAN : FR76 3000 4006 4000 0107 8926 886</strong> — BIC : BNPAFRPPXXX
+                <div style="font-size: 7.5pt; color: #999; margin-top: 10px; line-height: 1.2;">
+                    <strong>OZZA SASU</strong> — SIRET 903 246 478 00015 — BNP Paribas<br>
+                    <strong>IBAN : FR76 3000 4006 4000 0107 8926 886</strong>
                 </div>
             </div>
-        </section>
 
-        <section class="signature-section no-break">
-            <div class="sig-grid">
-                <div>
-                    <div class="sig-box-title">Pour le Client</div>
-                    <div style="font-size: 9pt;">Date : <span contenteditable="true">__/__/____</span><br>Signature :
+            <!-- Totaux à droite -->
+            <div class="totals-col">
+                <div class="total-row"><span>Total HT</span><span id="display-total-ht" style="font-weight: 600;">0,00
+                        €</span></div>
+                <div class="total-row"><span>TVA (estimée)</span><span id="display-total-tva">0,00 €</span></div>
+                <div class="total-row"><span>Taxe de séjour</span><span id="display-taxe-sejour"
+                        contenteditable="true">0,00 €</span></div>
+
+                <div class="total-row final"
+                    style="margin-top: 10px; border-top: 2px solid var(--primary); padding-top: 10px;">
+                    <span style="font-size: 11pt; text-transform: uppercase; letter-spacing: 1px;">Total TTC</span>
+                    <span id="display-total-ttc" style="font-size: 16pt;">0,00 €</span>
+                </div>
+
+                <div class="price-summary-box"
+                    style="margin-top: 15px; background: rgba(58, 85, 56, 0.04); border-radius: 4px; padding: 12px; border-left: 4px solid var(--primary);">
+                    <div id="price-total-summary"
+                        style="font-weight: 700; font-size: 10.5pt; color: var(--text-main); margin-bottom: 4px;"></div>
+                    <div id="price-per-person" style="color: var(--primary); font-weight: 700; font-size: 9.5pt;"></div>
+                    <div
+                        style="font-size: 8.5pt; color: var(--accent); margin-top: 8px; border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 8px;">
+                        Acompte à régler (30%) : <strong id="display-deposit" style="font-size: 10.5pt;">0,00 €</strong>
                     </div>
                 </div>
-                <div>
-                    <div class="sig-box-title">Pour le Domaine Sesquier</div>
-                    <div style="font-size: 9pt;">Noureddine Smali, Gérant</div>
+            </div>
+        </section>
+
+        <section class="signature-section" style="border: 1px solid var(--border); padding: 10px; margin-top: 10px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="font-size: 9pt;">
+                    <div
+                        style="font-weight: 700; color: var(--accent); margin-bottom: 5px; text-transform: uppercase; font-size: 8pt;">
+                        Bon pour accord (Client)</div>
+                    <div style="height: 40px; border-bottom: 1px dashed #ccc; margin-bottom: 5px;"></div>
+                    <div style="font-size: 7.5pt; color: #999;">Date & Signature</div>
+                </div>
+                <div style="font-size: 9pt; text-align: right;">
+                    <div
+                        style="font-weight: 700; color: var(--primary); margin-bottom: 5px; text-transform: uppercase; font-size: 8pt;">
+                        Le Domaine Sesquier</div>
+                    <div style="font-weight: 600;">Noureddine Smali</div>
+                    <div style="font-size: 7.5pt; color: #999;">Gérant</div>
                 </div>
             </div>
         </section>
 
-        <div class="print-footer"
-            style="position: absolute; bottom: 15mm; width: calc(100% - 30mm); font-size: 8pt; color: #999;">
-            Domaine Sesquier — <span class="devis-num-footer">2026-02-XXX</span> — Page 2/2
+        <div class="print-footer">
+            <span>Domaine Sesquier — DEVIS <span class="devis-num-footer">2026-02-XXX</span></span>
+            <span>Page 2 / 2</span>
         </div>
     </div>
 
@@ -446,38 +456,32 @@
             }
 
             // 3. Stay Overview Table
-            const snapshotRows = document.querySelectorAll('.snapshot-table tr');
-            if (snapshotRows.length >= 4) {
-                const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
-                snapshotRows[0].querySelector('.snapshot-val').innerText = typeLabel;
+            const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
+            const dArr = fields["Date arrivée"] ? new Date(fields["Date arrivée"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : "?";
+            const dDep = fields["Date départ"] ? new Date(fields["Date départ"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : "?";
+            const nNights = fields["Nuits"] || 0;
+            const nbPers = fields["Nombre de personnes"] || 0;
 
-                const dArr = fields["Date arrivée"] ? new Date(fields["Date arrivée"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : "?";
-                const dDep = fields["Date départ"] ? new Date(fields["Date départ"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : "?";
-                snapshotRows[1].querySelector('.snapshot-val').innerText = `${dArr} → ${dDep}`;
-
-                const nNights = fields["Nuits"] || 0;
-                const nightLabel = nNights > 1 ? "Nuits" : "nuit";
-                snapshotRows[2].querySelector('.snapshot-val').innerText = `${nNights} ${nightLabel}`;
-                snapshotRows[3].querySelector('.snapshot-val').innerText = `${fields["Nombre de personnes"] || 0} personnes`;
-                // Prix/pers sera mis à jour par updateCalculations()
-            }
+            if (document.getElementById('snap-type')) document.getElementById('snap-type').innerText = typeLabel;
+            if (document.getElementById('snap-dates')) document.getElementById('snap-dates').innerText = `${dArr} → ${dDep}`;
+            if (document.getElementById('snap-duration')) document.getElementById('snap-duration').innerText = `${nNights} ${nNights > 1 ? "nuits" : "nuit"}`;
+            if (document.getElementById('snap-people')) document.getElementById('snap-people').innerText = `${nbPers} personnes`;
+            // Prix/pers sera mis à jour par updateCalculations() via snapshot-price-per-person
 
             // 4. Narrative Synthesis
             try {
-                const nights = fields["Nuits"] || 0;
-                const days = nights + 1;
-                const nbPers = fields["Nombre de personnes"] || 0;
+                const daysSyn = nNights + 1;
                 let mealLabel = "Restauration à la carte";
-                let isPension = (details.meals?.mode === 'pension');
-                if (isPension) mealLabel = "Pension Complète";
+                let isPensionSyn = (details.meals?.mode === 'pension');
+                if (isPensionSyn) mealLabel = "Pension Complète";
                 else if (details.meals?.mode === 'demi') mealLabel = "Demi-pension";
                 else if (details.meals?.mode === 'libre') mealLabel = "Gestion libre";
 
-                const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
-                const jourTxt = days > 1 ? "jours" : "jour";
-                const nuitTxt = nights > 1 ? "nuits" : "nuit";
+                const typeLabelSyn = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
+                const jourTxt = daysSyn > 1 ? "jours" : "jour";
+                const nuitTxt = nNights > 1 ? "nuits" : "nuit";
                 const synthEl = document.getElementById('stay-synthesis');
-                if (synthEl) synthEl.innerText = `${typeLabel} de ${nbPers} personnes — ${days} ${jourTxt} / ${nights} ${nuitTxt} — ${mealLabel}`;
+                if (synthEl) synthEl.innerText = `${typeLabelSyn} de ${nbPers} personnes — ${daysSyn} ${jourTxt} / ${nNights} ${nuitTxt} — ${mealLabel}`;
             } catch (e) { console.error("Synthesis error:", e); }
 
             // 5. Build Main Pricing Table
@@ -486,17 +490,14 @@
 
             // --- A. Accommodation ---
             addCategoryRow("Hébergement");
-            let nbNights = fields["Nuits"] || 1;
-            let hasSleepingDetails = false;
-
-            // Ligne unique hébergement : description standard, Qté = nuits, Prix = montant total / nuits
-            const hebergDesc = `Chambre twin en gîte tout confort<br><small style='color:#666; font-weight:400;'>Draps, serviettes et ménage inclus — ${nbNights > 1 ? nbNights + " nuits" : "1 nuit"} pour ${fields["Nombre de personnes"] || 0} personnes</small>`;
+            const nbPersStay = fields["Nombre de personnes"] || 1;
             const totalHeberg = fields["Montant Hébergement HT"] || 0;
-            const pricePerNight = nbNights > 0 && totalHeberg > 0
-                ? Math.round((totalHeberg / nbNights) * 100) / 100
-                : 0;
-            addPricingRow(hebergDesc, nbNights, pricePerNight, "10%");
 
+            // Ligne unique hébergement : Logique "Par Personne" demandée par le client
+            const hebergDesc = `Hébergement en gîte tout confort<br><small style='color:#666; font-weight:400;'>Draps, serviettes et ménage de fin de séjour inclus</small>`;
+            const unitPrice = nbPersStay > 0 ? (totalHeberg / nbPersStay) : 0;
+
+            addPricingRow(hebergDesc, nbPersStay, unitPrice, "10%");
             addSubtotalRow("Hébergement", "subtotal-hebergement");
 
             // --- B. Catering (5 lignes consolidées) ---
@@ -530,12 +531,12 @@
             // Remise = écart entre somme individuelle et plafond pension (par pers/jour complet)
             const pensionDiscountUnit = (pPDJ + pCollation + pDEJ + pCollation + pDIN) - pensionCap;
 
-            // 5 lignes — taggées pour le lien avec la grille planning
-            if (totalPDJ > 0) addPricingRow("Petits-déjeuners", totalPDJ, pPDJ, "10%", "petitDej");
+            // 5 lignes standard toujours présentes pour permettre la saisie manuelle si besoin
+            addPricingRow("Petits-déjeuners", totalPDJ, pPDJ, "10%", "petitDej");
             addPricingRow("Collations matin", totalColM, pCollation, "10%", "collationMatin");
-            if (totalDEJ > 0) addPricingRow("Déjeuners", totalDEJ, pDEJ, "10%", "dejeuner");
+            addPricingRow("Déjeuners", totalDEJ, pDEJ, "10%", "dejeuner");
             addPricingRow("Collations après-midi", totalColA, pCollation, "10%", "collationAprem");
-            if (totalDIN > 0) addPricingRow("Dîners", totalDIN, pDIN, "10%", "diner");
+            addPricingRow("Dîners", totalDIN, pDIN, "10%", "diner");
 
             // La ligne de remise automatique a été supprimée à la demande de l'utilisateur.
             // Utilisez le bouton "+ Ligne" pour ajouter une remise manuelle.
@@ -544,16 +545,17 @@
             // Initialiser la remise selon l'état initial des cases
             // recalcPensionDiscount(fields["Nombre de personnes"] || 1);
 
-            // --- C. Options & Salles ---
-            addCategoryRow("Options & Salles");
+            // --- C. Options & Salles (Page 2) ---
+            addCategoryRow("Mise à disposition des espaces", "options-body");
             const salleLabel = `Location Salles & Coordination logistique<br><small style='color:#666; font-weight:400;'>Coordination on-site, Salle équipée, Support technique</small>`;
             const qS = fields["Nuits"] || 1;
             let salleAmountHT = fields["Montant Options HT"] || 0;
 
-            // If amount is 0 or undefined, we still show the row with 0
-            const unitPrice = salleAmountHT > 0 ? (salleAmountHT / qS) : 0;
-            addPricingRow(salleLabel, qS, unitPrice, "20%");
-            addSubtotalRow("Options", "subtotal-salles");
+            // If amount is 0, we only show the section headers/subtotal for manual adding
+            if (salleAmountHT > 0) {
+                addPricingRow(salleLabel, qS, salleAmountHT / qS, "20%", null, "options-body");
+            }
+            addSubtotalRow("Options", "subtotal-salles", "options-body");
 
             // --- D. Activities (Page 2) ---
             const actBody = document.getElementById('activities-body');
@@ -576,17 +578,14 @@
                 } else if (activities.requested) {
                     const label = `Activité prévue : ${activities.type || 'Sur mesure'}<br><small style='color:#666;'>${activities.message || ''}</small>`;
                     actBody.appendChild(createPricingRow(label, 1, 0, "20%"));
-                } else {
-                    actBody.innerHTML = '<tr><td colspan="6" style="padding:15px; text-align:center; color:#999; font-style:italic;">Aucune activité définie.</td></tr>';
                 }
+                // Pas de placeholder "Aucune activité", on laisse le tableau prêt pour ajout manuel
                 addSubtotalRow("Activités & Loisirs", "subtotal-activities", "activities-body");
             }
 
             // --- E. Initial Taxe de séjour Calculation ---
-            const nPers = fields["Nombre de personnes"] || 0;
-            const nNights = fields["Nuits"] || 0;
-            if (nPers > 0 && nNights > 0) {
-                const ts = nPers * nNights * 1.00; // Base: 1€ per person per night
+            if (nbPers > 0 && nNights > 0) {
+                const ts = nbPers * nNights * 4.31; // 4.31€ per person per night
                 const tsEl = document.getElementById('display-taxe-sejour');
                 if (tsEl) tsEl.innerText = formatEuro(ts);
             }
@@ -670,12 +669,7 @@
             tr.innerHTML = html;
             document.getElementById('pricing-body').appendChild(tr);
 
-            // Saut de page après la grille : technique fiable pour les <table> en print
-            // (break-after sur <tr> est ignoré par les navigateurs → on force display:block)
-            const pbRow = document.createElement('tr');
-            pbRow.className = 'no-print-row';
-            pbRow.style.cssText = 'display: block; height: 0; break-after: page; page-break-after: always;';
-            document.getElementById('pricing-body').appendChild(pbRow);
+            // Pas de saut de page forcé ici pour rester compact (Objectif 1-2 pages)
         }
 
         function toggleMealCheck(wrapper, mealKey, nbPers) {
@@ -765,6 +759,18 @@
                 totalTVA += line * rate;
             });
 
+            document.querySelectorAll('#options-body tr').forEach(row => {
+                if (row.classList.contains('category-row') || row.classList.contains('subtotal-row')) return;
+                const q = parseFloat(row.querySelector('.qty')?.innerText) || 0;
+                const p = parseFloat(row.querySelector('.price')?.innerText) || 0;
+                const line = q * p;
+                const totalEl = row.querySelector('.row-total');
+                if (totalEl) totalEl.innerText = line.toFixed(2);
+                totalHT += line; sOpt += line;
+                const rate = parseFloat(row.querySelector('.tva-rate')?.innerText) / 100 || 0.2;
+                totalTVA += line * rate;
+            });
+
             document.querySelectorAll('#activities-body tr').forEach(row => {
                 if (row.classList.contains('subtotal-row')) return;
                 const q = parseFloat(row.querySelector('.qty')?.innerText) || 0;
@@ -797,13 +803,14 @@
 
             const n = currentRecord?.fields?.["Nombre de personnes"] || 0;
             if (n > 0) {
-                document.getElementById('price-total-summary').innerText = `Total séjour : ${formatEuro(totalHT)} HT (${formatEuro(ttc)} TTC)`;
-                document.getElementById('price-per-person').innerText = `Soit ${Math.round(totalHT / n)} € HT / personne`;
-                document.getElementById('price-synthesis').style.display = 'block';
+                const tsBox = document.getElementById('price-total-summary');
+                if (tsBox) tsBox.innerText = `Total séjour : ${formatEuro(totalHT)} HT (${formatEuro(ttc)} TTC)`;
 
-                // Mise à jour du résumé en-tête
-                const ppEl = document.getElementById('snapshot-price-per-person');
-                if (ppEl) ppEl.innerText = `${formatEuro(totalHT / n)} HT`;
+                const ppBox = document.getElementById('price-per-person');
+                if (ppBox) ppBox.innerText = `Soit ${Math.round(totalHT / n)} € HT / personne`;
+
+                const snapPP = document.getElementById('snapshot-price-per-person');
+                if (snapPP) snapPP.innerText = `${formatEuro(totalHT / n)} HT`;
             }
         }
 
