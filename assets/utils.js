@@ -156,28 +156,31 @@ const SesquierUtils = {
             if (event.stopImmediatePropagation) event.stopImmediatePropagation();
         }
 
-        // Utilisation d'un drapeau pour éviter les appels multiples simultanés
-        if (btn._processing) return;
-        btn._processing = true;
+        // Utiliser la fenêtre parente pour le confirm si on est dans une iframe
+        // C'est beaucoup plus stable dans Chrome pour éviter que la fenêtre ne se ferme seule
+        const context = window.top || window;
 
         try {
-            // Un petit délai via requestAnimationFrame peut aider Chrome à stabiliser l'UI 
-            // tout en gardant le contexte "User Gesture".
-            requestAnimationFrame(() => {
-                if (confirm("Supprimer cette ligne ?")) {
-                    const tr = btn.closest('tr');
-                    if (tr) {
-                        tr.remove();
-                        if (typeof window.updateCalculations === 'function') {
-                            window.updateCalculations();
-                        }
+            if (context.confirm("Supprimer cette ligne ?")) {
+                const tr = btn.closest('tr');
+                if (tr) {
+                    tr.remove();
+                    if (typeof window.updateCalculations === 'function') {
+                        window.updateCalculations();
                     }
                 }
-                btn._processing = false;
-            });
+            }
         } catch (e) {
-            console.error("[SesquierUtils] Error in removeRow:", e);
-            btn._processing = false;
+            // Fallback si l'accès au top window est bloqué par la sécurité (rare sur même domaine)
+            if (confirm("Supprimer cette ligne ?")) {
+                const tr = btn.closest('tr');
+                if (tr) {
+                    tr.remove();
+                    if (typeof window.updateCalculations === 'function') {
+                        window.updateCalculations();
+                    }
+                }
+            }
         }
     },
 
