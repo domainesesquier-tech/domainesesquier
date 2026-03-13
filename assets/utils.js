@@ -113,6 +113,99 @@ const SesquierUtils = {
     toDateKey(date) {
         if (!date) return null;
         return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())).toISOString().slice(0, 10);
+    },
+
+    // --- Document UI Helpers ---
+
+    addCategoryRow(title, targetId = 'pricing-body') {
+        const tbody = document.getElementById(targetId);
+        if (!tbody) return;
+        const tr = document.createElement('tr');
+        tr.className = "category-row no-edit";
+        tr.innerHTML = `<td colspan="6">${title}</td>`;
+        tbody.appendChild(tr);
+    },
+
+    addPricingRow(label, qty, price, tva, mealKey = null, targetId = 'pricing-body') {
+        const tbody = document.getElementById(targetId);
+        if (!tbody) return;
+        const tr = this.createPricingRow(label, qty, price, tva, mealKey);
+        tbody.appendChild(tr);
+    },
+
+    createPricingRow(label, qty, price, tva, mealKey = null) {
+        const tr = document.createElement('tr');
+        if (mealKey) tr.dataset.mealKey = mealKey;
+        tr.innerHTML = `
+            <td contenteditable="true">${label}</td>
+            <td contenteditable="true" class="qty" style="text-align: center;">${qty}</td>
+            <td contenteditable="true" class="price" style="text-align: right;">${parseFloat(price).toFixed(2)}</td>
+            <td class="tva-rate" contenteditable="true" style="text-align: right;">${tva}</td>
+            <td class="row-total" style="text-align: right; font-weight: 600;">0.00</td>
+            <td class="no-print" style="text-align: center; vertical-align: middle;">
+                <button onclick="SesquierUtils.removeRow(this, event)" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-size:16pt; padding:0 5px;">&times;</button>
+            </td>
+        `;
+        return tr;
+    },
+
+    removeRow(btn, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+        }
+
+        // Utilisation d'un drapeau pour éviter les appels multiples simultanés
+        if (btn._processing) return;
+        btn._processing = true;
+
+        try {
+            // Un petit délai via requestAnimationFrame peut aider Chrome à stabiliser l'UI 
+            // tout en gardant le contexte "User Gesture".
+            requestAnimationFrame(() => {
+                if (confirm("Supprimer cette ligne ?")) {
+                    const tr = btn.closest('tr');
+                    if (tr) {
+                        tr.remove();
+                        if (typeof window.updateCalculations === 'function') {
+                            window.updateCalculations();
+                        }
+                    }
+                }
+                btn._processing = false;
+            });
+        } catch (e) {
+            console.error("[SesquierUtils] Error in removeRow:", e);
+            btn._processing = false;
+        }
+    },
+
+    addSubtotalRow(label, id, targetId = 'pricing-body') {
+        const tbody = document.getElementById(targetId);
+        if (!tbody) return;
+        const tr = document.createElement('tr');
+        tr.className = "subtotal-row";
+        tr.style.background = "#f9f9f9";
+        tr.style.fontWeight = "600";
+        tr.innerHTML = `
+            <td colspan="4" style="padding: 6px 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <button class="no-print" onclick="SesquierUtils.addRowBefore(this)" style="background: white; border:1px solid #ddd; border-radius:4px; padding:3px 10px; cursor:pointer; font-size:9pt;">+ Ligne</button>
+                    <span style="font-style: italic; color:#666;">Sous-total ${label} HT</span>
+                </div>
+            </td>
+            <td class="subtotal-value" id="${id}" style="text-align: right; padding-right: 5px;">0.00</td>
+            <td class="no-print"></td>
+        `;
+        tbody.appendChild(tr);
+    },
+
+    addRowBefore(btn) {
+        const subRow = btn.closest('tr');
+        const newRow = this.createPricingRow("Prestation manuelle...", 1, 0, "10%");
+        subRow.parentNode.insertBefore(newRow, subRow);
+        if (window.updateCalculations) window.updateCalculations();
     }
 };
 

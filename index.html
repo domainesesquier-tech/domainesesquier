@@ -364,20 +364,20 @@
     </div>
 
     <div class="main-content">
-        <!-- Configurateur Privé = CONFIGURATEUR.html?mode=perso -->
-        <iframe src="CONFIGURATEUR.html?mode=perso" id="iframe-prive" class="active"></iframe>
+        <!-- Configurateur Privé = CONFIGURATEUR?mode=perso -->
+        <iframe src="CONFIGURATEUR?mode=perso" id="iframe-prive" class="active"></iframe>
 
-        <!-- Configurateur Séminaire = CONFIGURATEUR.html?mode=pro -->
-        <iframe src="CONFIGURATEUR.html?mode=pro" id="iframe-pro"></iframe>
+        <!-- Configurateur Séminaire = CONFIGURATEUR?mode=pro -->
+        <iframe src="CONFIGURATEUR?mode=pro" id="iframe-pro"></iframe>
 
         <!-- Devis avec le paramètre live=true pour charger depuis le LocalStorage en temps réel -->
-        <iframe src="DOMAINE_SESQUIER_DEVIS.html?live=true" id="iframe-devis"></iframe>
+        <iframe src="DOMAINE_SESQUIER_DEVIS?live=true" id="iframe-devis"></iframe>
 
         <!-- Facture Acompte -->
-        <iframe src="DOMAINE_SESQUIER_FACTURE_ACOMPTE.html?live=true" id="iframe-facture"></iframe>
+        <iframe src="DOMAINE_SESQUIER_FACTURE_ACOMPTE?live=true" id="iframe-facture"></iframe>
 
         <!-- Facture Finale -->
-        <iframe src="DOMAINE_SESQUIER_FACTURE.html?live=true" id="iframe-facture-finale"></iframe>
+        <iframe src="DOMAINE_SESQUIER_FACTURE?live=true" id="iframe-facture-finale"></iframe>
 
         <div class="sync-banner" id="syncBanner">
             <i class="fa-solid fa-arrows-rotate fa-spin"></i> Données synchronisées entre les onglets
@@ -393,41 +393,33 @@
             // Afficher le bon Iframe et orchestrer la synchronisation magique
             document.querySelectorAll('iframe').forEach(fr => {
                 if (fr.id === frameId) {
-                    fr.classList.add('active');
+                    const inputVal = document.getElementById('dev-id-input').value.trim();
+                    const timestamp = Date.now();
 
                     if (frameId === 'iframe-devis') {
-                        // Pour le devis, s'il n'y a pas d'ID spécifique renseigné, on charge l'Aperçu Live `?live=true`
-                        const inputVal = document.getElementById('dev-id-input').value.trim();
-                        if (inputVal) {
-                            fr.src = `DOMAINE_SESQUIER_DEVIS.html?id=${inputVal}`;
-                        } else {
-                            // On ajoute le timestamp pour forcer le devis à relire localStorage.domaineBookingDraft
-                            fr.src = `DOMAINE_SESQUIER_DEVIS.html?live=true&t=${Date.now()}`;
+                        const targetBase = inputVal ? `DOMAINE_SESQUIER_DEVIS?id=${inputVal}` : `DOMAINE_SESQUIER_DEVIS?live=true`;
+                        if (!fr.classList.contains('active') || !fr.src.includes(targetBase)) {
+                            fr.src = `${targetBase}&t=${timestamp}`;
                         }
                     } else if (frameId === 'iframe-facture') {
-                        const inputVal = document.getElementById('dev-id-input').value.trim();
-                        if (inputVal) {
-                            fr.src = `DOMAINE_SESQUIER_FACTURE_ACOMPTE.html?id=${inputVal}`;
-                        } else {
-                            fr.src = `DOMAINE_SESQUIER_FACTURE_ACOMPTE.html?live=true&t=${Date.now()}`;
+                        const targetBase = inputVal ? `DOMAINE_SESQUIER_FACTURE_ACOMPTE?id=${inputVal}` : `DOMAINE_SESQUIER_FACTURE_ACOMPTE?live=true`;
+                        if (!fr.classList.contains('active') || !fr.src.includes(targetBase)) {
+                            fr.src = `${targetBase}&t=${timestamp}`;
                         }
                     } else if (frameId === 'iframe-facture-finale') {
-                        const inputVal = document.getElementById('dev-id-input').value.trim();
-                        if (inputVal) {
-                            fr.src = `DOMAINE_SESQUIER_FACTURE.html?id=${inputVal}`;
-                        } else {
-                            fr.src = `DOMAINE_SESQUIER_FACTURE.html?live=true&t=${Date.now()}`;
+                        const targetBase = inputVal ? `DOMAINE_SESQUIER_FACTURE?id=${inputVal}` : `DOMAINE_SESQUIER_FACTURE?live=true`;
+                        if (!fr.classList.contains('active') || !fr.src.includes(targetBase)) {
+                            fr.src = `${targetBase}&t=${timestamp}`;
                         }
                     } else {
-                        // Pour le nouveau configurateur unifié, on force le mode pour plus de sécurité
-                        const currentMode = frameId === 'iframe-pro' ? 'pro' : 'perso';
-                        if (!fr.src.includes('mode=')) {
-                            fr.src = `CONFIGURATEUR.html?mode=${currentMode}`;
-                        } else {
-                            fr.contentWindow.location.reload();
+                        const targetMode = frameId === 'iframe-pro' ? 'pro' : 'perso';
+                        const currentSrc = fr.getAttribute('src') || '';
+                        if (!fr.classList.contains('active') || !currentSrc.includes(`mode=${targetMode}`)) {
+                            fr.src = `CONFIGURATEUR?mode=${targetMode}`;
                         }
                     }
-
+                    
+                    fr.classList.add('active');
                     showBanner();
                 } else {
                     fr.classList.remove('active');

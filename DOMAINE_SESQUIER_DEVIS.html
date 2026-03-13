@@ -104,6 +104,11 @@
                         <td class="snapshot-key">Participants :</td>
                         <td class="snapshot-val" contenteditable="true">...</td>
                     </tr>
+                    <tr>
+                        <td class="snapshot-key">Prix HT/pers :</td>
+                        <td class="snapshot-val" id="snapshot-price-per-person"
+                            style="color: var(--primary); font-weight: 600;">—</td>
+                    </tr>
                 </table>
             </div>
         </section>
@@ -250,6 +255,7 @@
         const API_RESERVATIONS_URL = SesquierUtils ? SesquierUtils.API_RESERVATIONS_URL : '';
 
         let currentRecord = null;
+        let pricingMap = {}; // { CODE: { pu, tva } } — rempli depuis /api/pricing
         const urlParams = new URLSearchParams(window.location.search);
         let currentRequestId = urlParams.get('id');
 
@@ -267,8 +273,9 @@
             loadFromDraftPreview();
         }
 
-        function loadFromDraftPreview() {
+        async function loadFromDraftPreview() {
             try {
+                await loadPricingData();
                 const ls = localStorage.getItem('domaineBookingDraft');
                 if (!ls) {
                     const clientInfoEl = document.querySelector('.client-info');
@@ -361,7 +368,11 @@
                 console.log("Fetching ID:", id);
                 if (clientInfoEl) clientInfoEl.innerHTML = "Chargement des données depuis Airtable...";
 
-                const data = await SesquierUtils.fetchJson(`${API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
+                // Chargement en parallèle : réservation + tarifs
+                const [data] = await Promise.all([
+                    SesquierUtils.fetchJson(`${API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`),
+                    loadPricingData()
+                ]);
                 currentRecord = data.records ? data.records[0] : data;
 
                 if (!currentRecord || !currentRecord.fields) {
@@ -383,6 +394,27 @@
             }
         }
 
+        // Charge la table des tarifs depuis Airtable et peuple pricingMap
+        async function loadPricingData() {
+            try {
+                const data = await SesquierUtils.fetchJson(`${SesquierUtils.API_PRICING_URL}?t=${Date.now()}`);
+                if (data.records) {
+                    data.records.forEach(rec => {
+                        const code = SesquierUtils.normalizeCode(rec.fields?.Code);
+                        if (code) {
+                            pricingMap[code] = {
+                                pu: rec.fields?.PU ?? 0,
+                                tva: rec.fields?.['TVA % (auto)'] ?? 10
+                            };
+                        }
+                    });
+                }
+                console.log('[DEVIS] pricingMap chargé:', Object.keys(pricingMap).length, 'tarifs');
+            } catch (e) {
+                console.warn('[DEVIS] Impossible de charger /api/pricing, prix de fallback utilisés:', e);
+            }
+        }
+
         function populateDevis(fields) {
             if (!fields) return;
 
@@ -390,19 +422,27 @@
             const activities = details.activities || {};
 
             // 1. Meta & Footer
+            const now = new Date();
+            const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
             const num = (fields["Numéro Devis"] || fields["ID"] || currentRequestId || "").toString().slice(-6).toUpperCase();
             const devNumEl = document.getElementById('devis-number');
-            if (devNumEl) devNumEl.innerText = `2026-02-${num}`;
-            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `2026-02-${num}`);
+            if (devNumEl) devNumEl.innerText = `${yearMonth}-${num}`;
+            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `${yearMonth}-${num}`);
 
-            // 2. Client Info
+            // 2. Client Info — structuré : Organisation, Nom du référent, Mail, Téléphone
             const clientInfoEl = document.querySelector('.client-info');
             if (clientInfoEl) {
-                clientInfoEl.innerHTML = `
-                <strong>${fields["Nom client"] || "Client"}</strong><br>
-                ${fields["Téléphone"] ? "Tél : " + fields["Téléphone"] + "<br>" : ""}
-                Email : ${fields["Email"] || "N/A"}
-            `;
+                const org = fields["Entreprise"] || fields["Organisation"] || fields["Société"] || "";
+                const ref = fields["Nom client"] || fields["Référent"] || "";
+                const mail = fields["Email"] || "";
+                const tel = fields["Téléphone"] || "";
+                clientInfoEl.innerHTML =
+                    `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; line-height:1.8;">
+                        <tr><td style="opacity:0.65; width:38%;">Organisation :</td><td><strong>${org || "—"}</strong></td></tr>
+                        <tr><td style="opacity:0.65;">Nom du référent :</td><td>${ref || "—"}</td></tr>
+                        <tr><td style="opacity:0.65;">Mail :</td><td>${mail || "—"}</td></tr>
+                        <tr><td style="opacity:0.65;">Téléphone :</td><td>${tel || "—"}</td></tr>
+                    </table>`;
             }
 
             // 3. Stay Overview Table
@@ -419,6 +459,7 @@
                 const nightLabel = nNights > 1 ? "Nuits" : "nuit";
                 snapshotRows[2].querySelector('.snapshot-val').innerText = `${nNights} ${nightLabel}`;
                 snapshotRows[3].querySelector('.snapshot-val').innerText = `${fields["Nombre de personnes"] || 0} personnes`;
+                // Prix/pers sera mis à jour par updateCalculations()
             }
 
             // 4. Narrative Synthesis
@@ -448,30 +489,14 @@
             let nbNights = fields["Nuits"] || 1;
             let hasSleepingDetails = false;
 
-            if (details.sleeping && details.sleeping.details) {
-                hasSleepingDetails = true;
-                const d = details.sleeping.details;
-                // Twin (Rooms) - We multiply per-person price by 2 to get room price
-                if (d.twinCount > 0) {
-                    const twinLabel = `Chambre twin - ${d.twinCount * 2} personnes - ${nbNights} nuits`;
-                    // If d.twinPrice is 50, it's 100 per room
-                    const unitPrice = (d.twinPrice || 0) * 2 * nbNights;
-                    addPricingRow(twinLabel, d.twinCount, unitPrice, "10%");
-                }
-                // Indiv (Rooms)
-                if (d.soloCount > 0) {
-                    const soloLabel = `Chambre individuelle - ${nbNights} nuits`;
-                    const unitPrice = (d.soloPrice || 0) * nbNights;
-                    addPricingRow(soloLabel, d.soloCount, unitPrice, "10%");
-                }
-            }
-            if (!hasSleepingDetails) {
-                let nbPers = fields["Nombre de personnes"] || 0;
-                let totalHeberg = fields["Montant Hébergement HT"] || 0;
-                let unitPrice = nbPers > 0 ? (totalHeberg / nbPers) : totalHeberg;
-                addPricingRow("Mise à disposition du domaine & chambres", nbPers, unitPrice, "10%");
-            }
-            if (fields["Option ménage"] === "Oui") addPricingRow("Forfait Ménage fin de séjour", 1, 150, "20%");
+            // Ligne unique hébergement : description standard, Qté = nuits, Prix = montant total / nuits
+            const hebergDesc = `Chambre twin en gîte tout confort<br><small style='color:#666; font-weight:400;'>Draps, serviettes et ménage inclus — ${nbNights > 1 ? nbNights + " nuits" : "1 nuit"} pour ${fields["Nombre de personnes"] || 0} personnes</small>`;
+            const totalHeberg = fields["Montant Hébergement HT"] || 0;
+            const pricePerNight = nbNights > 0 && totalHeberg > 0
+                ? Math.round((totalHeberg / nbNights) * 100) / 100
+                : 0;
+            addPricingRow(hebergDesc, nbNights, pricePerNight, "10%");
+
             addSubtotalRow("Hébergement", "subtotal-hebergement");
 
             // --- B. Catering (5 lignes consolidées) ---
@@ -496,26 +521,28 @@
                 totalDIN = fields["Repas dîner"] || 0;
             }
 
-            // 5 lignes uniques (cachées si quantité = 0)
-            if (totalPDJ > 0) addPricingRow("Petits-déjeuners", totalPDJ, 14, "10%");
-            if (totalColM > 0) addPricingRow("Collations matin", totalColM, 5, "10%");
-            if (totalDEJ > 0) addPricingRow("Déjeuners", totalDEJ, 26, "10%");
-            if (totalColA > 0) addPricingRow("Collations après-midi", totalColA, 5, "10%");
-            if (totalDIN > 0) addPricingRow("Dîners", totalDIN, 30, "10%");
+            // Prix réels depuis Airtable (avec fallbacks cohérents)
+            const pPDJ = pricingMap['REPAS_SEMINAIRE_PDJ']?.pu ?? 13;
+            const pCollation = pricingMap['REPAS_SEMINAIRE_COLLATION']?.pu ?? 4;
+            const pDEJ = pricingMap['REPAS_SEMINAIRE_DEJEUNER']?.pu ?? 25;
+            const pDIN = pricingMap['REPAS_SEMINAIRE_DINER']?.pu ?? 29;
+            const pensionCap = pricingMap['REPAS_SEMINAIRE_PENSION_70']?.pu ?? 70;
+            // Remise = écart entre somme individuelle et plafond pension (par pers/jour complet)
+            const pensionDiscountUnit = (pPDJ + pCollation + pDEJ + pCollation + pDIN) - pensionCap;
 
-            // Remise pension
-            if (isPension) {
-                const nbP = fields["Nombre de personnes"] || 0;
-                const nightsP = fields["Nuits"] || 0;
-                const eligiblePension = nbP * nightsP;
-                if (eligiblePension > 0) {
-                    addPricingRow(
-                        "<span style='color: var(--accent); font-weight: 600;'>Remise forfait pension complète</span><br><small style='color: #666; font-size: 8pt;'>Optimisation tarifaire (70€ HT / jr / pers)</small>",
-                        eligiblePension, -10.00, "10%"
-                    );
-                }
-            }
+            // 5 lignes — taggées pour le lien avec la grille planning
+            if (totalPDJ > 0) addPricingRow("Petits-déjeuners", totalPDJ, pPDJ, "10%", "petitDej");
+            addPricingRow("Collations matin", totalColM, pCollation, "10%", "collationMatin");
+            if (totalDEJ > 0) addPricingRow("Déjeuners", totalDEJ, pDEJ, "10%", "dejeuner");
+            addPricingRow("Collations après-midi", totalColA, pCollation, "10%", "collationAprem");
+            if (totalDIN > 0) addPricingRow("Dîners", totalDIN, pDIN, "10%", "diner");
+
+            // La ligne de remise automatique a été supprimée à la demande de l'utilisateur.
+            // Utilisez le bouton "+ Ligne" pour ajouter une remise manuelle.
             addSubtotalRow("Restauration", "subtotal-restauration");
+            addMealGrid(fields);
+            // Initialiser la remise selon l'état initial des cases
+            // recalcPensionDiscount(fields["Nombre de personnes"] || 1);
 
             // --- C. Options & Salles ---
             addCategoryRow("Options & Salles");
@@ -567,64 +594,147 @@
             updateCalculations();
         }
 
-        function addCategoryRow(title) {
+        function addCategoryRow(title, targetId) { return SesquierUtils.addCategoryRow(title, targetId); }
+        function addPricingRow(label, qty, price, tva, mealKey, targetId) { return SesquierUtils.addPricingRow(label, qty, price, tva, mealKey, targetId); }
+        function createPricingRow(label, qty, price, tva, mealKey) { return SesquierUtils.createPricingRow(label, qty, price, tva, mealKey); }
+        function removeRow(btn, event) { return SesquierUtils.removeRow(btn, event); }
+        function addSubtotalRow(label, id, targetId) { return SesquierUtils.addSubtotalRow(label, id, targetId); }
+
+        function addMealGrid(fields) {
+            const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
+            const dArrStr = fields["Date arrivée"];
+            const nights = fields["Nuits"] || 0;
+            const nbPers = fields["Nombre de personnes"] || 1;
+            const days = nights + 1;
+
+            if (days <= 0) return;
+
+            // Si pas de date d'arrivée, on génère des labels génériques (J1, J2…)
+            let dArr = dArrStr ? new Date(dArrStr) : null;
+            if (dArr) dArr.setHours(12, 0, 0, 0);
+
             const tr = document.createElement('tr');
-            tr.className = "category-row no-edit";
-            tr.innerHTML = `<td colspan="6">${title}</td>`;
-            document.getElementById('pricing-body').appendChild(tr);
-        }
+            tr.className = "meal-grid-row";
 
-        function addPricingRow(label, qty, price, tva) {
-            const tr = createPricingRow(label, qty, price, tva);
-            document.getElementById('pricing-body').appendChild(tr);
-        }
+            // Title styled like a category sub-header
+            let html = `<td colspan="6">
+                <div style="background-color: rgba(58, 85, 56, 0.06); color: var(--primary); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 10pt; padding: 5px 10px; border-bottom: 1px solid var(--primary); margin-bottom: 4px; letter-spacing:0.03em;">
+                    Planning prévisionnel de la restauration
+                </div>
+                <table class="meal-check-grid">
+                    <thead><tr><th>Prestation</th>`;
 
-        function createPricingRow(label, qty, price, tva) {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td contenteditable="true">${label}</td>
-                <td contenteditable="true" class="qty" style="text-align: center;">${qty}</td>
-                <td contenteditable="true" class="price" style="text-align: right;">${parseFloat(price).toFixed(2)}</td>
-                <td class="tva-rate" contenteditable="true" style="text-align: right;">${tva}</td>
-                <td class="row-total" style="text-align: right; font-weight: 600;">0.00</td>
-                <td class="no-print" style="text-align: center; vertical-align: middle;">
-                    <button onclick="removeRow(this)" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-size:16pt; padding:0 5px;">&times;</button>
-                </td>
-            `;
-            return tr;
-        }
-
-        function removeRow(btn) {
-            if (confirm("Supprimer cette ligne ?")) {
-                btn.closest('tr').remove();
-                updateCalculations();
+            for (let i = 0; i < days; i++) {
+                let label;
+                if (dArr) {
+                    const d = new Date(dArr);
+                    d.setDate(d.getDate() + i);
+                    label = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+                    label = label.charAt(0).toUpperCase() + label.slice(1);
+                } else {
+                    label = `J${i + 1}`;
+                }
+                html += `<th>${label}</th>`;
             }
+            html += `</tr></thead><tbody>`;
+
+            const mealRows = [
+                { key: 'petitDej', label: 'Petit-déjeuner' },
+                { key: 'collationMatin', label: 'Collation matin' },
+                { key: 'dejeuner', label: 'Déjeuner' },
+                { key: 'collationAprem', label: 'Collation après-midi' },
+                { key: 'diner', label: 'Dîner' }
+            ];
+
+            mealRows.forEach(row => {
+                html += `<tr data-meal-key="${row.key}"><td>${row.label}</td>`;
+                for (let i = 0; i < days; i++) {
+                    let isChecked = false;
+                    if (details.meals?.counts?.[i]) {
+                        const dayData = details.meals.counts[i];
+                        let val = dayData[row.key];
+                        if (row.key === 'collationMatin' && val === undefined) val = Math.floor((dayData.collation || 0) / 2);
+                        if (row.key === 'collationAprem' && val === undefined) val = Math.ceil((dayData.collation || 0) / 2);
+                        isChecked = (val > 0);
+                    }
+                    html += `<td>
+                        <span class="check-wrapper${isChecked ? ' is-checked' : ''}" onclick="toggleMealCheck(this, '${row.key}', ${nbPers})">
+                            <span class="check-box"></span>
+                        </span>
+                    </td>`;
+                }
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table></td>`;
+            tr.innerHTML = html;
+            document.getElementById('pricing-body').appendChild(tr);
+
+            // Saut de page après la grille : technique fiable pour les <table> en print
+            // (break-after sur <tr> est ignoré par les navigateurs → on force display:block)
+            const pbRow = document.createElement('tr');
+            pbRow.className = 'no-print-row';
+            pbRow.style.cssText = 'display: block; height: 0; break-after: page; page-break-after: always;';
+            document.getElementById('pricing-body').appendChild(pbRow);
         }
 
-        function addSubtotalRow(label, id, targetId = 'pricing-body') {
-            const tr = document.createElement('tr');
-            tr.className = "subtotal-row";
-            tr.style.background = "#f9f9f9";
-            tr.style.fontWeight = "600";
-            tr.innerHTML = `
-                <td colspan="4" style="padding: 6px 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <button class="no-print" onclick="addRowBefore(this)" style="background: white; border:1px solid #ddd; border-radius:4px; padding:3px 10px; cursor:pointer; font-size:9pt;">+ Ligne</button>
-                        <span style="font-style: italic; color:#666;">Sous-total ${label} HT</span>
-                    </div>
-                </td>
-                <td class="subtotal-value" id="${id}" style="text-align: right; padding-right: 5px;">0.00</td>
-                <td class="no-print"></td>
-            `;
-            document.getElementById(targetId).appendChild(tr);
+        function toggleMealCheck(wrapper, mealKey, nbPers) {
+            // Toggle visual state
+            wrapper.classList.toggle('is-checked');
+
+            // Count checked boxes in this meal row
+            const gridRow = document.querySelector(`.meal-check-grid tr[data-meal-key="${mealKey}"]`);
+            const checkedCount = gridRow
+                ? gridRow.querySelectorAll('.check-wrapper.is-checked').length
+                : 0;
+
+            // Each checked day = nbPers repas
+            const newQty = checkedCount * nbPers;
+
+            // Update the matching pricing row's Qté
+            const pricingRow = document.querySelector(`#pricing-body tr[data-meal-key="${mealKey}"]`);
+            if (pricingRow) {
+                const qtyEl = pricingRow.querySelector('.qty');
+                if (qtyEl) qtyEl.innerText = newQty;
+            }
+
+            // Recalculate pension discount based on full-day coverage, then cascade
+            recalcPensionDiscount(nbPers);
         }
 
-        function addRowBefore(btn) {
-            const subRow = btn.closest('tr');
-            const newRow = createPricingRow("Prestation manuelle...", 1, 0, "10%");
-            subRow.parentNode.insertBefore(newRow, subRow);
+        // Compte les jours où les 5 repas sont cochés et met à jour la ligne remise pension
+        function recalcPensionDiscount(nbPers) {
+            const mealKeys = ['petitDej', 'collationMatin', 'dejeuner', 'collationAprem', 'diner'];
+            const grid = document.querySelector('.meal-check-grid');
+            if (!grid) { updateCalculations(); return; }
+
+            // Nombre de colonnes-jour
+            const headerCells = grid.querySelectorAll('thead th');
+            const dayCount = headerCells.length - 1; // -1 pour retirer "Prestation"
+
+            let fullDays = 0;
+            for (let i = 0; i < dayCount; i++) {
+                const allFive = mealKeys.every(key => {
+                    const row = grid.querySelector(`tr[data-meal-key="${key}"]`);
+                    if (!row) return false;
+                    const cells = row.querySelectorAll('td');
+                    const cell = cells[i + 1]; // +1 pour sauter la colonne label
+                    return cell && cell.querySelector('.check-wrapper.is-checked') !== null;
+                });
+                if (allFive) fullDays++;
+            }
+
+            // Qté = jours complets × nbPersonnes, remise = -10€/unité
+            const discountRow = document.querySelector('#pricing-body tr[data-meal-key="pensionDiscount"]');
+            if (discountRow) {
+                const qtyEl = discountRow.querySelector('.qty');
+                if (qtyEl) qtyEl.innerText = fullDays * nbPers;
+            }
+
             updateCalculations();
         }
+
+        const addRowBefore = (btn) => SesquierUtils.addRowBefore(btn);
 
         function updateCalculations() {
             let totalHT = 0, totalTVA = 0, sHeberg = 0, sRestau = 0, sOpt = 0, sActiv = 0;
@@ -690,6 +800,10 @@
                 document.getElementById('price-total-summary').innerText = `Total séjour : ${formatEuro(totalHT)} HT (${formatEuro(ttc)} TTC)`;
                 document.getElementById('price-per-person').innerText = `Soit ${Math.round(totalHT / n)} € HT / personne`;
                 document.getElementById('price-synthesis').style.display = 'block';
+
+                // Mise à jour du résumé en-tête
+                const ppEl = document.getElementById('snapshot-price-per-person');
+                if (ppEl) ppEl.innerText = `${formatEuro(totalHT / n)} HT`;
             }
         }
 

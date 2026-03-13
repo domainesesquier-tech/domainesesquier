@@ -15,17 +15,19 @@
     <link rel="stylesheet" href="assets/document.css">
     <script src="assets/utils.js"></script>
     <style>
-        /* Specific overrides for Facture Acompte if any */
+        /* Align doc-type with DEVIS serif aesthetic */
         .doc-type {
-            color: var(--text-main);
-            font-size: 26px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: 0.04em;
         }
     </style>
 </head>
 
 <body>
 
-    <!-- Controls -->
     <div class="controls-bar no-print">
         <button class="btn" onclick="saveToAirtable()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -33,24 +35,18 @@
                 <polyline points="17 21 17 13 7 13 7 21"></polyline>
                 <polyline points="7 3 7 8 15 8"></polyline>
             </svg>
-            Enregistrer (Airtable)
+            Enregistrer
         </button>
         <button class="btn btn-primary" onclick="window.print()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                 <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
             </svg>
             Imprimer / PDF
         </button>
     </div>
 
-    <!-- Page A4 -->
     <div class="page" id="devis-content">
-
-        <!-- A. Header -->
         <header>
             <div class="brand-col">
                 <h1>Domaine Sesquier</h1>
@@ -66,26 +62,20 @@
                 <div class="doc-type" style="font-size: 26px;">FACTURE D'ACOMPTE</div>
                 <div class="meta-grid">
                     <div class="meta-label">Numéro :</div>
-                    <div class="meta-value" contenteditable="true" id="facture-number">FA2026-02-XXX</div>
-
+                    <div class="meta-value" contenteditable="true" id="facture-number">FA2026-03-XXX</div>
                     <div class="meta-label">Date :</div>
                     <div class="meta-value" contenteditable="true" id="today-date">--/--/----</div>
-
                     <div class="meta-label">Réf. Devis :</div>
                     <div class="meta-value" contenteditable="true" id="devis-number">2026-02-XXX</div>
                 </div>
             </div>
         </header>
 
-        <!-- B. & C. Client & Summary -->
         <section class="info-section">
             <div class="info-box">
                 <div class="box-title">Client / Entreprise</div>
-                <div class="client-info" contenteditable="true">
-                    Chargement...
-                </div>
+                <div class="client-info" contenteditable="true">Chargement...</div>
             </div>
-
             <div class="info-box">
                 <div class="box-title">Résumé du Séjour</div>
                 <table class="snapshot-table">
@@ -109,13 +99,10 @@
             </div>
         </section>
 
-        <!-- Stay Synthesis -->
         <div id="stay-synthesis" contenteditable="true"
             style="font-size: 11pt; font-weight: 500; color: var(--text-main); margin-bottom: 20px; border-left: 4px solid var(--primary); padding-left: 15px; outline: none;">
-            <!-- Dynamically filled -->
         </div>
 
-        <!-- E. Pricing Table -->
         <section class="pricing-section">
             <table class="pricing-table">
                 <thead>
@@ -128,9 +115,7 @@
                         <th class="no-print" style="width: 40px;"></th>
                     </tr>
                 </thead>
-                <tbody id="pricing-body">
-                    <!-- Dynamic Rows Here -->
-                </tbody>
+                <tbody id="pricing-body"></tbody>
             </table>
         </section>
 
@@ -140,7 +125,6 @@
         </div>
     </div>
 
-    <!-- Page 2 -->
     <div class="page" id="page2">
         <div class="print-header-p2">
             <div>
@@ -151,63 +135,55 @@
                     de la Facture</span>
             </div>
             <div style="font-size: 9pt; text-align: right;">
-                <div style="font-weight: 600;" class="devis-num-footer">N° 2026-02-XXX</div>
+                <div style="font-weight: 600;" class="devis-num-footer">N° FA2026-03-XXX</div>
                 <div style="color: #666;" class="devis-date-footer">Date : --/--/----</div>
             </div>
         </div>
 
-        <!-- Activités & Loisirs (Style Sous-section) -->
         <section id="activities-proposal" style="margin-bottom: 25px;">
             <div
                 style="background-color: rgba(158, 93, 76, 0.08); color: var(--accent); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 11pt; padding: 8px 15px; border-bottom: 1px solid var(--accent); margin-bottom: 10px;">
-                Activités & Loisirs (sur devis)
-            </div>
-
-            <table class="pricing-table" style="width: 100%; margin-bottom: 5px;">
-                <tbody id="activities-body">
-                    <!-- Rempli par JS -->
-                </tbody>
+                Activités & Loisirs (sur devis)</div>
+            <table class="pricing-table" style="width: 100%;">
+                <tbody id="activities-body"></tbody>
             </table>
-
-            <div
-                style="margin-top: 15px; font-size: 8.5pt; color: #666; border-top: 1px dashed #ddd; padding-top: 10px; padding-left: 5px;">
-                • Tarifs variables selon prestataire / saison / effectif<br>
-                • Réservation confirmée après validation de disponibilité
-            </div>
         </section>
 
         <section class="bottom-section no-break">
             <div class="totals-col">
                 <div class="total-row"><span>Total Prestations HT</span><span id="display-total-ht">0,00 €</span></div>
                 <div class="total-row"><span>TVA (estimée)</span><span id="display-total-tva">0,00 €</span></div>
-                <div class="total-row"><span>Total Prestations TTC</span><span id="display-total-ttc">0,00 €</span>
-                </div>
-                <div class="total-row final" style="color: var(--accent); border-top: 2px solid var(--accent);">
-                    <span>ACOMPTE (30%) TTC À RÉGLER</span><span id="display-deposit">0,00 €</span>
+                <div class="total-row" style="margin-bottom: 20px;"><span>Total Prestations TTC</span><span
+                        id="display-total-ttc">0,00 €</span></div>
+
+                <div class="total-row" id="row-deposit" style="color: var(--accent); position: relative;">
+                    <span>ACOMPTE À RÉGLER (30%)</span>
+                    <span id="display-deposit" contenteditable="true" oninput="updateCalculations()">0,00 €</span>
                 </div>
 
-                <!-- Synthèse Prix Global -->
-                <div id="price-synthesis"
-                    style="margin-top: 20px; text-align: right; border-top: 1px dashed var(--border); padding-top: 15px; font-size: 9pt; line-height: 1.6;">
-                    <div id="price-total-summary" style="font-weight: 600; color: var(--text-main);"></div>
-                    <div id="price-per-person" style="color: var(--primary); font-weight: 500; font-size: 8.5pt;"></div>
+                <div class="total-row" id="price-synthesis"
+                    style="margin-top: 10px; font-size: 9pt; opacity: 0.8; text-align: right; display: block;">
+                    <div id="price-total-summary"></div>
+                    <div id="price-per-person" style="font-weight: 500;"></div>
+                </div>
+
+                <div class="total-row final"
+                    style="border-top: 2px solid var(--primary); margin-top: 15px; padding-top: 15px;">
+                    <span>NET À PAYER</span>
+                    <span id="display-net-to-pay">0,00 €</span>
                 </div>
             </div>
 
             <div class="conditions-col">
-                <h4>Conditions & Modalités</h4>
+                <h4>Conditions de Règlement</h4>
                 <ul class="cond-list">
-                    <li contenteditable="true"><strong>Modalités :</strong> Facture d'acompte de 30% payable à réception
-                        pour confirmer définitivement la réservation des lieux.</li>
-                    <li contenteditable="true"><strong>Règlement :</strong> Par virement bancaire sur le compte
-                        ci-dessous. Veuillez indiquer la référence de la facture.</li>
-                    <li contenteditable="true"><strong>Annulation :</strong> En cas de désistement, cet acompte restera
-                        acquis au Domaine Sesquier conformément à nos conditions générales de vente.</li>
-                    <li contenteditable="true"><strong>Escompte :</strong> Aucun escompte pour paiement anticipé.</li>
+                    <li><strong>Acompte :</strong> 30% du montant total TTC à régler pour confirmation.</li>
+                    <li><strong>Solde :</strong> À régler au plus tard 15 jours avant l'arrivée.</li>
+                    <li>Règlement par virement bancaire uniquement.</li>
                 </ul>
-                <div style="font-size: 7.5pt; color: #999; line-height: 1.3; margin-top: 15px;">
+                <div style="font-size: 7.5pt; color: #999; margin-top: 15px;">
                     <strong>OZZA SASU</strong> — SIRET 903 246 478 00015 — MÈZE<br>
-                    BNP PARIBAS — <strong>IBAN : FR76 3000 4006 4000 0107 8926 886</strong> — BIC : BNPAFRPPXXX
+                    <strong>BNP PARIBAS</strong> — IBAN : FR76 3000 4006 4000 0107 8926 886 — BIC : BNPAFRPPXXX
                 </div>
             </div>
         </section>
@@ -215,13 +191,10 @@
         <section class="signature-section no-break">
             <div class="sig-grid">
                 <div>
-                    <div class="sig-box-title">Pour le Client</div>
-                    <div style="font-size: 9pt;">Date : <span contenteditable="true">__/__/____</span><br>Signature :
-                    </div>
+                    <div class="sig-box-title">Le Client</div>
                 </div>
                 <div>
-                    <div class="sig-box-title">Pour le Domaine Sesquier</div>
-                    <div style="font-size: 9pt;">Noureddine Smali, Gérant</div>
+                    <div class="sig-box-title">Domaine Sesquier</div>
                 </div>
             </div>
         </section>
@@ -366,20 +339,28 @@
             const activities = details.activities || {};
 
             // 1. Meta & Footer
+            const now = new Date();
+            const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
             const num = (fields["Numéro Devis"] || fields["ID"] || currentRequestId || "").toString().slice(-6).toUpperCase();
-            document.getElementById('devis-number').innerText = `2026-02-${num}`;
+            document.getElementById('devis-number').innerText = `${yearMonth}-${num}`;
             const facEl = document.getElementById('facture-number');
-            if (facEl) facEl.innerText = `FA2026-02-${num}`;
-            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `FA2026-02-${num}`);
+            if (facEl) facEl.innerText = `FA${yearMonth}-${num}`;
+            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `FA${yearMonth}-${num}`);
 
-            // 2. Client Info
+            // 2. Client Info — structuré : Organisation, Nom du référent, Mail, Téléphone
             const clientInfoEl = document.querySelector('.client-info');
             if (clientInfoEl) {
-                clientInfoEl.innerHTML = `
-                <strong>${fields["Nom client"] || "Client"}</strong><br>
-                ${fields["Téléphone"] ? "Tél : " + fields["Téléphone"] + "<br>" : ""}
-                Email : ${fields["Email"] || "N/A"}
-            `;
+                const org = fields["Entreprise"] || fields["Organisation"] || fields["Société"] || "";
+                const ref = fields["Nom client"] || fields["Référent"] || "";
+                const mail = fields["Email"] || "";
+                const tel = fields["Téléphone"] || "";
+                clientInfoEl.innerHTML =
+                    `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; line-height:1.8;">
+                        <tr><td style="opacity:0.65; width:38%;">Organisation :</td><td><strong>${org || "—"}</strong></td></tr>
+                        <tr><td style="opacity:0.65;">Nom du référent :</td><td>${ref || "—"}</td></tr>
+                        <tr><td style="opacity:0.65;">Mail :</td><td>${mail || "—"}</td></tr>
+                        <tr><td style="opacity:0.65;">Téléphone :</td><td>${tel || "—"}</td></tr>
+                    </table>`;
             }
 
             // 3. Stay Overview Table
@@ -388,13 +369,12 @@
                 const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
                 snapshotRows[0].querySelector('.snapshot-val').innerText = typeLabel;
 
-                const dArr = fields["Date arrivée"] ? new Date(fields["Date arrivée"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : "?";
-                const dDep = fields["Date départ"] ? new Date(fields["Date départ"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : "?";
-                snapshotRows[1].querySelector('.snapshot-val').innerText = `${dArr} → ${dDep}`;
+                const dArrFmt = fields["Date arrivée"] ? new Date(fields["Date arrivée"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : "?";
+                const dDepFmt = fields["Date départ"] ? new Date(fields["Date départ"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : "?";
+                snapshotRows[1].querySelector('.snapshot-val').innerText = `${dArrFmt} → ${dDepFmt}`;
 
                 const nNights = fields["Nuits"] || 0;
-                const nightLabel = nNights > 1 ? "Nuits" : "nuit";
-                snapshotRows[2].querySelector('.snapshot-val').innerText = `${nNights} ${nightLabel}`;
+                snapshotRows[2].querySelector('.snapshot-val').innerText = `${nNights} ${nNights > 1 ? 'Nuits' : 'nuit'}`;
                 snapshotRows[3].querySelector('.snapshot-val').innerText = `${fields["Nombre de personnes"] || 0} personnes`;
             }
 
@@ -421,98 +401,61 @@
 
             // --- A. Accommodation ---
             addCategoryRow("Hébergement");
-            let nbNights = fields["Nuits"] || 1;
-            let hasSleepingDetails = false;
-
-            if (details.sleeping && details.sleeping.details) {
-                hasSleepingDetails = true;
-                const d = details.sleeping.details;
-                // Twin (Rooms) - We multiply per-person price by 2 to get room price
-                if (d.twinCount > 0) {
-                    const twinLabel = `Chambre twin - ${d.twinCount * 2} personnes - ${nbNights} nuits`;
-                    // If d.twinPrice is 50, it's 100 per room
-                    const unitPrice = (d.twinPrice || 0) * 2 * nbNights;
-                    addPricingRow(twinLabel, d.twinCount, unitPrice, "10%");
-                }
-                // Indiv (Rooms)
-                if (d.soloCount > 0) {
-                    const soloLabel = `Chambre individuelle - ${nbNights} nuits`;
-                    const unitPrice = (d.soloPrice || 0) * nbNights;
-                    addPricingRow(soloLabel, d.soloCount, unitPrice, "10%");
-                }
-            }
-            if (!hasSleepingDetails) {
-                let nbPers = fields["Nombre de personnes"] || 0;
-                let totalHeberg = fields["Montant Hébergement HT"] || 0;
-                let unitPrice = nbPers > 0 ? (totalHeberg / nbPers) : totalHeberg;
-                addPricingRow("Mise à disposition du domaine & chambres", nbPers, unitPrice, "10%");
-            }
-            if (fields["Option ménage"] === "Oui") addPricingRow("Forfait Ménage fin de séjour", 1, 150, "20%");
+            const nbNights = fields["Nuits"] || 1;
+            const hebergDesc = `Chambre twin en gîte tout confort<br><small style='color:#666; font-weight:400;'>Draps, serviettes et ménage inclus — ${nbNights > 1 ? nbNights + " nuits" : "1 nuit"} pour ${fields["Nombre de personnes"] || 0} personnes</small>`;
+            const totalHeberg = fields["Montant Hébergement HT"] || 0;
+            const pricePerNight = nbNights > 0 && totalHeberg > 0
+                ? Math.round((totalHeberg / nbNights) * 100) / 100
+                : 0;
+            addPricingRow(hebergDesc, nbNights, pricePerNight, "10%");
             addSubtotalRow("Hébergement", "subtotal-hebergement");
 
-            // --- B. Catering ---
-            let isPension = (details.meals?.mode === 'pension');
-            let wantsMeals = (details.meals?.mode && details.meals.mode !== 'libre' && details.meals.mode !== 'none');
-            if (fields["Montant Repas HT"] > 0 || isPension || wantsMeals) {
-                addCategoryRow("Restauration");
-                let mealRowsAdded = false;
-                let totalEligible = 0;
+            // --- B. Restauration (toujours affichée)
+            addCategoryRow("Restauration");
+            let mealRowsAdded = false;
+            let totalEligible = 0;
 
-                if (details.meals && details.meals.counts) {
-                    const arrivalDate = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null;
-                    details.meals.counts.forEach((c, idx) => {
-                        let labelJour = `Jour ${idx + 1}`;
-                        if (arrivalDate) {
-                            const d = new Date(arrivalDate);
-                            d.setDate(arrivalDate.getDate() + idx);
-                            let dStr = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
-                            labelJour = dStr.charAt(0).toUpperCase() + dStr.slice(1);
-                        }
-                        const prefix = `<strong>${labelJour}</strong> — `;
-
-                        if (c.petitDej > 0) addPricingRow(prefix + "Petit-Déjeuner", c.petitDej, 14, "10%");
-
-                        const qColM = c.collationMatin || (c.collation / 2) || 0;
-                        if (qColM > 0) addPricingRow(prefix + "Collation Matin", qColM, 5, "10%");
-
-                        if (c.dejeuner > 0) addPricingRow(prefix + "Déjeuner", c.dejeuner, 26, "10%");
-
-                        const qColA = c.collationAprem || (c.collation / 2) || 0;
-                        if (qColA > 0) addPricingRow(prefix + "Collation Après-midi", qColA, 5, "10%");
-
-                        if (c.diner > 0) addPricingRow(prefix + "Dîner", c.diner, 30, "10%");
-
-                        totalEligible += Math.min(c.petitDej || 0, c.dejeuner || 0, (idx < details.meals.counts.length - 1 ? (c.diner || 0) : 0));
-                        mealRowsAdded = true;
-                    });
-                }
-
-                if (!mealRowsAdded) {
-                    // Fallback to global counts
-                    if (fields["Repas petit-déj"] > 0) addPricingRow("Petits-Déjeuners", fields["Repas petit-déj"], 14, "10%");
-                    if (fields["Repas déjeuner"] > 0) addPricingRow("Déjeuners", fields["Repas déjeuner"], 26, "10%");
-                    if (fields["Repas dîner"] > 0) addPricingRow("Dîners", fields["Repas dîner"], 30, "10%");
-                }
-
-                // Complete Pack Discount
-                const logicalMax = Math.min(fields["Repas petit-déj"] || 0, fields["Repas déjeuner"] || 0, fields["Repas dîner"] || 0);
-                if (totalEligible === 0 && isPension) totalEligible = logicalMax;
-                else totalEligible = Math.min(totalEligible, logicalMax);
-
-                if (isPension && totalEligible > 0) {
-                    addPricingRow("<span style='color: var(--accent); font-weight: 600;'>Remise forfait pension complète</span><br><small style='color: #666; font-size: 8pt;'>Optimisation tarifaire (70€ HT / jr / pers)</small>", totalEligible, -10.00, "10%");
-                }
-                addSubtotalRow("Restauration", "subtotal-restauration");
+            if (details.meals && details.meals.counts) {
+                const arrivalDate = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null;
+                details.meals.counts.forEach((c, idx) => {
+                    let labelJour = `Jour ${idx + 1}`;
+                    if (arrivalDate) {
+                        const d = new Date(arrivalDate);
+                        d.setDate(arrivalDate.getDate() + idx);
+                        let dStr = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+                        labelJour = dStr.charAt(0).toUpperCase() + dStr.slice(1);
+                    }
+                    const prefix = `<strong>${labelJour}</strong> — `;
+                    if (c.petitDej > 0) addPricingRow(prefix + "Petit-Déjeuner", c.petitDej, 14, "10%");
+                    const qColM = c.collationMatin || (c.collation / 2) || 0;
+                    if (qColM > 0) addPricingRow(prefix + "Collation Matin", qColM, 5, "10%");
+                    if (c.dejeuner > 0) addPricingRow(prefix + "Déjeuner", c.dejeuner, 26, "10%");
+                    const qColA = c.collationAprem || (c.collation / 2) || 0;
+                    if (qColA > 0) addPricingRow(prefix + "Collation Après-midi", qColA, 5, "10%");
+                    if (c.diner > 0) addPricingRow(prefix + "Dîner", c.diner, 30, "10%");
+                    totalEligible += Math.min(c.petitDej || 0, c.dejeuner || 0, (idx < details.meals.counts.length - 1 ? (c.diner || 0) : 0));
+                    mealRowsAdded = true;
+                });
             }
 
-            // --- C. Options & Salles ---
-            if (fields["Montant Options HT"] > 0) {
-                addCategoryRow("Options & Salles");
-                const label = `Location Salles & Coordination logistique<br><small style='color:#666; font-weight:400;'>Coordination on-site, Salle équipée, Support technique</small>`;
-                const qS = fields["Nuits"] || 1;
-                addPricingRow(label, qS, fields["Montant Options HT"] / qS, "20%");
-                addSubtotalRow("Options", "subtotal-salles");
+            if (!mealRowsAdded) {
+                // Fallback : montant global ou ligne vide
+                const montantRepas = fields["Montant Repas HT"] || 0;
+                addPricingRow("Prestations de restauration selon programme", 1, montantRepas, "10%");
             }
+
+            if (isPension && totalEligible > 0) {
+                addPricingRow("<span style='color: var(--accent); font-weight: 600;'>Remise forfait pension complète</span><br><small style='color: #666; font-size: 8pt;'>Optimisation tarifaire (70€ HT / jr / pers)</small>", totalEligible, -10.00, "10%");
+            }
+            addSubtotalRow("Restauration", "subtotal-restauration");
+
+            // --- C. Options & Salles (toujours affichée)
+            addCategoryRow("Options & Salles");
+            const qS = fields["Nuits"] || 1;
+            const optLabel = `Location Salles & Coordination logistique<br><small style='color:#666; font-weight:400;'>Coordination on-site, Salle équipée, Support technique</small>`;
+            const optPrice = fields["Montant Options HT"] > 0 ? Math.round((fields["Montant Options HT"] / qS) * 100) / 100 : 0;
+            addPricingRow(optLabel, qS, optPrice, "20%");
+            addSubtotalRow("Options", "subtotal-salles");
 
             // --- D. Activities (Page 2) ---
             const actBody = document.getElementById('activities-body');
@@ -544,64 +487,12 @@
             updateCalculations();
         }
 
-        function addCategoryRow(title) {
-            const tr = document.createElement('tr');
-            tr.className = "category-row no-edit";
-            tr.innerHTML = `<td colspan="6">${title}</td>`;
-            document.getElementById('pricing-body').appendChild(tr);
-        }
-
-        function addPricingRow(label, qty, price, tva) {
-            const tr = createPricingRow(label, qty, price, tva);
-            document.getElementById('pricing-body').appendChild(tr);
-        }
-
-        function createPricingRow(label, qty, price, tva) {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td contenteditable="true">${label}</td>
-                <td contenteditable="true" class="qty" style="text-align: center;">${qty}</td>
-                <td contenteditable="true" class="price" style="text-align: right;">${parseFloat(price).toFixed(2)}</td>
-                <td class="tva-rate" contenteditable="true" style="text-align: right;">${tva}</td>
-                <td class="row-total" style="text-align: right; font-weight: 600;">0.00</td>
-                <td class="no-print" style="text-align: center; vertical-align: middle;">
-                    <button onclick="removeRow(this)" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-size:16pt; padding:0 5px;">&times;</button>
-                </td>
-            `;
-            return tr;
-        }
-
-        function removeRow(btn) {
-            if (confirm("Supprimer cette ligne ?")) {
-                btn.closest('tr').remove();
-                updateCalculations();
-            }
-        }
-
-        function addSubtotalRow(label, id, targetId = 'pricing-body') {
-            const tr = document.createElement('tr');
-            tr.className = "subtotal-row";
-            tr.style.background = "#f9f9f9";
-            tr.style.fontWeight = "600";
-            tr.innerHTML = `
-                <td colspan="4" style="padding: 6px 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <button class="no-print" onclick="addRowBefore(this)" style="background: white; border:1px solid #ddd; border-radius:4px; padding:3px 10px; cursor:pointer; font-size:9pt;">+ Ligne</button>
-                        <span style="font-style: italic; color:#666;">Sous-total ${label} HT</span>
-                    </div>
-                </td>
-                <td class="subtotal-value" id="${id}" style="text-align: right; padding-right: 5px;">0.00</td>
-                <td class="no-print"></td>
-            `;
-            document.getElementById(targetId).appendChild(tr);
-        }
-
-        function addRowBefore(btn) {
-            const subRow = btn.closest('tr');
-            const newRow = createPricingRow("Prestation manuelle...", 1, 0, "10%");
-            subRow.parentNode.insertBefore(newRow, subRow);
-            updateCalculations();
-        }
+        function addCategoryRow(title, targetId) { return SesquierUtils.addCategoryRow(title, targetId); }
+        function addPricingRow(label, qty, price, tva, mealKey, targetId) { return SesquierUtils.addPricingRow(label, qty, price, tva, mealKey, targetId); }
+        function createPricingRow(label, qty, price, tva, mealKey) { return SesquierUtils.createPricingRow(label, qty, price, tva, mealKey); }
+        function removeRow(btn, event) { return SesquierUtils.removeRow(btn, event); }
+        function addSubtotalRow(label, id, targetId) { return SesquierUtils.addSubtotalRow(label, id, targetId); }
+        function addRowBefore(btn) { return SesquierUtils.addRowBefore(btn); }
 
         function updateCalculations() {
             let totalHT = 0, totalTVA = 0, sHeberg = 0, sRestau = 0, sOpt = 0, sActiv = 0;
@@ -652,12 +543,24 @@
             document.getElementById('display-total-ht').innerText = formatEuro(totalHT);
             document.getElementById('display-total-tva').innerText = formatEuro(totalTVA);
             const ttc = totalHT + totalTVA;
-            document.getElementById('display-total-ttc').innerText = formatEuro(ttc);
-            document.getElementById('display-deposit').innerText = formatEuro(ttc * 0.3);
+            document.getElementById('display-total-ttc').innerText = SesquierUtils.formatEuro(ttc);
+
+            const depositEl = document.getElementById('display-deposit');
+            let depAmount = ttc * 0.3;
+            // Respect manual edit if exists
+            if (depositEl.innerText !== '0,00 €' && depositEl.innerText !== '') {
+                const manual = parseFloat(depositEl.innerText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+                if (manual > 0) depAmount = manual;
+            }
+            depositEl.innerText = SesquierUtils.formatEuro(depAmount);
+
+            if (document.getElementById('display-net-to-pay')) {
+                document.getElementById('display-net-to-pay').innerText = SesquierUtils.formatEuro(depAmount);
+            }
 
             const n = currentRecord?.fields?.["Nombre de personnes"] || 0;
             if (n > 0) {
-                document.getElementById('price-total-summary').innerText = `Total séjour : ${formatEuro(totalHT)} HT (${formatEuro(ttc)} TTC)`;
+                document.getElementById('price-total-summary').innerText = `Total séjour : ${SesquierUtils.formatEuro(totalHT)} HT (${SesquierUtils.formatEuro(ttc)} TTC)`;
                 document.getElementById('price-per-person').innerText = `Soit ${Math.round(totalHT / n)} € HT / personne`;
                 document.getElementById('price-synthesis').style.display = 'block';
             }
@@ -687,9 +590,9 @@
                     body: JSON.stringify(payload)
                 });
                 if (!res.ok) throw new Error("Erreur Airtable");
-                alert("✅ Devis sauvegardé !");
+                alert("✅ Facture d'acompte sauvegardée !");
             } catch (e) { alert("❌ Erreur : " + e.message); }
-            finally { if (btn) { btn.innerText = "Enregistrer (Airtable)"; btn.disabled = false; } }
+            finally { if (btn) { btn.innerText = "Enregistrer"; btn.disabled = false; } }
         }
 
         document.body.addEventListener('input', (e) => {
