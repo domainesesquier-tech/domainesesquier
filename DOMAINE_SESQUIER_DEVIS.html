@@ -432,29 +432,19 @@
             const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
             const activities = details.activities || {};
 
-            // 1. Meta & Footer
-            const now = new Date();
-            const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-            const num = (fields["Numéro Devis"] || fields["ID"] || currentRequestId || "").toString().slice(-6).toUpperCase();
-            const devNumEl = document.getElementById('devis-number');
-            if (devNumEl) devNumEl.innerText = `${yearMonth}-${num}`;
-            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `${yearMonth}-${num}`);
-
-            // 2. Client Info — structuré : Organisation, Nom du référent, Mail, Téléphone
-            const clientInfoEl = document.querySelector('.client-info');
-            if (clientInfoEl) {
-                const org = fields["Entreprise"] || fields["Organisation"] || fields["Société"] || "";
-                const ref = fields["Nom client"] || fields["Référent"] || "";
-                const mail = fields["Email"] || "";
-                const tel = fields["Téléphone"] || "";
-                clientInfoEl.innerHTML =
-                    `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; line-height:1.8;">
-                        <tr><td style="opacity:0.65; width:45%; white-space:nowrap;">Organisation :</td><td><strong>${org || "—"}</strong></td></tr>
-                        <tr><td style="opacity:0.65; white-space:nowrap;">Nom du référent :</td><td>${ref || "—"}</td></tr>
-                        <tr><td style="opacity:0.65; white-space:nowrap;">Mail :</td><td>${mail || "—"}</td></tr>
-                        <tr><td style="opacity:0.65; white-space:nowrap;">Téléphone :</td><td>${tel || "—"}</td></tr>
-                    </table>`;
+            // 0. CHECK FOR SNAPSHOT (Re-édition)
+            if (fields["JSON"]) {
+                try {
+                    const snap = JSON.parse(fields["JSON"]);
+                    restoreSnapshot(snap, fields);
+                    updateCalculations();
+                    // On remplit quand même les infos client/méta qui sont hors snapshot
+                    fillMetaAndClient(fields);
+                    return;
+                } catch (e) { console.error("Erreur restauration JSON:", e); }
             }
+
+            fillMetaAndClient(fields);
 
             // 3. Stay Overview Table
             const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
@@ -594,13 +584,131 @@
             updateCalculations();
         }
 
+        // --- NOUVEAUTÉ : Fonctions de Snapshot ---
+        function fillMetaAndClient(fields) {
+            const now = new Date();
+            const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+            const num = (fields["Numéro Devis"] || fields["ID"] || currentRequestId || "").toString().slice(-6).toUpperCase();
+            const devNumEl = document.getElementById('devis-number');
+            if (devNumEl) devNumEl.innerText = `${yearMonth}-${num}`;
+            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `${yearMonth}-${num}`);
+
+            const clientInfoEl = document.querySelector('.client-info');
+            if (clientInfoEl) {
+                const org = fields["Entreprise"] || fields["Organisation"] || fields["Société"] || "";
+                const ref = fields["Nom client"] || fields["Référent"] || "";
+                const mail = fields["Email"] || "";
+                const tel = fields["Téléphone"] || "";
+                clientInfoEl.innerHTML =
+                    `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; line-height:1.8;">
+                        <tr><td style="opacity:0.65; width:45%; white-space:nowrap;">Organisation :</td><td><strong>${org || "—"}</strong></td></tr>
+                        <tr><td style="opacity:0.65; white-space:nowrap;">Nom du référent :</td><td>${ref || "—"}</td></tr>
+                        <tr><td style="opacity:0.65; white-space:nowrap;">Mail :</td><td>${mail || "—"}</td></tr>
+                        <tr><td style="opacity:0.65; white-space:nowrap;">Téléphone :</td><td>${tel || "—"}</td></tr>
+                    </table>`;
+            }
+
+            const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
+            const dArr = fields["Date arrivée"] ? new Date(fields["Date arrivée"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : "?";
+            const dDep = fields["Date départ"] ? new Date(fields["Date départ"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : "?";
+            const nNights = (fields["Nuits"] !== undefined) ? fields["Nuits"] : 0;
+            const nbPers = (fields["Nombre de personnes"] !== undefined) ? fields["Nombre de personnes"] : 0;
+
+            if (document.getElementById('snap-type')) document.getElementById('snap-type').innerText = typeLabel;
+            if (document.getElementById('snap-dates')) document.getElementById('snap-dates').innerText = `${dArr} → ${dDep}`;
+            if (document.getElementById('snap-duration')) document.getElementById('snap-duration').innerText = `${nNights} ${nNights > 1 ? "nuits" : "nuit"}`;
+            if (document.getElementById('snap-people')) document.getElementById('snap-people').innerText = `${nbPers} personnes`;
+
+            const daysSyn = nNights + 1;
+            const synthEl = document.getElementById('stay-synthesis');
+            if (synthEl) {
+                const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
+                let mealLabel = "Restauration à la carte";
+                if (details.meals?.mode === 'pension') mealLabel = "Pension Complète";
+                else if (details.meals?.mode === 'demi') mealLabel = "Demi-pension";
+                else if (details.meals?.mode === 'libre') mealLabel = "Gestion libre";
+                synthEl.innerText = `${typeLabel} de ${nbPers} personnes — ${daysSyn} jours / ${nNights} nuits — ${mealLabel}`;
+            }
+
+            const ts = nbPers * nNights * 4.31;
+            const tsEl = document.getElementById('display-taxe-sejour');
+            if (tsEl) tsEl.innerText = SesquierUtils.formatEuro(ts);
+        }
+
+        function restoreSnapshot(snap, fields) {
+            console.log("Restauraton du snapshot...", snap);
+            const restoreList = (tbodyId, list) => {
+                const tbody = document.getElementById(tbodyId);
+                if (!tbody || !list) return;
+                tbody.innerHTML = '';
+                list.forEach(row => {
+                    if (row.type === 'category') addCategoryRow(row.title, tbodyId);
+                    else if (row.type === 'subtotal') addSubtotalRow(row.label, row.id, tbodyId);
+                    else if (row.type === 'pricing') addPricingRow(row.label, row.qty, row.price, row.tva, row.mealKey, tbodyId);
+                });
+            };
+
+            restoreList('pricing-body', snap.pricing);
+            restoreList('options-body', snap.options);
+            restoreList('activities-body', snap.activities);
+
+            // Remettre la grille de repas
+            if (document.getElementById('pricing-body')) {
+                addMealGrid(fields, snap.mealGridState);
+            }
+        }
+
+        function captureTableRows(tbodyId) {
+            const rows = [];
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return rows;
+            tbody.querySelectorAll('tr').forEach(tr => {
+                if (tr.classList.contains('category-row')) {
+                    rows.push({ type: 'category', title: tr.querySelector('td')?.innerText.trim() });
+                } else if (tr.classList.contains('subtotal-row')) {
+                    const label = tr.querySelector('span')?.innerText.replace('Sous-total ', '').replace(' HT', '') || '';
+                    const id = tr.querySelector('.subtotal-val')?.id;
+                    rows.push({ type: 'subtotal', label, id });
+                } else if (tr.classList.contains('meal-grid-row')) {
+                    // Ignoré, géré par mealGridState
+                } else {
+                    rows.push({
+                        type: 'pricing',
+                        label: tr.querySelector('.col-detail')?.innerHTML.trim() || '',
+                        qty: tr.querySelector('.qty')?.innerText || '0',
+                        price: tr.querySelector('.price')?.innerText || '0',
+                        tva: tr.querySelector('.tva-rate')?.innerText || '20%',
+                        mealKey: tr.getAttribute('data-meal-key') || null
+                    });
+                }
+            });
+            return rows;
+        }
+
+        function captureMealGrid() {
+            const grid = document.querySelector('.meal-check-grid');
+            if (!grid) return null;
+            const state = [];
+            grid.querySelectorAll('tbody tr').forEach(tr => {
+                const dayState = {};
+                tr.querySelectorAll('.check-wrapper').forEach(wrap => {
+                    const key = wrap.getAttribute('data-meal-key');
+                    dayState[key] = wrap.classList.contains('is-checked');
+                });
+                state.push(dayState);
+            });
+            return state;
+        }
+
+        const addRowBefore = (btn) => SesquierUtils.addRowBefore(btn);
+
         function addCategoryRow(title, targetId) { return SesquierUtils.addCategoryRow(title, targetId); }
         function addPricingRow(label, qty, price, tva, mealKey, targetId) { return SesquierUtils.addPricingRow(label, qty, price, tva, mealKey, targetId); }
         function createPricingRow(label, qty, price, tva, mealKey) { return SesquierUtils.createPricingRow(label, qty, price, tva, mealKey); }
         function removeRow(btn, event) { return SesquierUtils.removeRow(btn, event); }
         function addSubtotalRow(label, id, targetId) { return SesquierUtils.addSubtotalRow(label, id, targetId); }
 
-        function addMealGrid(fields) {
+        function addMealGrid(fields, savedState = null) {
             const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
             const dArrStr = fields["Date arrivée"];
             const nights = fields["Nuits"] || 0;
@@ -648,7 +756,9 @@
 
                 mealKeys.forEach(key => {
                     let isChecked = false;
-                    if (details.meals?.counts?.[i]) {
+                    if (savedState && savedState[i]) {
+                        isChecked = savedState[i][key];
+                    } else if (details.meals?.counts?.[i]) {
                         const dayData = details.meals.counts[i];
                         let val = dayData[key];
                         if (key === 'collationMatin' && val === undefined) val = Math.floor((dayData.collation || 0) / 2);
@@ -669,62 +779,41 @@
             html += `</tbody></table></td>`;
             tr.innerHTML = html;
             document.getElementById('pricing-body').appendChild(tr);
-
-            // Pas de saut de page forcé ici pour rester compact (Objectif 1-2 pages)
         }
 
         function toggleMealCheck(wrapper, mealKey, nbPers) {
             // Toggle visual state
             wrapper.classList.toggle('is-checked');
-
-            // Count checked boxes for this specific meal type across all days
+            // Count checked boxes
             const checkedCount = document.querySelectorAll(`.meal-check-grid .check-wrapper.is-checked[data-meal-key="${mealKey}"]`).length;
-
-            // Each checked day = nbPers repas
             const newQty = checkedCount * nbPers;
-
-            // Update the matching pricing row's Qté
             const pricingRow = document.querySelector(`#pricing-body tr[data-meal-key="${mealKey}"]`);
             if (pricingRow) {
                 const qtyEl = pricingRow.querySelector('.qty');
                 if (qtyEl) qtyEl.innerText = newQty;
             }
-
-            // Recalculate pension discount based on full-day coverage, then cascade
             recalcPensionDiscount(nbPers);
         }
 
-        // Compte les jours où les 5 repas sont cochés et met à jour la ligne remise pension
         function recalcPensionDiscount(nbPers) {
             const mealKeys = ['petitDej', 'collationMatin', 'dejeuner', 'collationAprem', 'diner'];
             const grid = document.querySelector('.meal-check-grid');
             if (!grid) { updateCalculations(); return; }
-
-            // Nombre de colonnes-jour
-            const headerCells = grid.querySelectorAll('thead th');
-            const dayCount = headerCells.length - 1; // -1 pour retirer "Prestation"
-
             let fullDays = 0;
-            const rows = grid.querySelectorAll('tbody tr');
-            rows.forEach(row => {
+            grid.querySelectorAll('tbody tr').forEach(row => {
                 const allFive = mealKeys.every(key => {
                     const wrap = row.querySelector(`.check-wrapper[data-meal-key="${key}"]`);
                     return wrap && wrap.classList.contains('is-checked');
                 });
                 if (allFive) fullDays++;
             });
-
-            // Qté = jours complets × nbPersonnes, remise = -10€/unité
             const discountRow = document.querySelector('#pricing-body tr[data-meal-key="pensionDiscount"]');
             if (discountRow) {
                 const qtyEl = discountRow.querySelector('.qty');
                 if (qtyEl) qtyEl.innerText = fullDays * nbPers;
             }
-
             updateCalculations();
         }
-
-        const addRowBefore = (btn) => SesquierUtils.addRowBefore(btn);
 
         function updateCalculations() {
             let totalHT = 0, totalTVA = 0, sHeberg = 0, sRestau = 0, sOpt = 0, sActiv = 0;
@@ -815,24 +904,34 @@
             const btn = document.querySelector('button[onclick="saveToAirtable()"]');
             try {
                 if (btn) { btn.innerText = "Sauvegarde..."; btn.disabled = true; }
-                const parse = (id) => {
+                const parseVal = (id) => {
                     const el = document.getElementById(id);
                     return el ? parseFloat(el.innerText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0 : 0;
                 };
+
+                // CAPTURE DU SNAPSHOT COMPLET
+                const snapshot = {
+                    pricing: captureTableRows('pricing-body'),
+                    options: captureTableRows('options-body'),
+                    activities: captureTableRows('activities-body'),
+                    mealGridState: captureMealGrid()
+                };
+
                 const payload = {
                     id: currentRequestId,
                     fields: {
-                        "Montant Hébergement HT": parse('subtotal-hebergement'),
-                        "Montant Repas HT": parse('subtotal-restauration'),
-                        "Montant Options HT": parse('subtotal-salles'),
-                        "Statut": "devis envoyé"
+                        "Montant Hébergement HT": parseVal('subtotal-hebergement'),
+                        "Montant Repas HT": parseVal('subtotal-restauration'),
+                        "Montant Options HT": parseVal('subtotal-salles'),
+                        "Statut": "devis envoyé",
+                        "JSON": JSON.stringify(snapshot)
                     }
                 };
                 const data = await SesquierUtils.fetchJson(API_RESERVATIONS_URL, {
                     method: 'PATCH',
                     body: JSON.stringify(payload)
                 });
-                alert("✅ Devis sauvegardé !");
+                alert("✅ Devis et intitulé sauvegardés dans Airtable !");
             } catch (e) { alert("❌ Erreur : " + e.message); }
             finally { if (btn) { btn.innerText = "Enregistrer (Airtable)"; btn.disabled = false; } }
         }
