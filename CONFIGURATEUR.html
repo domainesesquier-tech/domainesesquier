@@ -788,6 +788,11 @@
                         <h2 class="card-title"><span class="perso-only">6.</span><span class="pro-only">7.</span>
                             Vos
                             coordonnées</h2>
+                        <div class="form-group">
+                            <label>Organisation / Entreprise (Optionnel)</label>
+                            <input type="text" id="organisation" class="input-text"
+                                placeholder="Le nom de votre société">
+                        </div>
                         <div class="contact-grid">
                             <div class="form-group">
                                 <label>Prénom</label>
@@ -973,18 +978,12 @@
     <script src="assets/configurateur.js"></script>
 
     <!-- Modal : Soirée & Activités -->
-    <div id="modal-activities"
-        class="modal-overlay"
-        onclick="if(event.target === this) closeActivitiesModal()">
+    <div id="modal-activities" class="modal-overlay" onclick="if(event.target === this) closeActivitiesModal()">
         <div class="modal-container">
-            <button class="modal-close"
-                onclick="closeActivitiesModal()"><i
-                    class="fas fa-times"></i></button>
-            <h3 class="modal-title"
-                style="margin-bottom: 0.5rem;">
+            <button class="modal-close" onclick="closeActivitiesModal()"><i class="fas fa-times"></i></button>
+            <h3 class="modal-title" style="margin-bottom: 0.5rem;">
                 Vos activités</h3>
-            <p
-                style="font-size: 0.9rem; opacity: 0.7; margin-bottom: 2rem;">
+            <p style="font-size: 0.9rem; opacity: 0.7; margin-bottom: 2rem;">
                 Précisez vos envies pour que
                 nous
                 puissions
@@ -993,12 +992,9 @@
 
             <div class="modal-grid">
                 <div class="form-group">
-                    <label
-                        style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Type
+                    <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Type
                         d'activité</label>
-                    <select id="act-type"
-                        class="input-text"
-                        style="height: 45px; background: #fff;">
+                    <select id="act-type" class="input-text" style="height: 45px; background: #fff;">
                         <option value="">
                             Choisir...</option>
                         <option value="Soirée">
@@ -1007,37 +1003,26 @@
                         <option value="Culture">
                             Culture & Découverte
                         </option>
-                        <option
-                            value="Team-building">
+                        <option value="Team-building">
                             Team-building /
                             Sport</option>
-                        <option
-                            value="Gastronomie">
+                        <option value="Gastronomie">
                             OEnologie &
                             Gastronomie</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label
-                        style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Budget
+                    <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Budget
                         indicatif
                         (€/pers)</label>
-                    <input type="number"
-                        id="act-budget"
-                        class="input-text"
-                        placeholder="Ex: 50"
-                        style="height: 45px;">
+                    <input type="number" id="act-budget" class="input-text" placeholder="Ex: 50" style="height: 45px;">
                 </div>
             </div>
 
-            <div class="form-group"
-                style="margin-bottom: 1.5rem;">
-                <label
-                    style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Ambiance
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Ambiance
                     souhaitée</label>
-                <select id="act-ambiance"
-                    class="input-text"
-                    style="height: 45px; background: #fff;">
+                <select id="act-ambiance" class="input-text" style="height: 45px; background: #fff;">
                     <option value="">Choisir...
                     </option>
                     <option value="Calme">Calme
@@ -1050,20 +1035,15 @@
                 </select>
             </div>
 
-            <div class="form-group"
-                style="margin-bottom: 2rem;">
-                <label
-                    style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Précisions
+            <div class="form-group" style="margin-bottom: 2rem;">
+                <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Précisions
                     ou
                     demandes libres</label>
-                <textarea id="act-msg"
-                    class="input-text"
-                    style="height: 100px; padding-top: 12px;"
+                <textarea id="act-msg" class="input-text" style="height: 100px; padding-top: 12px;"
                     placeholder="Ex: Atelier cocktails, visite du chai, matériel spécifique..."></textarea>
             </div>
 
-            <button class="cta-button"
-                onclick="saveActivities()"
+            <button class="cta-button" onclick="saveActivities()"
                 style="width: 100%; height: 50px; font-size: 1rem;">Valider
                 ma demande</button>
         </div>
