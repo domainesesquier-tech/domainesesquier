@@ -137,7 +137,7 @@ const SesquierUtils = {
         const tr = document.createElement('tr');
         if (mealKey) tr.dataset.mealKey = mealKey;
         tr.innerHTML = `
-            <td contenteditable="true">${label}</td>
+            <td contenteditable="true" class="col-detail">${label}</td>
             <td contenteditable="true" class="qty" style="text-align: center;">${qty}</td>
             <td contenteditable="true" class="price" style="text-align: right;">${parseFloat(price).toFixed(2)}</td>
             <td class="tva-rate" contenteditable="true" style="text-align: right;">${tva}</td>
@@ -209,6 +209,76 @@ const SesquierUtils = {
         const newRow = this.createPricingRow("Prestation manuelle...", 1, 0, "10%");
         subRow.parentNode.insertBefore(newRow, subRow);
         if (window.updateCalculations) window.updateCalculations();
+    },
+
+    /**
+     * UNIFIED CALCULATION ENGINE
+     * Used by Devis, Facture Acompte, and Facture Finale.
+     * @returns {object} Calculated totals: { totalHT, totalTVA, ttc, subtotals }
+     */
+    runCommonCalculations() {
+        let totalHT = 0, totalTVA = 0;
+        let sHeberg = 0, sRestau = 0, sOpt = 0, sActiv = 0;
+
+        const parseP = (val) => {
+            if (!val) return 0;
+            return parseFloat(val.toString().replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+        };
+
+        const processTable = (tbodyId) => {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+            tbody.querySelectorAll('tr').forEach(row => {
+                if (row.classList.contains('category-row') || row.classList.contains('subtotal-row')) return;
+
+                const qEl = row.querySelector('.qty');
+                const pEl = row.querySelector('.price');
+                if (!qEl || !pEl) return;
+
+                const q = parseFloat(qEl.innerText.replace(',', '.')) || 0;
+                const p = parseP(pEl.innerText);
+                const line = q * p;
+
+                const totalEl = row.querySelector('.row-total');
+                if (totalEl) totalEl.innerText = line.toFixed(2);
+
+                totalHT += line;
+                if (tbodyId === 'pricing-body') {
+                    if (row.hasAttribute('data-meal-key')) sRestau += line;
+                    else {
+                        const label = row.cells[0]?.innerText || "";
+                        if (label.includes("Chambre") || label.includes("Hébergement") || label.includes("twin")) sHeberg += line;
+                        else sRestau += line;
+                    }
+                } else if (tbodyId === 'options-body') sOpt += line;
+                else if (tbodyId === 'activities-body') sActiv += line;
+
+                const tvaEl = row.querySelector('.tva-rate');
+                let rate = 0.1;
+                if (tvaEl) {
+                    const rawTva = tvaEl.innerText.replace(/[^\d.,]/g, '').replace(',', '.');
+                    rate = (parseFloat(rawTva) / 100) || 0.1;
+                }
+                totalTVA += line * rate;
+            });
+        };
+
+        processTable('pricing-body');
+        processTable('options-body');
+        processTable('activities-body');
+
+        // Update UI Subtotals if they exist
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = val.toFixed(2) + (el.innerText.includes('€') ? ' €' : '');
+        };
+        setVal('subtotal-hebergement', sHeberg);
+        setVal('subtotal-restauration', sRestau);
+        setVal('subtotal-salles', sOpt);
+        setVal('subtotal-activities', sActiv);
+
+        const ttc = totalHT + totalTVA;
+        return { totalHT, totalTVA, ttc, subtotals: { sHeberg, sRestau, sOpt, sActiv } };
     }
 };
 

@@ -44,6 +44,13 @@
             </svg>
             Imprimer / PDF
         </button>
+        <button class="btn" style="background: var(--primary); color: white;"
+            onclick="SesquierUtils.broadcast('SWITCH_TAB', { tab: 'facture-finale', recordId: currentRequestId })">
+            Facture Finale
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"></path>
+            </svg>
+        </button>
     </div>
 
     <!-- Page A4 -->
@@ -208,9 +215,7 @@
                 <div class="total-row"><span>Total HT</span><span id="display-total-ht" style="font-weight: 600;">0,00
                         €</span></div>
                 <div class="total-row"><span>TVA (estimée)</span><span id="display-total-tva">0,00 €</span></div>
-                <div class="total-row"><span>Taxe de séjour <small
-                            style="font-size: 0.8em; opacity: 0.7;">(4,31€/pers/nuit)</small></span><span
-                        id="display-taxe-sejour" contenteditable="true">0,00 €</span></div>
+
 
                 <div class="total-row final"
                     style="margin-top: 10px; border-top: 2px solid var(--primary); padding-top: 10px;">
@@ -436,11 +441,19 @@
             if (fields["JSON"]) {
                 try {
                     const snap = JSON.parse(fields["JSON"]);
-                    restoreSnapshot(snap, fields);
-                    updateCalculations();
-                    // On remplit quand même les infos client/méta qui sont hors snapshot
-                    fillMetaAndClient(fields);
-                    return;
+                    // Vérifier si le snapshot est valide : au moins un libellé de prestation doit être non vide
+                    // et on s'assure que les lignes de type 'pricing' ont bien un label.
+                    const pricingRows = snap.pricing?.filter(p => p.type === 'pricing') || [];
+                    const hasValidLabels = pricingRows.length > 0 && pricingRows.every(p => p.label && p.label.trim().length > 0);
+
+                    if (hasValidLabels) {
+                        restoreSnapshot(snap, fields);
+                        updateCalculations();
+                        fillMetaAndClient(fields);
+                        return;
+                    } else {
+                        console.warn("Snapshot invalide ou incomplet (libellés types 'pricing' vides), passage en génération standard.");
+                    }
                 } catch (e) { console.error("Erreur restauration JSON:", e); }
             }
 
@@ -630,9 +643,7 @@
                 synthEl.innerText = `${typeLabel} de ${nbPers} personnes — ${daysSyn} jours / ${nNights} nuits — ${mealLabel}`;
             }
 
-            const ts = nbPers * nNights * 4.31;
-            const tsEl = document.getElementById('display-taxe-sejour');
-            if (tsEl) tsEl.innerText = SesquierUtils.formatEuro(ts);
+
         }
 
         function restoreSnapshot(snap, fields) {
@@ -656,13 +667,18 @@
             if (document.getElementById('pricing-body')) {
                 addMealGrid(fields, snap.mealGridState);
             }
+
+
         }
 
         function captureTableRows(tbodyId) {
             const rows = [];
             const tbody = document.getElementById(tbodyId);
             if (!tbody) return rows;
-            tbody.querySelectorAll('tr').forEach(tr => {
+            // Utiliser Array.from(tbody.children) au lieu de querySelectorAll('tr')
+            // pour éviter de capturer les lignes des tableaux imbriqués (comme le planning)
+            Array.from(tbody.children).forEach(tr => {
+                if (tr.tagName !== 'TR') return;
                 if (tr.classList.contains('category-row')) {
                     rows.push({ type: 'category', title: tr.querySelector('td')?.innerText.trim() });
                 } else if (tr.classList.contains('subtotal-row')) {
@@ -674,7 +690,8 @@
                 } else {
                     rows.push({
                         type: 'pricing',
-                        label: tr.querySelector('.col-detail')?.innerHTML.trim() || '',
+                        // On prend la première cellule (col-detail) quel que soit son nom de classe
+                        label: (tr.cells[0]?.innerHTML || "").trim(),
                         qty: tr.querySelector('.qty')?.innerText || '0',
                         price: tr.querySelector('.price')?.innerText || '0',
                         tva: tr.querySelector('.tva-rate')?.innerText || '20%',
@@ -816,76 +833,18 @@
         }
 
         function updateCalculations() {
-            let totalHT = 0, totalTVA = 0, sHeberg = 0, sRestau = 0, sOpt = 0, sActiv = 0;
-            let cat = 'hebergement';
+            const { totalHT, totalTVA, ttc } = SesquierUtils.runCommonCalculations();
 
-            document.querySelectorAll('#pricing-body tr').forEach(row => {
-                if (row.classList.contains('category-row')) {
-                    const t = row.innerText.toLowerCase();
-                    if (t.includes('héber')) cat = 'hebergement';
-                    else if (t.includes('restau')) cat = 'restauration';
-                    else cat = 'options';
-                    return;
-                }
-                if (row.classList.contains('subtotal-row')) return;
-
-                const q = parseFloat(row.querySelector('.qty')?.innerText) || 0;
-                const p = parseFloat(row.querySelector('.price')?.innerText) || 0;
-                const line = q * p;
-                const totalEl = row.querySelector('.row-total');
-                if (totalEl) totalEl.innerText = line.toFixed(2);
-
-                totalHT += line;
-                if (cat === 'hebergement') sHeberg += line;
-                else if (cat === 'restauration') sRestau += line;
-                else sOpt += line;
-
-                const rate = parseFloat(row.querySelector('.tva-rate')?.innerText) / 100 || 0.1;
-                totalTVA += line * rate;
-            });
-
-            document.querySelectorAll('#options-body tr').forEach(row => {
-                if (row.classList.contains('category-row') || row.classList.contains('subtotal-row')) return;
-                const q = parseFloat(row.querySelector('.qty')?.innerText) || 0;
-                const p = parseFloat(row.querySelector('.price')?.innerText) || 0;
-                const line = q * p;
-                const totalEl = row.querySelector('.row-total');
-                if (totalEl) totalEl.innerText = line.toFixed(2);
-                totalHT += line; sOpt += line;
-                const rate = parseFloat(row.querySelector('.tva-rate')?.innerText) / 100 || 0.2;
-                totalTVA += line * rate;
-            });
-
-            document.querySelectorAll('#activities-body tr').forEach(row => {
-                if (row.classList.contains('subtotal-row')) return;
-                const q = parseFloat(row.querySelector('.qty')?.innerText) || 0;
-                const p = parseFloat(row.querySelector('.price')?.innerText) || 0;
-                const line = q * p;
-                const totalEl = row.querySelector('.row-total');
-                if (totalEl) totalEl.innerText = line.toFixed(2);
-                totalHT += line; sActiv += line;
-                const rate = parseFloat(row.querySelector('.tva-rate')?.innerText) / 100 || 0.2;
-                totalTVA += line * rate;
-            });
-
-            if (document.getElementById('subtotal-hebergement')) document.getElementById('subtotal-hebergement').innerText = sHeberg.toFixed(2) + " €";
-            if (document.getElementById('subtotal-restauration')) document.getElementById('subtotal-restauration').innerText = sRestau.toFixed(2) + " €";
-            if (document.getElementById('subtotal-salles')) document.getElementById('subtotal-salles').innerText = sOpt.toFixed(2) + " €";
-            if (document.getElementById('subtotal-activities')) document.getElementById('subtotal-activities').innerText = sActiv.toFixed(2) + " €";
-
+            // Mise à jour des totaux généraux
             document.getElementById('display-total-ht').innerText = formatEuro(totalHT);
             document.getElementById('display-total-tva').innerText = formatEuro(totalTVA);
-
-            const tsEl = document.getElementById('display-taxe-sejour');
-            let taxeSejour = 0;
-            if (tsEl) {
-                taxeSejour = parseFloat(tsEl.innerText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-            }
-
-            const ttc = totalHT + totalTVA + taxeSejour;
             document.getElementById('display-total-ttc').innerText = formatEuro(ttc);
-            document.getElementById('display-deposit').innerText = formatEuro(ttc * 0.3);
+            
+            // Calcul automatique de l'acompte conseillé (30%)
+            const depositEl = document.getElementById('display-deposit');
+            if (depositEl) depositEl.innerText = formatEuro(ttc * 0.3);
 
+            // Mise à jour de la synthèse (Total par personne)
             const n = currentRecord?.fields?.["Nombre de personnes"] || 0;
             if (n > 0) {
                 const tsBox = document.getElementById('price-total-summary');
@@ -906,7 +865,11 @@
                 if (btn) { btn.innerText = "Sauvegarde..."; btn.disabled = true; }
                 const parseVal = (id) => {
                     const el = document.getElementById(id);
-                    return el ? parseFloat(el.innerText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0 : 0;
+                    if (!el) return 0;
+                    // Check if parent row is visible
+                    const parentRow = el.closest('.total-row');
+                    if (parentRow && parentRow.style.display === 'none') return 0;
+                    return parseFloat(el.innerText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
                 };
 
                 // CAPTURE DU SNAPSHOT COMPLET
@@ -923,7 +886,7 @@
                         "Montant Hébergement HT": parseVal('subtotal-hebergement'),
                         "Montant Repas HT": parseVal('subtotal-restauration'),
                         "Montant Options HT": parseVal('subtotal-salles'),
-                        "Statut": "devis envoyé",
+                        "Statut": ["devis envoyé"],
                         "JSON": JSON.stringify(snapshot)
                     }
                 };
@@ -935,6 +898,8 @@
             } catch (e) { alert("❌ Erreur : " + e.message); }
             finally { if (btn) { btn.innerText = "Enregistrer (Airtable)"; btn.disabled = false; } }
         }
+
+
 
         document.body.addEventListener('input', (e) => {
             if (e.target.contentEditable === 'true') updateCalculations();

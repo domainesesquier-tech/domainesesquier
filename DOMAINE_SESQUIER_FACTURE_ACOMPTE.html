@@ -3,104 +3,68 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facture d'Acompte - Domaine Sesquier</title>
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>Facture d'acompte — Domaine Sesquier</title>
     <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600&display=swap"
         rel="stylesheet">
-
     <link rel="stylesheet" href="assets/document.css">
     <script src="assets/utils.js"></script>
-    <style>
-        /* Align doc-type with DEVIS serif aesthetic */
-        .doc-type {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--primary);
-            letter-spacing: 0.04em;
-        }
-    </style>
 </head>
 
 <body>
-
-    <div class="controls-bar no-print">
-        <button class="btn" onclick="saveToAirtable()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                <polyline points="7 3 7 8 15 8"></polyline>
-            </svg>
-            Enregistrer
-        </button>
-        <button class="btn btn-primary" onclick="window.print()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-            </svg>
-            Imprimer / PDF
-        </button>
-    </div>
-
-    <div class="page" id="devis-content">
-        <header>
-            <div class="brand-col">
-                <h1>Domaine Sesquier</h1>
-                <div class="subtitle">Esprit de famille & Art de vivre</div>
-                <div class="brand-details">
-                    4, plan du sesquier, 34140 Mèze<br>
-                    Tél : +33 7 68 77 85 27<br>
-                    Email : contact@domainesesquier.com<br>
-                    <strong>OZZA SASU</strong> — SIRET : 903 246 478 00015
+    <div class="page" id="page1">
+        <div class="print-header">
+            <div class="logo-area">
+                <div class="serif"
+                    style="font-size: 22pt; font-weight: 700; color: var(--primary); letter-spacing: -0.02em;">Domaine
+                    Sesquier</div>
+                <div
+                    style="font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.15em; color: var(--accent); font-weight: 600; margin-top: 3px;">
+                    L'esprit de famille & l'art de vivre</div>
+                <div style="font-size: 8pt; color: #666; margin-top: 10px; line-height: 1.4;">
+                    4, plan du sesquier - 34140 Mèze<br>
+                    Tél : +33 7 88 37 02 86 — Email : contact@domainesesquier.com — OZZA SASU — SIRET : 903 246 478
+                    00015
                 </div>
             </div>
-            <div class="meta-col">
-                <div class="doc-type" style="font-size: 26px;">FACTURE D'ACOMPTE</div>
-                <div class="meta-grid">
-                    <div class="meta-label">Numéro :</div>
-                    <div class="meta-value" contenteditable="true" id="facture-number">FA2026-03-XXX</div>
-                    <div class="meta-label">Date :</div>
-                    <div class="meta-value" contenteditable="true" id="today-date">--/--/----</div>
-                    <div class="meta-label">Réf. Devis :</div>
-                    <div class="meta-value" contenteditable="true" id="devis-number">2026-02-XXX</div>
+            <div class="doc-meta">
+                <h1 style="font-size: 24pt; margin: 0; color: var(--primary);">FACTURE D'ACOMPTE</h1>
+                <div style="margin-top: 10px;">
+                    <div>Numéro : <strong id="doc-id">FA-XXXX-XX</strong></div>
+                    <div>Date : <span id="doc-date">--/--/----</span></div>
+                    <div>Réf. Devis : <span id="ref-devis">--</span></div>
                 </div>
             </div>
-        </header>
+        </div>
 
-        <section class="info-section">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 30px;">
             <div class="info-box">
-                <div class="box-title">Client / Entreprise</div>
-                <div class="client-info" contenteditable="true">Chargement...</div>
+                <div class="info-title">CLIENT / ENTREPRISE</div>
+                <div id="client-info">Chargement...</div>
             </div>
             <div class="info-box">
-                <div class="box-title">Résumé du Séjour</div>
-                <table class="snapshot-table">
-                    <tr>
-                        <td class="snapshot-key">Type :</td>
-                        <td class="snapshot-val" contenteditable="true">...</td>
-                    </tr>
-                    <tr>
-                        <td class="snapshot-key">Dates :</td>
-                        <td class="snapshot-val" contenteditable="true">...</td>
-                    </tr>
-                    <tr>
-                        <td class="snapshot-key">Durée :</td>
-                        <td class="snapshot-val" contenteditable="true">...</td>
-                    </tr>
-                    <tr>
-                        <td class="snapshot-key">Participants :</td>
-                        <td class="snapshot-val" contenteditable="true">...</td>
-                    </tr>
-                </table>
+                <div class="info-title">RÉSUMÉ DU SÉJOUR</div>
+                <div id="stay-info">
+                    <table style="width:100%; border-collapse:collapse; font-size:9pt; line-height:1.7;">
+                        <tr>
+                            <td style="opacity:0.65; width:40%;">Type :</td>
+                            <td id="stay-type" style="font-weight:600;">—</td>
+                        </tr>
+                        <tr>
+                            <td style="opacity:0.65;">Dates :</td>
+                            <td id="stay-dates">—</td>
+                        </tr>
+                        <tr>
+                            <td style="opacity:0.65;">Participants :</td>
+                            <td id="stay-participants">—</td>
+                        </tr>
+                    </table>
+                </div>
             </div>
-        </section>
+        </div>
 
-        <div id="stay-synthesis" contenteditable="true"
-            style="font-size: 11pt; font-weight: 500; color: var(--text-main); margin-bottom: 20px; border-left: 4px solid var(--primary); padding-left: 15px; outline: none;">
+        <div id="stay-synthesis"
+            style="font-size: 11pt; font-weight: 600; color: var(--text-main); margin-bottom: 20px; border-left: 4px solid var(--primary); padding-left: 15px;">
         </div>
 
         <section class="pricing-section">
@@ -112,492 +76,185 @@
                         <th class="col-price">PU HT (€)</th>
                         <th class="col-tva">TVA</th>
                         <th class="col-total">Total HT</th>
-                        <th class="no-print" style="width: 40px;"></th>
                     </tr>
                 </thead>
                 <tbody id="pricing-body"></tbody>
             </table>
         </section>
 
+        <section class="pricing-section" id="options-section">
+            <table class="pricing-table">
+                <tbody id="options-body"></tbody>
+            </table>
+        </section>
+
         <div class="print-footer"
             style="position: absolute; bottom: 15mm; width: calc(100% - 30mm); font-size: 8pt; color: #999;">
-            Domaine Sesquier — <span class="devis-num-footer">2026-02-XXX</span> — Page 1/2
+            Domaine Sesquier — <span class="devis-num-footer">FA-XXXX</span> — Page 1/2
         </div>
     </div>
 
     <div class="page" id="page2">
-        <div class="print-header-p2">
-            <div>
-                <span class="serif" style="font-size: 14pt; font-weight: 700; color: var(--primary);">Domaine
-                    Sesquier</span>
-                <span
-                    style="font-size: 9pt; color: var(--accent); margin-left: 10px; text-transform: uppercase; letter-spacing: 0.1em;">Suite
-                    de la Facture</span>
-            </div>
-            <div style="font-size: 9pt; text-align: right;">
-                <div style="font-weight: 600;" class="devis-num-footer">N° FA2026-03-XXX</div>
-                <div style="color: #666;" class="devis-date-footer">Date : --/--/----</div>
-            </div>
+        <div class="print-header-p2"
+            style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px;">
+            <div class="serif" style="font-size: 14pt; font-weight: 700; color: var(--primary);">Domaine Sesquier <span
+                    style="font-size: 10pt; color: var(--accent); margin-left:10px; text-transform:uppercase;">Suite de
+                    la Facture</span></div>
+            <div style="font-size: 9pt; text-align: right;" class="devis-num-footer">FA-XXXX</div>
         </div>
 
         <section id="activities-proposal" style="margin-bottom: 25px;">
             <div
                 style="background-color: rgba(158, 93, 76, 0.08); color: var(--accent); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 11pt; padding: 8px 15px; border-bottom: 1px solid var(--accent); margin-bottom: 10px;">
-                Activités & Loisirs (sur devis)</div>
+                Activités & Loisirs</div>
             <table class="pricing-table" style="width: 100%;">
                 <tbody id="activities-body"></tbody>
             </table>
         </section>
 
-        <section class="bottom-section no-break">
+        <section class="bottom-section"
+            style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px;">
+            <div class="conditions-col">
+                <h4 style="color: var(--primary); margin-bottom: 10px; font-size: 10pt;">Conditions de Règlement</h4>
+                <ul style="padding-left: 15px; font-size: 8.5pt; color: #555; line-height: 1.6;">
+                    <li><strong>Acompte (30%) :</strong> À régler pour confirmation.</li>
+                    <li><strong>Solde :</strong> À régler au plus tard 15 jours avant l'arrivée.</li>
+                    <li>IBAN BNP PARIBAS : FR76 3000 4006 4000 0107 8926 886</li>
+                </ul>
+            </div>
             <div class="totals-col">
+                <style>
+                    .total-row {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 8px 0;
+                        border-bottom: 1px solid #eee;
+                        font-size: 10pt;
+                    }
+
+                    .total-row.final {
+                        font-weight: 700;
+                        font-size: 14pt;
+                        color: var(--primary);
+                        border-top: 2px solid var(--primary);
+                        border-bottom: none;
+                        margin-top: 10px;
+                    }
+                </style>
                 <div class="total-row"><span>Total Prestations HT</span><span id="display-total-ht">0,00 €</span></div>
                 <div class="total-row"><span>TVA (estimée)</span><span id="display-total-tva">0,00 €</span></div>
-                <div class="total-row" style="margin-bottom: 20px;"><span>Total Prestations TTC</span><span
-                        id="display-total-ttc">0,00 €</span></div>
-
-                <div class="total-row" id="row-deposit" style="color: var(--accent); position: relative;">
+                <div class="total-row"><span>TOTAL TTC</span><span id="display-total-ttc">0,00 €</span></div>
+                <div class="total-row" style="color: var(--accent); font-weight: 600;">
                     <span>ACOMPTE À RÉGLER (30%)</span>
-                    <span id="display-deposit" contenteditable="true" oninput="updateCalculations()">0,00 €</span>
+                    <span id="display-acompte">0,00 €</span>
                 </div>
-
-                <div class="total-row" id="price-synthesis"
-                    style="margin-top: 10px; font-size: 9pt; opacity: 0.8; text-align: right; display: block;">
-                    <div id="price-total-summary"></div>
-                    <div id="price-per-person" style="font-weight: 500;"></div>
-                </div>
-
-                <div class="total-row final"
-                    style="border-top: 2px solid var(--primary); margin-top: 15px; padding-top: 15px;">
+                <div class="total-row final">
                     <span>NET À PAYER</span>
                     <span id="display-net-to-pay">0,00 €</span>
                 </div>
             </div>
-
-            <div class="conditions-col">
-                <h4>Conditions de Règlement</h4>
-                <ul class="cond-list">
-                    <li><strong>Acompte :</strong> 30% du montant total TTC à régler pour confirmation.</li>
-                    <li><strong>Solde :</strong> À régler au plus tard 15 jours avant l'arrivée.</li>
-                    <li>Règlement par virement bancaire uniquement.</li>
-                </ul>
-                <div style="font-size: 7.5pt; color: #999; margin-top: 15px;">
-                    <strong>OZZA SASU</strong> — SIRET 903 246 478 00015 — MÈZE<br>
-                    <strong>BNP PARIBAS</strong> — IBAN : FR76 3000 4006 4000 0107 8926 886 — BIC : BNPAFRPPXXX
-                </div>
-            </div>
         </section>
-
-        <section class="signature-section no-break">
-            <div class="sig-grid">
-                <div>
-                    <div class="sig-box-title">Le Client</div>
-                </div>
-                <div>
-                    <div class="sig-box-title">Domaine Sesquier</div>
-                </div>
-            </div>
-        </section>
-
-        <div class="print-footer"
-            style="position: absolute; bottom: 15mm; width: calc(100% - 30mm); font-size: 8pt; color: #999;">
-            Domaine Sesquier — <span class="devis-num-footer">2026-02-XXX</span> — Page 2/2
-        </div>
     </div>
 
     <script>
-        const { API_RESERVATIONS_URL, formatEuro } = SesquierUtils;
-
+        const API_RESERVATIONS_URL = 'https://domainesesquier-api.domainesesquier.workers.dev/api/reservations';
         let currentRecord = null;
-        const urlParams = new URLSearchParams(window.location.search);
-        let currentRequestId = urlParams.get('id');
 
-        // Init UI basics
-        document.getElementById('today-date').innerText = new Date().toLocaleDateString('fr-FR');
-        document.querySelectorAll('.devis-date-footer').forEach(el => el.innerText = "Date : " + new Date().toLocaleDateString('fr-FR'));
+        /**
+         * INITIALISATION
+         */
+        async function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const devId = urlParams.get('id');
+            const isLive = urlParams.get('live') === 'true';
 
-        if (currentRequestId) {
-            loadReservationData(currentRequestId);
-        } else if (urlParams.get('live') === 'true') {
-            loadFromDraftPreview();
-        }
-
-        function loadFromDraftPreview() {
-            try {
-                const ls = localStorage.getItem('domaineBookingDraft');
-                if (!ls) {
-                    const clientInfoEl = document.querySelector('.client-info');
-                    if (clientInfoEl) {
-                        clientInfoEl.innerHTML = "<span style='color: var(--accent); font-weight: 600;'>Aucun brouillon en mémoire.</span><br>Veuillez d'abord commencer une configuration.";
+            if (devId) {
+                try {
+                    const data = await SesquierUtils.fetchJson(`${API_RESERVATIONS_URL}?id=${devId}`);
+                    if (data && data.records && data.records.length > 0) {
+                        currentRecord = data.records[0];
+                        populateData(currentRecord.fields);
                     }
-                    return;
-                }
-                const draft = JSON.parse(ls);
-
-                let nights = 1;
-                let dArr = null;
-                let dDep = null;
-                if (draft.dates?.start && draft.dates?.end) {
-                    dArr = new Date(draft.dates.start);
-                    dDep = new Date(draft.dates.end);
-                    // Prevent timezone issue where midnight UTC-1 becomes previous day
-                    dArr.setHours(12, 0, 0, 0);
-                    dDep.setHours(12, 0, 0, 0);
-                    nights = Math.max(1, Math.round((dDep - dArr) / 86400000));
-                }
-
-                const totalPers = draft.group?.total || 1;
-
-                const details = {
-                    type: draft.type || 'pro',
-                    sleeping: {
-                        mode: draft.sleeping?.mode || 'auto',
-                        indiv: draft.sleeping?.indiv || 0,
-                        partage: draft.sleeping?.partage || 0,
-                        couple: draft.sleeping?.couple || 0,
-                        details: {
-                            twinCount: draft.sleeping?.partage || 0,
-                            twinPrice: 50,
-                            soloCount: draft.sleeping?.indiv || 0,
-                            soloPrice: 85
-                        }
-                    },
-                    meals: {
-                        mode: draft.meals?.type || draft.meals?.mode || 'demi',
-                        counts: []
-                    },
-                    activities: draft.activities || {}
-                };
-
-                for (let i = 0; i < nights + 1; i++) {
-                    details.meals.counts.push({
-                        petitDej: totalPers,
-                        dejeuner: totalPers,
-                        diner: i < nights ? totalPers : 0,
-                        collationMatin: draft.type === 'pro' ? totalPers : 0,
-                        collationAprem: draft.type === 'pro' ? totalPers : 0
-                    });
-                }
-
-                const mockFields = {
-                    "Type": draft.type === 'pro' ? "Séminaire" : "Séjour Privé",
-                    "Date arrivée": dArr ? dArr.toISOString().split('T')[0] : "",
-                    "Date départ": dDep ? dDep.toISOString().split('T')[0] : "",
-                    "Nuits": nights,
-                    "Nombre de personnes": totalPers,
-                    "Nom client": (draft.contact?.first || "") + " " + (draft.contact?.last || ""),
-                    "Email": draft.contact?.email || "",
-                    "Téléphone": draft.contact?.phone || "",
-                    "Option ménage": draft.options?.menage ? "Oui" : "Non",
-                    "Détails JSON": JSON.stringify(details),
-                    "Numéro Devis": "WEB"
-                };
-
-                populateDevis(mockFields);
-
-                const synEl = document.getElementById('stay-synthesis');
-                if (synEl) {
-                    synEl.innerHTML += `<br><span style="color:var(--accent); font-size:10pt;">⚠ Mode Aperçu en temps réel: Cette facture est générée à partir de votre saisie, elle n'est pas encore enregistrée.</span>`;
-                }
-
-                // Masquage du bouton de sauvegarde Airtable car pas d'ID
-                const controls = document.querySelector('.controls-bar');
-                if (controls && controls.firstElementChild) {
-                    controls.firstElementChild.style.display = 'none';
-                }
-            } catch (e) {
-                console.error("Preview Draft err:", e);
-            }
-        }
-
-        async function loadReservationData(id) {
-            try {
-                console.log("Fetching ID:", id);
-                const response = await fetch(`${API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Erreur API (${response.status}) : ${errorText || "Impossible de récupérer les données"}`);
-                }
-                const data = await response.json();
-                currentRecord = data.records ? data.records[0] : data;
-
-                if (!currentRecord || !currentRecord.fields) {
-                    throw new Error("Aucune donnée trouvée pour cette réservation.");
-                }
-
-                populateDevis(currentRecord.fields);
-            } catch (err) {
-                console.error("Erreur de chargement:", err);
-                alert("Erreur lors du chargement : " + err.message);
-            }
-        }
-
-        function populateDevis(fields) {
-            if (!fields) return;
-
-            const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
-            const activities = details.activities || {};
-
-            // 1. Meta & Footer
-            const now = new Date();
-            const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-            const num = (fields["Numéro Devis"] || fields["ID"] || currentRequestId || "").toString().slice(-6).toUpperCase();
-            document.getElementById('devis-number').innerText = `${yearMonth}-${num}`;
-            const facEl = document.getElementById('facture-number');
-            if (facEl) facEl.innerText = `FA${yearMonth}-${num}`;
-            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `FA${yearMonth}-${num}`);
-
-            // 2. Client Info — structuré : Organisation, Nom du référent, Mail, Téléphone
-            const clientInfoEl = document.querySelector('.client-info');
-            if (clientInfoEl) {
-                const org = fields["Entreprise"] || fields["Organisation"] || fields["Société"] || "";
-                const ref = fields["Nom client"] || fields["Référent"] || "";
-                const mail = fields["Email"] || "";
-                const tel = fields["Téléphone"] || "";
-                clientInfoEl.innerHTML =
-                    `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; line-height:1.8;">
-                        <tr><td style="opacity:0.65; width:38%;">Organisation :</td><td><strong>${org || "—"}</strong></td></tr>
-                        <tr><td style="opacity:0.65;">Nom du référent :</td><td>${ref || "—"}</td></tr>
-                        <tr><td style="opacity:0.65;">Mail :</td><td>${mail || "—"}</td></tr>
-                        <tr><td style="opacity:0.65;">Téléphone :</td><td>${tel || "—"}</td></tr>
-                    </table>`;
-            }
-
-            // 3. Stay Overview Table
-            const snapshotRows = document.querySelectorAll('.snapshot-table tr');
-            if (snapshotRows.length >= 4) {
-                const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
-                snapshotRows[0].querySelector('.snapshot-val').innerText = typeLabel;
-
-                const dArrFmt = fields["Date arrivée"] ? new Date(fields["Date arrivée"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : "?";
-                const dDepFmt = fields["Date départ"] ? new Date(fields["Date départ"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : "?";
-                snapshotRows[1].querySelector('.snapshot-val').innerText = `${dArrFmt} → ${dDepFmt}`;
-
-                const nNights = fields["Nuits"] || 0;
-                snapshotRows[2].querySelector('.snapshot-val').innerText = `${nNights} ${nNights > 1 ? 'Nuits' : 'nuit'}`;
-                snapshotRows[3].querySelector('.snapshot-val').innerText = `${fields["Nombre de personnes"] || 0} personnes`;
-            }
-
-            // 4. Narrative Synthesis
-            try {
-                const nights = fields["Nuits"] || 0;
-                const days = nights + 1;
-                const nbPers = fields["Nombre de personnes"] || 0;
-                let mealLabel = "Restauration à la carte";
-                let isPension = (details.meals?.mode === 'pension');
-                if (isPension) mealLabel = "Pension Complète";
-                else if (details.meals?.mode === 'demi') mealLabel = "Demi-pension";
-                else if (details.meals?.mode === 'libre') mealLabel = "Gestion libre";
-
-                const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
-                const jourTxt = days > 1 ? "jours" : "jour";
-                const nuitTxt = nights > 1 ? "nuits" : "nuit";
-                document.getElementById('stay-synthesis').innerText = `${typeLabel} de ${nbPers} personnes — ${days} ${jourTxt} / ${nights} ${nuitTxt} — ${mealLabel}`;
-            } catch (e) { console.error("Synthesis error:", e); }
-
-            // 5. Build Main Pricing Table
-            const tbody = document.getElementById('pricing-body');
-            tbody.innerHTML = '';
-
-            // --- A. Accommodation ---
-            addCategoryRow("Hébergement");
-            const nbNights = fields["Nuits"] || 1;
-            const hebergDesc = `Chambre twin en gîte tout confort<br><small style='color:#666; font-weight:400;'>Draps, serviettes et ménage inclus — ${nbNights > 1 ? nbNights + " nuits" : "1 nuit"} pour ${fields["Nombre de personnes"] || 0} personnes</small>`;
-            const totalHeberg = fields["Montant Hébergement HT"] || 0;
-            const pricePerNight = nbNights > 0 && totalHeberg > 0
-                ? Math.round((totalHeberg / nbNights) * 100) / 100
-                : 0;
-            addPricingRow(hebergDesc, nbNights, pricePerNight, "10%");
-            addSubtotalRow("Hébergement", "subtotal-hebergement");
-
-            // --- B. Restauration (toujours affichée)
-            addCategoryRow("Restauration");
-            let mealRowsAdded = false;
-            let totalEligible = 0;
-
-            if (details.meals && details.meals.counts) {
-                const arrivalDate = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null;
-                details.meals.counts.forEach((c, idx) => {
-                    let labelJour = `Jour ${idx + 1}`;
-                    if (arrivalDate) {
-                        const d = new Date(arrivalDate);
-                        d.setDate(arrivalDate.getDate() + idx);
-                        let dStr = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
-                        labelJour = dStr.charAt(0).toUpperCase() + dStr.slice(1);
+                } catch (e) { console.error("Erreur init:", e); }
+            } else if (isLive) {
+                window.addEventListener('message', (event) => {
+                    if (event.data.type === 'SYNC_DATA') {
+                        populateData(event.data.fields);
                     }
-                    const prefix = `<strong>${labelJour}</strong> — `;
-                    if (c.petitDej > 0) addPricingRow(prefix + "Petit-Déjeuner", c.petitDej, 14, "10%");
-                    const qColM = c.collationMatin || (c.collation / 2) || 0;
-                    if (qColM > 0) addPricingRow(prefix + "Collation Matin", qColM, 5, "10%");
-                    if (c.dejeuner > 0) addPricingRow(prefix + "Déjeuner", c.dejeuner, 26, "10%");
-                    const qColA = c.collationAprem || (c.collation / 2) || 0;
-                    if (qColA > 0) addPricingRow(prefix + "Collation Après-midi", qColA, 5, "10%");
-                    if (c.diner > 0) addPricingRow(prefix + "Dîner", c.diner, 30, "10%");
-                    totalEligible += Math.min(c.petitDej || 0, c.dejeuner || 0, (idx < details.meals.counts.length - 1 ? (c.diner || 0) : 0));
-                    mealRowsAdded = true;
                 });
             }
+        }
 
-            if (!mealRowsAdded) {
-                // Fallback : montant global ou ligne vide
-                const montantRepas = fields["Montant Repas HT"] || 0;
-                addPricingRow("Prestations de restauration selon programme", 1, montantRepas, "10%");
+        /**
+         * REMPLISSAGE DES DONNÉES
+         */
+        function populateData(fields) {
+            // Titres et Meta
+            document.getElementById('doc-id').innerText = "FA" + (fields["ID Airtable"] || "XXXX").slice(-6).toUpperCase();
+            document.getElementById('doc-date').innerText = new Date().toLocaleDateString('fr-FR');
+            document.getElementById('ref-devis').innerText = fields["ID Airtable"] || "--";
+
+            // Client
+            const org = fields["Entreprise"] || fields["Organisation"] || "—";
+            const ref = fields["Nom client"] || fields["Référent"] || "—";
+            document.getElementById('client-info').innerHTML = `<strong>${org}</strong><br>${ref}<br>${fields["Email"] || ""}`;
+
+            // Séjour
+            document.getElementById('stay-type').innerText = fields["Type"] || "Séjour";
+            document.getElementById('stay-dates').innerText = `${fields["Date arrivée"] || ""} → ${fields["Date départ"] || ""}`;
+            document.getElementById('stay-participants').innerText = `${fields["Nombre de personnes"] || 0} personnes`;
+            document.getElementById('stay-synthesis').innerText = `${fields["Type"] || ""} de ${fields["Nombre de personnes"] || 0} pers. — ${fields["Nuits"] || 0} nuits`;
+
+            // Corps du document
+            const snap = fields["JSON"] ? JSON.parse(fields["JSON"]) : null;
+            if (snap) {
+                restoreSnapshot(snap);
+            } else {
+                generateFallback(fields);
             }
+        }
 
-            if (isPension && totalEligible > 0) {
-                addPricingRow("<span style='color: var(--accent); font-weight: 600;'>Remise forfait pension complète</span><br><small style='color: #666; font-size: 8pt;'>Optimisation tarifaire (70€ HT / jr / pers)</small>", totalEligible, -10.00, "10%");
-            }
-            addSubtotalRow("Restauration", "subtotal-restauration");
-
-            // --- C. Options & Salles (toujours affichée)
-            addCategoryRow("Options & Salles");
-            const qS = fields["Nuits"] || 1;
-            const optLabel = `Location Salles & Coordination logistique<br><small style='color:#666; font-weight:400;'>Coordination on-site, Salle équipée, Support technique</small>`;
-            const optPrice = fields["Montant Options HT"] > 0 ? Math.round((fields["Montant Options HT"] / qS) * 100) / 100 : 0;
-            addPricingRow(optLabel, qS, optPrice, "20%");
-            addSubtotalRow("Options", "subtotal-salles");
-
-            // --- D. Activities (Page 2) ---
-            const actBody = document.getElementById('activities-body');
-            if (actBody) {
-                actBody.innerHTML = '';
-                const activeKeys = Object.keys(activities).filter(k => activities[k] === true);
-                if (activeKeys.length > 0) {
-                    const map = {
-                        'huitres': 'Dégustation d’huîtres & vin blanc',
-                        'bateau': 'Sortie en bateau sur l’Étang',
-                        'velo': 'Location de vélos & Balade',
-                        'rallye': 'Rallye en 2CV',
-                        'yoga': 'Séance de Yoga',
-                        'culturel': 'Visite culturelle dédiée'
-                    };
-                    activeKeys.forEach(k => {
-                        const tr = createPricingRow(map[k] || k, 1, 0, "20%");
-                        actBody.appendChild(tr);
-                    });
-                } else if (activities.requested) {
-                    const label = `Activité prévue : ${activities.type || 'Sur mesure'}<br><small style='color:#666;'>${activities.message || ''}</small>`;
-                    actBody.appendChild(createPricingRow(label, 1, 0, "20%"));
-                } else {
-                    actBody.innerHTML = '<tr><td colspan="6" style="padding:15px; text-align:center; color:#999; font-style:italic;">Aucune activité définie.</td></tr>';
-                }
-                addSubtotalRow("Activités & Loisirs", "subtotal-activities", "activities-body");
-            }
-
+        function restoreSnapshot(snap) {
+            const restore = (id, list) => {
+                const tbody = document.getElementById(id);
+                if (!tbody || !list) return;
+                tbody.innerHTML = '';
+                list.forEach(row => {
+                    if (row.type === 'category') SesquierUtils.addCategoryRow(row.title, id);
+                    else if (row.type === 'pricing') SesquierUtils.addPricingRow(row.label, row.qty, row.price, row.tva, row.mealKey, id);
+                    else if (row.type === 'subtotal') SesquierUtils.addSubtotalRow(row.label, row.id, id);
+                });
+            };
+            restore('pricing-body', snap.pricing);
+            restore('options-body', snap.options);
+            restore('activities-body', snap.activities);
             updateCalculations();
         }
 
-        function addCategoryRow(title, targetId) { return SesquierUtils.addCategoryRow(title, targetId); }
-        function addPricingRow(label, qty, price, tva, mealKey, targetId) { return SesquierUtils.addPricingRow(label, qty, price, tva, mealKey, targetId); }
-        function createPricingRow(label, qty, price, tva, mealKey) { return SesquierUtils.createPricingRow(label, qty, price, tva, mealKey); }
-        function removeRow(btn, event) { return SesquierUtils.removeRow(btn, event); }
-        function addSubtotalRow(label, id, targetId) { return SesquierUtils.addSubtotalRow(label, id, targetId); }
-        function addRowBefore(btn) { return SesquierUtils.addRowBefore(btn); }
+        function generateFallback(fields) {
+            // Logique de secours très simple si pas de snapshot
+            SesquierUtils.addCategoryRow("Séjour Professionnel", "pricing-body");
+            SesquierUtils.addPricingRow("Prestation Hébergement", 1, fields["Montant Hébergement HT"] || 0, "10%", null, "pricing-body");
+            SesquierUtils.addPricingRow("Prestation Restauration", 1, fields["Montant Repas HT"] || 0, "10%", null, "pricing-body");
+            SesquierUtils.addCategoryRow("Extras / Salles", "options-body");
+            SesquierUtils.addPricingRow("Location Salles & Coordination", 1, fields["Montant Options HT"] || 0, "20%", null, "options-body");
+            updateCalculations();
+        }
 
         function updateCalculations() {
-            let totalHT = 0, totalTVA = 0, sHeberg = 0, sRestau = 0, sOpt = 0, sActiv = 0;
-            let cat = 'hebergement';
+            const res = SesquierUtils.runCommonCalculations();
+            const format = (v) => SesquierUtils.formatEuro(v);
 
-            document.querySelectorAll('#pricing-body tr').forEach(row => {
-                if (row.classList.contains('category-row')) {
-                    const t = row.innerText.toLowerCase();
-                    if (t.includes('héber')) cat = 'hebergement';
-                    else if (t.includes('restau')) cat = 'restauration';
-                    else cat = 'options';
-                    return;
-                }
-                if (row.classList.contains('subtotal-row')) return;
+            document.getElementById('display-total-ht').innerText = format(res.totalHT);
+            document.getElementById('display-total-tva').innerText = format(res.totalTVA);
+            document.getElementById('display-total-ttc').innerText = format(res.ttc);
 
-                const q = parseFloat(row.querySelector('.qty')?.innerText) || 0;
-                const p = parseFloat(row.querySelector('.price')?.innerText) || 0;
-                const line = q * p;
-                const totalEl = row.querySelector('.row-total');
-                if (totalEl) totalEl.innerText = line.toFixed(2);
-
-                totalHT += line;
-                if (cat === 'hebergement') sHeberg += line;
-                else if (cat === 'restauration') sRestau += line;
-                else sOpt += line;
-
-                const rate = parseFloat(row.querySelector('.tva-rate')?.innerText) / 100 || 0.1;
-                totalTVA += line * rate;
-            });
-
-            document.querySelectorAll('#activities-body tr').forEach(row => {
-                if (row.classList.contains('subtotal-row')) return;
-                const q = parseFloat(row.querySelector('.qty')?.innerText) || 0;
-                const p = parseFloat(row.querySelector('.price')?.innerText) || 0;
-                const line = q * p;
-                const totalEl = row.querySelector('.row-total');
-                if (totalEl) totalEl.innerText = line.toFixed(2);
-                totalHT += line; sActiv += line;
-                const rate = parseFloat(row.querySelector('.tva-rate')?.innerText) / 100 || 0.2;
-                totalTVA += line * rate;
-            });
-
-            if (document.getElementById('subtotal-hebergement')) document.getElementById('subtotal-hebergement').innerText = sHeberg.toFixed(2) + " €";
-            if (document.getElementById('subtotal-restauration')) document.getElementById('subtotal-restauration').innerText = sRestau.toFixed(2) + " €";
-            if (document.getElementById('subtotal-salles')) document.getElementById('subtotal-salles').innerText = sOpt.toFixed(2) + " €";
-            if (document.getElementById('subtotal-activities')) document.getElementById('subtotal-activities').innerText = sActiv.toFixed(2) + " €";
-
-            document.getElementById('display-total-ht').innerText = formatEuro(totalHT);
-            document.getElementById('display-total-tva').innerText = formatEuro(totalTVA);
-            const ttc = totalHT + totalTVA;
-            document.getElementById('display-total-ttc').innerText = SesquierUtils.formatEuro(ttc);
-
-            const depositEl = document.getElementById('display-deposit');
-            let depAmount = ttc * 0.3;
-            // Respect manual edit if exists
-            if (depositEl.innerText !== '0,00 €' && depositEl.innerText !== '') {
-                const manual = parseFloat(depositEl.innerText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-                if (manual > 0) depAmount = manual;
-            }
-            depositEl.innerText = SesquierUtils.formatEuro(depAmount);
-
-            if (document.getElementById('display-net-to-pay')) {
-                document.getElementById('display-net-to-pay').innerText = SesquierUtils.formatEuro(depAmount);
-            }
-
-            const n = currentRecord?.fields?.["Nombre de personnes"] || 0;
-            if (n > 0) {
-                document.getElementById('price-total-summary').innerText = `Total séjour : ${SesquierUtils.formatEuro(totalHT)} HT (${SesquierUtils.formatEuro(ttc)} TTC)`;
-                document.getElementById('price-per-person').innerText = `Soit ${Math.round(totalHT / n)} € HT / personne`;
-                document.getElementById('price-synthesis').style.display = 'block';
-            }
+            const acompte = res.ttc * 0.3;
+            document.getElementById('display-acompte').innerText = format(acompte);
+            document.getElementById('display-net-to-pay').innerText = format(acompte);
         }
 
-        async function saveToAirtable() {
-            if (!currentRequestId) return;
-            const btn = document.querySelector('button[onclick="saveToAirtable()"]');
-            try {
-                if (btn) { btn.innerText = "Sauvegarde..."; btn.disabled = true; }
-                const parse = (id) => {
-                    const el = document.getElementById(id);
-                    return el ? parseFloat(el.innerText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0 : 0;
-                };
-                const payload = {
-                    id: currentRequestId,
-                    fields: {
-                        "Montant Hébergement HT": parse('subtotal-hebergement'),
-                        "Montant Repas HT": parse('subtotal-restauration'),
-                        "Montant Options HT": parse('subtotal-salles'),
-                        "Statut": "devis envoyé"
-                    }
-                };
-                const res = await fetch(API_RESERVATIONS_URL, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!res.ok) throw new Error("Erreur Airtable");
-                alert("✅ Facture d'acompte sauvegardée !");
-            } catch (e) { alert("❌ Erreur : " + e.message); }
-            finally { if (btn) { btn.innerText = "Enregistrer"; btn.disabled = false; } }
-        }
-
-        document.body.addEventListener('input', (e) => {
-            if (e.target.contentEditable === 'true') updateCalculations();
-        });
+        window.onload = init;
     </script>
 </body>
 

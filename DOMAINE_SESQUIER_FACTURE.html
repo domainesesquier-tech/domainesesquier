@@ -117,6 +117,11 @@
                 </thead>
                 <tbody id="pricing-body"></tbody>
             </table>
+            <div class="no-print" style="margin-top: 10px; text-align: left;">
+                <button onclick="addRowBefore(this)"
+                    style="padding: 5px 10px; background: none; border: 1px dashed var(--primary); color: var(--primary); cursor: pointer; border-radius: 4px; font-size: 8pt;">+
+                    Ligne</button>
+            </div>
         </section>
 
         <div class="print-footer"
@@ -140,6 +145,20 @@
             </div>
         </div>
 
+        <section class="pricing-section" id="options-section" style="margin-bottom: 25px;">
+            <div
+                style="background-color: rgba(158, 93, 76, 0.08); color: var(--accent); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 11pt; padding: 8px 15px; border-bottom: 1px solid var(--accent); margin-bottom: 10px;">
+                Options & Salles</div>
+            <table class="pricing-table" style="width: 100%;">
+                <tbody id="options-body"></tbody>
+            </table>
+            <div class="no-print" style="margin-top: 10px; text-align: left;">
+                <button onclick="addRowBefore(this)"
+                    style="padding: 5px 10px; background: none; border: 1px dashed var(--primary); color: var(--primary); cursor: pointer; border-radius: 4px; font-size: 8pt;">+
+                    Ligne</button>
+            </div>
+        </section>
+
         <section id="activities-proposal" style="margin-bottom: 25px;">
             <div
                 style="background-color: rgba(158, 93, 76, 0.08); color: var(--accent); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 11pt; padding: 8px 15px; border-bottom: 1px solid var(--accent); margin-bottom: 10px;">
@@ -147,19 +166,25 @@
             <table class="pricing-table" style="width: 100%;">
                 <tbody id="activities-body"></tbody>
             </table>
+            <div class="no-print" style="margin-top: 10px; text-align: left;">
+                <button onclick="addRowBefore(this)"
+                    style="padding: 5px 10px; background: none; border: 1px dashed var(--primary); color: var(--primary); cursor: pointer; border-radius: 4px; font-size: 8pt;">+
+                    Ligne</button>
+            </div>
         </section>
 
         <section class="bottom-section no-break">
             <div class="totals-col">
                 <div class="total-row"><span>Total HT</span><span id="display-total-ht">0,00 €</span></div>
                 <div class="total-row"><span>TVA</span><span id="display-total-tva">0,00 €</span></div>
+
                 <div class="total-row" style="margin-bottom: 20px;"><span>TOTAL TTC</span><span
                         id="display-total-ttc">0,00 €</span></div>
 
                 <div class="total-row" id="row-deposit" style="color: var(--accent); position: relative;">
                     <button class="no-print" onclick="removeDeposit()"
                         style="position: absolute; left: -30px; background: none; border: none; color: #ff4d4d; cursor: pointer; font-size: 14pt;">&times;</button>
-                    <span>Déduction Acompte réglé (30%)</span>
+                    <span id="deposit-label">Facture d'acompte (déduite)</span>
                     <span id="display-deposit" contenteditable="true" oninput="updateCalculations()">0,00 €</span>
                 </div>
 
@@ -240,19 +265,40 @@
         }
 
         async function loadReservationData(id) {
-            const response = await fetch(`${API_RESERVATIONS_URL}?id=${id}`);
-            const data = await response.json();
-            currentRecord = data.records ? data.records[0] : data;
-            populateDevis(currentRecord.fields);
+            try {
+                const response = await fetch(`${API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
+                const data = await response.json();
+                currentRecord = data.records ? data.records[0] : data;
+                populateDevis(currentRecord.fields);
+            } catch (err) { console.error("Load error:", err); }
         }
 
         function populateDevis(fields) {
+            if (!fields) return;
+
+            // --- PRIORITÉ AU SNAPSHOT DU DEVIS ---
+            if (fields["JSON"]) {
+                try {
+                    const snap = JSON.parse(fields["JSON"]);
+                    // Vérifier si le snapshot est valide (contient des libellés pricing)
+                    const hasValidLabels = snap.pricing?.some(p => p.type === 'pricing' && p.label && p.label.trim().length > 0);
+                    if (hasValidLabels) {
+                        restoreSnapshot(snap, fields);
+                        updateCalculations();
+                        fillMetaAndClient(fields);
+                        return;
+                    }
+                } catch (e) { console.error("Erreur restauration JSON:", e); }
+            }
+
             const now = new Date();
             const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-            const num = (fields["Numéro Devis"] || fields["ID"] || "").toString().slice(-6).toUpperCase();
+            const num = (fields["Numéro Devis"] || fields["ID"] || currentRequestId || "").toString().slice(-6).toUpperCase();
             document.getElementById('devis-number').innerText = `${yearMonth}-${num}`;
             document.getElementById('facture-number').innerText = `FAC${yearMonth}-${num}`;
             document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `FAC${yearMonth}-${num}`);
+            const depositLabel = document.getElementById('deposit-label');
+            if (depositLabel) depositLabel.innerText = `Facture d'acompte (déduite) N° FA${yearMonth}-${num}`;
 
             // Client Info — structuré : Organisation, Nom du référent, Mail, Téléphone
             const clientInfoEl = document.querySelector('.client-info');
@@ -311,40 +357,39 @@
         function addSubtotalRow(label, id, targetId) { return SesquierUtils.addSubtotalRow(label, id, targetId); }
         function addRowBefore(btn) { return SesquierUtils.addRowBefore(btn); }
 
+        let isInitialLoad = true;
         function updateCalculations() {
-            let totalHT = 0, totalTVA = 0;
-            document.querySelectorAll('#pricing-body tr').forEach(row => {
-                if (row.classList.contains('category-row')) return;
-                const q = parseFloat(row.querySelector('.qty').innerText) || 0;
-                const p = parseFloat(row.querySelector('.price').innerText) || 0;
-                const line = q * p;
-                row.querySelector('.row-total').innerText = line.toFixed(2);
-                totalHT += line;
-                const rateStr = row.querySelector('.tva-rate').innerText;
-                const rate = parseFloat(rateStr) / 100 || 0.1;
-                totalTVA += line * rate;
-            });
+            const { totalHT, totalTVA, ttc, subtotals } = SesquierUtils.runCommonCalculations();
+            const { sHeberg, sRestau, sOpt, sActiv } = subtotals;
+
+            // Mise à jour des sous-totaux visuels
+            if (document.getElementById('subtotal-hebergement')) document.getElementById('subtotal-hebergement').innerText = sHeberg.toFixed(2);
+            if (document.getElementById('subtotal-restauration')) document.getElementById('subtotal-restauration').innerText = sRestau.toFixed(2);
+            if (document.getElementById('subtotal-salles')) document.getElementById('subtotal-salles').innerText = sOpt.toFixed(2);
+            if (document.getElementById('subtotal-activities')) document.getElementById('subtotal-activities').innerText = sActiv.toFixed(2);
 
             document.getElementById('display-total-ht').innerText = formatEuro(totalHT);
             document.getElementById('display-total-tva').innerText = formatEuro(totalTVA);
-            const ttc = totalHT + totalTVA;
             document.getElementById('display-total-ttc').innerText = formatEuro(ttc);
 
-            // Deposit logic
-            const depositRow = document.getElementById('row-deposit');
-            let deposit = 0;
-            if (depositRow.style.display !== 'none') {
-                const depositEl = document.getElementById('display-deposit');
-                // If it's the first time or draft, we might want to auto-fill 30%
-                if (depositEl.innerText === '0,00 €' || depositEl.innerText === '') {
-                    deposit = ttc * 0.3;
-                    depositEl.innerText = formatEuro(deposit);
-                } else {
-                    deposit = parseFloat(depositEl.innerText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-                }
+            // Calcul de la déduction d'acompte
+            const depositEl = document.getElementById('display-deposit');
+            let depositValue = 0;
+
+            if (isInitialLoad) {
+                // Au premier chargement, on propose 30% par défaut
+                depositValue = ttc * 0.3;
+                if (depositEl) depositEl.innerText = formatEuro(depositValue);
+                isInitialLoad = false;
+            } else {
+                // Ensuite, on lit la valeur modifiée par l'utilisateur
+                const raw = depositEl ? depositEl.innerText : "0";
+                depositValue = parseFloat(raw.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
             }
 
-            document.getElementById('display-net-to-pay').innerText = formatEuro(ttc - deposit);
+            // Calcul du Net à Payer (Total - Acompte)
+            const net = ttc - depositValue;
+            document.getElementById('display-net-to-pay').innerText = formatEuro(net);
         }
 
         function removeDeposit() {
@@ -360,6 +405,66 @@
         document.body.addEventListener('input', (e) => {
             if (e.target.contentEditable === 'true') updateCalculations();
         });
+        function restoreSnapshot(snap, fields) {
+            console.log("Restauraton du snapshot...", snap);
+            const restoreList = (tbodyId, list) => {
+                const tbody = document.getElementById(tbodyId);
+                if (!tbody || !list) return;
+                tbody.innerHTML = '';
+                list.forEach(row => {
+                    if (row.type === 'category') addCategoryRow(row.title, tbodyId);
+                    else if (row.type === 'subtotal') addSubtotalRow(row.label, row.id, tbodyId);
+                    else if (row.type === 'pricing') addPricingRow(row.label, row.qty, row.price, row.tva, row.mealKey, tbodyId);
+                });
+            };
+            restoreList('pricing-body', snap.pricing);
+            restoreList('options-body', snap.options);
+            restoreList('activities-body', snap.activities);
+            if (document.getElementById('pricing-body')) {
+                // addMealGrid(fields, snap.mealGridState); // Pas de grille sur la facture finale
+            }
+            if (snap.isTaxeSejourHidden === true) {
+                // Ignore (deprecated)
+            }
+        }
+
+        function fillMetaAndClient(fields) {
+            const now = new Date();
+            const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+            const num = (fields["Numéro Devis"] || fields["ID"] || "").toString().slice(-6).toUpperCase();
+            const devNumEl = document.getElementById('devis-number');
+            if (devNumEl) devNumEl.innerText = `${yearMonth}-${num}`;
+            const facEl = document.getElementById('facture-number');
+            if (facEl) facEl.innerText = `FAC${yearMonth}-${num}`;
+            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `FAC${yearMonth}-${num}`);
+
+            const clientInfoEl = document.querySelector('.client-info');
+            if (clientInfoEl) {
+                const org = fields["Entreprise"] || fields["Organisation"] || fields["Société"] || "";
+                const ref = fields["Nom client"] || fields["Référent"] || "";
+                const mail = fields["Email"] || "";
+                const tel = fields["Téléphone"] || "";
+                clientInfoEl.innerHTML =
+                    `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; line-height:1.8;">
+                        <tr><td style="opacity:0.65; width:45%; white-space:nowrap;">Organisation :</td><td><strong>${org || "—"}</strong></td></tr>
+                        <tr><td style="opacity:0.65; white-space:nowrap;">Nom du référent :</td><td>${ref || "—"}</td></tr>
+                        <tr><td style="opacity:0.65; white-space:nowrap;">Mail :</td><td>${mail || "—"}</td></tr>
+                        <tr><td style="opacity:0.65; white-space:nowrap;">Téléphone :</td><td>${tel || "—"}</td></tr>
+                    </table>`;
+            }
+
+            const snapshot = document.querySelectorAll('.snapshot-val');
+            if (snapshot && snapshot.length >= 4) {
+                const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
+                const dArrFmt = fields["Date arrivée"] ? new Date(fields["Date arrivée"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : "?";
+                const dDepFmt = fields["Date départ"] ? new Date(fields["Date départ"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : "?";
+                const nNights = fields["Nuits"] || 0;
+                snapshot[0].innerText = typeLabel;
+                snapshot[1].innerText = `${dArrFmt} → ${dDepFmt}`;
+                snapshot[2].innerText = `${nNights} ${nNights > 1 ? 'nuits' : 'nuit'}`;
+                snapshot[3].innerText = `${fields["Nombre de personnes"] || 0} personnes`;
+            }
+        }
     </script>
 </body>
 
