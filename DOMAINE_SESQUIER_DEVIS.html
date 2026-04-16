@@ -1043,9 +1043,19 @@
                     mealGridState: captureMealGrid()
                 };
 
+                // Récupération des infos client éventuellement modifiées
+                const clientBox = document.querySelector('.client-info');
+                const orgName = clientBox?.querySelector('strong')?.innerText || "";
+                
+                // On cherche le nom du référent (souvent 2ème ligne du tableau info)
+                const refCell = clientBox?.querySelectorAll('td')[3]; // Organisation est en index 1, Nom en 3
+                const clientName = refCell?.innerText || "";
+
                 const payload = {
                     id: currentRequestId,
                     fields: {
+                        "Nom client": clientName.trim(),
+                        "Entreprise": orgName.trim(),
                         "Montant Hébergement HT": parseVal('subtotal-hebergement'),
                         "Montant Repas HT": parseVal('subtotal-restauration'),
                         "Montant Options HT": parseVal('subtotal-salles'),

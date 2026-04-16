@@ -12,6 +12,39 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="assets/utils.js"></script>
+    <script>
+        function escapeHtml(text) {
+            if (!text) return "";
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function fastUpdateRecord(id, field, value) {
+            const val = value.trim();
+            if (!val) return;
+            const record = allRecords.find(r => r.id === id);
+            if (record && record.fields[field] === val) return; // Pas de changement
+            
+            try {
+                await fetch(SesquierUtils.API_RESERVATIONS_URL, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, fields: { [field]: val } })
+                });
+                if (record) record.fields[field] = val;
+                showSyncBanner(`${field} mis à jour !`);
+            } catch (e) {
+                console.error("Fast update failed", e);
+            }
+        }
+
+        function handleRowClick(event, id) {
+            // Empêche l'ouverture du dossier si on clique sur un champ editable
+            if (event.target.contentEditable === 'true') return;
+            openDossier(id);
+        }
+    </script>
     <script src="assets/constants.js"></script>
     <script src="assets/dossier-model.js"></script>
     <style>
@@ -1814,6 +1847,7 @@
                 document.getElementById('dossier-overlay').classList.add('show');
             } else {
                 showDossiers(document.getElementById('nav-dossiers'));
+                refreshData(); // Refresh list when coming back
             }
         }
 
@@ -2134,27 +2168,30 @@
             body.innerHTML = records.map((r, i) => renderRow(r, i)).join('');
         }
 
-        function renderRow(record, index) {
-            const f = record.fields;
-            const id = record.id;
+        function renderRow(r, i) {
+            const { id, fields: f } = r;
             const nom = f["Nom client"] || "Sans nom";
-            const org = f["Entreprise"] || "";
-            const statut = normalizeStatut(f);
-            const dArr = f["Date arrivée"] ? new Date(f["Date arrivée"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : "?";
-            const dDep = f["Date départ"] ? new Date(f["Date départ"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: '2-digit' }) : "?";
-            const pers = f["Nombre de personnes"] || "?";
+            const org = f["Entreprise"];
+            const dArr = f["Date arrivée"] || "—";
+            const dDep = f["Date départ"] || "—";
+            const pers = f["Nombre de personnes"] || 0;
             const total = getTotal(f);
-            const badgeClass = { 'à traiter': 'badge-traiter', 'confirmé': 'badge-confirme', 'annulé': 'badge-annule', 'devis envoyé': 'badge-devis', 'facturé': 'badge-facture' }[statut] || 'badge-traiter';
+            const statut = normalizeStatut(f);
+            const badgeClass = { 'à traiter': 'bg-warning', 'confirmé': 'bg-success', 'devis envoyé': 'bg-info', 'annulé': 'bg-danger' }[statut] || 'bg-secondary';
             const label = statut.charAt(0).toUpperCase() + statut.slice(1);
-            const delay = Math.min(index * 0.03, 0.3);
+            const delay = i * 0.05;
 
-            return `<div class="table-row" onclick="openDossier('${id}')" style="display: grid; grid-template-columns: 50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr; animation: fadeSlideUp 0.3s ease ${delay}s both;">
+            return `<div class="table-row" onclick="handleRowClick(event, '${id}')" style="display: grid; grid-template-columns: 50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr; animation: fadeSlideUp 0.3s ease ${delay}s both;">
                 <div class="row-expand">
                     <i class="fa-solid fa-plus"></i>
                 </div>
                 <div class="row-client">
-                    <span class="row-client-name link">${escapeHtml(nom)}</span>
-                    ${org ? `<span class="row-client-org">${escapeHtml(org)}</span>` : ''}
+                    <span class="row-client-name link" contenteditable="true" spellcheck="false" 
+                          onblur="fastUpdateRecord('${id}', 'Nom client', this.innerText)"
+                          onclick="event.stopPropagation()">${escapeHtml(nom)}</span>
+                    <span class="row-client-org" contenteditable="true" spellcheck="false"
+                          onblur="fastUpdateRecord('${id}', 'Entreprise', this.innerText)"
+                          onclick="event.stopPropagation()">${escapeHtml(org || 'Entreprise...')}</span>
                 </div>
                 <div class="row-dates"><i class="fa-regular fa-calendar"></i> ${dArr} → ${dDep}</div>
                 <div class="row-persons">${pers}</div>
