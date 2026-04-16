@@ -247,7 +247,7 @@ const SesquierUtils = {
                     if (row.hasAttribute('data-meal-key')) sRestau += line;
                     else {
                         const label = (row.cells[0]?.innerText || "").toLowerCase();
-                        if (label.includes("chambre") || label.includes("hébergement") || label.includes("héberg") || label.includes("remise") || label.includes("twin")) {
+                        if (label.includes("chambre") || label.includes("hébergement") || label.includes("héberg") || label.includes("twin")) {
                             sHeberg += line;
                         } else {
                             sRestau += line;
