@@ -246,9 +246,12 @@ const SesquierUtils = {
                 if (tbodyId === 'pricing-body') {
                     if (row.hasAttribute('data-meal-key')) sRestau += line;
                     else {
-                        const label = row.cells[0]?.innerText || "";
-                        if (label.includes("Chambre") || label.includes("Hébergement") || label.includes("twin")) sHeberg += line;
-                        else sRestau += line;
+                        const label = (row.cells[0]?.innerText || "").toLowerCase();
+                        if (label.includes("chambre") || label.includes("hébergement") || label.includes("héberg") || label.includes("remise") || label.includes("twin")) {
+                            sHeberg += line;
+                        } else {
+                            sRestau += line;
+                        }
                     }
                 } else if (tbodyId === 'options-body') sOpt += line;
                 else if (tbodyId === 'activities-body') sActiv += line;
