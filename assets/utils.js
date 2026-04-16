@@ -222,7 +222,9 @@ const SesquierUtils = {
 
         const parseP = (val) => {
             if (!val) return 0;
-            return parseFloat(val.toString().replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+            // On garde les chiffres, les points, les virgules et le signe MOINS
+            const clean = val.toString().replace(/[^\d.,-]/g, '').replace(',', '.');
+            return parseFloat(clean) || 0;
         };
 
         const processTable = (tbodyId) => {
@@ -237,24 +239,22 @@ const SesquierUtils = {
 
                 const q = parseFloat(qEl.innerText.replace(',', '.')) || 0;
                 const p = parseP(pEl.innerText);
-                const line = q * p;
+                const line = Math.round(q * p * 100) / 100; // Arrondi propre au centime
 
                 const totalEl = row.querySelector('.row-total');
-                if (totalEl) {
-                    // Pour les montants négatifs, on affiche le signe moins
-                    totalEl.innerText = line.toFixed(2);
-                }
+                if (totalEl) totalEl.innerText = line.toFixed(2);
 
                 totalHT += line;
+
                 if (tbodyId === 'pricing-body') {
-                    if (row.hasAttribute('data-meal-key')) sRestau += line;
-                    else {
-                        const label = (row.cells[0]?.innerText || "").toLowerCase();
-                        if (label.includes("chambre") || label.includes("hébergement") || label.includes("héberg") || label.includes("twin")) {
-                            sHeberg += line;
-                        } else {
-                            sRestau += line;
-                        }
+                    const label = (row.cells[0]?.innerText || "").toLowerCase();
+                    const isHeberg = label.includes("chambre") || label.includes("hébergement") || label.includes("héberg") || label.includes("twin");
+                    
+                    if (isHeberg) {
+                        sHeberg += line;
+                    } else {
+                        // Par défaut tout le reste du pricing-body va en restauration (dont les remises repas)
+                        sRestau += line;
                     }
                 } else if (tbodyId === 'options-body') sOpt += line;
                 else if (tbodyId === 'activities-body') sActiv += line;
