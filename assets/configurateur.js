@@ -2056,9 +2056,6 @@ function handleMainCTA() {
             contactSection.style.display = 'block';
             setTimeout(() => scrollToStep('step-contact'), 50);
             updateCalculations();
-        } else if (!email.includes('@')) {
-            scrollToStep('step-contact');
-            document.getElementById('email').focus();
         } else {
             sendQuoteRequest();
         }
@@ -2118,7 +2115,8 @@ async function sendQuoteRequest() {
     const nbTotal = parseInt(document.getElementById('nbTotal')?.value) || 0;
 
     const isExpert = document.body.classList.contains('is-expert') || isEditingMode;
-    if (!email && !isExpert) return alert('Veuillez renseigner votre email pour recevoir l\'estimation.');
+    // Email n'est plus obligatoire
+    
 
     // --- Capture Meal Details (legacy) ---
     const mealMode = getSelectedMealMode();
