@@ -653,8 +653,15 @@
             btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Enregistrer Dossier';
         }
 
-        async function generatePDF() {
-            await SesquierUtils.generatePDF('cuisine-content', `Cuisine_Timeline_${state.clientName}.pdf`, { margin: 5, html2canvas: { scale: 3 } });
+        function generatePDF() {
+            const opt = {
+                margin: 5,
+                filename: `Cuisine_Timeline_${state.clientName}.pdf`,
+                image: { type: 'jpeg', quality: 1 },
+                html2canvas: { scale: 3 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(document.getElementById('cuisine-content')).save();
         }
         window.onload = loadData;
     </script>

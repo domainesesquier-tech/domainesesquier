@@ -1,0 +1,11 @@
+name = "domainesesquier-api"
+main = "worker/index.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+# Set this to your production site origin for stricter CORS.
+# Example: "https://example.com"
+ALLOWED_ORIGIN = "*"
+AIRTABLE_BASE_ID = "app6AAb5nlRHVnGzW"
+AIRTABLE_RESERVATIONS_TABLE = "Réservation"
+AIRTABLE_PRICING_TABLE = "Politique tarifaire"

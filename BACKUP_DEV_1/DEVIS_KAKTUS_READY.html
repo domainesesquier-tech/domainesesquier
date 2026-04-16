@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Éditeur Devis Kactus — Domaine Sesquier</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="assets/document.css">
+    <script src="assets/utils.js"></script>
+    <style>
+        /* Styles spécifiques à l'éditeur interactif */
+        [contenteditable="true"] {
+            border-bottom: 1px dashed transparent;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        [contenteditable="true"]:hover {
+            border-bottom-color: var(--accent);
+            background: rgba(158, 93, 76, 0.03);
+        }
+
+        [contenteditable="true"]:focus {
+            border-bottom-color: var(--primary);
+            background: rgba(58, 85, 56, 0.03);
+        }
+
+        .no-print {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .no-print .btn-add {
+            padding: 5px 12px;
+            background: none;
+            border: 1px dashed var(--primary);
+            color: var(--primary);
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 8.5pt;
+            font-family: inherit;
+        }
+
+        .no-print .btn-add:hover {
+            background: rgba(58, 85, 56, 0.05);
+        }
+
+        .col-remove {
+            width: 30px;
+            border: none !important;
+            padding: 0 !important;
+            cursor: pointer;
+            color: #ff4d4d;
+            font-size: 14pt;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+        }
+
+        tr:hover .col-remove {
+            visibility: visible;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page" id="page1">
+        <div class="print-header">
+            <div class="logo-area">
+                <div class="serif" style="font-size: 22pt; font-weight: 700; color: var(--primary);">Domaine Sesquier
+                </div>
+                <div
+                    style="font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.15em; color: var(--accent); font-weight: 600; margin-top: 3px;">
+                    L'esprit de famille & l'art de vivre</div>
+            </div>
+            <div class="doc-meta">
+                <h1 style="font-size: 24pt; margin: 0; color: var(--primary);">DEVIS INTERACTIF</h1>
+                <div style="margin-top: 10px;">
+                    <div>N° : <strong id="devis-number" contenteditable="true">2026-09-KAKTUS</strong></div>
+                    <div>Date : <span id="today-date" contenteditable="true">26/03/2026</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 25px;">
+            <div class="info-box">
+                <div class="info-title">CLIENT / ENTREPRISE</div>
+                <div class="client-info">
+                    <div contenteditable="true"><strong>CLIENT KACTUS - SÉMINAIRE SEPTEMBRE</strong></div>
+                    <div contenteditable="true">Référent : Agence Nord</div>
+                    <div contenteditable="true">Email : contact@kactus.fr</div>
+                </div>
+            </div>
+            <div class="info-box">
+                <div class="info-title">RÉSUMÉ DU SÉJOUR</div>
+                <div class="stay-info" style="font-size: 9pt;">
+                    <table style="width:100%;">
+                        <tr>
+                            <td style="opacity:0.65;">Type :</td>
+                            <td contenteditable="true"><strong>Séminaire d'entreprise (Privatisé)</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="opacity:0.65;">Dates :</td>
+                            <td contenteditable="true">16 sept → 18 sept 2026 (2 nuits)</td>
+                        </tr>
+                        <tr>
+                            <td style="opacity:0.65;">Participants :</td>
+                            <td contenteditable="true">30 pers (N1) / 60 pers (N2)</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="draft-synthesis" contenteditable="true"
+            style="font-size: 11pt; font-weight: 600; color: var(--text-main); margin-bottom: 20px; border-left: 4px solid var(--primary); padding-left: 15px;">
+            Séminaire de cohésion (Murder Party) — 60 personnes — Restauration Complète
+        </div>
+
+        <section class="pricing-section">
+            <table class="pricing-table">
+                <thead>
+                    <tr>
+                        <th class="col-detail">Description des Prestations</th>
+                        <th class="col-qty">Qté</th>
+                        <th class="col-price">PU HT</th>
+                        <th class="col-tva">TVA</th>
+                        <th class="col-total">Total HT</th>
+                        <th class="no-print"></th>
+                    </tr>
+                </thead>
+                <tbody id="pricing-body">
+                    <tr class="category-row">
+                        <td colspan="6">HEBERGEMENT (Gîte Privatisé)</td>
+                    </tr>
+                    <tr>
+                        <td contenteditable="true"><strong>Nuitée 1 (16/09) — Arrivée
+                                echellonnée</strong><br><small>Hébergement en chambre twin (Draps/Serviettes
+                                inclus)</small></td>
+                        <td class="qty" contenteditable="true">30</td>
+                        <td class="price" contenteditable="true">40.00</td>
+                        <td class="tva-rate" contenteditable="true">10%</td>
+                        <td class="row-total">1200.00</td>
+                        <td class="no-print col-remove" onclick="SesquierUtils.removeRow(this, event)">&times;</td>
+                    </tr>
+                    <tr>
+                        <td contenteditable="true"><strong>Nuitée 2 (17/09) — Groupe
+                                Complet</strong><br><small>Hébergement en chambre twin (Draps/Serviettes inclus)</small>
+                        </td>
+                        <td class="qty" contenteditable="true">60</td>
+                        <td class="price" contenteditable="true">40.00</td>
+                        <td class="tva-rate" contenteditable="true">10%</td>
+                        <td class="row-total">2400.00</td>
+                        <td class="no-print col-remove" onclick="SesquierUtils.removeRow(this, event)">&times;</td>
+                    </tr>
+                    <tr class="subtotal-row">
+                        <td colspan="4" style="text-align:right;">Sous-total Hébergement HT</td>
+                        <td id="subtotal-hebergement">3600.00</td>
+                        <td class="no-print"></td>
+                    </tr>
+
+                    <tr class="category-row">
+                        <td colspan="6">RESTAURATION (PENSION COMPLÈTE)</td>
+                    </tr>
+                    <tr>
+                        <td contenteditable="true"><strong>16 sept</strong> — Déjeuner simple (Buffet)</td>
+                        <td class="qty" contenteditable="true">30</td>
+                        <td class="price" contenteditable="true">26.00</td>
+                        <td class="tva-rate" contenteditable="true">10%</td>
+                        <td class="row-total">780.00</td>
+                        <td class="no-print col-remove" onclick="SesquierUtils.removeRow(this, event)">&times;</td>
+                    </tr>
+                    <tr>
+                        <td contenteditable="true"><strong>16 sept</strong> — Cocktail dînatoire (convivial)</td>
+                        <td class="qty" contenteditable="true">60</td>
+                        <td class="price" contenteditable="true">35.00</td>
+                        <td class="tva-rate" contenteditable="true">10%</td>
+                        <td class="row-total">2100.00</td>
+                        <td class="no-print col-remove" onclick="SesquierUtils.removeRow(this, event)">&times;</td>
+                    </tr>
+                    <tr>
+                        <td contenteditable="true"><strong>17 sept</strong> — Petit-déjeuner complet</td>
+                        <td class="qty" contenteditable="true">30</td>
+                        <td class="price" contenteditable="true">14.00</td>
+                        <td class="tva-rate" contenteditable="true">10%</td>
+                        <td class="row-total">420.00</td>
+                        <td class="no-print col-remove" onclick="SesquierUtils.removeRow(this, event)">&times;</td>
+                    </tr>
+                    <tr>
+                        <td contenteditable="true"><strong>17 sept</strong> — Déjeuner (Format BBQ convivial)</td>
+                        <td class="qty" contenteditable="true">60</td>
+                        <td class="price" contenteditable="true">30.00</td>
+                        <td class="tva-rate" contenteditable="true">10%</td>
+                        <td class="row-total">1800.00</td>
+                        <td class="no-print col-remove" onclick="SesquierUtils.removeRow(this, event)">&times;</td>
+                    </tr>
+                    <tr>
+                        <td contenteditable="true"><strong>17 sept</strong> — Dîner assis (Soirée de Gala)</td>
+                        <td class="qty" contenteditable="true">60</td>
+                        <td class="price" contenteditable="true">30.00</td>
+                        <td class="tva-rate" contenteditable="true">10%</td>
+                        <td class="row-total">1800.00</td>
+                        <td class="no-print col-remove" onclick="SesquierUtils.removeRow(this, event)">&times;</td>
+                    </tr>
+                    <tr>
+                        <td contenteditable="true"><strong>18 sept</strong> — Brunch de clôture</td>
+                        <td class="qty" contenteditable="true">60</td>
+                        <td class="price" contenteditable="true">20.00</td>
+                        <td class="tva-rate" contenteditable="true">10%</td>
+                        <td class="row-total">1200.00</td>
+                        <td class="no-print col-remove" onclick="SesquierUtils.removeRow(this, event)">&times;</td>
+                    </tr>
+                    <tr class="subtotal-row">
+                        <td colspan="4" style="text-align:right;">Sous-total Restauration HT</td>
+                        <td id="subtotal-restauration">8100.00</td>
+                        <td class="no-print"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="no-print"><button class="btn-add" onclick="SesquierUtils.addRowBefore(this)">+ Ligne
+                    Prestation</button></div>
+        </section>
+
+        <section class="pricing-section">
+            <table class="pricing-table">
+                <tbody id="options-body">
+                    <tr class="category-row">
+                        <td colspan="6">OPTIONS & SALLES</td>
+                    </tr>
+                    <tr>
+                        <td contenteditable="true"><strong>Forfait Privatisation (Murder Party & Activités)</strong>
+                        </td>
+                        <td class="qty" contenteditable="true">1</td>
+                        <td class="price" contenteditable="true">1200.00</td>
+                        <td class="tva-rate" contenteditable="true">20%</td>
+                        <td class="row-total">1200.00</td>
+                        <td class="no-print col-remove" onclick="SesquierUtils.removeRow(this, event)">&times;</td>
+                    </tr>
+                    <tr>
+                        <td contenteditable="true"><strong>Forfait DJ & Soirée</strong></td>
+                        <td class="qty" contenteditable="true">1</td>
+                        <td class="price" contenteditable="true">950.00</td>
+                        <td class="tva-rate" contenteditable="true">20%</td>
+                        <td class="row-total">950.00</td>
+                        <td class="no-print col-remove" onclick="SesquierUtils.removeRow(this, event)">&times;</td>
+                    </tr>
+                    <tr class="subtotal-row">
+                        <td colspan="4" style="text-align:right;">Sous-total Options HT</td>
+                        <td id="subtotal-salles">2150.00</td>
+                        <td class="no-print"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="no-print"><button class="btn-add" onclick="SesquierUtils.addRowBefore(this)">+ Ligne
+                    Option</button></div>
+        </section>
+
+        <div class="print-footer"
+            style="position: absolute; bottom: 15mm; width: calc(100% - 30mm); font-size: 8pt; color: #999;">
+            Domaine Sesquier — DEVIS KAKTUS — Page 1/1
+        </div>
+    </div>
+
+    <div class="page" id="totals-page" style="height: auto; min-height: 0; padding-top: 0;">
+        <section class="bottom-section"
+            style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 40px; margin-top: 20px;">
+            <div style="font-size: 8.5pt;">
+                <h3 style="color: var(--primary); margin-bottom:10px;">Condition de Règlement</h3>
+                <ul style="color: #666; padding-left: 15px; line-height: 1.6;">
+                    <li>Acompte 30% pour réservation</li>
+                    <li>Solde 15 jours avant l'arrivée</li>
+                    <li>Virement bancaire uniquement (IBAN sur demande)</li>
+                </ul>
+            </div>
+            <div>
+                <div
+                    style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee;">
+                    <span>TOTAL HT</span><strong id="display-total-ht">0,00 €</strong>
+                </div>
+                <div
+                    style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee;">
+                    <span>TVA</span><strong id="display-total-tva">0,00 €</strong>
+                </div>
+                <div
+                    style="display: flex; justify-content: space-between; padding: 15px 0; font-size: 16pt; color: var(--primary); font-weight: 700;">
+                    <span>TOTAL TTC</span><span id="display-total-ttc">0,00 €</span>
+                </div>
+                <div style="background: var(--bg); padding: 15px; border-radius: 8px; margin-top: 20px;">
+                    <div style="display:flex; justify-content: space-between; font-weight: 600; color: var(--accent);">
+                        <span>ACOMPTE (30%)</span><span id="display-acompte">0,00 €</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        window.onload = () => {
+            updateCalculations();
+            document.body.addEventListener('input', () => updateCalculations());
+        };
+
+        function updateCalculations() {
+            const results = SesquierUtils.runCommonCalculations();
+            const format = (v) => SesquierUtils.formatEuro(v);
+
+            // Mise à jour des sous-totaux visuels dans les tableaux
+            if (document.getElementById('subtotal-hebergement')) document.getElementById('subtotal-hebergement').innerText = format(results.subtotals.sHeberg);
+            if (document.getElementById('subtotal-restauration')) document.getElementById('subtotal-restauration').innerText = format(results.subtotals.sRestau);
+            if (document.getElementById('subtotal-salles')) document.getElementById('subtotal-salles').innerText = format(results.subtotals.sOpt);
+
+            // Mise à jour du bloc final
+            document.getElementById('display-total-ht').innerText = format(results.totalHT);
+            document.getElementById('display-total-tva').innerText = format(results.totalTVA);
+            document.getElementById('display-total-ttc').innerText = format(results.ttc);
+            document.getElementById('display-acompte').innerText = format(results.ttc * 0.3);
+        }
+    </script>
+</body>
+
+</html>

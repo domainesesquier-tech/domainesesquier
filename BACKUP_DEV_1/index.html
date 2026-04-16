@@ -1957,7 +1957,7 @@
         }
 
         function openDocFromDossier(type, id) {
-            if (type === 'pro') {
+            if (type === 'config') {
                 document.getElementById('dev-id-input').value = id;
                 document.getElementById('dossier-overlay').classList.remove('show');
                 switchTab('iframe-pro', document.getElementById('nav-pro'));
@@ -1980,6 +1980,7 @@
             banner.classList.add('show');
             setTimeout(() => banner.classList.remove('show'), 3000);
         }
+
 
         async function loadAllRecords() {
             showSkeleton();
@@ -2168,7 +2169,6 @@
 
             // Map type to its specific nav/tab
             const navId = {
-                'pro': 'nav-pro',
                 'devis': 'nav-devis',
                 'facture': 'nav-facture',
                 'facture-finale': 'nav-facture-finale',
@@ -2184,15 +2184,13 @@
             const docTypes = [
                 { type: 'pro', label: 'Config', icon: 'fa-sliders' },
                 { type: 'devis', label: 'Devis', icon: 'fa-file-lines' },
-                { type: 'facture', label: 'Acompte', icon: 'fa-file-invoice-dollar' },
-                { type: 'facture-finale', label: 'Facture', icon: 'fa-receipt' },
                 { type: 'rooming', label: 'Hébergement', icon: 'fa-hotel' },
-                { type: 'cuisine', label: 'Cuisine', icon: 'fa-utensils' },
+                { type: 'cuisine', label: 'Fiche Cuisine', icon: 'fa-utensils' },
                 { type: 'menu-client', label: 'Menus', icon: 'fa-wine-glass' }
             ];
 
             tabsContainer.innerHTML = docTypes.map(d => `
-                <div class="nav-tab ${d.type === type ? 'active' : ''}" onclick="openDocForRecord('${d.type}', '${id}')">
+                <div class="nav-tab ${d.type === type ? 'active' : ''}" onclick="openDocForRecord('${d.type}', '${recordId}')">
                     <i class="fa-solid ${d.icon}"></i>
                     <span>${d.label}</span>
                 </div>
@@ -2229,12 +2227,12 @@
                 const inputVal = document.getElementById('dev-id-input').value.trim();
                 let baseSrc = iframeSrcMap[frameId];
 
-                if (inputVal) {
-                    const separator = baseSrc.includes('?') ? '&' : '?';
-                    baseSrc += `${separator}id=${inputVal}&t=${Date.now()}`;
+                if (inputVal && frameId !== 'iframe-pro') {
+                    baseSrc += `?id=${inputVal}&t=${Date.now()}`;
+                } else if (frameId === 'iframe-pro') {
+                    // Configurateur — keep mode param
                 } else {
-                    const separator = baseSrc.includes('?') ? '&' : '?';
-                    baseSrc += `${separator}live=true&t=${Date.now()}`;
+                    baseSrc += `?live=true&t=${Date.now()}`;
                 }
 
                 if (!targetFrame.src.includes(baseSrc.split('?')[0]) || targetFrame.src === 'about:blank') {
@@ -2273,7 +2271,6 @@
                 document.getElementById('dev-id-input').value = newId;
                 const newUrl = window.location.pathname + '?id=' + newId;
                 window.history.pushState({}, '', newUrl);
-                refreshData(); // Auto-update the dossiers list in the background
                 switchTab('iframe-devis', document.getElementById('nav-devis'));
             }
             if (event.data.type === 'SWITCH_TAB') {

@@ -13,7 +13,6 @@
         rel="stylesheet">
 
     <link rel="stylesheet" href="assets/document.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="assets/utils.js"></script>
     <script src="assets/constants.js"></script>
     <script src="assets/dossier-model.js"></script>
@@ -40,12 +39,12 @@
             </svg>
             Enregistrer
         </button>
-        <button class="btn btn-primary" onclick="generatePDF()">
+        <button class="btn btn-primary" onclick="window.print()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                 <polyline points="14 2 14 8 20 8"></polyline>
             </svg>
-            Générer PDF
+            Imprimer / PDF
         </button>
     </div>
 
@@ -418,12 +417,6 @@
         }
 
         async function saveToAirtable() { alert("Facture enregistrée localement."); }
-
-        function generatePDF() {
-            const num = document.getElementById('facture-number').innerText;
-            const client = currentRecord?.fields?.["Nom client"] || "Client";
-            SesquierUtils.generatePDF('devis-content', `Facture_${client}_${num}.pdf`, { margin: [5, 5, 5, 5] });
-        }
 
         document.body.addEventListener('input', (e) => {
             if (e.target.contentEditable === 'true') updateCalculations();

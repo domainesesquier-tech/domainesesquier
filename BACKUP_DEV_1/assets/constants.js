@@ -47,9 +47,7 @@ const SesquierConstants = {
         { name: "Iris", cap: 4, beds: "1 lit double, 2 simples", remarks: "Configuration classique" },
         { name: "Rose", cap: 4, beds: "1 lit double, 1 canapé 2p", remarks: "Canapé convertible 2 places" },
         { name: "Figuier", cap: 2, beds: "1 lit double", remarks: "Gîte romantique pour 2" },
-        { name: "Jasmin", cap: 4, beds: "1 lit double conv, 1 canapé 1p, 1 appoint", remarks: "Lit double convertible + lit d'appoint" },
-        { name: "Clos Josette", cap: 2, beds: "À définir", remarks: "Nouveau" },
-        { name: "Le Grenier", cap: 6, beds: "À définir", remarks: "Nouveau" }
+        { name: "Jasmin", cap: 4, beds: "1 lit double conv, 1 canapé 1p, 1 appoint", remarks: "Lit double convertible + lit d'appoint" }
     ]
 };
 

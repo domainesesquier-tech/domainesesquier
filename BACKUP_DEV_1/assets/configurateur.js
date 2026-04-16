@@ -16,89 +16,119 @@ let bookingDraft = {
 let isEditingMode = false;
 
 function saveDraft() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (isEditingMode || urlParams.get('id') || urlParams.get('live') || document.body.dataset.loadingDraft === 'true') return;
+    if (!document.getElementById('main-configurator') || document.getElementById('main-configurator').style.display === 'none') return;
 
-    try {
-        const draft = {};
-        document.querySelectorAll('.workspace input, .workspace select, .workspace textarea').forEach(el => {
-            if (el.id) {
-                if (el.type === 'checkbox' || el.type === 'radio') draft[el.id] = el.checked;
-                else draft[el.id] = el.value;
-            }
-        });
-        
-        draft['_currentMode'] = currentMode;
-        if (startDate) draft['_startDate'] = startDate.toISOString();
-        if (endDate) draft['_endDate'] = endDate.toISOString();
+    bookingDraft.type = currentMode;
+    bookingDraft.objective = currentMode === 'pro' ? bookingDraft.objective : 'strategy';
+    bookingDraft.dates.start = startDate ? startDate.getTime() : null;
+    bookingDraft.dates.end = endDate ? endDate.getTime() : null;
 
-        draft['_savedAt'] = Date.now();
-        localStorage.setItem('ds_expert_draft', JSON.stringify(draft));
-    } catch(e) {}
-}
+    bookingDraft.group.total = parseInt(document.getElementById('nbTotal').value) || 0;
+    bookingDraft.group.adult = parseInt(document.getElementById('nbAdult').value) || 0;
+    bookingDraft.group.child = parseInt(document.getElementById('nbChild').value) || 0;
+    bookingDraft.group.baby = parseInt(document.getElementById('nbBaby').value) || 0;
 
-function clearDraft() {
-    localStorage.removeItem('ds_expert_draft');
-    const banner = document.getElementById('draft-banner');
-    if (banner) banner.style.display = 'none';
+    bookingDraft.sleeping.mode = sleepingMode;
+    bookingDraft.sleeping.indiv = parseInt(document.getElementById('nbIndividuel').value) || 0;
+    bookingDraft.sleeping.partage = parseInt(document.getElementById('nbPartage').value) || 0;
+    bookingDraft.sleeping.couple = parseInt(document.getElementById('nbCouple').value) || 0;
+
+    const mealRadio = document.querySelector('input[name="repasType"]:checked');
+    if (mealRadio) bookingDraft.meals.type = mealRadio.value;
+
+    let checkedMeals = [];
+    document.querySelectorAll('.meal-check:checked').forEach((el, index) => {
+        checkedMeals.push(index);
+    });
+    bookingDraft.meals.checkedIndices = checkedMeals;
+
+    const dietary = document.getElementById('dietary');
+    if (dietary) bookingDraft.meals.dietary = dietary.value;
+
+    const opts = ['draps', 'menage', 'lateArrival', 'salleReunion', 'kitSoiree'];
+    opts.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) bookingDraft.options[id] = el.checked;
+    });
+
+    bookingDraft.contact.organisation = document.getElementById('organisation').value;
+    bookingDraft.contact.first = document.getElementById('firstname').value;
+    bookingDraft.contact.last = document.getElementById('lastname').value;
+    bookingDraft.contact.email = document.getElementById('email').value;
+    bookingDraft.contact.phone = document.getElementById('phone').value;
+    bookingDraft.contact.msg = document.getElementById('message').value;
+
+    localStorage.setItem('domaineBookingDraft', JSON.stringify(bookingDraft));
 }
 
 function restoreDraft() {
-    const saved = localStorage.getItem('ds_expert_draft');
+    const saved = localStorage.getItem('domaineBookingDraft');
     if (!saved) return;
-    
-    document.body.dataset.loadingDraft = 'true';
 
     try {
         const draft = JSON.parse(saved);
 
-        if (draft['_currentMode'] && draft['_currentMode'] !== currentMode) {
-            setMode(draft['_currentMode']);
+        // Data restoration only, do NOT trigger startFlow automatically
+        if (!draft.type) return;
+
+        if (draft.dates.start) {
+            startDate = new Date(draft.dates.start);
+            currentMonth = new Date(draft.dates.start);
+        }
+        if (draft.dates.end) endDate = new Date(draft.dates.end);
+
+        updateDateDisplay();
+        renderCalendar();
+
+        document.getElementById('nbTotal').value = draft.group.total || 0;
+        document.getElementById('nbAdult').value = draft.group.adult || 0;
+        document.getElementById('nbChild').value = draft.group.child || 0;
+        document.getElementById('nbBaby').value = draft.group.baby || 0;
+
+        if (draft.sleeping.mode) setSleepingMode(draft.sleeping.mode);
+        document.getElementById('nbIndividuel').value = draft.sleeping.indiv || 0;
+        document.getElementById('nbPartage').value = draft.sleeping.partage || 0;
+        document.getElementById('nbCouple').value = draft.sleeping.couple || 0;
+
+        if (draft.meals.type) {
+            const radio = document.querySelector(`input[name="repasType"][value="${draft.meals.type}"]`);
+            if (radio) {
+                radio.checked = true;
+                toggleMeals(draft.meals.type === 'traiteur');
+            }
         }
 
-        if (draft['_startDate'] && draft['_endDate']) {
-            document.getElementById('nativeDateArrivee').value = draft['_startDate'].split('T')[0];
-            document.getElementById('nativeDateDepart').value = draft['_endDate'].split('T')[0];
-            handleNativeDateChange(); // Parses Dates, calls calculateNights -> calls renderMealsSchedule
+        if (draft.meals.type === 'traiteur' && draft.meals.checkedIndices) {
+            setTimeout(() => {
+                const checks = document.querySelectorAll('.meal-check');
+                draft.meals.checkedIndices.forEach(idx => {
+                    if (checks[idx]) checks[idx].checked = true;
+                });
+                updateCalculations();
+            }, 500);
+        }
+        if (draft.meals.dietary) document.getElementById('dietary').value = draft.meals.dietary;
+
+        if (draft.options.draps) document.getElementById('draps').checked = true;
+        if (draft.options.menage) document.getElementById('menage').checked = true;
+        if (draft.options.lateArrival) document.getElementById('lateArrival').checked = true;
+        if (draft.options.salleReunion && document.getElementById('salleReunion')) document.getElementById('salleReunion').checked = true;
+
+        document.getElementById('organisation').value = draft.contact.organisation || '';
+        document.getElementById('firstname').value = draft.contact.first || '';
+        document.getElementById('lastname').value = draft.contact.last || '';
+        document.getElementById('email').value = draft.contact.email || '';
+        document.getElementById('phone').value = draft.contact.phone || '';
+        document.getElementById('message').value = draft.contact.msg || '';
+
+        if (draft.contact.first || draft.contact.last || draft.contact.email) {
+            document.getElementById('step-contact').style.display = 'block';
+            document.getElementById('pill-contact').style.display = 'flex';
         }
 
-        setTimeout(() => {
-            Object.keys(draft).forEach(id => {
-                if (id.startsWith('_')) return;
-                const el = document.getElementById(id);
-                if (el) {
-                    if (el.type === 'checkbox' || el.type === 'radio') el.checked = draft[id];
-                    else el.value = draft[id];
-                }
-            });
-            
-            document.querySelectorAll('.gite-card input[type="checkbox"]').forEach(updateGiteSelection);
-            
-            // Masquer la bannière
-            const banner = document.getElementById('draft-banner');
-            if (banner) banner.style.display = 'none';
-
-            updateCalculations();
-            delete document.body.dataset.loadingDraft;
-        }, 300);
-
+        updateCalculations();
     } catch (e) {
         console.error("Failed to restore draft", e);
-        clearDraft();
-        delete document.body.dataset.loadingDraft;
-    }
-}
-
-function checkDraftBanner() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('id') || urlParams.get('live')) {
-        localStorage.removeItem('ds_expert_draft');
-        return;
-    }
-    const saved = localStorage.getItem('ds_expert_draft');
-    if (saved) {
-        const banner = document.getElementById('draft-banner');
-        if (banner) banner.style.display = 'flex';
     }
 }
 
@@ -313,123 +343,8 @@ const GITES = [
     { name: "Iris", cap: 4, beds: "1 lit double, 2 simples", remarks: "Configuration classique" },
     { name: "Rose", cap: 4, beds: "1 lit double, 1 canapé 2p", remarks: "Canapé convertible 2 places" },
     { name: "Figuier", cap: 2, beds: "1 lit double", remarks: "Gîte romantique pour 2" },
-    { name: "Jasmin", cap: 4, beds: "1 lit double conv, 1 canapé 1p, 1 appoint", remarks: "Lit double convertible + lit d'appoint" },
-    { name: "Clos Josette", cap: 2, beds: "À définir", remarks: "Nouveau" },
-    { name: "Le Grenier", cap: 6, beds: "À définir", remarks: "Nouveau" }
+    { name: "Jasmin", cap: 4, beds: "1 lit double conv, 1 canapé 1p, 1 appoint", remarks: "Lit double convertible + lit d'appoint" }
 ];
-
-function renderGitesGrid() {
-    const container = document.getElementById('gites-container');
-    if (!container) return;
-    
-    container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(130px, 1fr))';
-    container.style.gap = '12px';
-    
-    let html = '';
-    GITES.forEach((gite, index) => {
-        html += `
-        <div class="gite-card" id="gite-card-${index}" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px; border:1px solid var(--border); border-radius:12px; gap:10px; cursor:pointer; background:#f8fafc; transition:all 0.2s;" onclick="toggleGite(${index})">
-            <label class="switch" onclick="event.stopPropagation()" style="transform: scale(0.9);">
-                <input type="checkbox" id="gite-cb-${index}" onchange="updateGiteSelection()">
-                <span class="slider"></span>
-            </label>
-            <div style="text-align:center; pointer-events:none;">
-                <strong style="color:var(--primary); font-size:13px; display:block; line-height:1.2;">${gite.name}</strong>
-                <span style="font-size:10px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">${gite.cap} max</span>
-            </div>
-            <div class="stepper-mini" onclick="event.stopPropagation()" style="display:flex; align-items:center; gap:4px;">
-                <button type="button" class="stepper-mini-btn" onclick="adjustGiteOcc(${index}, -1)"><i class="fas fa-minus"></i></button>
-                <input type="number" id="gite-occ-${index}" class="input-dense" value="0" min="0" max="${gite.cap}" 
-                       style="width:36px; height:24px; font-weight:700; text-align:center; border:1px solid var(--border); border-radius:4px; padding:0; background:#fff; font-size:12px;" 
-                       onchange="onGiteInputChange(${index})">
-                <button type="button" class="stepper-mini-btn" onclick="adjustGiteOcc(${index}, 1)"><i class="fas fa-plus"></i></button>
-            </div>
-        </div>
-        `;
-    });
-    container.innerHTML = html;
-}
-
-function adjustGiteOcc(index, delta) {
-    const occ = document.getElementById(`gite-occ-${index}`);
-    const cb = document.getElementById(`gite-cb-${index}`);
-    if (!occ || !cb) return;
-    
-    let val = parseInt(occ.value) || 0;
-    val += delta;
-    
-    const cap = GITES[index].cap;
-    if (val < 0) val = 0;
-    if (val > cap) val = cap;
-    
-    occ.value = val;
-    cb.checked = (val > 0);
-    updateGiteSelection();
-}
-
-function onGiteInputChange(index) {
-    const occ = document.getElementById(`gite-occ-${index}`);
-    const cb = document.getElementById(`gite-cb-${index}`);
-    if (occ && cb) {
-        cb.checked = (parseInt(occ.value) > 0);
-    }
-    updateGiteSelection();
-}
-
-function toggleGite(index) {
-    const cb = document.getElementById(`gite-cb-${index}`);
-    if (cb) {
-        cb.checked = !cb.checked;
-        if (cb.checked) {
-             const occ = document.getElementById(`gite-occ-${index}`);
-             if (occ && parseInt(occ.value) === 0) occ.value = GITES[index].cap;
-        }
-        updateGiteSelection();
-    }
-}
-
-function updateGiteSelection() {
-    let totalAssigned = 0;
-    GITES.forEach((g, i) => {
-        const cb = document.getElementById(`gite-cb-${i}`);
-        const occ = document.getElementById(`gite-occ-${i}`);
-        if (!cb || !occ) return;
-        
-        const card = document.getElementById(`gite-card-${i}`);
-        if (cb.checked) {
-            if (card) {
-                card.style.borderColor = 'var(--accent)';
-                card.style.background = 'rgba(185, 138, 77, 0.05)';
-            }
-            if (parseInt(occ.value) === 0) occ.value = g.cap;
-            totalAssigned += parseInt(occ.value) || 0;
-        } else {
-            if (card) {
-                card.style.borderColor = 'var(--border)';
-                card.style.background = '#f8fafc';
-            }
-            occ.value = 0;
-        }
-    });
-
-    const tb = document.getElementById('gites-assigned-count');
-    if (tb) tb.innerText = totalAssigned;
-    
-    const coh = document.getElementById('coherence-check');
-    const totalVisitors = parseInt(document.getElementById('nbTotal').value) || 0;
-    if (coh) {
-        coh.style.display = 'block';
-        coh.classList.remove('warning', 'success');
-        const msg = document.getElementById('sleeping-delta-msg');
-        if (totalAssigned !== totalVisitors) {
-            coh.classList.add('warning');
-            if (msg) msg.innerText = "La répartition des gîtes ne correspond pas au nombre de participants.";
-        } else {
-            coh.classList.add('success');
-            if (msg) msg.innerText = "Répartition terminée !";
-        }
-    }
-}
 
 // ===== API Proxy config (Cloudflare Worker) =====
 const API_BASE = (window.CONFIGURATEUR_API_BASE || 'https://domainesesquier-api.domainesesquier.workers.dev').replace(/\/+$/, '');
@@ -733,202 +648,95 @@ function renderCalendar() {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
 
-    // Update headers
-    const monthStr = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(currentMonth);
-    const capitalizedMonth = monthStr.charAt(0).toUpperCase() + monthStr.slice(1);
-    
-    const mHead = document.getElementById('modal-calendar-month-year');
-    if (mHead) mHead.innerText = capitalizedMonth;
-    const miniHead = document.getElementById('calendarMonthMini');
-    if (miniHead) miniHead.innerText = capitalizedMonth;
-    const cHead = document.getElementById('calendarMonth');
-    if (cHead) cHead.innerText = capitalizedMonth;
+    const monthName = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(currentMonth);
+    document.getElementById('calendarMonth').innerText = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
-    // Refresh all potential views
-    const targetIDs = ['modal-calendar-grid', 'calendarDays', 'calendarDaysMini'];
-    
-    targetIDs.forEach(id => {
-        const container = document.getElementById(id);
-        if (!container) return;
-        container.innerHTML = '';
+    const calendarContainer = document.getElementById('calendarDays');
+    calendarContainer.innerHTML = '';
 
-        // Offset for Monday start (0=Sunday in JS, we want 0=Monday)
-        let offset = (firstDay === 0) ? 6 : firstDay - 1;
-        for (let j = 0; j < offset; j++) {
-            const empty = document.createElement('div');
-            empty.className = 'calendar-day other-month';
-            container.appendChild(empty);
+    let offset = (firstDay === 0) ? 6 : firstDay - 1;
+    for (let i = 0; i < offset; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'calendar-day other-month';
+        calendarContainer.appendChild(empty);
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+        const date = new Date(year, month, i);
+        const dayEl = document.createElement('div');
+        dayEl.className = 'calendar-day';
+        dayEl.innerText = i;
+
+        const dot = document.createElement('span');
+        dot.className = 'avail-dot ' + (isDateAvailable(date) ? 'dot-available' : 'dot-unavailable');
+        dayEl.appendChild(dot);
+
+        const isStart = startDate && date.getTime() === startDate.getTime();
+        const isEnd = endDate && date.getTime() === endDate.getTime();
+        const inBetween = startDate && endDate && date > startDate && date < endDate;
+
+        const available = isDateAvailable(date);
+        dayEl.classList.add(available ? 'is-available' : 'is-unavailable');
+
+        if (isStart || isEnd || inBetween) {
+            dayEl.classList.add('range-selected');
+            if (isStart) dayEl.classList.add('range-start');
+            if (isEnd) dayEl.classList.add('range-end');
         }
 
-        for (let i = 1; i <= daysInMonth; i++) {
-            const date = new Date(year, month, i);
-            const dayEl = document.createElement('div');
-            dayEl.className = 'calendar-day';
-            dayEl.innerText = i;
-
-            const available = isDateAvailable(date);
-            dayEl.classList.add(available ? 'is-available' : 'is-unavailable');
-
-            const isStart = startDate && date.toDateString() === startDate.toDateString();
-            const isEnd = endDate && date.toDateString() === endDate.toDateString();
-            const inBetween = startDate && endDate && date > startDate && date < endDate;
-
-            if (isStart || isEnd || inBetween) {
-                dayEl.classList.add('range-selected');
-                if (isStart) dayEl.classList.add('range-start');
-                if (isEnd) dayEl.classList.add('range-end');
-            }
-
-            if (available) {
-                dayEl.onclick = (e) => {
-                    e.stopPropagation();
-                    selectDate(date);
-                };
-            }
-            container.appendChild(dayEl);
-        }
-    });
-}
-
-function openDateModal() {
-    document.getElementById('date-modal-overlay').style.display = 'flex';
-    renderCalendar();
-}
-
-function closeDateModal() {
-    document.getElementById('date-modal-overlay').style.display = 'none';
-}
-
-function resetSelection() {
-    startDate = null;
-    endDate = null;
-    document.getElementById('nativeDateArrivee').value = '';
-    document.getElementById('nativeDateDepart').value = '';
-    updateDateDisplay();
-    renderCalendar();
+        dayEl.onclick = () => selectDate(date);
+        calendarContainer.appendChild(dayEl);
+    }
 }
 
 function selectDate(date) {
     if (!startDate || (startDate && endDate)) {
-        startDate = date; 
-        endDate = null;
+        startDate = date; endDate = null;
     } else if (date < startDate) {
         startDate = date;
-    } else if (date.toDateString() === startDate.toDateString()) {
-        startDate = null; // Unselect if same
     } else {
         endDate = date;
     }
     updateDateDisplay();
     renderCalendar();
 
-    // After selection, if we have a range, wait a bit then maybe highlight footer?
-    // No, keep it open for confirmation.
-
-    // Sync with native inputs
-    if (startDate) document.getElementById('nativeDateArrivee').value = startDate.toISOString().split('T')[0];
-    else document.getElementById('nativeDateArrivee').value = '';
-    
-    if (endDate) document.getElementById('nativeDateDepart').value = endDate.toISOString().split('T')[0];
-    else document.getElementById('nativeDateDepart').value = '';
-
-    // Refresh meals if range is complete
-    if (startDate && endDate) {
-        document.getElementById('meals-schedule-container').innerHTML = '';
+    // Refresh meal schedule if dates change
+    document.getElementById('meals-schedule-container').innerHTML = '';
+    if (document.getElementById('mealSelection').style.display === 'block') {
         renderMealsSchedule();
     }
-    
-    updateCalculations();
-}
 
-function handleNativeDateChange() {
-    const natArr = document.getElementById('nativeDateArrivee').value;
-    const natDep = document.getElementById('nativeDateDepart').value;
-    startDate = natArr ? new Date(natArr) : null;
-    endDate = natDep ? new Date(natDep) : null;
-    
-    // Refresh meal schedule if dates change
-    const cont = document.getElementById('meals-schedule-container');
-    if (cont) cont.innerHTML = '';
-    const mealSel = document.getElementById('mealSelection');
-    if (mealSel && mealSel.style.display === 'block') {
-        if (typeof renderMealsSchedule === 'function') renderMealsSchedule();
-    }
-    
-    updateDateDisplay();
     updateCalculations();
 }
 
 function updateDateDisplay() {
-    const rangeDisplay = document.getElementById('range-display');
-    const modalArr = document.getElementById('modal-display-arrivee');
-    const modalDep = document.getElementById('modal-display-depart');
+    const arr = document.getElementById('displayArrivee');
+    const dep = document.getElementById('displayDepart');
     const statusBadge = document.getElementById('availabilityStatus');
-    const miniArr = document.getElementById('displayArriveeMini');
-    const miniDep = document.getElementById('displayDepartMini');
-    const miniNights = document.getElementById('displayNightsMini');
-    
-    const natArr = document.getElementById('nativeDateArrivee');
-    const natDep = document.getElementById('nativeDateDepart');
 
-    const fmt = (d) => d ? d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '--/--/----';
-
-    const sStr = fmt(startDate);
-    const eStr = fmt(endDate);
-
-    if (modalArr) modalArr.innerText = sStr;
-    if (modalDep) modalDep.innerText = eStr;
-    if (miniArr) miniArr.innerText = startDate ? startDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '--/--';
-    if (miniDep) miniDep.innerText = endDate ? endDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '--/--';
-
-    // SYNC NATIVE INPUTS (Hidden)
-    if (natArr) {
-        if (startDate) {
-            const offset = startDate.getTimezoneOffset() * 60000;
-            natArr.value = new Date(startDate.getTime() - offset).toISOString().split('T')[0];
-        } else {
-            natArr.value = '';
-        }
-    }
-    if (natDep) {
-        if (endDate) {
-            const offset = endDate.getTimezoneOffset() * 60000;
-            natDep.value = new Date(endDate.getTime() - offset).toISOString().split('T')[0];
-        } else {
-            natDep.value = '';
-        }
-    }
-
-    // UPDATE RANGE DISPLAY TRIGGER
-    if (rangeDisplay) {
-        if (startDate && endDate) {
-            rangeDisplay.innerText = `${sStr} au ${eStr}`;
-            rangeDisplay.style.color = 'var(--primary)';
-        } else if (startDate) {
-            rangeDisplay.innerText = `Arrivée le ${sStr}...`;
-            rangeDisplay.style.color = 'var(--accent)';
-        } else {
-            rangeDisplay.innerText = "Sélectionner les dates...";
-            rangeDisplay.style.color = 'var(--text-muted)';
-        }
-    }
+    if (arr) arr.innerText = startDate ? startDate.toLocaleDateString('fr-FR') : '--/--/----';
+    if (dep) dep.innerText = endDate ? endDate.toLocaleDateString('fr-FR') : '--/--/----';
 
     if (startDate && endDate) {
         const nights = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-        if (miniNights) miniNights.innerText = nights;
+        const isAvailable = isRangeAvailable(startDate, endDate);
 
         if (statusBadge) {
-            const isAvail = isRangeAvailable(startDate, endDate);
-            statusBadge.classList.remove('avail-ok', 'avail-ko');
-            statusBadge.classList.add(isAvail ? 'avail-ok' : 'avail-ko');
-            statusBadge.innerHTML = isAvail ? "Dates disponibles ✓" : "Indisponible sur cette période ✗";
-            statusBadge.style.display = 'block';
+            statusBadge.style.display = 'inline-flex';
+
+            if (!isAvailable) {
+                statusBadge.innerHTML = 'Indisponible <i class="fas fa-times"></i>';
+                statusBadge.style.background = 'rgba(244, 67, 54, 0.1)';
+                statusBadge.style.color = '#F44336';
+            } else {
+                statusBadge.innerHTML = 'Dates disponibles <i class="fas fa-check"></i>';
+                statusBadge.style.background = 'rgba(76, 175, 80, 0.1)';
+                statusBadge.style.color = '#4CAF50';
+            }
         }
     } else {
-        if (miniNights) miniNights.innerText = '0';
         if (statusBadge) statusBadge.style.display = 'none';
     }
 }
@@ -946,25 +754,23 @@ function startFlow(mode) {
     document.getElementById('main-stepper').classList.add('visible');
 
     // Reset classes
-    configContainer.classList.remove('mode-pro', 'mode-perso');
+    configContainer.classList.remove('is-pro-mode', 'is-perso-mode');
 
     const title = document.getElementById('main-title');
     const subtitle = document.getElementById('main-subtitle');
 
     if (mode === 'pro') {
-        configContainer.classList.add('mode-pro');
-        document.body.classList.add('is-expert'); // Mode interne — skip validation legacy client
+        configContainer.classList.add('is-pro-mode');
         if (title) title.innerText = "Votre Séminaire Pro";
         if (subtitle) subtitle.innerText = "Un cadre inspirant pour vos équipes";
         setSleepingMode('pro-double'); // Default to shared rooms for Pro
         document.getElementById('salleReunion').checked = true;
 
-        // Set default meal mode for Pro (default to Pension)
-        document.getElementById('repasPension').checked = true;
-        toggleMeals('pension');
+        // Set default meal mode for Pro (default to Libre instead of Pension)
+        document.getElementById('repasLibre').checked = true;
+        toggleMeals('libre');
     } else {
-        configContainer.classList.add('mode-perso');
-        document.body.classList.remove('is-expert');
+        configContainer.classList.add('is-perso-mode');
         if (title) title.innerText = "Votre Séjour Personnel";
         if (subtitle) subtitle.innerText = "Des moments précieux en famille et entre amis";
         setSleepingMode('auto'); // Default for Perso
@@ -1116,10 +922,10 @@ function renderMealsSchedule() {
                             <div style="display: flex; flex-direction: column;">
                                 <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Petit-déjeuner <span style="font-weight: 400; opacity: 0.6; font-size: 0.8rem;">(${pPrice}€ ${currentMode === 'pro' ? 'HT' : ''})</span></span>
                             </div>
-                            <div class="stepper" style="transform: scale(0.9); transform-origin: right;">
-                                 <button type="button" class="stepper-btn" onclick="modifyMeal(${i}, 'petitDej', -1)"><i class="fas fa-minus"></i></button>
-                                 <input type="number" class="stepper-input meal-input-petitDej" id="meal-${i}-petitDej" value="0" min="0" onchange="updateCalculations()">
-                                 <button type="button" class="stepper-btn" onclick="modifyMeal(${i}, 'petitDej', 1)"><i class="fas fa-plus"></i></button>
+                            <div class="number-input-wrapper" style="padding: 2px 4px;">
+                                 <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'petitDej', -1)"><i class="fas fa-minus" style="font-size: 0.7rem;"></i></button>
+                                 <input type="number" class="meal-input-petitDej" id="meal-${i}-petitDej" value="0" min="0" onchange="updateCalculations()" style="width: 35px; font-size: 0.95rem;">
+                                 <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'petitDej', 1)"><i class="fas fa-plus" style="font-size: 0.7rem;"></i></button>
                             </div>
                         </div>
 
@@ -1129,10 +935,10 @@ function renderMealsSchedule() {
                             <div style="display: flex; flex-direction: column;">
                                 <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Collation matin <span id="day-${i}-colM-price-tag" style="font-weight: 400; opacity: 0.6; font-size: 0.8rem;">(${colPrice}€ HT)</span></span>
                             </div>
-                            <div class="stepper" style="transform: scale(0.9); transform-origin: right;">
-                                 <button type="button" class="stepper-btn" onclick="modifyMeal(${i}, 'collationMatin', -1)"><i class="fas fa-minus"></i></button>
-                                 <input type="number" class="stepper-input meal-input-collationMatin" id="meal-${i}-collationMatin" value="0" min="0" onchange="updateCalculations()">
-                                 <button type="button" class="stepper-btn" onclick="modifyMeal(${i}, 'collationMatin', 1)"><i class="fas fa-plus"></i></button>
+                            <div class="number-input-wrapper" style="padding: 2px 4px;">
+                                 <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'collationMatin', -1)"><i class="fas fa-minus" style="font-size: 0.7rem;"></i></button>
+                                 <input type="number" class="meal-input-collationMatin" id="meal-${i}-collationMatin" value="0" min="0" onchange="updateCalculations()" style="width: 35px; font-size: 0.95rem;">
+                                 <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'collationMatin', 1)"><i class="fas fa-plus" style="font-size: 0.7rem;"></i></button>
                             </div>
                         </div>` : ''}
 
@@ -1140,10 +946,10 @@ function renderMealsSchedule() {
                             <div style="display: flex; flex-direction: column;">
                                 <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Déjeuner <span style="font-weight: 400; opacity: 0.6; font-size: 0.8rem;">(${dPrice}€ ${currentMode === 'pro' ? 'HT' : ''})</span></span>
                             </div>
-                            <div class="stepper" style="transform: scale(0.9); transform-origin: right;">
-                                 <button type="button" class="stepper-btn" onclick="modifyMeal(${i}, 'dejeuner', -1)"><i class="fas fa-minus"></i></button>
-                                 <input type="number" class="stepper-input meal-input-dejeuner" id="meal-${i}-dejeuner" value="0" min="0" onchange="updateCalculations()">
-                                 <button type="button" class="stepper-btn" onclick="modifyMeal(${i}, 'dejeuner', 1)"><i class="fas fa-plus"></i></button>
+                            <div class="number-input-wrapper" style="padding: 2px 4px;">
+                                 <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'dejeuner', -1)"><i class="fas fa-minus" style="font-size: 0.7rem;"></i></button>
+                                 <input type="number" class="meal-input-dejeuner" id="meal-${i}-dejeuner" value="0" min="0" onchange="updateCalculations()" style="width: 35px; font-size: 0.95rem;">
+                                 <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'dejeuner', 1)"><i class="fas fa-plus" style="font-size: 0.7rem;"></i></button>
                             </div>
                         </div>
 
@@ -1153,10 +959,10 @@ function renderMealsSchedule() {
                             <div style="display: flex; flex-direction: column;">
                                 <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Collation après-midi <span id="day-${i}-colA-price-tag" style="font-weight: 400; opacity: 0.6; font-size: 0.8rem;">(${colPrice}€ HT)</span></span>
                             </div>
-                            <div class="stepper" style="transform: scale(0.9); transform-origin: right;">
-                                 <button type="button" class="stepper-btn" onclick="modifyMeal(${i}, 'collationAprem', -1)"><i class="fas fa-minus"></i></button>
-                                 <input type="number" class="stepper-input meal-input-collationAprem" id="meal-${i}-collationAprem" value="0" min="0" onchange="updateCalculations()">
-                                 <button type="button" class="stepper-btn" onclick="modifyMeal(${i}, 'collationAprem', 1)"><i class="fas fa-plus"></i></button>
+                            <div class="number-input-wrapper" style="padding: 2px 4px;">
+                                 <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'collationAprem', -1)"><i class="fas fa-minus" style="font-size: 0.7rem;"></i></button>
+                                 <input type="number" class="meal-input-collationAprem" id="meal-${i}-collationAprem" value="0" min="0" onchange="updateCalculations()" style="width: 35px; font-size: 0.95rem;">
+                                 <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'collationAprem', 1)"><i class="fas fa-plus" style="font-size: 0.7rem;"></i></button>
                             </div>
                         </div>` : ''}
 
@@ -1165,15 +971,15 @@ function renderMealsSchedule() {
                             <div style="display: flex; flex-direction: column;">
                                 <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Dîner <span style="font-weight: 400; opacity: 0.6; font-size: 0.8rem;">(${dinPrice}€ ${currentMode === 'pro' ? 'HT' : ''})</span></span>
                             </div>
-                            <div class="stepper" style="transform: scale(0.9); transform-origin: right;">
-                                <button type="button" class="stepper-btn" onclick="modifyMeal(${i}, 'diner', -1)"><i class="fas fa-minus"></i></button>
-                                <input type="number" class="stepper-input meal-input-diner" id="meal-${i}-diner" value="0" min="0" onchange="updateCalculations()">
-                                <button type="button" class="stepper-btn" onclick="modifyMeal(${i}, 'diner', 1)"><i class="fas fa-plus"></i></button>
+                            <div class="number-input-wrapper" style="padding: 2px 4px;">
+                                <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'diner', -1)"><i class="fas fa-minus" style="font-size: 0.7rem;"></i></button>
+                                <input type="number" class="meal-input-diner" id="meal-${i}-diner" value="0" min="0" onchange="updateCalculations()" style="width: 35px; font-size: 0.95rem;">
+                                <button type="button" class="number-btn" style="width: 28px; height: 28px;" onclick="modifyMeal(${i}, 'diner', 1)"><i class="fas fa-plus" style="font-size: 0.7rem;"></i></button>
                             </div>
                         </div>` : ''}
 
                         <div id="day-${i}-total" style="margin-top: 15px; padding-top: 12px; border-top: 2px solid #f8f8f8; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Total du jour</span>
+                            <span style="font-size: 0.85rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em;">Total du jour</span>
                             <span id="day-${i}-total-val" style="font-weight: 800; color: var(--primary); font-size: 1.1rem;">0 € ${modeIsPro ? 'HT' : ''}</span>
                         </div>
                     </div>`;
@@ -1436,9 +1242,9 @@ function autoDistribute() {
 
 function updateCalculations() {
     const totalVisitors = parseInt(document.getElementById('nbTotal').value) || 0;
-    const nbBaby = document.getElementById('nbBaby') ? parseInt(document.getElementById('nbBaby').value) : 0;
-    const nbChild = document.getElementById('nbChild') ? parseInt(document.getElementById('nbChild').value) : 0;
-    const nbAdult = document.getElementById('nbAdult') ? parseInt(document.getElementById('nbAdult').value) : 0;
+    const nbBaby = parseInt(document.getElementById('nbBaby').value) || 0;
+    const nbChild = parseInt(document.getElementById('nbChild').value) || 0;
+    const nbAdult = parseInt(document.getElementById('nbAdult').value) || 0;
 
     // Update help text in Step 3 Pro
     const helpNb = document.getElementById('help-nb-total');
@@ -1508,13 +1314,13 @@ function updateCalculations() {
     if (isPro) {
         const delta = totalVisitors - housedCount;
         if (delta > 0) {
-            deltaMsg.innerText = ` — Il reste ${delta} participant${delta > 1 ? 's' : ''} à attribuer.`;
+            deltaMsg.innerText = `Il reste ${delta} participant${delta > 1 ? 's' : ''} à attribuer.`;
             deltaMsg.style.color = 'var(--accent)';
         } else if (delta < 0) {
-            deltaMsg.innerText = ` — ${Math.abs(delta)} participant${Math.abs(delta) > 1 ? 's' : ''} en trop !`;
+            deltaMsg.innerText = `${Math.abs(delta)} participant${Math.abs(delta) > 1 ? 's' : ''} en trop !`;
             deltaMsg.style.color = '#e74c3c';
         } else if (totalVisitors > 0) {
-            deltaMsg.innerText = " — Répartition parfaite !";
+            deltaMsg.innerText = "Répartition parfaite !";
             deltaMsg.style.color = '#27ae60';
         } else {
             deltaMsg.innerText = "Sélectionnez une option pour continuer.";
@@ -1878,13 +1684,13 @@ function updateCalculations() {
             const contactIsVisible = document.getElementById('step-contact').style.display !== 'none';
 
             if (!contactIsVisible) {
-                cta.innerText = "Créer le dossier client";
+                cta.innerText = "Demander un devis";
                 cta.style.background = "var(--primary)";
             } else if (isFormFilled) {
-                cta.innerHTML = '<i class="fas fa-folder-plus"></i> Créer le dossier client';
+                cta.innerText = "Recevoir mon devis";
                 cta.style.background = "var(--primary)";
             } else {
-                cta.innerHTML = '<i class="fas fa-user-edit"></i> Compléter contact client';
+                cta.innerText = "Compléter mes coordonnées";
                 cta.style.background = "#D48D6C";
             }
         } else {
@@ -2032,36 +1838,32 @@ function updateCalculations() {
 
 function handleMainCTA() {
     const total = parseInt(document.getElementById('nbTotal').value) || 0;
-    const email = document.getElementById('email')?.value || '';
+    const email = document.getElementById('email').value;
+    const contactSection = document.getElementById('step-contact');
 
-    // En mode Expert/Editing, on sauvegarde directement si les fondamentaux sont là
-    if (isEditingMode || document.body.classList.contains('is-expert')) {
-        if (!startDate || !endDate) {
-            scrollToStep('step-dates');
-            return alert("Veuillez sélectionner des dates.");
-        }
-        if (total < 1) {
-            scrollToStep('step-group');
-            return alert("Le groupe doit contenir au moins 1 personne.");
-        }
-        sendQuoteRequest();
-    } else {
-        // Logique habituelle pour le client (legacy)
-        const contactSection = document.getElementById('step-contact');
-        if (!startDate || !endDate) {
-            scrollToStep('step-dates');
-        } else if (total < 1) {
-            scrollToStep('step-group');
-        } else if (contactSection.style.display === 'none') {
-            contactSection.style.display = 'block';
-            setTimeout(() => scrollToStep('step-contact'), 50);
-            updateCalculations();
-        } else if (!email.includes('@')) {
+    if (!startDate || !endDate) {
+        scrollToStep('step-dates');
+        validateStep('step-dates');
+    } else if (total < 1) {
+        scrollToStep('step-group');
+        validateStep('step-group');
+    } else if (contactSection.style.display === 'none') {
+        // Afficher le formulaire de contact
+        contactSection.style.display = 'block';
+        const pillContact = document.getElementById('pill-contact');
+        if (pillContact) pillContact.style.display = 'flex';
+
+        // Petit délai pour que le layout soit calculé avant le scroll
+        setTimeout(() => {
             scrollToStep('step-contact');
-            document.getElementById('email').focus();
-        } else {
-            sendQuoteRequest();
-        }
+        }, 50);
+
+        updateCalculations(); // Pour mettre à jour le texte du bouton
+    } else if (!email.includes('@')) {
+        scrollToStep('step-contact');
+        document.getElementById('email').focus();
+    } else {
+        sendQuoteRequest();
     }
 }
 
@@ -2107,18 +1909,17 @@ function selectAllMeals() {
 
 async function sendQuoteRequest() {
     const btn = document.getElementById('cta-quote');
-    const originalText = btn ? btn.innerText : "Créer le dossier";
+    const originalText = btn ? btn.innerText : "Demander un devis";
     const totalEl = document.getElementById('totalTTC');
-    const email = document.getElementById('email')?.value || '';
-    const organisation = document.getElementById('organisation')?.value || '';
-    const firstName = document.getElementById('firstname')?.value || '';
-    const lastName = document.getElementById('lastname')?.value || '';
-    const phone = document.getElementById('phone')?.value || '';
-    const message = document.getElementById('message')?.value || '';
-    const nbTotal = parseInt(document.getElementById('nbTotal')?.value) || 0;
+    const email = document.getElementById('email').value;
+    const organisation = document.getElementById('organisation').value;
+    const firstName = document.getElementById('firstname').value;
+    const lastName = document.getElementById('lastname').value;
+    const phone = document.getElementById('phone').value;
+    const message = document.getElementById('message').value;
+    const nbTotal = parseInt(document.getElementById('nbTotal').value) || 0;
 
-    const isExpert = document.body.classList.contains('is-expert') || isEditingMode;
-    if (!email && !isExpert) return alert('Veuillez renseigner votre email pour recevoir l\'estimation.');
+    if (!email) return alert('Veuillez renseigner votre email pour recevoir l\'estimation.');
 
     // --- Capture Meal Details (legacy) ---
     const mealMode = getSelectedMealMode();
@@ -2165,62 +1966,36 @@ async function sendQuoteRequest() {
     // =====================================================================
     // 🧠 DOSSIER MODEL — Source unique de vérité
     // =====================================================================
-    // =====================================================================
-    // 🧠 DOSSIER MODEL — Fallback without external JS
-    // =====================================================================
-    const adultCount = document.getElementById('nbAdult') ? parseInt(document.getElementById('nbAdult').value) || 0 : 0;
-    const childCount = document.getElementById('nbChild') ? parseInt(document.getElementById('nbChild').value) || 0 : 0;
-    const babyCount = document.getElementById('nbBaby') ? parseInt(document.getElementById('nbBaby').value) || 0 : 0;
-    const hebergementCost = document.getElementById('breakdown-hebergement-new') ? parseInt(document.getElementById('breakdown-hebergement-new').innerText) || 0 : 0;
-    const repasCost = document.getElementById('breakdown-repas-new') ? parseInt(document.getElementById('breakdown-repas-new').innerText) || 0 : 0;
-    const optionsCost = document.getElementById('breakdown-options-new') ? parseInt(document.getElementById('breakdown-options-new').innerText) || 0 : 0;
-    
-    // Formatting helper
-    const formatDate = (date) => {
-        if (!date) return null;
-        let d = new Date(date);
-        let month = '' + (d.getMonth() + 1);
-        let day = '' + d.getDate();
-        let year = d.getFullYear();
-        if (month.length < 2) month = '0' + month;
-        if (day.length < 2) day = '0' + day;
-        return [year, month, day].join('-');
-    };
-
-    const dossier = {
+    const dossier = DossierModel.build({
         mode: currentMode,
         client: {
             organisation: organisation,
             firstName: firstName,
             lastName: lastName,
-            fullName: `${firstName} ${lastName}`.trim(),
             email: email,
             phone: phone,
             message: message
         },
-        sejour: {
-            dateArrivee: formatDate(startDate),
-            dateDepart: formatDate(endDate),
-            nights: (startDate && endDate) ? Math.ceil((endDate - startDate) / 86400000) : 0,
-            participants: nbTotal
+        dates: {
+            start: startDate,
+            end: endDate
         },
-        financials: {
-            subtotals: {
-                hebergement: hebergementCost,
-                restauration: repasCost,
-                options: optionsCost
-            },
-            totalHT: hebergementCost + repasCost + optionsCost,
-            totalTTC: (hebergementCost + repasCost + optionsCost) * 1.1 // Approximation
+        group: {
+            total: nbTotal,
+            adult: parseInt(document.getElementById('nbAdult').value) || 0,
+            child: parseInt(document.getElementById('nbChild').value) || 0,
+            baby: parseInt(document.getElementById('nbBaby').value) || 0
         },
-        dates: { start: startDate, end: endDate },
-        group: { total: nbTotal, adult: adultCount, child: childCount, baby: babyCount },
         sleeping: {
             mode: sleepingMode,
             indiv: parseInt(document.getElementById('nbIndividuel').value) || 0,
             partage: parseInt(document.getElementById('nbPartage').value) || 0,
-            couple: document.getElementById('nbCouple') ? parseInt(document.getElementById('nbCouple').value) || 0 : 0,
+            couple: parseInt(document.getElementById('nbCouple').value) || 0,
             usedGites: usedGites
+        },
+        meals: {
+            mode: mealMode,
+            counts: mealCounts
         },
         options: {
             draps: document.getElementById('draps')?.checked || false,
@@ -2229,10 +2004,15 @@ async function sendQuoteRequest() {
             salleReunion: document.getElementById('salleReunion')?.checked || false,
             kitSoiree: document.getElementById('kitSoiree')?.checked || false,
             chambreIndiv: document.getElementById('chambreIndiv')?.checked || false,
-        }
-    };
+            activities: bookingDraft.activities || {}
+        },
+        pricingDB: window.PRICING_DB || [],
+        airtableId: isEditingMode ? bookingDraft.id : null
+    });
 
-    console.log('[DOSSIER] Dossier construit en mode fallback:', dossier);
+    console.log('[DOSSIER] Dossier construit:', dossier);
+    console.log('[DOSSIER] Total HT:', DossierModel.formatEuro(dossier.financials.totalHT));
+    console.log('[DOSSIER] Total TTC:', DossierModel.formatEuro(dossier.financials.totalTTC));
 
     // --- Legacy bookingDetails for backward compatibility ---
     const bookingDetails = {
@@ -2256,20 +2036,18 @@ async function sendQuoteRequest() {
 
     const payload = {
         fields: {
+            // --- Champs legacy (rétrocompatibilité Airtable) ---
             "Nom client": dossier.client.fullName,
+            "Entreprise": dossier.client.organisation,
             "Email": dossier.client.email,
+            "Téléphone": dossier.client.phone,
             "Date arrivée": dossier.sejour.dateArrivee,
             "Date départ": dossier.sejour.dateDepart,
-            // "Nuits" est un champ calculé (formule) dans Airtable — ne pas l'envoyer
             "Nombre de personnes": dossier.sejour.participants,
             "Type": [typeSejour],
             "Statut": ["à traiter"],
             "Budget estimé": budgetRangeText,
-            "Message": ( 
-                (dossier.client.organisation ? `Société: ${dossier.client.organisation}\n` : '') + 
-                (dossier.client.phone ? `Tél: ${dossier.client.phone}\n` : '') + 
-                message + mealInfo + activitiesInfo
-            ).trim(),
+            "Message": (message + mealInfo + activitiesInfo).trim(),
             "Option draps": dossier.options.draps ? "Oui" : "Non",
             "Option ménage": dossier.options.menage ? "Oui" : "Non",
             "Montant Hébergement HT": dossier.financials.subtotals.hebergement,
@@ -2279,7 +2057,10 @@ async function sendQuoteRequest() {
             "Repas déjeuner": totalDejeuner,
             "Repas dîner": totalDiner,
             "Qté Collation": totalPauses,
-            "Détails JSON": JSON.stringify(bookingDetails, null, 2)
+            "Détails JSON": JSON.stringify(bookingDetails, null, 2),
+
+            // --- 🧠 NOUVEAU : Dossier complet (Source unique de vérité) ---
+            "Dossier JSON": JSON.stringify(dossier)
         }
     };
 
@@ -2301,16 +2082,7 @@ async function sendQuoteRequest() {
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) {
-            let errorMsg = `Échec de l'envoi (${response.status})`;
-            try {
-                const errData = await response.json();
-                if (errData && errData.error && errData.error.message) {
-                    errorMsg = errData.error.message;
-                }
-            } catch(e) {}
-            throw new Error(errorMsg);
-        }
+        if (!response.ok) throw new Error(`Échec de l'envoi (${method})`);
 
         const result = await response.json();
         const recordId = result.id;
@@ -2320,8 +2092,6 @@ async function sendQuoteRequest() {
             btn.style.background = "#27ae60";
             btn.innerText = "Demande envoyée ! ✓";
         }
-
-        clearDraft(); // Clean up local storage as the dossier is now in Airtable
 
         // --- Synchronisation avec le Tableau de Bord (Parent) ---
         if (recordId && window.parent !== window) {
@@ -2352,7 +2122,7 @@ async function sendQuoteRequest() {
             btn.innerText = "Erreur - Réessayer";
             btn.style.background = "#e74c3c";
         }
-        alert("Une erreur est survenue lors de l'envoi : " + error.message);
+        alert("Une erreur est survenue lors de l'envoi. Veuillez réessayer ou nous contacter directement.");
     }
 }
 
@@ -2534,84 +2304,3 @@ async function generatePDF() {
         btn.disabled = false;
     }
 }
-// --- EXPERT MODE FUNCTIONS ---
-
-async function applyExpertPreset(type) {
-    console.log(`[EXPERT] Application du preset: ${type}`);
-
-    // 1. Dates par défaut (si non saisies : +2 jours dans 15 jours)
-    if (!startDate) {
-        const soon = new Date();
-        soon.setDate(soon.getDate() + 14);
-        startDate = new Date(soon);
-        endDate = new Date(soon);
-        endDate.setDate(endDate.getDate() + 2);
-        updateDateDisplay();
-        renderCalendar();
-    }
-
-    // 2. Groupe (15 personnes par défaut)
-    document.getElementById('nbTotal').value = 15;
-    document.getElementById('nbAdult').value = 15;
-
-    // 3. Hébergement (Mode Auto par défaut)
-    setSleepingMode('auto');
-
-    // 4. Repas & Options selon le preset
-    if (type === 'residentiel' || type === 'pension') {
-        const radio = document.querySelector('input[name="repasType"][value="pension"]');
-        if (radio) { radio.checked = true; toggleMeals('pension'); }
-        // On attend que le planning soit généré pour tout cocher
-        setTimeout(() => toggleAllMeals(true), 300);
-
-        document.getElementById('draps').checked = true;
-        document.getElementById('menage').checked = true;
-        if (document.getElementById('salleReunion')) document.getElementById('salleReunion').checked = true;
-    }
-    else if (type === 'journee') {
-        const radio = document.querySelector('input[name="repasType"][value="libre"]');
-        if (radio) { radio.checked = true; toggleMeals('libre'); }
-        endDate = new Date(startDate); // Même jour
-        updateDateDisplay();
-        renderCalendar();
-
-        document.getElementById('draps').checked = false;
-        document.getElementById('menage').checked = true;
-        if (document.getElementById('salleReunion')) document.getElementById('salleReunion').checked = true;
-    }
-    else if (type === 'libre') {
-        const radio = document.querySelector('input[name="repasType"][value="libre"]');
-        if (radio) { radio.checked = true; toggleMeals('libre'); }
-        document.getElementById('draps').checked = false;
-        document.getElementById('menage').checked = true;
-    }
-
-    // 5. Update & Feedback
-    updateCalculations();
-    showSyncBanner("Configuration '" + type + "' appliquée !");
-}
-
-function toggleAllMeals(checked) {
-    document.querySelectorAll('.meal-check').forEach(cb => {
-        cb.checked = checked;
-    });
-    updateCalculations();
-}
-
-// Helper pour afficher le bandeau de synchro si l'élément n'existe pas dans le contexte local
-function showSyncBanner(msg) {
-    let banner = document.getElementById('sync-indicator');
-    if (!banner) {
-        banner = document.createElement('div');
-        banner.id = 'sync-indicator';
-        banner.style = "position:fixed; top:20px; left:50%; transform:translateX(-50%); background:var(--primary); color:white; padding:10px 20px; border-radius:30px; font-size:0.85rem; font-weight:600; z-index:9999; box-shadow:0 10px 30px rgba(0,0,0,0.2); animation: fadeInUp 0.4s ease;";
-        document.body.appendChild(banner);
-    }
-    banner.innerHTML = `<i class="fas fa-check-circle"></i> ${msg}`;
-    banner.style.display = 'block';
-    setTimeout(() => banner.style.display = 'none', 3000);
-}
-
-// Export pour le mode expert global
-window.applyExpertPreset = applyExpertPreset;
-window.toggleAllMeals = toggleAllMeals;

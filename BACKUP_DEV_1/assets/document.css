@@ -51,24 +51,6 @@ body {
     line-height: 1.4;
 }
 
-/* --- PDF Export Optimization --- */
-#pdf-wrapper {
-    width: var(--width-a4);
-    background: #f0f0f0; /* Même fond que le body pour la capture si besoin */
-}
-
-.is-exporting-pdf .no-print,
-.is-exporting-pdf button,
-.is-exporting-pdf .btn,
-.is-exporting-pdf .controls-bar {
-    display: none !important;
-}
-
-.is-exporting-pdf .page {
-    margin-bottom: 0;
-    box-shadow: none;
-}
-
 /* --- Header --- */
 header {
     display: flex;

@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurateur de Séjour - Domaine Sesquier</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="assets/configurateur.css">
+</head>
+
+<body>
+
+
+
+    <div class="container">
+        <!-- Étape 0 : Point d'entrée -->
+        <div id="step0" class="step0-container">
+            <h2>Bienvenue au Domaine Sesquier</h2>
+
+            <div
+                style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 2.5rem; opacity: 0.8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--primary); font-weight: 500;">
+                <span style="width: 24px; height: 1px; background: var(--accent);"></span>
+                Choisissez votre type de séjour
+                <span style="width: 24px; height: 1px; background: var(--accent);"></span>
+            </div>
+
+            <div class="step0-grid">
+                <!-- Séjour Groupe -->
+                <div class="step0-card" onclick="startFlow('perso')">
+                    <div class="step0-icon"><i class="fas fa-feather-pointed"></i></div>
+                    <span
+                        style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--ocre); font-weight: 600; margin-bottom: -0.5rem;">Pour
+                        les particuliers</span>
+                    <h3>Groupe privé</h3>
+                    <p>Anniversaire, cousinade, vacances entre amis</p>
+                    <div class="step0-cta">Organiser un séjour <i class="fas fa-arrow-right"></i></div>
+                </div>
+
+                <!-- Séjour Pro -->
+                <div class="step0-card" onclick="startFlow('pro')">
+                    <div class="step0-icon"><i class="fas fa-building-columns"></i></div>
+                    <span
+                        style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--ocre); font-weight: 600; margin-bottom: -0.5rem;">Pour
+                        les entreprises</span>
+                    <h3>Séminaire d’entreprise</h3>
+                    <p>Journée d’étude, team building, séminaire résidentiel</p>
+                    <div class="step0-cta">Organiser un séminaire <i class="fas fa-arrow-right"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flow du configurateur (caché au départ) -->
+        <div id="main-configurator" style="display: none;">
+            <div class="header" style="padding: 2rem 0 3rem 0; margin-bottom: 0;">
+                <h1 id="main-title"
+                    style="font-family: 'Cormorant Garamond', serif; font-size: 3rem; color: var(--primary); font-weight: 400; margin-bottom: 0.5rem;">
+                    Votre Séjour</h1>
+                <p id="main-subtitle"
+                    style="text-transform: uppercase; letter-spacing: 0.2em; font-size: 0.75rem; opacity: 0.6; color: var(--primary); font-weight: 600;">
+                    Personnalisez votre expérience</p>
+            </div>
+
+            <div class="back-btn" onclick="goToStep0()">
+                <i class="fas fa-arrow-left"></i> Changer de type de séjour
+            </div>
+
+            <!-- Stepper Progress Bar (Discret) -->
+            <div class="stepper-container" id="main-stepper">
+                <a href="javascript:void(0)" onclick="scrollToStep('step-dates')" class="stepper-item" id="nav-dates">
+                    <div class="stepper-dot"></div>
+                    <span class="stepper-label">Dates</span>
+                    <div class="stepper-connector"></div>
+                </a>
+                <a href="javascript:void(0)" onclick="scrollToStep('step-group')" class="stepper-item" id="nav-group">
+                    <div class="stepper-dot"></div>
+                    <span class="stepper-label">Groupe</span>
+                    <div class="stepper-connector"></div>
+                </a>
+                <a href="javascript:void(0)" onclick="scrollToStep('step-sleeping')" class="stepper-item"
+                    id="nav-sleeping">
+                    <div class="stepper-dot"></div>
+                    <span class="stepper-label">Couchages</span>
+                    <div class="stepper-connector"></div>
+                </a>
+                <a href="javascript:void(0)" onclick="scrollToStep('step-meals')" class="stepper-item" id="nav-meals">
+                    <div class="stepper-dot"></div>
+                    <span class="stepper-label">Repas</span>
+                    <div class="stepper-connector"></div>
+                </a>
+                <a href="javascript:void(0)" onclick="scrollToStep('step-workspace')" class="stepper-item"
+                    id="nav-workspace">
+                    <div class="stepper-dot"></div>
+                    <span class="stepper-label">Séminaire</span>
+                    <div class="stepper-connector"></div>
+                </a>
+                <a href="javascript:void(0)" onclick="scrollToStep('step-options')" class="stepper-item"
+                    id="nav-options">
+                    <div class="stepper-dot"></div>
+                    <span class="stepper-label">Options</span>
+                    <div class="stepper-connector"></div>
+                </a>
+                <a href="javascript:void(0)" onclick="scrollToStep('step-contact')" class="stepper-item"
+                    id="nav-contact">
+                    <div class="stepper-dot"></div>
+                    <span class="stepper-label">Contact</span>
+                    <div class="stepper-connector"></div>
+                </a>
+            </div>
+
+
+            <div class="simulator-grid">
+                <!-- COLONNE GAUCHE : Étapes du configurateur -->
+                <div class="config-sections">
+                    <!-- STEP 1 — Dates -->
+                    <div class="card" id="step-dates">
+                        <h2 class="card-title">1. Quand venez-vous nous voir ?</h2>
+                        <div class="calendar-container">
+                            <div class="calendar-header">
+                                <button class="calendar-nav" onclick="changeMonth(-1)"><i
+                                        class="fas fa-chevron-left"></i></button>
+                                <span class="calendar-month" id="calendarMonth"></span>
+                                <button class="calendar-nav" onclick="changeMonth(1)"><i
+                                        class="fas fa-chevron-right"></i></button>
+                            </div>
+                            <div class="calendar-weekdays">
+                                <div class="calendar-weekday">Lun</div>
+                                <div class="calendar-weekday">Mar</div>
+                                <div class="calendar-weekday">Mer</div>
+                                <div class="calendar-weekday">Jeu</div>
+                                <div class="calendar-weekday">Ven</div>
+                                <div class="calendar-weekday">Sam</div>
+                                <div class="calendar-weekday">Dim</div>
+                            </div>
+                            <div class="calendar-days" id="calendarDays"></div>
+
+                            <div class="date-display">
+                                <div class="date-display-item">
+                                    <div class="date-display-label">Arrivée</div>
+                                    <div class="date-display-value" id="displayArrivee">--/--/----</div>
+                                </div>
+                                <div class="date-display-arrow"><i class="fas fa-arrow-right"></i></div>
+                                <div class="date-display-item">
+                                    <div class="date-display-label">Départ</div>
+                                    <div class="date-display-value" id="displayDepart">--/--/----</div>
+                                </div>
+                            </div>
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap;">
+                                <div id="availabilityStatus" class="status-badge" style="display: none;">
+                                    Dates disponibles <i class="fas fa-check"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step-footer">
+                            <div class="validation-msg" id="msg-dates"><i class="fas fa-exclamation-triangle"></i>
+                                Sélectionnez vos dates</div>
+                            <button class="btn-continue" onclick="nextStep('step-dates', 'step-group')">Étape
+                                suivante</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2 — Votre groupe -->
+                    <div class="card" id="step-group" style="padding: 2.1rem 2.5rem;">
+                        <!-- -15% padding vertical approx -->
+                        <h2 class="card-title perso-only">2. Votre groupe</h2>
+                        <h2 class="card-title pro-only">2. Votre séminaire</h2>
+
+                        <!-- Ligne principale : Nombre total et Compteur -->
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+                            <h4
+                                style="font-family: var(--font-heading); color: var(--primary); margin: 0; font-size: 1.35rem; font-weight: 700;">
+                                Nombre total de personnes
+                            </h4>
+                            <div class="premium-counter">
+                                <button class="premium-counter-btn" onclick="changeCount('Total', -1)"
+                                    aria-label="Retirer une personne">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" id="nbTotal" class="premium-counter-val" value="0" min="0"
+                                    onchange="updateCalculations()">
+                                <button class="premium-counter-btn" onclick="changeCount('Total', 1)"
+                                    aria-label="Ajouter une personne">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Jauge de capacité -->
+                        <div class="capacity-gauge-container">
+                            <div
+                                style="display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--primary); font-weight: 600; margin-bottom: 6px;">
+                                <span>Capacité</span>
+                                <span><span id="capacity-current">0</span> / 38 couchages</span>
+                            </div>
+                            <div class="capacity-gauge-bar">
+                                <div id="capacity-fill" class="capacity-gauge-fill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Note Info -->
+                        <div class="capacity-note">
+                            <i class="fas fa-info-circle" style="opacity: 0.6;"></i>
+                            <span>
+                                Nous pouvons augmenter ponctuellement la capacité de couchage jusqu'à 50 personnes.
+                                <a href="javascript:void(0)" onclick="scrollToStep('step-contact')"
+                                    style="color: var(--accent); font-weight: 700; text-decoration: underline;">Nous
+                                    contacter</a>
+                            </span>
+                        </div>
+
+                        <!-- Accordéon Détails -->
+                        <details class="group-details-accordion perso-only">
+                            <summary class="group-details-summary">
+                                <span>Détails du groupe (Optionnel)</span>
+                                <span style="font-size: 0.8rem; opacity: 0.7;">Afficher les détails</span>
+                            </summary>
+                            <div
+                                style="padding: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; background: rgba(0,0,0,0.01);">
+
+                                <!-- Bébé -->
+                                <div class="group-detail-card">
+                                    <div class="group-detail-icon"><i class="fas fa-baby"></i></div>
+                                    <h5
+                                        style="margin: 0 0 2px 0; font-size: 0.85rem; color: var(--primary); font-weight: 700;">
+                                        Bébé -3 ans</h5>
+                                    <p
+                                        style="font-size: 0.7rem; color: var(--accent); margin-bottom: 0.6rem; opacity: 0.8;">
+                                        Lit parapluie</p>
+                                    <div class="premium-counter"
+                                        style="padding: 2px 6px; gap: 0.6rem; justify-content: center; transform: scale(0.85);">
+                                        <button class="premium-counter-btn" style="width: 26px; height: 26px;"
+                                            onclick="changeCount('Baby', -1)"><i class="fas fa-minus"></i></button>
+                                        <input type="number" id="nbBaby" class="premium-counter-val"
+                                            style="font-size: 1rem; width: 26px;" value="0" min="0"
+                                            onchange="updateCalculations()">
+                                        <button class="premium-counter-btn" style="width: 26px; height: 26px;"
+                                            onclick="changeCount('Baby', 1)"><i class="fas fa-plus"></i></button>
+                                    </div>
+                                </div>
+
+                                <!-- Enfant -->
+                                <div class="group-detail-card">
+                                    <div class="group-detail-icon"><i class="fas fa-child"></i></div>
+                                    <h5
+                                        style="margin: 0 0 2px 0; font-size: 0.85rem; color: var(--primary); font-weight: 700;">
+                                        Enfant 3-17 ans</h5>
+                                    <p
+                                        style="font-size: 0.7rem; color: var(--accent); margin-bottom: 0.6rem; opacity: 0.8; height: 1em;">
+                                        &nbsp;</p>
+                                    <div class="premium-counter"
+                                        style="padding: 2px 6px; gap: 0.6rem; justify-content: center; transform: scale(0.85);">
+                                        <button class="premium-counter-btn" style="width: 26px; height: 26px;"
+                                            onclick="changeCount('Child', -1)"><i class="fas fa-minus"></i></button>
+                                        <input type="number" id="nbChild" class="premium-counter-val"
+                                            style="font-size: 1rem; width: 26px;" value="0" min="0"
+                                            onchange="updateCalculations()">
+                                        <button class="premium-counter-btn" style="width: 26px; height: 26px;"
+                                            onclick="changeCount('Child', 1)"><i class="fas fa-plus"></i></button>
+                                    </div>
+                                </div>
+
+                                <!-- Adulte -->
+                                <div class="group-detail-card">
+                                    <div class="group-detail-icon"><i class="fas fa-user"></i></div>
+                                    <h5
+                                        style="margin: 0 0 2px 0; font-size: 0.85rem; color: var(--primary); font-weight: 700;">
+                                        Adulte 18+</h5>
+                                    <p
+                                        style="font-size: 0.7rem; color: var(--accent); margin-bottom: 0.6rem; opacity: 0.8; height: 1em;">
+                                        &nbsp;</p>
+                                    <div class="premium-counter"
+                                        style="padding: 2px 6px; gap: 0.6rem; justify-content: center; transform: scale(0.85);">
+                                        <button class="premium-counter-btn" style="width: 26px; height: 26px;"
+                                            onclick="changeCount('Adult', -1)"><i class="fas fa-minus"></i></button>
+                                        <input type="number" id="nbAdult" class="premium-counter-val"
+                                            style="font-size: 1rem; width: 26px;" value="0" min="0"
+                                            onchange="updateCalculations()">
+                                        <button class="premium-counter-btn" style="width: 26px; height: 26px;"
+                                            onclick="changeCount('Adult', 1)"><i class="fas fa-plus"></i></button>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </details>
+
+                        <div class="step-footer" style="justify-content: flex-end; border-top: none; padding-top: 0;">
+                            <div class="validation-msg" id="msg-group" style="margin-right: auto;"><i
+                                    class="fas fa-exclamation-triangle"></i> Indiquez au moins 1 personne</div>
+                            <button class="btn-continue" onclick="nextStep('step-group', 'step-sleeping')"
+                                style="font-size: 0.85rem; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.6; padding: 10px 0;">
+                                Étape suivante
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3 — Hébergement -->
+                    <div class="card" id="step-sleeping">
+                        <h2 class="card-title perso-only">3. Répartition des voyageurs</h2>
+                        <h2 class="card-title pro-only">3. Répartition des participants</h2>
+                        <p class="perso-only" style="color: #666; margin-bottom: 1.5rem; font-size: 0.95rem;">Indiquez
+                            combien de personnes
+                            dormiront dans chaque type de couchage. Nous calculons automatiquement le nombre de
+                            chambres.</p>
+                        <p class="pro-only" style="color: #666; margin-bottom: 1.5rem; font-size: 0.95rem;">Définissez
+                            votre politique de couchage (solo, duo ou personnalisé) : nous répartissons ensuite
+                            automatiquement l’équipe selon les capacités du Domaine.</p>
+
+                        <div class="mode-selector perso-only">
+                            <div class="mode-pill active" id="mode-auto" onclick="setSleepingMode('auto')"><i
+                                    class="fas fa-sparkles"></i> Optimiser pour moi</div>
+                            <div class="mode-pill" id="mode-manu" onclick="setSleepingMode('manu')"><i
+                                    class="fas fa-pen"></i> Choix manuel</div>
+                        </div>
+
+                        <!-- Nouveau sélecteur Pro (Radio Cards) -->
+                        <div class="pro-only" style="margin-bottom: 1.5rem;">
+                            <h3
+                                style="font-family: var(--font-heading); font-size: 1.25rem; color: var(--primary); margin-bottom: 4px;">
+                                Choisissez votre politique de couchage <span
+                                    style="font-size: 0.8rem; color: var(--accent); opacity: 0.8; font-weight: 500;">(obligatoire)</span>
+                            </h3>
+                            <p style="font-size: 0.85rem; color: #888;">Cliquez sur une option pour continuer.</p>
+                        </div>
+
+                        <div class="pro-sleeping-selector pro-only">
+                            <div class="pro-sleeping-card" id="pro-mode-double" onclick="setSleepingMode('pro-double')">
+                                <i class="fas fa-user-friends"></i>
+                                <span>Chambres partagées</span>
+                            </div>
+                            <div class="pro-sleeping-card" id="pro-mode-indiv" onclick="setSleepingMode('pro-indiv')">
+                                <div class="pro-badge" id="pro-indiv-card-badge">+30€ HT / pers</div>
+                                <i class="fas fa-user"></i>
+                                <span>Chambres individuelles</span>
+                            </div>
+                            <div class="pro-sleeping-card" id="pro-mode-manu" onclick="setSleepingMode('manu')">
+                                <i class="fas fa-pen"></i>
+                                <span>Personnalisé</span>
+                            </div>
+                        </div>
+
+                        <div class="pro-only" id="pro-sleeping-error"
+                            style="color: var(--accent); font-size: 0.85rem; margin-top: -1.5rem; margin-bottom: 2rem; font-weight: 600;">
+                            <i class="fas fa-info-circle"></i> Choisissez une option pour continuer.
+                        </div>
+
+                        <div id="sleeping-auto-msg" class="info-banner" style="margin-bottom: 2rem;">
+                            <span class="perso-only">Nous avons optimisé la répartition des chambres selon votre
+                                groupe.</span>
+                            <span class="pro-only">Votre équipe sera répartie de façon optimale sur les meilleures
+                                unités de vie.</span>
+                            <span id="sleeping-auto-action"
+                                style="text-decoration: underline; cursor: pointer; font-weight: 600;"
+                                onclick="setSleepingMode('manu')">Ajuster la répartition</span>
+                            <div id="pro-sleeping-help" class="pro-only"
+                                style="font-size: 0.75rem; opacity: 0.7; margin-top: 4px;">Répartition proposée à partir
+                                de <span id="help-nb-total">0</span> participants.</div>
+                            <div id="sleeping-auto-detail"
+                                style="margin-top:15px; border-top:1px solid rgba(123, 92, 58, 0.1); padding-top:15px; display:none;">
+                                <!-- Will be filled by JS -->
+                            </div>
+                        </div>
+
+                        <div id="accommodation-grid" class="sleeping-grid">
+                            <div class="sleeping-row" id="row-individuel">
+                                <div class="sleeping-info">
+                                    <h4 class="perso-only">Voyageurs en chambre individuelle <span
+                                            id="perso-indiv-row-badge"
+                                            style="font-weight: 700; opacity: 1; font-size: 0.95rem; margin-left: 10px; color: var(--accent); background: #F9F1EB; padding: 6px 14px; border-radius: 50px; display: inline-block;">+30€
+                                            / nuit / pers</span></h4>
+                                    <h4 class="pro-only">Participants en chambre individuelle <span
+                                            id="pro-indiv-row-badge"
+                                            style="font-weight: 400; opacity: 0.6; font-size: 0.85rem; margin-left: 5px;">(+
+                                            30€ HT)</span></h4>
+                                    <p id="info-individuel" class="perso-only">0 voyageur → 0 chambre</p>
+                                    <p id="info-individuel-pro" class="pro-only">0 participant → 0 chambre</p>
+                                </div>
+                                <div class="number-input-wrapper">
+                                    <button class="number-btn sleeping-manu-btn"
+                                        onclick="changeSleeping('individuel', -1)" disabled><i
+                                            class="fas fa-minus"></i></button>
+                                    <input type="number" id="nbIndividuel" value="0" min="0"
+                                        onchange="updateCalculations()" readonly>
+                                    <button class="number-btn sleeping-manu-btn"
+                                        onclick="changeSleeping('individuel', 1)" disabled><i
+                                            class="fas fa-plus"></i></button>
+                                </div>
+                            </div>
+                            <div class="sleeping-row" id="row-partage">
+                                <div class="sleeping-info">
+                                    <h4 class="perso-only">Voyageurs en chambre partagée (2 lits simples)</h4>
+                                    <h4 class="pro-only">Participants en chambre partagée (2 lits simples)</h4>
+                                    <p id="info-partage" class="perso-only">0 voyageur → 0 chambre</p>
+                                    <p id="info-partage-pro" class="pro-only">0 participant → 0 chambre</p>
+                                </div>
+                                <div class="number-input-wrapper">
+                                    <button class="number-btn sleeping-manu-btn" onclick="changeSleeping('partage', -2)"
+                                        disabled><i class="fas fa-minus"></i></button>
+                                    <input type="number" id="nbPartage" value="0" min="0" step="2"
+                                        onchange="updateCalculations()" readonly>
+                                    <button class="number-btn sleeping-manu-btn" onclick="changeSleeping('partage', 2)"
+                                        disabled><i class="fas fa-plus"></i></button>
+                                </div>
+                            </div>
+                            <div class="sleeping-row perso-only" id="row-couple">
+                                <div class="sleeping-info">
+                                    <h4 class="perso-only">Voyageurs en chambre double (lit double)</h4>
+                                    <p id="info-couple" class="perso-only">0 voyageur → 0 chambre</p>
+                                </div>
+                                <div class="number-input-wrapper">
+                                    <button class="number-btn sleeping-manu-btn" onclick="changeSleeping('couple', -2)"
+                                        disabled><i class="fas fa-minus"></i></button>
+                                    <input type="number" id="nbCouple" value="0" min="0" step="2"
+                                        onchange="updateCalculations()" readonly>
+                                    <button class="number-btn sleeping-manu-btn" onclick="changeSleeping('couple', 2)"
+                                        disabled><i class="fas fa-plus"></i></button>
+                                </div>
+                                <!-- Close row-couple -->
+                            </div>
+
+                            <!-- Section Privatisation removed from here -->
+
+
+                            <!-- Close accommodation-grid -->
+                        </div>
+
+                        <!-- Section Privatisation (Perso) - Distinct Block -->
+                        <div class="perso-only" style="margin-top: 2.5rem; margin-bottom: 2rem;">
+                            <hr
+                                style="border: 0; border-top: 1px solid var(--border); margin-bottom: 2rem; opacity: 0.6;">
+
+                            <h3
+                                style="font-family: var(--font-heading); font-size: 1.35rem; color: var(--primary); margin-bottom: 1.2rem;">
+                                4. Privatisation du domaine
+                            </h3>
+
+                            <div class="option-card active"
+                                style="cursor: default; border-color: var(--accent); opacity: 1; background: #FFFEFC; padding: 1.5rem;">
+                                <div class="option-added-badge"
+                                    style="display:block; background: var(--accent); color: white; top: -10px; right: 15px; border-radius: 6px; font-size: 0.75rem;">
+                                    <i class="fas fa-lock"></i> Inclus
+                                </div>
+
+                                <div style="display: flex; align-items: center; width: 100%;">
+                                    <div class="option-icon"
+                                        style="background: rgba(185, 138, 77, 0.1); color: var(--accent); width: 50px; height: 50px; font-size: 1.3rem; margin-right: 1rem;">
+                                        <i class="fas fa-key"></i>
+                                    </div>
+
+                                    <div class="option-info">
+                                        <h4 class="option-title"
+                                            style="color: var(--primary); font-size: 1.1rem; margin-bottom: 4px;">
+                                            Privatisation du domaine</h4>
+                                        <p class="option-caption" style="font-size: 0.9rem; max-width: 90%;">Accès
+                                            exclusifs : salle de réception, espaces extérieurs et espaces communs</p>
+                                    </div>
+
+                                    <div class="option-right">
+                                        <div class="option-badge"
+                                            style="color: var(--accent); font-weight: 700; margin-right: 15px; background: rgba(185, 138, 77, 0.1); padding: 6px 14px; border-radius: 50px;">
+                                            650€ / forfait</div>
+                                        <label class="premium-switch-label" style="pointer-events: none; opacity: 1;">
+                                            <input type="checkbox" checked disabled style="display:none;">
+                                            <div class="premium-switch"
+                                                style="background: var(--accent); border-color: var(--accent);">
+                                                <span class="premium-switch-handle"
+                                                    style="transform: translateX(18px);"></span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Lien Options Avancées (Pro uniquement) -->
+                        <div class="pro-only" id="advanced-options-link"
+                            style="margin-top: -1rem; margin-bottom: 2rem; display: none;">
+                            <button type="button" onclick="showAllSleepingRows()"
+                                style="background:none; border:none; color:var(--primary); font-size: 0.85rem; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 0;">
+                                <i class="fas fa-plus-circle" style="margin-right: 4px;"></i> Options avancées
+                            </button>
+                        </div>
+
+                        <div id="coherence-check" class="capacity-badge"
+                            style="display: none; flex-direction: column; align-items: center; gap: 4px; padding: 12px;">
+                            <div>
+                                Couchages attribués : <span id="housed-count">0</span> / <span
+                                    id="total-v-count">0</span>
+                                <span class="perso-only">voyageurs</span>
+                                <span class="pro-only">participants</span>
+                            </div>
+                            <div id="sleeping-delta-msg" style="font-size: 0.8rem; font-weight: 700;"></div>
+                        </div>
+                        <div class="step-footer">
+                            <div class="validation-msg" id="msg-sleeping"><i class="fas fa-exclamation-triangle"></i>
+                                Vérifiez la répartition des lits</div>
+                            <button class="btn-continue" id="btn-next-sleeping" onclick="handleSleepingNext()">Étape
+                                suivante</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 5 — Restauration & pauses -->
+                    <div class="card" id="step-meals">
+                        <h2 class="card-title">5. Restauration & pauses</h2>
+                        <!-- Multi-Tabs selection for Pro/Perso -->
+                        <div class="checkbox-grid meal-tabs"
+                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="checkbox-item pro-only" style="margin-bottom:0;">
+                                <input type="radio" id="repasPension" name="repasType" value="pension"
+                                    onchange="toggleMeals('pension')" style="display:none;">
+                                <label for="repasPension" class="checkbox-label"
+                                    style="height: 100%; display: flex; flex-direction: column; align-items: start; justify-content: center; text-align: center; position: relative; padding: 20px;">
+                                    <div class="custom-radio-circle"></div>
+                                    <div style="width: 100%; margin-top: 5px;">
+                                        <span class="checkbox-name" style="font-size: 1.1rem;">Pension
+                                            complète</span>
+                                        <span
+                                            style="font-size: 0.75rem; opacity: 0.7; font-weight: 500; display:block; margin-top: 4px;">(recommandé)</span>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="checkbox-item" style="margin-bottom:0;">
+                                <input type="radio" id="repasLibre" name="repasType" value="libre" checked
+                                    onchange="toggleMeals('libre')" style="display:none;">
+                                <label for="repasLibre" class="checkbox-label"
+                                    style="height: 100%; display: flex; flex-direction: column; align-items: start; justify-content: center; text-align: center; position: relative; padding: 20px;">
+                                    <div class="custom-radio-circle"></div>
+                                    <div style="width: 100%; margin-top: 5px;">
+                                        <span class="checkbox-name" style="font-size: 1.1rem;">Gestion libre</span>
+                                    </div>
+                                </label>
+                            </div>
+                            <!-- Perso legacy tab (Restored & Styled) -->
+                            <div class="checkbox-item perso-only" style="margin-bottom:0;">
+                                <input type="radio" id="repasSurPlace" name="repasType" value="traiteur"
+                                    onchange="toggleMeals('traiteur')" style="display:none;">
+                                <label for="repasSurPlace" class="checkbox-label"
+                                    style="height: 100%; display: flex; flex-direction: column; align-items: start; justify-content: center; text-align: center; position: relative; padding: 20px;">
+                                    <div class="custom-radio-circle"></div>
+                                    <div style="width: 100%; margin-top: 5px;">
+                                        <span class="checkbox-name" style="font-size: 1.1rem;">Restauration gérée</span>
+                                        <span
+                                            style="font-size: 0.75rem; opacity: 0.7; font-weight: 500; display:block; margin-top: 4px;">(Traiteur
+                                            / Chef)</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="mealSelectionHelp"
+                            style="margin-top: 35px; border-radius: 12px; border: 1px solid var(--border);">
+                            <div id="pensionInfo"
+                                style="display:none; padding: 1.25rem; background: rgba(58, 85, 56, 0.04); position: relative;">
+                                <div id="pension-badge"
+                                    style="position: absolute; top: 12px; right: 12px; font-size: 0.8rem; font-weight: 700; color: var(--accent); background: rgba(185, 138, 77, 0.1); padding: 4px 8px; border-radius: 6px;">
+                                    70€ HT / pers / jour
+                                </div>
+                                <div style="display: flex; gap: 12px; align-items: flex-start; margin-bottom: 20px;">
+                                    <i class="fas fa-certificate"
+                                        style="color: var(--primary); font-size: 1.2rem; margin-top: 3px;"></i>
+                                    <div>
+                                        <div
+                                            style="font-weight: 700; color: var(--primary); margin-bottom: 4px; font-size: 1rem;">
+                                            Pack Séminaire Résidentiel</div>
+                                        <div
+                                            style="color: #666; font-size: 0.85rem; line-height: 1.5; padding-right: 90px;">
+                                            Inclus :
+                                            Petit-déjeuner, Déjeuner, Dîner et pauses gourmandes.</div>
+                                    </div>
+                                </div>
+                                <div
+                                    style="font-size: 0.8rem; line-height: 1.4; padding: 10px; border: 1px dashed var(--border); border-radius: 8px; background: white;">
+                                    <strong>💡 Astuce :</strong> Vous pouvez ajuster les quantités ci-dessous (ex:
+                                    retirer le déjeuner du dernier jour).
+                                    Le prix sera automatiquement déduit.
+                                </div>
+                            </div>
+                            <div id="libreInfo"
+                                style="padding: 1.25rem; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: #666;">
+                                <i class="fas fa-info-circle" style="opacity: 0.5;"></i> <span id="libreText">Vous
+                                    gérez
+                                    les repas de votre groupe.</span>
+                            </div>
+                        </div>
+
+                        <div id="mealSelection" style="display:none; margin-top:20px;">
+                            <!-- Actions rapides -->
+
+                            <div id="meals-schedule-container">
+                                <!-- Filled by JS -->
+                            </div>
+                            <div style="margin-top: 2rem;">
+                                <label>Allergies ou régimes spécifiques ?</label>
+                                <input type="text" id="dietary" class="input-text"
+                                    placeholder="Ex: Sans gluten, végétarien...">
+                            </div>
+                        </div>
+                        <div class="step-footer">
+                            <div class="validation-msg" id="msg-meals"></div>
+                            <button class="btn-continue" onclick="handleMealsNext()">Étape
+                                suivante</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 5 — Espace de travail (Pro uniquement) -->
+                    <div class="card pro-only" id="step-workspace">
+                        <h2 class="card-title">5. Espace de travail</h2>
+                        <div class="option-card" id="card-salle" onclick="toggleOption('salleReunion')">
+                            <div class="option-added-badge"><i class="fas fa-check"></i> Ajouté</div>
+                            <div class="option-icon"><i class="fas fa-laptop-code"></i></div>
+                            <div class="option-info">
+                                <h4 class="option-title">Salle de réunion équipée</h4>
+                                <p class="option-caption">Vidéo-projection, paperboard, café d'accueil</p>
+                            </div>
+                            <div class="option-right">
+                                <div class="option-badge" id="salle-price-badge">500€ HT / jour</div>
+                                <label class="premium-switch-label" style="pointer-events: none; height: 22px;">
+                                    <input type="checkbox" id="salleReunion" onchange="updateCalculations()"
+                                        style="display:none;">
+                                    <div class="premium-switch">
+                                        <span class="premium-switch-handle"></span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="step-footer">
+                            <div class="validation-msg"></div>
+                            <button class="btn-continue" onclick="nextStep('step-workspace', 'step-options')">Étape
+                                suivante</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 6 — Options -->
+                    <div class="card" id="step-options">
+                        <h2 class="card-title"><span class="perso-only">6.</span><span class="pro-only">6.</span>
+                            Les
+                            petits plus</h2>
+
+
+                        <div class="pro-only"
+                            style="margin-bottom: 1.8rem; font-size: 0.85rem; color: var(--primary); background: rgba(58, 85, 56, 0.04); padding: 14px 20px; border-radius: 12px; border-left: 4px solid var(--primary); display: flex; align-items: flex-start; gap: 12px;">
+                            <i class="fas fa-check-circle" style="margin-top: 3px; color: var(--primary);"></i>
+                            <div>
+                                <strong style="display: block; margin-bottom: 2px;">Inclus dans votre pack Séminaire
+                                    :</strong>
+                                <span style="opacity: 0.8;">Lits préparés (draps & serviettes), ménage complet de
+                                    fin de
+                                    séjour et accueil & logistique.</span>
+                            </div>
+                        </div>
+
+                        <div class="options-list">
+                            <!-- Draps & Serviettes (Perso uniquement) -->
+                            <div class="option-card perso-only" id="card-draps" onclick="toggleOption('draps')">
+                                <div class="option-added-badge"><i class="fas fa-check"></i> Ajouté</div>
+                                <div class="option-icon"><i class="fas fa-concierge-bell"></i></div>
+                                <div class="option-info">
+                                    <h4 class="option-title">Draps & Serviettes</h4>
+                                    <p class="option-caption">Lits préparés à votre arrivée</p>
+                                </div>
+                                <div class="option-right">
+                                    <div class="option-badge" id="draps-badge">7€ / pers</div>
+                                    <label class="premium-switch-label" style="pointer-events: none; height: 22px;">
+                                        <input type="checkbox" id="draps" onchange="updateCalculations()"
+                                            style="display:none;">
+                                        <div class="premium-switch"><span class="premium-switch-handle"></span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Options de base -->
+                            <!-- Privatisation moved to Step 3 -->
+
+                            <!-- Ménage (Perso uniquement) -->
+                            <div class="option-card perso-only" id="card-menage" onclick="toggleOption('menage')">
+                                <div class="option-added-badge"><i class="fas fa-check"></i> Ajouté</div>
+                                <div class="option-icon"><i class="fas fa-broom"></i></div>
+                                <div class="option-info">
+                                    <h4 class="option-title">Ménage fin de séjour</h4>
+                                    <p class="option-caption">Pour un départ tout en sérénité</p>
+                                </div>
+                                <div class="option-right">
+                                    <div class="option-badge" id="menage-badge">300€</div>
+                                    <label class="premium-switch-label" style="pointer-events: none; height: 22px;">
+                                        <input type="checkbox" id="menage" onchange="updateCalculations()"
+                                            style="display:none;">
+                                        <div class="premium-switch"><span class="premium-switch-handle"></span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Arrivée/Départ Flex (Tous) -->
+                            <div class="option-card" id="card-late" onclick="toggleOption('lateArrival')">
+                                <div class="option-added-badge"><i class="fas fa-check"></i> Demandé</div>
+                                <div class="option-icon"><i class="fas fa-clock"></i></div>
+                                <div class="option-info">
+                                    <h4 class="option-title">Arrivée & Départ flex</h4>
+                                    <p class="option-caption">Arrivez plus tôt ou repartez plus tard</p>
+                                </div>
+                                <div class="option-right">
+                                    <div class="option-badge"
+                                        style="background: rgba(58, 85, 56, 0.05); color: var(--primary);">Sur
+                                        demande
+                                    </div>
+                                    <label class="premium-switch-label" style="pointer-events: none; height: 22px;">
+                                        <input type="checkbox" id="lateArrival" onchange="updateCalculations()"
+                                            style="display:none;">
+                                        <div class="premium-switch"><span class="premium-switch-handle"></span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Kit soirée (Pro uniquement) -->
+                            <div class="option-card pro-only" id="card-soiree" onclick="toggleOption('kitSoiree')">
+                                <div class="option-added-badge"><i class="fas fa-check"></i> Ajouté</div>
+                                <div class="option-icon"><i class="fas fa-music"></i></div>
+                                <div class="option-info">
+                                    <h4 class="option-title">Kit soirée</h4>
+                                    <p class="option-caption">enceinte, micro, table de mixage, éclairages pour
+                                        prise de
+                                        parole ou soirée</p>
+                                </div>
+                                <div class="option-right">
+                                    <div class="option-badge" id="soiree-badge">Forfait</div>
+                                    <label class="premium-switch-label" style="pointer-events: none; height: 22px;">
+                                        <input type="checkbox" id="kitSoiree" onchange="updateCalculations()"
+                                            style="display:none;">
+                                        <div class="premium-switch"><span class="premium-switch-handle"></span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Bloc Activités (Pro uniquement) -->
+                        <div class="pro-only" id="block-activities"
+                            style="margin-top: 1.5rem; padding: 1.8rem; background: #fff; border-radius: 16px; border: 1px dashed var(--border); position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+                            <div
+                                style="position: absolute; top: -10px; right: -10px; font-size: 5rem; color: var(--primary); opacity: 0.03; transform: rotate(-15deg); pointer-events: none;">
+                                <i class="fas fa-glass-cheers"></i>
+                            </div>
+                            <h4
+                                style="font-family: var(--font-heading); color: var(--primary); font-size: 1.25rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-magic" style="font-size: 1.1rem; color: var(--accent);"></i>
+                                Soirée & activités
+                                <span
+                                    style="font-size: 0.75rem; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-left: auto;">Sur
+                                    demande</span>
+                            </h4>
+                            <p
+                                style="font-size: 0.9rem; color: #666; margin-bottom: 1.5rem; line-height: 1.6; max-width: 550px;">
+                                Confiez-nous l'organisation de vos moments de cohésion (dégustation, team-building,
+                                etc.).
+                            </p>
+                            <button type="button" class="btn-continue" onclick="openActivitiesModal()"
+                                style="margin: 0; padding: 10px 22px; font-size: 0.85rem; background: transparent; color: var(--primary); border: 1.5px solid var(--primary); border-radius: 8px;">
+                                <i class="fas fa-paper-plane" style="margin-right: 8px; font-size: 0.7rem;"></i>
+                                Demander une proposition
+                            </button>
+                            <div id="activities-badge-added"
+                                style="display:none; margin-top: 15px; color: #27ae60; font-weight: 600; font-size: 0.85rem; align-items: center; gap: 8px; animation: fadeInUp 0.4s ease forwards;">
+                                <i class="fas fa-check-circle"></i> Demande d'activités enregistrée
+                            </div>
+                        </div>
+
+                        <div class="step-footer"
+                            style="justify-content: flex-end; border-top: none; padding-top: 2rem;">
+                            <button class="btn-continue" onclick="scrollToStep('final-cta-section')"
+                                style="font-size: 0.85rem; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.7;">
+                                Voir mon estimation
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 7 — Coordonnées -->
+                    <div class="card" id="step-contact" style="display:none;">
+                        <h2 class="card-title"><span class="perso-only">6.</span><span class="pro-only">7.</span>
+                            Vos
+                            coordonnées</h2>
+                        <div class="form-group">
+                            <label>Organisation / Entreprise (Optionnel)</label>
+                            <input type="text" id="organisation" class="input-text"
+                                placeholder="Le nom de votre société">
+                        </div>
+                        <div class="contact-grid">
+                            <div class="form-group">
+                                <label>Prénom</label>
+                                <input type="text" id="firstname" class="input-text" placeholder="Jean">
+                            </div>
+                            <div class="form-group">
+                                <label>Nom</label>
+                                <input type="text" id="lastname" class="input-text" placeholder="Dupont">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" id="email" class="input-text" placeholder="jean.dupont@exemple.fr">
+                        </div>
+                        <div class="form-group">
+                            <label>Téléphone (Optionnel)</label>
+                            <input type="tel" id="phone" class="input-text" placeholder="06 12 34 56 78">
+                        </div>
+                        <div class="form-group">
+                            <label>Votre message ou demande particulière</label>
+                            <textarea id="message" class="input-text" style="height: 120px;"
+                                placeholder="Détails sur votre groupe, besoins spécifiques..."></textarea>
+                        </div>
+                    </div> <!-- Close step-contact -->
+
+                    <!-- Section Finale : Estimation & Devis -->
+                    <div id="final-cta-section"
+                        style="margin-top: 3rem; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; margin-bottom: 4rem;">
+
+
+                        <div id="summary-total-box" class="summary-total-box"
+                            style="display: none; width: 100%; max-width: 450px; text-align: center;">
+                            <div class="summary-total-label">Estimation budgétaire (TTC)</div>
+                            <div class="total-amount" id="totalTTC" style="font-size: 2.2rem; white-space: nowrap;">
+                                0€ -
+                                0€</div>
+                            <div style="font-size: 0.9rem; opacity: 0.9;" id="perPersonDisplay">Environ 0€ /
+                                personne
+                            </div>
+                            <div
+                                style="font-size: 0.75rem; margin-top: 15px; opacity: 0.8; font-style: italic; line-height: 1.4;">
+                                *Cette fourchette est donnée à titre indicatif et sera affinée lors du devis
+                                définitif.
+                            </div>
+                        </div>
+
+                        <div style="width: 100%; max-width: 450px; display: flex; flex-direction: column; gap: 10px;">
+                            <button id="cta-quote" class="cta-button" onclick="handleMainCTA()"
+                                style="margin-top: 0; width: 100%;">
+                                Continuer
+                            </button>
+                            <button id="cta-pdf" class="cta-button" onclick="generatePDF()"
+                                style="width: 100%; background: #fff; color: var(--primary); border: 2px solid var(--primary); display: none; align-items: center; justify-content: center; gap: 8px;">
+                                <i class="fas fa-file-pdf"></i> Télécharger mon récapitulatif
+                            </button>
+                        </div>
+
+                        <p style="font-size: 0.85rem; color: var(--accent); margin-top: 10px;"><i
+                                class="fas fa-check-circle" style="color: var(--primary);"></i> Réponse sous 24h</p>
+                    </div>
+                </div> <!-- Closes config-sections -->
+
+                <!-- COLONNE DROITE : Résumé Sticky -->
+                <div class="summary-card-wrapper">
+                    <div class="card">
+                        <!-- Indicateur "Mis à jour" en position absolue -->
+                        <div id="update-indicator"
+                            style="position: absolute; top: -2rem; right: 0; display: none; font-size: 0.7rem; color: var(--primary); font-weight: 600; opacity: 0; transition: opacity 0.3s; background: rgba(255, 255, 255, 0.95); padding: 0.3rem 0.6rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                            <i class="fas fa-check-circle"></i> Mis à jour
+                        </div>
+
+                        <!-- 1) EN-TÊTE COMPACT -->
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <h3
+                                    style="font-family: 'Playfair Display', serif; margin: 0; color: var(--primary); font-size: 1.5rem;">
+                                    Résumé</h3>
+                                <span id="availability-badge"
+                                    style="display: none; font-size: 0.7rem; color: #2c5f2d; background: rgba(44, 95, 45, 0.08); padding: 0.25rem 0.6rem; border-radius: 12px; font-weight: 600;">
+                                    Disponible ✓
+                                </span>
+                            </div>
+                            <button type="button" onclick="confirmReset(event)"
+                                style="background: rgba(231, 76, 60, 0.05); border: none; cursor: pointer; color: #aaa; font-size: 1.1rem; padding: 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center; justify-content: center;"
+                                onmouseover="this.style.color='#e74c3c'; this.style.background='rgba(231, 76, 60, 0.1)'"
+                                onmouseout="this.style.color='#aaa'; this.style.background='rgba(231, 76, 60, 0.05)'"
+                                title="Tout réinitialiser (vider le formulaire)">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+
+                        <!-- 2) DÉTAILS SÉJOUR (PRIORITAIRES, COMPACTS) -->
+                        <div id="summary-stay-details"
+                            style="margin-bottom: 1.2rem; font-size: 0.9rem; line-height: 1.9; color: var(--dark);">
+                            <div id="summary-type-compact" style="display: none; margin-bottom: 0.4rem;">
+                                <span style="opacity: 0.7; font-size: 0.85rem;">Séjour</span>
+                                <strong id="summary-type-val"
+                                    style="margin-left: 0.5rem; color: var(--primary);"></strong>
+                            </div>
+                            <div id="summary-dates-compact" style="display: none; margin-bottom: 0.4rem;">
+                                <span style="opacity: 0.7; font-size: 0.85rem;">Dates</span>
+                                <strong id="summary-dates-val"
+                                    style="margin-left: 0.5rem; color: var(--primary);"></strong>
+                            </div>
+                            <div id="summary-nights-compact" style="display: none; margin-bottom: 0.4rem;">
+                                <span style="opacity: 0.7; font-size: 0.85rem;">Nuits</span>
+                                <strong id="summary-nights-val-compact"
+                                    style="margin-left: 0.5rem; color: var(--primary);"></strong>
+                            </div>
+                            <div id="summary-participants-compact" style="display: none; margin-bottom: 0.4rem;">
+                                <span style="opacity: 0.7; font-size: 0.85rem;">Participants</span>
+                                <strong id="summary-participants-val"
+                                    style="margin-left: 0.5rem; color: var(--primary);"></strong>
+                            </div>
+                            <div id="summary-sleeping-compact" style="display: none; margin-bottom: 0.4rem;">
+                                <span style="opacity: 0.7; font-size: 0.85rem;">Couchages</span>
+                                <strong style="margin-left: 0.5rem; color: var(--primary);">Optimisés ✓</strong>
+                                <span style="opacity: 0.6; font-size: 0.75rem; margin-left: 0.3rem;"
+                                    title="Répartition automatique selon votre groupe">ⓘ</span>
+                            </div>
+                            <div id="summary-meals-compact" style="display: none; margin-bottom: 0.4rem;">
+                                <span style="opacity: 0.7; font-size: 0.85rem;">Restauration</span>
+                                <strong id="summary-meals-val"
+                                    style="margin-left: 0.5rem; color: var(--primary);"></strong>
+                            </div>
+                        </div>
+
+                        <!-- 3) ALERTE MICRO (SI BESOIN) -->
+                        <div id="summary-micro-alert"
+                            style="display: none; background: rgba(44, 95, 45, 0.04); border-left: 3px solid rgba(44, 95, 45, 0.3); padding: 0.75rem; margin-bottom: 1.2rem; font-size: 0.8rem; color: var(--dark); opacity: 0.85; border-radius: 4px;">
+                            💡 Vous pouvez ajouter des repas et options pour affiner l'estimation.
+                        </div>
+
+                        <!-- 4) BLOC BUDGET (EN BAS) -->
+                        <div id="summary-budget-block"
+                            style="padding: 1.5rem; background: linear-gradient(135deg, rgba(44, 95, 45, 0.06) 0%, rgba(44, 95, 45, 0.02) 100%); border-radius: 12px; border: 1px solid rgba(44, 95, 45, 0.08); display: none; margin-bottom: 1rem;">
+                            <div
+                                style="font-size: 0.75rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.6rem; opacity: 0.8;">
+                                Estimation
+                            </div>
+                            <div id="summary-total-hero"
+                                style="font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; color: var(--primary); line-height: 1.2; margin-bottom: 0.5rem; white-space: nowrap; display: flex; align-items: baseline; gap: 4px;">
+                            </div>
+                            <div id="summary-per-person-line"
+                                style="font-size: 0.85rem; opacity: 0.65; margin-bottom: 1.2rem;">
+                            </div>
+
+                            <!-- Breakdown (3 lignes) -->
+                            <div id="budget-breakdown-lines"
+                                style="display: none; font-size: 0.85rem; color: var(--dark); border-top: 1px solid rgba(44, 95, 45, 0.1); padding-top: 1rem;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span style="opacity: 0.75;">Hébergement</span>
+                                    <span id="breakdown-hebergement-new" style="font-weight: 600;"></span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span style="opacity: 0.75;">Repas</span>
+                                    <span id="breakdown-repas-new" style="font-weight: 600;"></span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="opacity: 0.75;">Location</span>
+                                    <span id="breakdown-options-new" style="font-weight: 600;"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 5) CTA TOUT EN BAS -->
+                        <div id="summary-cta-block" style="display: none;">
+                            <button class="sticky-cta-button" onclick="handleMainCTA()"
+                                style="width: 100%; padding: 1rem; font-size: 1rem; font-weight: 600; border-radius: 8px; margin-bottom: 0.5rem;">
+                                Demander un devis
+                            </button>
+                            <div style="text-align: center; font-size: 0.75rem; opacity: 0.6; color: var(--dark);">
+                                Réponse sous 24h
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> <!-- Closes .container (opened at line 1420) -->
+
+    <script src="assets/constants.js"></script>
+    <script src="assets/dossier-model.js"></script>
+    <script src="assets/configurateur.js"></script>
+
+    <!-- Modal : Soirée & Activités -->
+    <div id="modal-activities" class="modal-overlay" onclick="if(event.target === this) closeActivitiesModal()">
+        <div class="modal-container">
+            <button class="modal-close" onclick="closeActivitiesModal()"><i class="fas fa-times"></i></button>
+            <h3 class="modal-title" style="margin-bottom: 0.5rem;">
+                Vos activités</h3>
+            <p style="font-size: 0.9rem; opacity: 0.7; margin-bottom: 2rem;">
+                Précisez vos envies pour que
+                nous
+                puissions
+                vous faire une proposition
+                sur-mesure.</p>
+
+            <div class="modal-grid">
+                <div class="form-group">
+                    <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Type
+                        d'activité</label>
+                    <select id="act-type" class="input-text" style="height: 45px; background: #fff;">
+                        <option value="">
+                            Choisir...</option>
+                        <option value="Soirée">
+                            Soirée festive
+                        </option>
+                        <option value="Culture">
+                            Culture & Découverte
+                        </option>
+                        <option value="Team-building">
+                            Team-building /
+                            Sport</option>
+                        <option value="Gastronomie">
+                            OEnologie &
+                            Gastronomie</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Budget
+                        indicatif
+                        (€/pers)</label>
+                    <input type="number" id="act-budget" class="input-text" placeholder="Ex: 50" style="height: 45px;">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Ambiance
+                    souhaitée</label>
+                <select id="act-ambiance" class="input-text" style="height: 45px; background: #fff;">
+                    <option value="">Choisir...
+                    </option>
+                    <option value="Calme">Calme
+                        & Travail</option>
+                    <option value="Festive">
+                        Festive & Dynamique
+                    </option>
+                    <option value="Mixte">Mixte
+                        (Equilibre)</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 2rem;">
+                <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Précisions
+                    ou
+                    demandes libres</label>
+                <textarea id="act-msg" class="input-text" style="height: 100px; padding-top: 12px;"
+                    placeholder="Ex: Atelier cocktails, visite du chai, matériel spécifique..."></textarea>
+            </div>
+
+            <button class="cta-button" onclick="saveActivities()"
+                style="width: 100%; height: 50px; font-size: 1rem;">Valider
+                ma demande</button>
+        </div>
+    </div>
+
+</body>
+
+</html>

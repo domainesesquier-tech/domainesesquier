@@ -279,36 +279,6 @@ const SesquierUtils = {
 
         const ttc = totalHT + totalTVA;
         return { totalHT, totalTVA, ttc, subtotals: { sHeberg, sRestau, sOpt, sActiv } };
-    },
-
-    /**
-     * UNIFIED PDF GENERATION
-     * @param {string} elementId - ID container
-     * @param {string} filename - Output name
-     * @param {object} customOptions - Overrides (margin, orientation...)
-     */
-    async generatePDF(elementInput, filename = 'document.pdf', customOptions = {}) {
-        const element = (typeof elementInput === 'string') ? document.getElementById(elementInput) : elementInput;
-        if (!element) return console.error(`[PDF] Element not found`, elementInput);
-
-        const defaultOptions = {
-            margin: [10, 10, 10, 10],
-            filename: filename,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        const finalOptions = { ...defaultOptions, ...customOptions };
-
-        try {
-            if (typeof html2pdf === 'undefined') throw new Error("html2pdf.js missing");
-            console.log(`[PDF] Exporting ${filename}...`);
-            await html2pdf().set(finalOptions).from(element).save();
-        } catch (err) {
-            console.error(`[PDF] Error:`, err);
-            alert("Erreur PDF: " + err.message);
-        }
     }
 };
 

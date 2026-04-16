@@ -8,61 +8,13 @@
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="assets/document.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="assets/utils.js"></script>
     <script src="assets/constants.js"></script>
     <script src="assets/dossier-model.js"></script>
-    <style>
-        .controls-bar {
-            background: #fff;
-            padding: 10px 20px;
-            display: flex;
-            gap: 15px;
-            border-bottom: 1px solid #eee;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 9pt;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border: 1px solid #ddd;
-            background: #fff;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: #fff;
-            border-color: var(--primary);
-        }
-
-        @media print {
-            .no-print {
-                display: none !important;
-            }
-        }
-    </style>
 </head>
 
 <body>
-    <div class="controls-bar no-print">
-        <button class="btn btn-primary" onclick="generatePDF()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-            </svg>
-            Générer PDF
-        </button>
-    </div>
-
-    <div class="page" id="facture-content">
+    <div class="page" id="page1">
         <div class="print-header">
             <div class="logo-area">
                 <div class="serif"
@@ -259,12 +211,6 @@
             renderSejour(dossier);
             renderLines(dossier);
             renderTotals(dossier);
-        }
-
-        async function generatePDF() {
-            const num = document.getElementById('doc-id').innerText;
-            const client = currentRecord?.fields?.["Nom client"] || "Client";
-            await SesquierUtils.generatePDF('facture-content', `Acompte_${client}_${num}.pdf`, { margin: [10, 10, 10, 10] });
         }
 
         // =====================================================================
