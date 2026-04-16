@@ -2189,9 +2189,7 @@
                     <span class="row-client-name link" contenteditable="true" spellcheck="false" 
                           onblur="fastUpdateRecord('${id}', 'Nom client', this.innerText)"
                           onclick="event.stopPropagation()">${escapeHtml(nom)}</span>
-                    <span class="row-client-org" contenteditable="true" spellcheck="false"
-                          onblur="fastUpdateRecord('${id}', 'Entreprise', this.innerText)"
-                          onclick="event.stopPropagation()">${escapeHtml(org || 'Entreprise...')}</span>
+                    <span class="row-client-org">${escapeHtml(org || '')}</span>
                 </div>
                 <div class="row-dates"><i class="fa-regular fa-calendar"></i> ${dArr} → ${dDep}</div>
                 <div class="row-persons">${pers}</div>
