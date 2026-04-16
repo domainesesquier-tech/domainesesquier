@@ -1099,6 +1099,9 @@
         document.body.addEventListener('input', (e) => {
             if (e.target.contentEditable === 'true') updateCalculations();
         });
+        document.body.addEventListener('blur', (e) => {
+            if (e.target.contentEditable === 'true') updateCalculations();
+        }, true);
     </script>
 </body>
 

@@ -240,7 +240,10 @@ const SesquierUtils = {
                 const line = q * p;
 
                 const totalEl = row.querySelector('.row-total');
-                if (totalEl) totalEl.innerText = line.toFixed(2);
+                if (totalEl) {
+                    // Pour les montants négatifs, on affiche le signe moins
+                    totalEl.innerText = line.toFixed(2);
+                }
 
                 totalHT += line;
                 if (tbodyId === 'pricing-body') {
