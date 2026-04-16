@@ -237,9 +237,9 @@ const SesquierUtils = {
                 const pEl = row.querySelector('.price');
                 if (!qEl || !pEl) return;
 
-                const q = parseFloat(qEl.innerText.replace(',', '.')) || 0;
+                const q = parseFloat(String(qEl.innerText).replace(',', '.')) || 0;
                 const p = parseP(pEl.innerText);
-                const line = Math.round(q * p * 100) / 100; // Arrondi propre au centime
+                const line = Math.round(q * p * 100) / 100;
 
                 const totalEl = row.querySelector('.row-total');
                 if (totalEl) totalEl.innerText = line.toFixed(2);
@@ -253,7 +253,6 @@ const SesquierUtils = {
                     if (isHeberg) {
                         sHeberg += line;
                     } else {
-                        // Par défaut tout le reste du pricing-body va en restauration (dont les remises repas)
                         sRestau += line;
                     }
                 } else if (tbodyId === 'options-body') sOpt += line;
@@ -265,7 +264,7 @@ const SesquierUtils = {
                     const rawTva = tvaEl.innerText.replace(/[^\d.,]/g, '').replace(',', '.');
                     rate = (parseFloat(rawTva) / 100) || 0.1;
                 }
-                totalTVA += line * rate;
+                totalTVA += (line * rate);
             });
         };
 
@@ -273,18 +272,22 @@ const SesquierUtils = {
         processTable('options-body');
         processTable('activities-body');
 
-        // Update UI Subtotals if they exist
-        const setVal = (id, val) => {
+        // Mise à jour forcé des sous-totaux dans le DOM
+        const updateField = (id, value) => {
             const el = document.getElementById(id);
-            if (el) el.innerText = val.toFixed(2) + (el.innerText.includes('€') ? ' €' : '');
+            if (el) {
+                el.innerText = value.toFixed(2);
+                el.classList.add('updated'); // Optionnel: pour debug visuel
+            }
         };
-        setVal('subtotal-hebergement', sHeberg);
-        setVal('subtotal-restauration', sRestau);
-        setVal('subtotal-salles', sOpt);
-        setVal('subtotal-activities', sActiv);
+
+        updateField('subtotal-hebergement', sHeberg);
+        updateField('subtotal-restauration', sRestau);
+        updateField('subtotal-salles', sOpt);
+        updateField('subtotal-activities', sActiv);
 
         const ttc = totalHT + totalTVA;
-        return { totalHT, totalTVA, ttc, subtotals: { sHeberg, sRestau, sOpt, sActiv } };
+        return { totalHT, totalTVA: Math.round(totalTVA * 100) / 100, ttc: Math.round(ttc * 100) / 100, subtotals: { sHeberg, sRestau, sOpt, sActiv } };
     },
 
     /**
