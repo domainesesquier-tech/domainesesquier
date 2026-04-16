@@ -1862,7 +1862,8 @@
 
             // Header info
             header.innerHTML = `
-                <h2 class="dossier-client-title">${f["Nom client"] || 'Client sans nom'}</h2>
+                <h2 class="dossier-client-title" contenteditable="true" spellcheck="false"
+                    onblur="fastUpdateRecord('${id}', 'Nom client', this.innerText)">${f["Nom client"] || 'Client sans nom'}</h2>
                 <div class="dossier-meta">
                     <div class="dossier-meta-item"><i class="fa-regular fa-calendar"></i> ${f["Date arrivée"] || '?'} → ${f["Date départ"] || '?'}</div>
                     <div class="dossier-meta-item"><i class="fa-solid fa-users"></i> ${f["Nb personnes"] || '?'} pers.</div>
