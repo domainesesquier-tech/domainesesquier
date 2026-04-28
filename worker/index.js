@@ -2,7 +2,7 @@ function corsHeaders(env) {
   // Ultra permissive CORS for debugging
   return {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
     "Access-Control-Max-Age": "86400",
   };
@@ -84,7 +84,7 @@ export default {
           return json({ records: [record] }, 200, env);
         }
 
-        const formula = "AND({Date arrivée}, {Date départ}, {Statut} = 'confirmé')";
+        const formula = "AND({Date arrivée}, {Date départ})";
         const records = await fetchAllRecords(
           env,
           env.AIRTABLE_RESERVATIONS_TABLE,
@@ -121,6 +121,17 @@ export default {
           body: JSON.stringify({ fields }),
         });
         return json(result, 200, env);
+      }
+
+      if (url.pathname === "/api/reservations" && method === "DELETE") {
+        const body = await request.json().catch(() => ({}));
+        const recordId = body.id;
+        if (!recordId) return json({ error: { message: "Invalid payload: expected { id }." } }, 400, env);
+
+        const result = await airtableRequest(env, `${buildAirtableUrl(env, env.AIRTABLE_RESERVATIONS_TABLE)}/${recordId}`, {
+          method: "DELETE"
+        });
+        return json({ success: true, id: recordId, result }, 200, env);
       }
 
       return json({ error: { message: "Not found" } }, 404, env);

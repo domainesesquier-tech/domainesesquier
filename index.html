@@ -24,19 +24,83 @@
             const val = value.trim();
             if (!val) return;
             const record = allRecords.find(r => r.id === id);
-            if (record && record.fields[field] === val) return; // Pas de changement
-            
+            if (record && record.fields[field] === val) return; 
+
+            const oldVal = record ? record.fields[field] : null;
+
             try {
                 await fetch(SesquierUtils.API_RESERVATIONS_URL, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id, fields: { [field]: val } })
                 });
-                if (record) record.fields[field] = val;
-                showSyncBanner(`${field} mis à jour !`);
+                
+                // Si c'est un changement de statut, on ajoute une entrée auto dans la timeline
+                if (field === 'Statut' && record) {
+                    await autoLogTimeline(id, `Statut changé : **${oldVal || 'Inconnu'}** → **${val}**`);
+                }
+
+                record.fields[field] = val;
+                showSyncBanner(`${field === 'Statut' ? 'Statut' : field} mis à jour !`);
+                
+                // Rafraîchissement global
+                updateKPIs();
+                updateFilters();
+                renderTable();
             } catch (e) {
                 console.error("Fast update failed", e);
+                showSyncBanner("Erreur de mise à jour", true);
             }
+        }
+
+        async function deleteRecord(id, name) {
+            if (!confirm(`Êtes-vous sûr de vouloir supprimer définitivement le dossier de "${name}" ?\nCette action est irréversible sur Airtable.`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch(SesquierUtils.API_RESERVATIONS_URL, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+
+                if (!res.ok) throw new Error("Erreur serveur lors de la suppression");
+
+                // Retirer localement
+                allRecords = allRecords.filter(r => r.id !== id);
+                
+                showSyncBanner(`Dossier "${name}" supprimé.`);
+                updateKPIs();
+                updateFilters();
+                renderTable();
+            } catch (e) {
+                console.error("Delete failed", e);
+                alert("Erreur lors de la suppression : " + e.message);
+            }
+        }
+
+        async function autoLogTimeline(recordId, text) {
+            const record = allRecords.find(r => r.id === recordId);
+            if (!record) return;
+            let logs = [];
+            try {
+                logs = record.fields["Timeline JSON"] ? JSON.parse(record.fields["Timeline JSON"]) : [];
+            } catch (e) { logs = []; }
+            
+            logs.push({ date: new Date().toISOString(), text: text });
+            
+            try {
+                await fetch(SesquierUtils.API_RESERVATIONS_URL, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: recordId,
+                        fields: { "Timeline JSON": JSON.stringify(logs) }
+                    })
+                });
+                record.fields["Timeline JSON"] = JSON.stringify(logs);
+            } catch(e) { console.error("AutoLog failed", e); }
         }
 
         function handleRowClick(event, id) {
@@ -736,9 +800,26 @@
             padding: 4px 10px;
             border-radius: 20px;
             font-size: 10px;
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.03em;
+            transition: var(--transition);
+        }
+
+        .status-select {
+            background: transparent;
+            border: none;
+            color: inherit;
+            font-size: inherit;
+            font-weight: inherit;
+            text-transform: inherit;
+            letter-spacing: inherit;
+            outline: none;
+            cursor: pointer;
+            padding: 2px 0;
+            font-family: inherit;
+            appearance: none;
+            -webkit-appearance: none;
         }
 
         .badge::before {
@@ -791,6 +872,49 @@
 
         .badge-facture::before {
             background: var(--purple);
+        }
+
+        .badge-archive {
+            background: #f0f0f0;
+            color: #777;
+            opacity: 0.8;
+        }
+
+        [data-theme="dark"] .badge-archive {
+            background: #2a2a2a;
+            color: #aaa;
+        }
+
+        .badge-archive::before {
+            background: #999;
+        }
+
+        .badge-effectue {
+            background: #eef2ff;
+            color: #4338ca;
+        }
+
+        [data-theme="dark"] .badge-effectue {
+            background: rgba(67, 56, 202, 0.2);
+            color: #818cf8;
+        }
+
+        .badge-effectue::before {
+            background: #4338ca;
+        }
+
+        .date-past {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--text-muted);
+            background: var(--border-light);
+            padding: 1px 5px;
+            border-radius: 4px;
+            margin-left: 5px;
+            text-transform: uppercase;
         }
 
         /* Row actions - visible on hover */
@@ -1577,6 +1701,18 @@
                             style="background: var(--danger);"></span>Annulé</span>
                     <span class="filter-count" id="count-annule">0</span>
                 </div>
+                <div class="sidebar-filter" data-filter="effectué" onclick="setFilter('effectué')">
+                    <span class="filter-label"><span class="filter-dot"
+                            style="background: #4338ca;"></span>Effectués</span>
+                    <span class="filter-count" id="count-effectue">0</span>
+                </div>
+                <div class="nav-divider"></div>
+                <div class="nav-divider"></div>
+                <div class="sidebar-filter" data-filter="archivé" onclick="setFilter('archivé')">
+                    <span class="filter-label"><span class="filter-dot"
+                            style="background: #999;"></span>Archive</span>
+                    <span class="filter-count" id="count-archive">0</span>
+                </div>
             </div>
         </ul>
 
@@ -2003,7 +2139,7 @@
         }
 
         // Notification Helper
-        function showSyncBanner(msg) {
+        function showSyncBanner(msg, isError = false) {
             let banner = document.getElementById('sync-banner');
             if (!banner) {
                 banner = document.createElement('div');
@@ -2011,7 +2147,10 @@
                 banner.className = 'sync-banner';
                 document.body.appendChild(banner);
             }
-            banner.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${msg}`;
+            banner.innerHTML = `<i class="fa-solid ${isError ? 'fa-circle-xmark' : 'fa-circle-check'}"></i> ${msg}`;
+            if (isError) banner.querySelector('i').style.color = 'var(--danger)';
+            else banner.querySelector('i').style.color = 'var(--success)';
+            
             banner.classList.add('show');
             setTimeout(() => banner.classList.remove('show'), 3000);
         }
@@ -2136,6 +2275,8 @@
             document.getElementById('count-confirme').innerText = counts['confirmé'] || 0;
             document.getElementById('count-devis').innerText = counts['devis envoyé'] || 0;
             document.getElementById('count-annule').innerText = counts['annulé'] || 0;
+            document.getElementById('count-archive').innerText = counts['archivé'] || 0;
+            document.getElementById('count-effectue').innerText = counts['effectué'] || 0;
         }
 
         function setFilter(f) {
@@ -2155,11 +2296,19 @@
         function renderTable() {
             const body = document.getElementById('table-body');
             let records = allRecords;
-            if (currentFilter !== 'all') records = records.filter(r => normalizeStatut(r.fields) === currentFilter);
+
+            // Logique d'affichage : si on est sur "Tous", on cache les archivés
+            if (currentFilter === 'all') {
+                records = records.filter(r => normalizeStatut(r.fields) !== 'archivé');
+            } else {
+                records = records.filter(r => normalizeStatut(r.fields) === currentFilter);
+            }
+
             if (searchQuery) {
                 records = records.filter(r => {
                     const f = r.fields;
-                    return [f["Nom client"], f["Entreprise"], f["Email"], f["Date arrivée"]].filter(Boolean).join(' ').toLowerCase().includes(searchQuery);
+                    const searchStr = [f["Nom client"], f["Entreprise"], f["Email"], f["Date arrivée"]].filter(Boolean).join(' ').toLowerCase();
+                    return searchStr.includes(searchQuery);
                 });
             }
             if (records.length === 0) {
@@ -2173,16 +2322,51 @@
             const { id, fields: f } = r;
             const nom = f["Nom client"] || "Sans nom";
             const org = f["Entreprise"];
-            const dArr = f["Date arrivée"] || "—";
-            const dDep = f["Date départ"] || "—";
+            
+            // Formatage de date plus sympa
+            const formatDate = (str) => {
+                if (!str) return "—";
+                const d = new Date(str);
+                return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+            };
+
+            const dArr = formatDate(f["Date arrivée"]);
+            const dDep = formatDate(f["Date départ"]);
+            
             const pers = f["Nombre de personnes"] || 0;
             const total = getTotal(f);
             const statut = normalizeStatut(f);
-            const badgeClass = { 'à traiter': 'bg-warning', 'confirmé': 'bg-success', 'devis envoyé': 'bg-info', 'annulé': 'bg-danger' }[statut] || 'bg-secondary';
-            const label = statut.charAt(0).toUpperCase() + statut.slice(1);
+            
+            // Correction du mapping des classes pour correspondre au CSS
+            const badgeClass = { 
+                'à traiter': 'badge-traiter', 
+                'confirmé': 'badge-confirme', 
+                'devis envoyé': 'badge-devis', 
+                'annulé': 'badge-annule',
+                'archivé': 'badge-archive',
+                'effectué': 'badge-effectue'
+            }[statut] || 'badge-traiter';
+
             const delay = i * 0.05;
 
-            return `<div class="table-row" onclick="handleRowClick(event, '${id}')" style="display: grid; grid-template-columns: 50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr; animation: fadeSlideUp 0.3s ease ${delay}s both;">
+            // Détection si le séjour est passé
+            const isPast = f["Date départ"] && new Date(f["Date départ"]) < new Date();
+
+            // Options pour le select (avec Archive et Effectué)
+            const statusOptions = [
+                { val: 'À traiter', label: 'À TRAITER' },
+                { val: 'Confirmé', label: 'CONFIRMÉ' },
+                { val: 'Devis envoyé', label: 'DEVIS ENVOYÉ' },
+                { val: 'Effectué', label: 'EFFECTUÉ' },
+                { val: 'Annulé', label: 'ANNULÉ' },
+                { val: 'Archivé', label: 'ARCHIVER' }
+            ];
+
+            const optionsHtml = statusOptions.map(opt => 
+                `<option value="${opt.val}" ${opt.val.toLowerCase() === statut ? 'selected' : ''}>${opt.label}</option>`
+            ).join('');
+
+            return `<div class="table-row" onclick="handleRowClick(event, '${id}')" style="display: grid; grid-template-columns: 50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr; animation: fadeSlideUp 0.3s ease ${delay}s both; ${statut === 'archivé' ? 'opacity:0.7;' : ''}">
                 <div class="row-expand">
                     <i class="fa-solid fa-plus"></i>
                 </div>
@@ -2190,12 +2374,36 @@
                     <span class="row-client-name link" contenteditable="true" spellcheck="false" 
                           onblur="fastUpdateRecord('${id}', 'Nom client', this.innerText)"
                           onclick="event.stopPropagation()">${escapeHtml(nom)}</span>
-                    <span class="row-client-org">${escapeHtml(org || '')}</span>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span class="row-client-org">${escapeHtml(org || 'Particulier')}</span>
+                        <a href="https://airtable.com/${SesquierUtils.AIRTABLE_BASE_ID}/${SesquierUtils.AIRTABLE_RESERVATIONS_TABLE}/${id}" 
+                           target="_blank" class="airtable-link" onclick="event.stopPropagation()" title="Ouvrir dans Airtable">
+                           <i class="fa-solid fa-up-right-from-square" style="font-size:8px; opacity:0.5;"></i>
+                        </a>
+                    </div>
                 </div>
-                <div class="row-dates"><i class="fa-regular fa-calendar"></i> ${dArr} → ${dDep}</div>
+                <div class="row-dates">
+                    <i class="fa-regular fa-calendar"></i> ${dArr} → ${dDep}
+                    ${isPast ? '<span class="date-past" title="Ce séjour est terminé"><i class="fa-solid fa-check"></i> Terminé</span>' : ''}
+                </div>
                 <div class="row-persons">${pers}</div>
-                <div><span class="badge ${badgeClass}">${label}</span></div>
-                <div class="row-amount" style="text-align:right;">${total > 0 ? SesquierUtils.formatEuro(total) : '—'}</div>
+                <div>
+                    <div class="badge ${badgeClass}" onclick="event.stopPropagation()">
+                        <select class="status-select" onchange="fastUpdateRecord('${id}', 'Statut', this.value)">
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                </div>
+                <div class="row-amount" style="text-align:right; position:relative; display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:2px;">
+                    <span style="font-weight:700;">${total > 0 ? SesquierUtils.formatEuro(total) : '—'}</span>
+                    <div class="row-actions">
+                        <button class="action-btn" onclick="event.stopPropagation(); deleteRecord('${id}', '${nom.replace(/'/g, "\\'")}')" 
+                                style="color:var(--danger); border-color:var(--danger-bg); background:var(--danger-bg); padding:4px 8px; font-size:10px;"
+                                title="Supprimer définitivement">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
             </div>`;
         }
 
