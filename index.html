@@ -13,6 +13,34 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="assets/utils.js"></script>
     <script>
+        // =====================================================================
+        // CONFIGURATION DES STATUTS (SOURCE DE VÉRITÉ)
+        // =====================================================================
+        const STATUS_DATA = {
+            'à traiter':    { key: 'à traiter',   label: 'À TRAITER',     class: 'badge-traiter',  airtable: 'à traiter' },
+            'confirmé':     { key: 'confirmé',    label: 'CONFIRMÉ',      class: 'badge-confirme', airtable: 'confirmé' },
+            'devis envoyé': { key: 'devis envoyé', label: 'DEVIS ENVOYÉ',  class: 'badge-devis',    airtable: 'devis envoyé' },
+            'effectué':     { key: 'effectué',    label: 'EFFECTUÉ',      class: 'badge-effectue', airtable: 'effectué' },
+            'annulé':       { key: 'annulé',      label: 'ANNULÉ',        class: 'badge-annule',   airtable: 'annulé' }
+        };
+
+        // Fonction pour synchroniser les valeurs réelles d'Airtable (majuscules/minuscules/accents)
+        function resolveAirtableStatuses() {
+            if (!allRecords || allRecords.length === 0) return;
+            
+            allRecords.forEach(r => {
+                const s = r.fields["Statut"];
+                if (s) {
+                    const val = Array.isArray(s) ? s[0] : s;
+                    const norm = val.toLowerCase().trim();
+                    if (STATUS_DATA[norm]) {
+                        STATUS_DATA[norm].airtable = val; // On capture la valeur exacte
+                    }
+                }
+            });
+            console.log("[StatusManager] Airtable values resolved:", Object.values(STATUS_DATA).map(d => d.airtable));
+        }
+
         function escapeHtml(text) {
             if (!text) return "";
             const div = document.createElement('div');
@@ -33,8 +61,13 @@
             // For Airtable fields, detect if it's a linked record (array) or a select (string)
             let finalVal = val;
             if (field === 'Statut') {
-                // IMPORTANT: In this project, Statut is a linked record that expects a lowercase array
-                finalVal = [val.toLowerCase()];
+                // IMPORTANT: On utilise la valeur Airtable résolue
+                const norm = val.toLowerCase().trim();
+                const config = STATUS_DATA[norm];
+                const airtableVal = config ? config.airtable : val;
+                
+                const isArray = Array.isArray(record.fields[field]);
+                finalVal = isArray ? [airtableVal] : airtableVal;
             }
 
             const oldVal = record.fields[field];
@@ -2505,6 +2538,7 @@
                 const data = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL);
                 if (data && data.records) {
                     allRecords = data.records.map(r => ({ id: r.id, fields: r.fields || {} }));
+                    resolveAirtableStatuses();
                     sortRecords();
                     updateKPIs();
                     updateFilters();
@@ -2603,7 +2637,8 @@
         function normalizeStatut(fields) {
             let raw = fields["Statut"];
             if (Array.isArray(raw)) raw = raw[0];
-            return (raw || 'à traiter').toLowerCase().trim();
+            if (!raw) return 'à traiter';
+            return raw.toLowerCase().trim();
         }
 
         // =====================================================================
@@ -2808,16 +2843,8 @@
             const pers = f["Nombre de personnes"] || 0;
             const total = getTotal(f);
             const statut = normalizeStatut(f);
-            
-            const badgeClass = { 
-                'à traiter': 'badge-traiter', 
-                'confirmé': 'badge-confirme', 
-                'devis envoyé': 'badge-devis', 
-                'annulé': 'badge-annule',
-                'archivé': 'badge-archive',
-                'effectué': 'badge-effectue'
-            }[statut] || 'badge-traiter';
 
+            
             const relanceDateStr = f["Suivi_Date_Relance"];
             let needsRelance = false;
             if (relanceDateStr && !['confirmé', 'effectué', 'archivé'].includes(statut)) {
@@ -2834,38 +2861,25 @@
             // Détection si le séjour est passé
             const isPast = f["Date départ"] && new Date(f["Date départ"]) < new Date();
 
-            // Détection dynamique de la casse exacte utilisée dans Airtable pour les statuts
-            const statusMapping = {
-                'à traiter': 'à traiter',
-                'confirmé': 'confirmé',
-                'devis envoyé': 'devis envoyé',
-                'effectué': 'effectué',
-                'annulé': 'annulé'
-            };
+            // --- Badge de Statut (Refactoré) ---
+            const config = STATUS_DATA[statut] || STATUS_DATA['à traiter'];
             
-            // On scanne les records pour trouver les vraies valeurs (majuscules/minuscules/accents)
-            allRecords.forEach(r => {
-                const s = r.fields["Statut"];
-                if (s) {
-                    const val = Array.isArray(s) ? s[0] : s;
-                    const norm = val.toLowerCase().trim();
-                    if (statusMapping.hasOwnProperty(norm)) {
-                        statusMapping[norm] = val;
-                    }
-                }
-            });
+            const optionsHtml = Object.values(STATUS_DATA).map(opt => `
+                <option value="${opt.key}" ${statut === opt.key ? 'selected' : ''}>
+                    ${opt.label}
+                </option>
+            `).join('');
 
-            const statusOptions = [
-                { val: statusMapping['à traiter'], label: 'À TRAITER' },
-                { val: statusMapping['confirmé'], label: 'CONFIRMÉ' },
-                { val: statusMapping['devis envoyé'], label: 'DEVIS ENVOYÉ' },
-                { val: statusMapping['effectué'], label: 'EFFECTUÉ' },
-                { val: statusMapping['annulé'], label: 'ANNULÉ' }
-            ];
-
-            const optionsHtml = statusOptions.map(opt => 
-                `<option value="${opt.val}" ${opt.val.toLowerCase() === statut ? 'selected' : ''}>${opt.label}</option>`
-            ).join('');
+            const statusBadgeHtml = `
+                <div class="badge ${config.class}" onclick="event.stopPropagation()" style="position:relative; overflow:hidden; padding-right:24px;">
+                    <select class="status-select" onchange="fastUpdateRecord('${id}', 'Statut', this.value, this)" 
+                            style="position:absolute; inset:0; opacity:0; width:100%; cursor:pointer;">
+                        ${optionsHtml}
+                    </select>
+                    <span>${config.label}</span>
+                    <i class="fa-solid fa-chevron-down" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:10px; opacity:0.6;"></i>
+                </div>
+            `;
 
             const isArchived = !!f['est_archive'];
             return `<div class="table-row" onclick="handleRowClick(event, '${id}')" style="display: grid; grid-template-columns: 50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr; animation: fadeSlideUp 0.3s ease ${delay}s both; ${isArchived ? 'opacity:0.5;' : ''}">
@@ -2888,11 +2902,7 @@
                 </div>
                 <div class="row-persons">${pers}</div>
                 <div>
-                    <div class="badge ${badgeClass}" onclick="event.stopPropagation()">
-                        <select class="status-select" onchange="fastUpdateRecord('${id}', 'Statut', this.value, this)">
-                            ${optionsHtml}
-                        </select>
-                    </div>
+                    ${statusBadgeHtml}
                     ${isArchived ? '<div style="margin-top:4px; font-size:9px; font-weight:700; color:#888; background:#f1f5f9; padding:2px 6px; border-radius:4px; display:inline-block; border:1px solid #cbd5e1;"><i class="fa-solid fa-box-archive"></i> Archivé</div>' : ''}
                     ${!isArchived && needsRelance ? '<div style="margin-top:4px; font-size:9px; font-weight:700; color:#d32f2f; background:#ffeaea; padding:2px 6px; border-radius:4px; display:inline-block; border:1px solid #d32f2f;"><i class="fa-solid fa-clock"></i> Relancer</div>' : ''}
                 </div>
