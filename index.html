@@ -33,8 +33,8 @@
             // For Airtable fields, detect if it's a linked record (array) or a select (string)
             let finalVal = val;
             if (field === 'Statut') {
-                const isArray = Array.isArray(record.fields[field]);
-                finalVal = isArray ? [val] : val;
+                // IMPORTANT: In this project, Statut is a linked record that expects a lowercase array
+                finalVal = [val.toLowerCase()];
             }
 
             const oldVal = record.fields[field];
@@ -2834,13 +2834,13 @@
             // Détection si le séjour est passé
             const isPast = f["Date départ"] && new Date(f["Date départ"]) < new Date();
 
-            // Options pour le select (Dernier essai : valeurs sans accents au cas où le problème vienne de l'encodage)
+            // Options pour le select (Valeurs en minuscules pour correspondre aux records liés Airtable)
             const statusOptions = [
-                { val: 'A traiter', label: 'À TRAITER' },
-                { val: 'Confirme', label: 'CONFIRMÉ' },
-                { val: 'Devis envoye', label: 'DEVIS ENVOYÉ' },
-                { val: 'Effectue', label: 'EFFECTUÉ' },
-                { val: 'Annule', label: 'ANNULÉ' }
+                { val: 'à traiter', label: 'À TRAITER' },
+                { val: 'confirmé', label: 'CONFIRMÉ' },
+                { val: 'devis envoyé', label: 'DEVIS ENVOYÉ' },
+                { val: 'effectué', label: 'EFFECTUÉ' },
+                { val: 'annulé', label: 'ANNULÉ' }
             ];
 
             const optionsHtml = statusOptions.map(opt => 
