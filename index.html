@@ -2834,13 +2834,13 @@
             // Détection si le séjour est passé
             const isPast = f["Date départ"] && new Date(f["Date départ"]) < new Date();
 
-            // Options pour le select (On utilise les valeurs exactes attendues par Airtable)
+            // Options pour le select (Dernier essai : valeurs sans accents au cas où le problème vienne de l'encodage)
             const statusOptions = [
-                { val: 'À traiter', label: 'À TRAITER' },
-                { val: 'Confirmé', label: 'CONFIRMÉ' },
-                { val: 'Devis envoyé', label: 'DEVIS ENVOYÉ' },
-                { val: 'Effectué', label: 'EFFECTUÉ' },
-                { val: 'Annulé', label: 'ANNULÉ' }
+                { val: 'A traiter', label: 'À TRAITER' },
+                { val: 'Confirme', label: 'CONFIRMÉ' },
+                { val: 'Devis envoye', label: 'DEVIS ENVOYÉ' },
+                { val: 'Effectue', label: 'EFFECTUÉ' },
+                { val: 'Annule', label: 'ANNULÉ' }
             ];
 
             const optionsHtml = statusOptions.map(opt => 
