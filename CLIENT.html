@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infos Client - Domaine Sesquier</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="assets/configurateur.css">
+    <script src="assets/utils.js"></script>
+    <style>
+        body { overflow-y: auto; }
+        .app-container { height: 100vh; display: flex; flex-direction: column; }
+        .workspace { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 0; max-width: 680px; }
+        .module { margin-bottom: 0; border-radius: 0; border-bottom: none; padding: 16px 20px; box-shadow: none; }
+        .module:first-child { border-radius: 12px 12px 0 0; }
+        .module:last-child { border-radius: 0 0 12px 12px; border-bottom: 1px solid rgba(226,232,240,0.8); margin-bottom: 0; }
+        .module-header { padding-bottom: 10px; margin-bottom: 12px; }
+        .form-row-vert { margin-bottom: 10px; }
+        .form-row { gap: 10px; margin-bottom: 10px; }
+        .col-full { width: 100%; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .input-text-dense { height: 36px; font-size: 13px; }
+        textarea.input-text-dense { height: auto; min-height: 80px; }
+        .topbar { height: 56px; padding: 0 20px; }
+        .topbar-brand { font-size: 14px; }
+        .btn-primary { padding: 8px 16px; font-size: 12px; }
+        .toast { position: fixed; bottom: 16px; right: 16px; background: var(--primary); color: white; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transform: translateY(20px); opacity: 0; transition: all 0.3s ease; pointer-events: none; z-index: 100; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.error { background: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="topbar">
+            <div class="topbar-brand">
+                <i class="fas fa-leaf"></i> Domaine Sesquier — Infos Client
+            </div>
+            <div class="topbar-actions">
+                <button class="btn-primary" id="btn-save" onclick="saveData()">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+            </div>
+        </header>
+
+            <div class="module">
+                <div class="module-header">
+                    <h3><i class="fas fa-address-card"></i> Informations client</h3>
+                </div>
+                <div class="form-row-vert">
+                    <label class="form-label">Société / Groupe</label>
+                    <input type="text" id="f-entreprise" class="input-text-dense" placeholder="Nom de l'entreprise">
+                </div>
+                <div class="two-col">
+                    <div class="form-row-vert">
+                        <label class="form-label">Prénom</label>
+                        <input type="text" id="f-prenom" class="input-text-dense" placeholder="Jean">
+                    </div>
+                    <div class="form-row-vert">
+                        <label class="form-label">Nom</label>
+                        <input type="text" id="f-nom" class="input-text-dense" placeholder="Dupont">
+                    </div>
+                </div>
+                <div class="two-col">
+                    <div class="form-row-vert">
+                        <label class="form-label">Email</label>
+                        <input type="email" id="f-email" class="input-text-dense" placeholder="contact@email.com">
+                    </div>
+                    <div class="form-row-vert">
+                        <label class="form-label">Téléphone</label>
+                        <input type="tel" id="f-telephone" class="input-text-dense" placeholder="06 00 00 00 00">
+                    </div>
+                </div>
+                <div class="form-row-vert">
+                    <label class="form-label">Notes internes</label>
+                    <textarea id="f-message" class="input-text-dense" rows="4" placeholder="Besoins particuliers, budget, restrictions..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let recordId = sessionStorage.getItem('currentDossierId');
+
+        if (recordId && recordId !== 'undefined' && recordId !== 'null') {
+            loadData(recordId);
+        }
+
+        async function loadData(id) {
+            try {
+                const data = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
+                const record = data.records ? data.records[0] : data;
+                if (!record?.fields) throw new Error("Aucune donnée trouvée.");
+                const f = record.fields;
+
+                document.getElementById('f-entreprise').value = f["Entreprise"] || "";
+                document.getElementById('f-prenom').value = f["Prénom"] || "";
+                document.getElementById('f-nom').value = f["Nom"] || "";
+                document.getElementById('f-email').value = f["Email"] || "";
+                document.getElementById('f-telephone').value = f["Téléphone"] || "";
+                document.getElementById('f-message').value = f["Message"] || "";
+            } catch (err) {
+                showToast("Erreur de chargement : " + err.message, true);
+            }
+        }
+
+        function showToast(msg, isError = false) {
+            const t = document.getElementById('toast');
+            t.innerHTML = `<i class="fas fa-${isError ? 'circle-xmark' : 'circle-check'}"></i> ${msg}`;
+            t.className = 'toast show' + (isError ? ' error' : '');
+            setTimeout(() => t.className = 'toast', 3000);
+        }
+
+        async function saveData() {
+            if (!recordId) { showToast("Aucun dossier sélectionné", true); return; }
+
+            const payload = {
+                "Entreprise": document.getElementById('f-entreprise').value || null,
+                "Prénom": document.getElementById('f-prenom').value || null,
+                "Nom": document.getElementById('f-nom').value || null,
+                "Email": document.getElementById('f-email').value || null,
+                "Téléphone": document.getElementById('f-telephone').value || null,
+                "Message": document.getElementById('f-message').value || null
+            };
+
+            const btn = document.getElementById('btn-save');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+            btn.disabled = true;
+
+            try {
+                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: recordId, fields: payload })
+                });
+
+                // Sync parent dashboard
+                if (window.parent?.allRecords) {
+                    const parentRecord = window.parent.allRecords.find(r => r.id === recordId);
+                    if (parentRecord) {
+                        Object.assign(parentRecord.fields, payload);
+                        const p = payload["Prénom"] ?? parentRecord.fields["Prénom"] ?? "";
+                        const n = payload["Nom"] ?? parentRecord.fields["Nom"] ?? "";
+                        if (p || n) parentRecord.fields["Nom client"] = (p + " " + n).trim();
+                        window.parent.renderTable();
+                        window.parent.openDossier(recordId);
+                    }
+                }
+
+                showToast("Informations enregistrées !");
+                btn.innerHTML = '<i class="fas fa-check"></i> Enregistré !';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer';
+                    btn.disabled = false;
+                }, 2000);
+            } catch (err) {
+                showToast("Erreur : " + err.message, true);
+                btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer';
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

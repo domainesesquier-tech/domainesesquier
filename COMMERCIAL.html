@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi Commercial - Domaine Sesquier</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="assets/configurateur.css">
+    <script src="assets/utils.js"></script>
+    <style>
+        body { overflow-y: auto; }
+        .app-container { min-height: 100vh; display: flex; flex-direction: column; }
+        .workspace-inner { flex: 1; padding: 20px 24px; display: flex; flex-direction: column; gap: 0; max-width: 680px; }
+        .module { margin-bottom: 0; border-radius: 0; border-bottom: none; padding: 16px 20px; box-shadow: none; }
+        .module:first-child { border-radius: 12px 12px 0 0; }
+        .module:last-child { border-radius: 0 0 12px 12px; border-bottom: 1px solid rgba(226,232,240,0.8); }
+        .module-header { padding-bottom: 10px; margin-bottom: 12px; }
+        .comm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: 1 / -1; }
+        .radio-group { display: flex; gap: 15px; align-items: center; }
+        .log-container { border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: #f8fafc; max-height: 150px; overflow-y: auto; white-space: pre-wrap; font-size: 12px; font-family: monospace; margin-bottom: 8px; line-height: 1.5; color: var(--text-muted); }
+        .log-add { display: flex; gap: 10px; }
+        .log-add input { flex: 1; }
+        .alert-banner { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; padding: 8px 14px; border-radius: 8px; font-weight: 600; text-align: center; margin-bottom: 12px; display: none; font-size: 13px; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group label { font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group input, .form-group select, .form-group textarea { height: 36px; padding: 0 12px; font-size: 13px; border: 1px solid var(--border); border-radius: 8px; width: 100%; background: #f8fafc; transition: all 0.2s; color: var(--text-main); font-family: 'Inter', sans-serif; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { background: #fff; border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(185,138,77,0.15); }
+        .form-group textarea { height: auto; padding: 10px 12px; resize: vertical; }
+        .topbar { height: 56px; padding: 0 20px; }
+        .topbar-brand { font-size: 14px; }
+        .btn-primary { padding: 8px 16px; font-size: 12px; }
+        .toast { position: fixed; bottom: 16px; right: 16px; background: var(--primary); color: white; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transform: translateY(20px); opacity: 0; transition: all 0.3s ease; pointer-events: none; z-index: 100; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.error { background: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="topbar">
+            <div class="topbar-brand">
+                <i class="fas fa-leaf"></i> Domaine Sesquier — <span id="dossier-name">Chargement...</span>
+            </div>
+            <div class="topbar-actions">
+                <button class="btn-primary" id="btn-save" onclick="saveData()">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+            </div>
+        </header>
+
+        <div class="workspace-inner">
+            <div id="relance-alert" class="alert-banner">⚠ À relancer — date dépassée</div>
+
+            <div class="module">
+                <div class="module-header"><h3><i class="fas fa-bullseye"></i> Informations de suivi</h3></div>
+                <div class="comm-grid">
+                    <div class="form-group">
+                        <label>Source</label>
+                        <select id="f-source">
+                            <option value="">Sélectionner...</option>
+                            <option value="Bouche à oreille">Bouche à oreille</option>
+                            <option value="LinkedIn">LinkedIn</option>
+                            <option value="Site web">Site web</option>
+                            <option value="Prescripteur">Prescripteur</option>
+                            <option value="Ancien client">Ancien client</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Décideur</label>
+                        <input type="text" id="f-decideur" placeholder="Nom du décideur...">
+                    </div>
+                    <div class="form-group">
+                        <label>Date envoi devis</label>
+                        <input type="date" id="f-date-devis">
+                    </div>
+                    <div class="form-group">
+                        <label>Probabilité</label>
+                        <div class="radio-group" style="height: 42px;">
+                            <label class="radio-label"><input type="radio" name="prob" value="20%"> 20%</label>
+                            <label class="radio-label"><input type="radio" name="prob" value="40%"> 40%</label>
+                            <label class="radio-label"><input type="radio" name="prob" value="70%"> 70%</label>
+                            <label class="radio-label"><input type="radio" name="prob" value="90%"> 90%</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Date de relance</label>
+                        <input type="date" id="f-date-relance" onchange="checkRelance()">
+                    </div>
+                    <div class="form-group">
+                        <label>Prochaine action</label>
+                        <input type="text" id="f-action" placeholder="Ex: Appeler pour faire le point...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="module">
+                <div class="module-header"><h3><i class="fas fa-history"></i> Journal de suivi</h3></div>
+                <div class="form-group full-width">
+                    <div class="log-container" id="f-log-display"></div>
+                    <div class="log-add">
+                        <input type="text" class="input-text-dense" id="new-log-input" placeholder="Ajouter une note de suivi..." onkeypress="if(event.key==='Enter') addLog()">
+                        <button class="btn-primary" onclick="addLog()">Ajouter</button>
+                    </div>
+                    <textarea id="f-log" style="display:none;"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        let recordId = urlParams.get('id') || sessionStorage.getItem('currentDossierId');
+        let currentRecord = null;
+
+        if (recordId && recordId !== 'undefined' && recordId !== 'null') {
+            loadData(recordId);
+        }
+
+        async function loadData(id) {
+            try {
+                const data = await SesquierUtils.fetchJson(`${API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
+                currentRecord = data.records ? data.records[0] : data;
+                
+                if (!currentRecord || !currentRecord.fields) {
+                    throw new Error("Aucune donnée trouvée.");
+                }
+
+                const f = currentRecord.fields;
+                
+                // Affichage du champ "Formule" (ou de l'ID complet par défaut)
+                const formuleId = f["Formule"] || id;
+                document.getElementById('dossier-formule').innerText = `Formule : ${formuleId}`;
+                
+                document.getElementById('dossier-name').innerText = f["Entreprise"] || f["Nom client"] || "Sans nom";
+
+                // Populate fields
+                document.getElementById('f-source').value = f["Suivi_Source"] || "";
+                document.getElementById('f-decideur').value = f["Suivi_Decideur"] || "";
+                document.getElementById('f-date-devis').value = f["Suivi_Date_Devis"] || "";
+                
+                const prob = f["Suivi_Probabilite"];
+                if (prob) {
+                    const rb = document.querySelector(`input[name="prob"][value="${prob}"]`);
+                    if (rb) rb.checked = true;
+                }
+
+                document.getElementById('f-date-relance').value = f["Suivi_Date_Relance"] || "";
+                document.getElementById('f-action').value = f["Suivi_Prochaine_Action"] || "";
+                
+                const logVal = f["Suivi_Log"] || "";
+                document.getElementById('f-log').value = logVal;
+                document.getElementById('f-log-display').innerText = logVal;
+
+                checkRelance();
+
+            } catch (err) {
+                console.error("Erreur de chargement:", err);
+                alert("Erreur de chargement: " + err.message);
+            }
+        }
+
+        function checkRelance() {
+            const dateRelanceStr = document.getElementById('f-date-relance').value;
+            const alertBanner = document.getElementById('relance-alert');
+            if (!dateRelanceStr) {
+                alertBanner.style.display = 'none';
+                return;
+            }
+
+            const dateRelance = new Date(dateRelanceStr);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            if (dateRelance < today) {
+                alertBanner.style.display = 'block';
+            } else {
+                alertBanner.style.display = 'none';
+            }
+        }
+
+        function addLog() {
+            const input = document.getElementById('new-log-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const now = new Date();
+            const dd = String(now.getDate()).padStart(2, '0');
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const yyyy = now.getFullYear();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            
+            const prefix = `[${dd}/${mm}/${yyyy} ${hh}:${min}] `;
+            const newEntry = prefix + text;
+
+            const logArea = document.getElementById('f-log');
+            const display = document.getElementById('f-log-display');
+
+            let currentLog = logArea.value;
+            // Insert at the top
+            const updatedLog = currentLog ? (newEntry + "\n" + currentLog) : newEntry;
+
+            logArea.value = updatedLog;
+            display.innerText = updatedLog;
+            
+            input.value = "";
+        }
+
+        function showToast(msg, isError = false) {
+            const t = document.getElementById('toast');
+            t.innerHTML = `<i class="fas fa-${isError ? 'circle-xmark' : 'circle-check'}"></i> ${msg}`;
+            t.className = 'toast show' + (isError ? ' error' : '');
+            setTimeout(() => t.className = 'toast', 3000);
+        }
+
+        async function saveData() {
+            if (!recordId) { showToast("Aucun dossier sélectionné", true); return; }
+
+            const probChecked = document.querySelector('input[name="prob"]:checked');
+            const payload = {
+                "Suivi_Source": document.getElementById('f-source').value || null,
+                "Suivi_Decideur": document.getElementById('f-decideur').value || null,
+                "Suivi_Date_Devis": document.getElementById('f-date-devis').value || null,
+                "Suivi_Probabilite": probChecked ? probChecked.value : null,
+                "Suivi_Date_Relance": document.getElementById('f-date-relance').value || null,
+                "Suivi_Prochaine_Action": document.getElementById('f-action').value || null,
+                "Suivi_Log": document.getElementById('f-log').value || null
+            };
+
+            const btn = document.getElementById('btn-save');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+            btn.disabled = true;
+
+            try {
+                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: recordId, fields: payload })
+                });
+                showToast("Suivi enregistré !");
+                btn.innerHTML = '<i class="fas fa-check"></i> Enregistré !';
+                setTimeout(() => { btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer'; btn.disabled = false; }, 2000);
+            } catch (err) {
+                showToast("Erreur : " + err.message, true);
+                btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer';
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

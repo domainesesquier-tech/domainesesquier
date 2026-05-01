@@ -94,55 +94,13 @@
 
           <!-- COLUMN 1: CLIENT & CALENDAR -->
           <div class="col">
-            <!-- CLIENT -->
-            <div class="module" id="step-contact">
-              <div class="module-header">
-                <h3><i class="fas fa-user"></i> Client & Détails</h3>
-              </div>
-              <div class="form-row-vert pro-only">
-                <label class="form-label">Société</label>
-                <input
-                  type="text"
-                  id="organisation"
-                  class="input-text-dense"
-                  placeholder="Nom de l'entreprise"
-                />
-              </div>
-              <div class="form-row">
-                <div style="flex: 1">
-                  <label class="form-label">Prénom</label>
-                  <input type="text" id="firstname" class="input-text-dense" />
-                </div>
-                <div style="flex: 1">
-                  <label class="form-label">Nom</label>
-                  <input type="text" id="lastname" class="input-text-dense" />
-                </div>
-              </div>
-              <div class="form-row-vert">
-                <label class="form-label">Email</label>
-                <input type="email" id="email" class="input-text-dense" />
-              </div>
-              <div class="form-row-vert">
-                <label class="form-label">Téléphone</label>
-                <input type="tel" id="phone" class="input-text-dense" />
-              </div>
-
-              <div
-                class="form-row-vert"
-                style="
-                  margin-top: 12px;
-                  border-top: 1px solid var(--border);
-                  padding-top: 12px;
-                "
-              >
-                <label class="form-label">Notes (Interne / Airtable)</label>
-                <textarea
-                  id="message"
-                  class="input-text-dense"
-                  placeholder="Besoins spécifiques, devis externe..."
-                ></textarea>
-              </div>
-            </div>
+            <!-- Client fields now managed in CLIENT.html - kept hidden for JS compat -->
+            <input type="hidden" id="organisation">
+            <input type="hidden" id="firstname">
+            <input type="hidden" id="lastname">
+            <input type="hidden" id="email">
+            <input type="hidden" id="phone">
+            <textarea id="message" style="display:none;"></textarea>
 
             <!-- PLANNING -->
             <div class="module" id="step-dates">

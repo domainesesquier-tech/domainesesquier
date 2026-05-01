@@ -105,7 +105,7 @@ export default {
 
         const result = await airtableRequest(env, buildAirtableUrl(env, env.AIRTABLE_RESERVATIONS_TABLE), {
           method: "POST",
-          body: JSON.stringify({ fields }),
+          body: JSON.stringify({ fields, typecast: true }),
         });
         return json(result, 201, env);
       }
@@ -118,7 +118,7 @@ export default {
 
         const result = await airtableRequest(env, `${buildAirtableUrl(env, env.AIRTABLE_RESERVATIONS_TABLE)}/${recordId}`, {
           method: "PATCH",
-          body: JSON.stringify({ fields }),
+          body: JSON.stringify({ fields, typecast: true }),
         });
         return json(result, 200, env);
       }
