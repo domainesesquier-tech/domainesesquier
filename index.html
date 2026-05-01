@@ -2834,13 +2834,33 @@
             // Détection si le séjour est passé
             const isPast = f["Date départ"] && new Date(f["Date départ"]) < new Date();
 
-            // Options pour le select (Valeurs en minuscules pour correspondre aux records liés Airtable)
+            // Détection dynamique de la casse exacte utilisée dans Airtable pour les statuts
+            const statusMapping = {
+                'à traiter': 'à traiter',
+                'confirmé': 'confirmé',
+                'devis envoyé': 'devis envoyé',
+                'effectué': 'effectué',
+                'annulé': 'annulé'
+            };
+            
+            // On scanne les records pour trouver les vraies valeurs (majuscules/minuscules/accents)
+            allRecords.forEach(r => {
+                const s = r.fields["Statut"];
+                if (s) {
+                    const val = Array.isArray(s) ? s[0] : s;
+                    const norm = val.toLowerCase().trim();
+                    if (statusMapping.hasOwnProperty(norm)) {
+                        statusMapping[norm] = val;
+                    }
+                }
+            });
+
             const statusOptions = [
-                { val: 'à traiter', label: 'À TRAITER' },
-                { val: 'confirmé', label: 'CONFIRMÉ' },
-                { val: 'devis envoyé', label: 'DEVIS ENVOYÉ' },
-                { val: 'effectué', label: 'EFFECTUÉ' },
-                { val: 'annulé', label: 'ANNULÉ' }
+                { val: statusMapping['à traiter'], label: 'À TRAITER' },
+                { val: statusMapping['confirmé'], label: 'CONFIRMÉ' },
+                { val: statusMapping['devis envoyé'], label: 'DEVIS ENVOYÉ' },
+                { val: statusMapping['effectué'], label: 'EFFECTUÉ' },
+                { val: statusMapping['annulé'], label: 'ANNULÉ' }
             ];
 
             const optionsHtml = statusOptions.map(opt => 
