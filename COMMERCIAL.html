@@ -18,7 +18,9 @@
         .module-header { padding-bottom: 10px; margin-bottom: 12px; }
         .comm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .full-width { grid-column: 1 / -1; }
-        .radio-group { display: flex; gap: 15px; align-items: center; }
+        .radio-group { display: flex; gap: 12px; align-items: center; }
+        .radio-label { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; color: var(--text-main); cursor: pointer; }
+        .radio-label input[type="radio"] { width: 15px; height: 15px; margin: 0; cursor: pointer; accent-color: var(--accent); }
         .log-container { border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: #f8fafc; max-height: 150px; overflow-y: auto; white-space: pre-wrap; font-size: 12px; font-family: monospace; margin-bottom: 8px; line-height: 1.5; color: var(--text-muted); }
         .log-add { display: flex; gap: 10px; }
         .log-add input { flex: 1; }
@@ -40,7 +42,11 @@
     <div class="app-container">
         <header class="topbar">
             <div class="topbar-brand">
-                <i class="fas fa-leaf"></i> Domaine Sesquier — <span id="dossier-name">Chargement...</span>
+                <i class="fas fa-leaf"></i> 
+                <div style="display:flex; flex-direction:column; line-height:1.2;">
+                    <span id="dossier-name" style="font-weight:700;">Chargement...</span>
+                    <span id="dossier-formule" style="font-size:10px; opacity:0.6; font-weight:400;"></span>
+                </div>
             </div>
             <div class="topbar-actions">
                 <button class="btn-primary" id="btn-save" onclick="saveData()">
@@ -53,20 +59,13 @@
             <div id="relance-alert" class="alert-banner">⚠ À relancer — date dépassée</div>
 
             <div class="module">
-                <div class="module-header"><h3><i class="fas fa-bullseye"></i> Informations de suivi</h3></div>
+                <div class="module-header">
+                    <h3><i class="fas fa-bullseye"></i> Informations de suivi</h3>
+                    <span id="source-badge" style="display:none; background:#f1f5f9; border:1px solid var(--border); border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; color:var(--text-muted);">
+                        <i class="fas fa-location-dot" style="margin-right:4px; color:var(--accent);"></i><span id="source-label"></span>
+                    </span>
+                </div>
                 <div class="comm-grid">
-                    <div class="form-group">
-                        <label>Source</label>
-                        <select id="f-source">
-                            <option value="">Sélectionner...</option>
-                            <option value="Bouche à oreille">Bouche à oreille</option>
-                            <option value="LinkedIn">LinkedIn</option>
-                            <option value="Site web">Site web</option>
-                            <option value="Prescripteur">Prescripteur</option>
-                            <option value="Ancien client">Ancien client</option>
-                            <option value="Autre">Autre</option>
-                        </select>
-                    </div>
                     <div class="form-group">
                         <label>Décideur</label>
                         <input type="text" id="f-decideur" placeholder="Nom du décideur...">
@@ -77,7 +76,7 @@
                     </div>
                     <div class="form-group">
                         <label>Probabilité</label>
-                        <div class="radio-group" style="height: 42px;">
+                        <div class="radio-group" style="height: 36px;">
                             <label class="radio-label"><input type="radio" name="prob" value="20%"> 20%</label>
                             <label class="radio-label"><input type="radio" name="prob" value="40%"> 40%</label>
                             <label class="radio-label"><input type="radio" name="prob" value="70%"> 70%</label>
@@ -121,7 +120,7 @@
 
         async function loadData(id) {
             try {
-                const data = await SesquierUtils.fetchJson(`${API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
+                const data = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
                 currentRecord = data.records ? data.records[0] : data;
                 
                 if (!currentRecord || !currentRecord.fields) {
@@ -136,8 +135,14 @@
                 
                 document.getElementById('dossier-name').innerText = f["Entreprise"] || f["Nom client"] || "Sans nom";
 
+                // Show source read-only badge (managed in Infos client)
+                const src = f["Suivi_Source"];
+                if (src) {
+                    document.getElementById('source-badge').style.display = 'inline-flex';
+                    document.getElementById('source-label').textContent = src;
+                }
+
                 // Populate fields
-                document.getElementById('f-source').value = f["Suivi_Source"] || "";
                 document.getElementById('f-decideur').value = f["Suivi_Decideur"] || "";
                 document.getElementById('f-date-devis').value = f["Suivi_Date_Devis"] || "";
                 
@@ -221,7 +226,6 @@
 
             const probChecked = document.querySelector('input[name="prob"]:checked');
             const payload = {
-                "Suivi_Source": document.getElementById('f-source').value || null,
                 "Suivi_Decideur": document.getElementById('f-decideur').value || null,
                 "Suivi_Date_Devis": document.getElementById('f-date-devis').value || null,
                 "Suivi_Probabilite": probChecked ? probChecked.value : null,

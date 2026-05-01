@@ -48,7 +48,11 @@
                     body: JSON.stringify({ id, fields: { [field]: val } })
                 });
 
-                if (!res.ok) throw new Error("API error");
+                if (!res.ok) {
+                    let errMsg = `HTTP ${res.status}`;
+                    try { const errBody = await res.json(); errMsg = errBody?.error?.message || errMsg; } catch(_) {}
+                    throw new Error(errMsg);
+                }
 
                 // Si c'est un changement de statut, on ajoute une entrée auto dans la timeline
                 if (field === 'Statut' && record) {
@@ -1968,8 +1972,8 @@
             <div class="nav-section-title">Outils</div>
 
             <li class="nav-item" id="nav-pro" onclick="switchTab('iframe-pro', this)">
-                <i class="fa-regular fa-pen-to-square"></i>
-                <span>Configurateur</span>
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Nouveau client</span>
             </li>
 
             <div class="nav-divider"></div>
@@ -2005,13 +2009,13 @@
                             style="background: #4338ca;"></span>Effectués</span>
                     <span class="filter-count" id="count-effectue">0</span>
                 </div>
-                <div class="nav-divider"></div>
-                <div class="nav-divider"></div>
-                <div class="sidebar-filter" data-filter="archivé" onclick="setFilter('archivé')">
-                    <span class="filter-label"><span class="filter-dot"
-                            style="background: #999;"></span>Archive</span>
-                    <span class="filter-count" id="count-archive">0</span>
-                </div>
+            </div>
+            <!-- Archive toggle -->
+            <div style="padding: 12px 16px; border-top: 1px solid var(--border); margin-top: 4px;">
+                <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); cursor:pointer; user-select:none;">
+                    <input type="checkbox" id="toggle-archive" onchange="renderTable()" style="width:14px; height:14px; accent-color: var(--primary); cursor:pointer;">
+                    Afficher les archivés
+                </label>
             </div>
         </ul>
 
@@ -2369,6 +2373,11 @@
             document.getElementById('dossier-overlay').classList.add('show');
         }
 
+        function closeDossier() {
+            document.getElementById('dossier-overlay').classList.remove('show');
+            activeRecordId = null;
+        }
+
         function renderTimeline(record) {
             const container = document.getElementById('dossier-timeline');
             const countLabel = document.getElementById('log-count');
@@ -2599,8 +2608,9 @@
         // FILTERS
         // =====================================================================
         function updateFilters() {
-            const counts = { all: allRecords.length };
-            allRecords.forEach(r => {
+            const nonArchived = allRecords.filter(r => !r.fields['est_archive']);
+            const counts = { all: nonArchived.length };
+            nonArchived.forEach(r => {
                 const s = normalizeStatut(r.fields);
                 counts[s] = (counts[s] || 0) + 1;
             });
@@ -2609,7 +2619,6 @@
             document.getElementById('count-confirme').innerText = counts['confirmé'] || 0;
             document.getElementById('count-devis').innerText = counts['devis envoyé'] || 0;
             document.getElementById('count-annule').innerText = counts['annulé'] || 0;
-            document.getElementById('count-archive').innerText = counts['archivé'] || 0;
             document.getElementById('count-effectue').innerText = counts['effectué'] || 0;
         }
 
@@ -2690,10 +2699,12 @@
                 let dayEvents = '';
                 
                 let recordsToDisplay = allRecords;
+                const showArchived = document.getElementById('toggle-archive')?.checked;
+                if (!showArchived) {
+                    recordsToDisplay = recordsToDisplay.filter(r => !r.fields['est_archive']);
+                }
                 if (currentFilter !== 'all') {
                     recordsToDisplay = recordsToDisplay.filter(r => normalizeStatut(r.fields) === currentFilter);
-                } else {
-                    recordsToDisplay = recordsToDisplay.filter(r => normalizeStatut(r.fields) !== 'archivé');
                 }
                 
                 if (searchQuery) {
@@ -2751,10 +2762,15 @@
             const body = document.getElementById('table-body');
             let records = allRecords;
 
-            // Logique d'affichage : si on est sur "Tous", on cache les archivés
-            if (currentFilter === 'all') {
-                records = records.filter(r => normalizeStatut(r.fields) !== 'archivé');
-            } else {
+            const showArchived = document.getElementById('toggle-archive')?.checked;
+
+            // Always exclude archived unless toggle is on
+            if (!showArchived) {
+                records = records.filter(r => !r.fields['est_archive']);
+            }
+
+            // Then apply status filter
+            if (currentFilter !== 'all') {
                 records = records.filter(r => normalizeStatut(r.fields) === currentFilter);
             }
 
@@ -2816,21 +2832,21 @@
             // Détection si le séjour est passé
             const isPast = f["Date départ"] && new Date(f["Date départ"]) < new Date();
 
-            // Options pour le select (avec Archive et Effectué)
+            // Options pour le select (Archivé géré via bouton dédié dans la fiche)
             const statusOptions = [
                 { val: 'À traiter', label: 'À TRAITER' },
                 { val: 'Confirmé', label: 'CONFIRMÉ' },
                 { val: 'Devis envoyé', label: 'DEVIS ENVOYÉ' },
                 { val: 'Effectué', label: 'EFFECTUÉ' },
-                { val: 'Annulé', label: 'ANNULÉ' },
-                { val: 'Archivé', label: 'ARCHIVER' }
+                { val: 'Annulé', label: 'ANNULÉ' }
             ];
 
             const optionsHtml = statusOptions.map(opt => 
                 `<option value="${opt.val}" ${opt.val.toLowerCase() === statut ? 'selected' : ''}>${opt.label}</option>`
             ).join('');
 
-            return `<div class="table-row" onclick="handleRowClick(event, '${id}')" style="display: grid; grid-template-columns: 50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr; animation: fadeSlideUp 0.3s ease ${delay}s both; ${statut === 'archivé' ? 'opacity:0.7;' : ''}">
+            const isArchived = !!f['est_archive'];
+            return `<div class="table-row" onclick="handleRowClick(event, '${id}')" style="display: grid; grid-template-columns: 50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr; animation: fadeSlideUp 0.3s ease ${delay}s both; ${isArchived ? 'opacity:0.5;' : ''}">
                 <div class="row-expand">
                     <i class="fa-solid fa-plus"></i>
                 </div>
@@ -2855,7 +2871,8 @@
                             ${optionsHtml}
                         </select>
                     </div>
-                    ${needsRelance ? '<div style="margin-top:4px; font-size:9px; font-weight:700; color:#d32f2f; background:#ffeaea; padding:2px 6px; border-radius:4px; display:inline-block; border:1px solid #d32f2f;"><i class="fa-solid fa-clock"></i> Relancer</div>' : ''}
+                    ${isArchived ? '<div style="margin-top:4px; font-size:9px; font-weight:700; color:#888; background:#f1f5f9; padding:2px 6px; border-radius:4px; display:inline-block; border:1px solid #cbd5e1;"><i class="fa-solid fa-box-archive"></i> Archivé</div>' : ''}
+                    ${!isArchived && needsRelance ? '<div style="margin-top:4px; font-size:9px; font-weight:700; color:#d32f2f; background:#ffeaea; padding:2px 6px; border-radius:4px; display:inline-block; border:1px solid #d32f2f;"><i class="fa-solid fa-clock"></i> Relancer</div>' : ''}
                 </div>
                 <div class="row-amount" style="text-align:right; position:relative; display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:2px;">
                     <span style="font-weight:700;">${total > 0 ? SesquierUtils.formatEuro(total) : '—'}</span>

@@ -64,16 +64,51 @@
                 <div class="two-col">
                     <div class="form-row-vert">
                         <label class="form-label">Email</label>
-                        <input type="email" id="f-email" class="input-text-dense" placeholder="contact@email.com">
+                        <input type="text" id="f-email" class="input-text-dense" placeholder="contact@email.com" oninput="checkEmail(this)">
+                        <span id="email-warn" style="display:none; color:#d97706; font-size:11px; margin-top:2px;"><i class="fas fa-triangle-exclamation"></i> Adresse email invalide</span>
                     </div>
                     <div class="form-row-vert">
                         <label class="form-label">Téléphone</label>
                         <input type="tel" id="f-telephone" class="input-text-dense" placeholder="06 00 00 00 00">
                     </div>
                 </div>
+                <div class="two-col">
+                    <div class="form-row-vert">
+                        <label class="form-label">Arrivée souhaitée</label>
+                        <input type="date" id="f-arrivee" class="input-text-dense" onchange="checkDates()">
+                    </div>
+                    <div class="form-row-vert">
+                        <label class="form-label">Départ souhaité</label>
+                        <input type="date" id="f-depart" class="input-text-dense" onchange="checkDates()">
+                    </div>
+                </div>
+                <div class="two-col">
+                    <div class="form-row-vert">
+                        <label class="form-label">Nombre de personnes</label>
+                        <input type="number" id="f-nb-personnes" class="input-text-dense" placeholder="Ex : 25" min="1">
+                    </div>
+                    <div class="form-row-vert">
+                        <label class="form-label">Source</label>
+                        <select id="f-source" class="input-text-dense">
+                            <option value="">Sélectionner...</option>
+                            <option value="Bouche à oreille">Bouche à oreille</option>
+                            <option value="LinkedIn">LinkedIn</option>
+                            <option value="Site web">Site web</option>
+                            <option value="Prescripteur">Prescripteur</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="form-row-vert">
                     <label class="form-label">Notes internes</label>
+                <div class="form-row-vert">
                     <textarea id="f-message" class="input-text-dense" rows="4" placeholder="Besoins particuliers, budget, restrictions..."></textarea>
+                </div>
+                <!-- Archive button -->
+                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--border);">
+                    <button onclick="archiveDossier()" style="background:none; border:1px solid #cbd5e1; color:var(--text-muted); padding:7px 14px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; transition: all 0.2s;" onmouseover="this.style.borderColor='#94a3b8'; this.style.color='#475569'" onmouseout="this.style.borderColor='#cbd5e1'; this.style.color='var(--text-muted)'">
+                        <i class="fas fa-box-archive"></i> Archiver ce dossier
+                    </button>
                 </div>
             </div>
         </div>
@@ -86,6 +121,14 @@
 
         if (recordId && recordId !== 'undefined' && recordId !== 'null') {
             loadData(recordId);
+        } else {
+            // No dossier selected: disable form and show message
+            document.getElementById('btn-save').disabled = true;
+            document.querySelector('.module').insertAdjacentHTML('afterbegin',
+                `<div style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:8px; padding:10px 14px; font-size:13px; font-weight:600; margin-bottom:14px;">
+                    <i class="fas fa-triangle-exclamation"></i> Aucun dossier sélectionné. Ouvrez un dossier depuis le tableau de bord.
+                </div>`
+            );
         }
 
         async function loadData(id) {
@@ -100,6 +143,10 @@
                 document.getElementById('f-nom').value = f["Nom"] || "";
                 document.getElementById('f-email').value = f["Email"] || "";
                 document.getElementById('f-telephone').value = f["Téléphone"] || "";
+                document.getElementById('f-arrivee').value = f["Date arrivée"] || "";
+                document.getElementById('f-depart').value = f["Date départ"] || "";
+                document.getElementById('f-nb-personnes').value = f["Nb personnes"] || "";
+                document.getElementById('f-source').value = f["Suivi_Source"] || "";
                 document.getElementById('f-message').value = f["Message"] || "";
             } catch (err) {
                 showToast("Erreur de chargement : " + err.message, true);
@@ -113,15 +160,41 @@
             setTimeout(() => t.className = 'toast', 3000);
         }
 
+        function checkEmail(el) {
+            const warn = document.getElementById('email-warn');
+            warn.style.display = el.value && !el.value.includes('@') ? 'block' : 'none';
+        }
+
+        function checkDates() {
+            const arr = document.getElementById('f-arrivee').value;
+            const dep = document.getElementById('f-depart').value;
+            let warn = document.getElementById('date-warn');
+            if (!warn) {
+                warn = document.createElement('span');
+                warn.id = 'date-warn';
+                warn.style.cssText = 'display:none; color:#d97706; font-size:11px; margin-top:2px;';
+                warn.innerHTML = '<i class="fas fa-triangle-exclamation"></i> La date de départ est avant l\'arrivée';
+                document.getElementById('f-depart').parentNode.appendChild(warn);
+            }
+            warn.style.display = (arr && dep && dep < arr) ? 'block' : 'none';
+            return !(arr && dep && dep < arr);
+        }
+
         async function saveData() {
             if (!recordId) { showToast("Aucun dossier sélectionné", true); return; }
+            if (!checkDates()) { showToast("Vérifiez les dates avant d'enregistrer", true); return; }
 
+            const nbVal = document.getElementById('f-nb-personnes').value;
             const payload = {
                 "Entreprise": document.getElementById('f-entreprise').value || null,
                 "Prénom": document.getElementById('f-prenom').value || null,
                 "Nom": document.getElementById('f-nom').value || null,
                 "Email": document.getElementById('f-email').value || null,
                 "Téléphone": document.getElementById('f-telephone').value || null,
+                "Date arrivée": document.getElementById('f-arrivee').value || null,
+                "Date départ": document.getElementById('f-depart').value || null,
+                "Nb personnes": nbVal ? parseInt(nbVal, 10) : null,
+                "Suivi_Source": document.getElementById('f-source').value || null,
                 "Message": document.getElementById('f-message').value || null
             };
 
@@ -136,7 +209,7 @@
                     body: JSON.stringify({ id: recordId, fields: payload })
                 });
 
-                // Sync parent dashboard
+                // Sync parent dashboard (lightweight: update local record + header spans only)
                 if (window.parent?.allRecords) {
                     const parentRecord = window.parent.allRecords.find(r => r.id === recordId);
                     if (parentRecord) {
@@ -144,8 +217,12 @@
                         const p = payload["Prénom"] ?? parentRecord.fields["Prénom"] ?? "";
                         const n = payload["Nom"] ?? parentRecord.fields["Nom"] ?? "";
                         if (p || n) parentRecord.fields["Nom client"] = (p + " " + n).trim();
+                        // Update just the visible header title, avoid full re-render flash
+                        const titleEl = window.parent.document.getElementById('dossier-title');
+                        if (titleEl) titleEl.textContent = parentRecord.fields["Nom client"] || parentRecord.fields["Entreprise"] || "Sans nom";
                         window.parent.renderTable();
-                        window.parent.openDossier(recordId);
+                        // Background refresh (silent, no spinner)
+                        setTimeout(() => { if (window.parent.loadAllRecords) window.parent.loadAllRecords(); }, 3000);
                     }
                 }
 
@@ -159,6 +236,31 @@
                 showToast("Erreur : " + err.message, true);
                 btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer';
                 btn.disabled = false;
+            }
+        }
+        async function archiveDossier() {
+            if (!recordId) return;
+            const ok = confirm("Archiver ce dossier ?\nIl n'apparaître plus dans la liste principale.");
+            if (!ok) return;
+
+            try {
+                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: recordId, fields: { "est_archive": true } })
+                });
+
+                // Update parent and close modal
+                if (window.parent?.allRecords) {
+                    const parentRecord = window.parent.allRecords.find(r => r.id === recordId);
+                    if (parentRecord) {
+                        parentRecord.fields['est_archive'] = true;
+                        window.parent.renderTable();
+                    }
+                    if (window.parent.closeDossier) window.parent.closeDossier();
+                }
+            } catch (err) {
+                showToast("Erreur : " + err.message, true);
             }
         }
     </script>
