@@ -2871,15 +2871,16 @@
             `).join('');
 
             const statusBadgeHtml = `
-                <div class="badge ${config.class}" onclick="event.stopPropagation()" style="position:relative; overflow:hidden; padding-right:24px;">
+                <div class="badge ${config.class}" onclick="event.stopPropagation()" style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; padding: 3px 8px; min-width: 100px; justify-content: center;">
                     <select class="status-select" onchange="fastUpdateRecord('${id}', 'Statut', this.value, this)" 
-                            style="position:absolute; inset:0; opacity:0; width:100%; cursor:pointer;">
+                            style="font-family:inherit; font-size:9px; font-weight:700; color:inherit; background:none; border:none; padding:0; margin:0; cursor:pointer; text-transform:uppercase; outline:none; appearance:none; -webkit-appearance:none; text-align:center;">
                         ${optionsHtml}
                     </select>
-                    <span>${config.label}</span>
-                    <i class="fa-solid fa-chevron-down" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:10px; opacity:0.6;"></i>
+                    <i class="fa-solid fa-chevron-down" style="font-size:8px; opacity:0.6;"></i>
                 </div>
             `;
+            
+            // On s'assure que le badge n'a pas de styles CSS qui bloquent le select
 
             const isArchived = !!f['est_archive'];
             return `<div class="table-row" onclick="handleRowClick(event, '${id}')" style="display: grid; grid-template-columns: 50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr; animation: fadeSlideUp 0.3s ease ${delay}s both; ${isArchived ? 'opacity:0.5;' : ''}">
