@@ -30,8 +30,16 @@
             const record = allRecords.find(r => r.id === id);
             if (!record) return;
             
+            // For Airtable linked records (like Statut), we need to send an array
+            let finalVal = val;
+            if (field === 'Statut') {
+                finalVal = [val.toLowerCase().trim()];
+            }
+
             const oldVal = record.fields[field];
-            if (oldVal == val) return; 
+            // Compare first element if oldVal is array
+            const currentVal = Array.isArray(oldVal) ? oldVal[0] : oldVal;
+            if (currentVal == val) return; 
 
             if (element) {
                 element.style.opacity = '0.5';
@@ -47,7 +55,7 @@
                 await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, fields: { [field]: val } })
+                    body: JSON.stringify({ id, fields: { [field]: finalVal } })
                 });
 
                 // Si c'est un changement de statut, on ajoute une entrée auto dans la timeline
@@ -2826,13 +2834,13 @@
             // Détection si le séjour est passé
             const isPast = f["Date départ"] && new Date(f["Date départ"]) < new Date();
 
-            // Options pour le select (Archivé géré via bouton dédié dans la fiche)
+            // Options pour le select (minuscules pour correspondre aux records liés Airtable)
             const statusOptions = [
-                { val: 'À traiter', label: 'À TRAITER' },
-                { val: 'Confirmé', label: 'CONFIRMÉ' },
-                { val: 'Devis envoyé', label: 'DEVIS ENVOYÉ' },
-                { val: 'Effectué', label: 'EFFECTUÉ' },
-                { val: 'Annulé', label: 'ANNULÉ' }
+                { val: 'à traiter', label: 'À TRAITER' },
+                { val: 'confirmé', label: 'CONFIRMÉ' },
+                { val: 'devis envoyé', label: 'DEVIS ENVOYÉ' },
+                { val: 'effectué', label: 'EFFECTUÉ' },
+                { val: 'annulé', label: 'ANNULÉ' }
             ];
 
             const optionsHtml = statusOptions.map(opt => 
