@@ -30,16 +30,16 @@
             const record = allRecords.find(r => r.id === id);
             if (!record) return;
             
-            // For Airtable linked records (like Statut), we need to send an array
+            // For Airtable fields, detect if it's a linked record (array) or a select (string)
             let finalVal = val;
             if (field === 'Statut') {
-                finalVal = [val.toLowerCase().trim()];
+                const isArray = Array.isArray(record.fields[field]);
+                finalVal = isArray ? [val] : val;
             }
 
             const oldVal = record.fields[field];
-            // Compare first element if oldVal is array
             const currentVal = Array.isArray(oldVal) ? oldVal[0] : oldVal;
-            if (currentVal == val) return; 
+            if (currentVal === val) return; 
 
             if (element) {
                 element.style.opacity = '0.5';
@@ -2834,13 +2834,13 @@
             // Détection si le séjour est passé
             const isPast = f["Date départ"] && new Date(f["Date départ"]) < new Date();
 
-            // Options pour le select (minuscules pour correspondre aux records liés Airtable)
+            // Options pour le select (On utilise les valeurs exactes attendues par Airtable)
             const statusOptions = [
-                { val: 'à traiter', label: 'À TRAITER' },
-                { val: 'confirmé', label: 'CONFIRMÉ' },
-                { val: 'devis envoyé', label: 'DEVIS ENVOYÉ' },
-                { val: 'effectué', label: 'EFFECTUÉ' },
-                { val: 'annulé', label: 'ANNULÉ' }
+                { val: 'À traiter', label: 'À TRAITER' },
+                { val: 'Confirmé', label: 'CONFIRMÉ' },
+                { val: 'Devis envoyé', label: 'DEVIS ENVOYÉ' },
+                { val: 'Effectué', label: 'EFFECTUÉ' },
+                { val: 'Annulé', label: 'ANNULÉ' }
             ];
 
             const optionsHtml = statusOptions.map(opt => 
