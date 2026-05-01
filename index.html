@@ -41,18 +41,14 @@
                 }
             }
 
+            console.log(`[FastUpdate] Field: ${field}, Value:`, val, "RecordID:", id);
+
             try {
-                const res = await fetch(SesquierUtils.API_RESERVATIONS_URL, {
+                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id, fields: { [field]: val } })
                 });
-
-                if (!res.ok) {
-                    let errMsg = `HTTP ${res.status}`;
-                    try { const errBody = await res.json(); errMsg = errBody?.error?.message || errMsg; } catch(_) {}
-                    throw new Error(errMsg);
-                }
 
                 // Si c'est un changement de statut, on ajoute une entrée auto dans la timeline
                 if (field === 'Statut' && record) {
@@ -83,7 +79,7 @@
                 return true;
             } catch (e) {
                 console.error("Fast update failed", e);
-                showSyncBanner("Erreur de mise à jour", true);
+                showSyncBanner(e.message || "Erreur de mise à jour", true);
                 if (element) {
                     element.style.opacity = '1';
                     element.style.pointerEvents = 'auto';
@@ -182,13 +178,11 @@
             }
 
             try {
-                const res = await fetch(SesquierUtils.API_RESERVATIONS_URL, {
+                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id })
                 });
-
-                if (!res.ok) throw new Error("Erreur serveur lors de la suppression");
 
                 // Retirer localement
                 allRecords = allRecords.filter(r => r.id !== id);
@@ -214,7 +208,7 @@
             logs.push({ date: new Date().toISOString(), text: text });
             
             try {
-                await fetch(SesquierUtils.API_RESERVATIONS_URL, {
+                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
