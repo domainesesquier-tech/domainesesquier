@@ -2069,6 +2069,7 @@ function updateCalculations() {
     }
 
     saveDraft();
+    debouncedSyncToAirtable();
 }
 
 function handleMainCTA() {
@@ -2149,7 +2150,16 @@ function selectAllMeals() {
     updateCalculations();
 }
 
-async function sendQuoteRequest() {
+let autoSyncTimer = null;
+function debouncedSyncToAirtable() {
+    if (!bookingDraft.id || !isEditingMode) return;
+    if (autoSyncTimer) clearTimeout(autoSyncTimer);
+    autoSyncTimer = setTimeout(() => {
+        sendQuoteRequest(true);
+    }, 2000);
+}
+
+async function sendQuoteRequest(silent = false) {
     const btn = document.getElementById('cta-quote');
     const originalText = btn ? btn.innerText : "Créer le dossier";
     const totalEl = document.getElementById('totalTTC');
@@ -2297,7 +2307,7 @@ async function sendQuoteRequest() {
     };
 
     try {
-        if (btn) {
+        if (btn && !silent) {
             btn.disabled = true;
             btn.innerText = "Envoi en cours...";
             btn.style.opacity = "0.7";
@@ -2315,6 +2325,7 @@ async function sendQuoteRequest() {
         });
 
         if (!response.ok) {
+            if (silent) return; // Ignore errors in silent mode
             let errorMsg = `Échec de l'envoi (${response.status})`;
             try {
                 const errData = await response.json();
@@ -2326,46 +2337,22 @@ async function sendQuoteRequest() {
         }
 
         const result = await response.json();
-        const recordId = result.id;
+        console.log('Réponse Airtable (auto-sync=' + silent + '):', result);
 
-        // Succès
-        if (btn) {
+        if (btn && !silent) {
             btn.style.background = "#27ae60";
-            btn.innerText = "Demande envoyée ! ✓";
+            btn.innerText = "Dossier enregistré ! ✓";
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerText = originalText;
+                btn.style.background = "";
+                btn.style.opacity = "1";
+            }, 3000);
         }
 
-        clearDraft(); // Clean up local storage as the dossier is now in Airtable
-
-        // --- Synchronisation avec le Tableau de Bord (Parent) ---
-        if (recordId && window.parent !== window) {
-            window.parent.postMessage({
-                type: 'devis_created',
-                id: recordId,
-                dossier: dossier
-            }, '*');
-
-            // NEW: Generic update broadcast for other iframes
-            if (isEditingMode) {
-                window.parent.postMessage({
-                    type: 'RECORD_UPDATED',
-                    id: recordId,
-                    fields: payload.fields
-                }, '*');
-            }
-        }
-
-        if (recordId) {
-            alert("Merci ! Votre demande a bien été reçue. Nous reviendrons vers vous sous 24h.");
-        } else {
-            alert("Merci ! Votre demande d'estimation a bien été reçue.");
-        }
-
-        setTimeout(() => {
-            btn.disabled = false;
-            btn.innerText = originalText;
-            btn.style.background = "var(--primary)";
-            btn.style.opacity = "1";
-        }, 5000);
+        // Notify global dashboard
+        SesquierUtils.broadcast('RECORD_UPDATED', { id: isEditingMode ? bookingDraft.id : result.id, fields: payload.fields });
+        if (silent) showUpdateIndicator();
 
     } catch (error) {
         console.error("Erreur envoi devis:", error);

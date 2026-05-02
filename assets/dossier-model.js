@@ -561,8 +561,19 @@ const DossierModel = {
             }
 
             // 2. Fallback to backup constants
-            if (backup && backup[normalizedBase]) {
-                return backup[normalizedBase].priceHT || fallback;
+            if (backup) {
+                // Try exact match
+                if (backup[normalizedBase]) return backup[normalizedBase].priceHT || fallback;
+
+                // Try duration-based suffixes (e.g. _1NUIT, _2NUITS, _3PLUS)
+                let suffix = '';
+                if (nbNights === 1) suffix = '_1NUIT';
+                else if (nbNights === 2) suffix = '_2NUITS';
+                else if (nbNights >= 3) suffix = '_3PLUS';
+
+                if (suffix && backup[normalizedBase + suffix]) {
+                    return backup[normalizedBase + suffix].priceHT || fallback;
+                }
             }
 
             return fallback;
