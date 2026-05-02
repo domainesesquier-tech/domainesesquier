@@ -514,9 +514,15 @@ const normalizeCode = (value) => {
     }
 
     if (typeof value === 'string') {
-        // On nettoie les espaces, les retours à la ligne (\n) et on passe en majuscules
-        const out = value.replace(/[\n\r]/g, '').trim().toUpperCase();
-        return out || null;
+        // Normalisation avancée pour matcher Airtable (espaces -> underscores, etc)
+        return value
+            .toUpperCase()
+            .trim()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Supprimer accents
+            .replace(/[^A-Z0-9_]/g, '_') // Remplacer tout le reste par _
+            .replace(/__+/g, '_') // Éviter les doubles underscores
+            .replace(/^_|_$/g, '') // Nettoyer début/fin
+            || null;
     }
 
     if (Array.isArray(value) && value.length > 0) {
@@ -2202,64 +2208,35 @@ async function sendQuoteRequest() {
     }
 
     // =====================================================================
-    // 🧠 DOSSIER MODEL — Source unique de vérité
+    // 🧠 DOSSIER MODEL — Unification (Source unique de vérité)
     // =====================================================================
-    // =====================================================================
-    // 🧠 DOSSIER MODEL — Fallback without external JS
-    // =====================================================================
-    const adultCount = document.getElementById('nbAdult') ? parseInt(document.getElementById('nbAdult').value) || 0 : 0;
-    const childCount = document.getElementById('nbChild') ? parseInt(document.getElementById('nbChild').value) || 0 : 0;
-    const babyCount = document.getElementById('nbBaby') ? parseInt(document.getElementById('nbBaby').value) || 0 : 0;
-    const hebergementCost = document.getElementById('breakdown-hebergement-new') ? parseInt(document.getElementById('breakdown-hebergement-new').innerText) || 0 : 0;
-    const repasCost = document.getElementById('breakdown-repas-new') ? parseInt(document.getElementById('breakdown-repas-new').innerText) || 0 : 0;
-    const optionsCost = document.getElementById('breakdown-options-new') ? parseInt(document.getElementById('breakdown-options-new').innerText) || 0 : 0;
-    
-    // Formatting helper
-    const formatDate = (date) => {
-        if (!date) return null;
-        let d = new Date(date);
-        let month = '' + (d.getMonth() + 1);
-        let day = '' + d.getDate();
-        let year = d.getFullYear();
-        if (month.length < 2) month = '0' + month;
-        if (day.length < 2) day = '0' + day;
-        return [year, month, day].join('-');
-    };
-
-    const dossier = {
+    const dossier = DossierModel.build({
         mode: currentMode,
         client: {
             organisation: organisation,
             firstName: firstName,
             lastName: lastName,
-            fullName: `${firstName} ${lastName}`.trim(),
             email: email,
             phone: phone,
             message: message
         },
-        sejour: {
-            dateArrivee: formatDate(startDate),
-            dateDepart: formatDate(endDate),
-            nights: (startDate && endDate) ? Math.ceil((endDate - startDate) / 86400000) : 0,
-            participants: nbTotal
-        },
-        financials: {
-            subtotals: {
-                hebergement: hebergementCost,
-                restauration: repasCost,
-                options: optionsCost
-            },
-            totalHT: hebergementCost + repasCost + optionsCost,
-            totalTTC: (hebergementCost + repasCost + optionsCost) * 1.1 // Approximation
-        },
         dates: { start: startDate, end: endDate },
-        group: { total: nbTotal, adult: adultCount, child: childCount, baby: babyCount },
+        group: {
+            total: nbTotal,
+            adult: document.getElementById('nbAdult') ? parseInt(document.getElementById('nbAdult').value) || 0 : nbTotal,
+            child: document.getElementById('nbChild') ? parseInt(document.getElementById('nbChild').value) || 0 : 0,
+            baby: document.getElementById('nbBaby') ? parseInt(document.getElementById('nbBaby').value) || 0 : 0
+        },
         sleeping: {
             mode: sleepingMode,
-            indiv: parseInt(document.getElementById('nbIndividuel').value) || 0,
-            partage: parseInt(document.getElementById('nbPartage').value) || 0,
-            couple: document.getElementById('nbCouple') ? parseInt(document.getElementById('nbCouple').value) || 0 : 0,
+            indiv: parseInt(document.getElementById('nbIndividuel')?.value) || 0,
+            partage: parseInt(document.getElementById('nbPartage')?.value) || 0,
+            couple: parseInt(document.getElementById('nbCouple')?.value) || 0,
             usedGites: usedGites
+        },
+        meals: {
+            mode: mealMode,
+            counts: mealCounts
         },
         options: {
             draps: document.getElementById('draps')?.checked || false,
@@ -2268,24 +2245,14 @@ async function sendQuoteRequest() {
             salleReunion: document.getElementById('salleReunion')?.checked || false,
             kitSoiree: document.getElementById('kitSoiree')?.checked || false,
             chambreIndiv: document.getElementById('chambreIndiv')?.checked || false,
-        }
-    };
+            activities: bookingDraft.activities || {}
+        },
+        pricingDB: pricingMap || []
+    });
 
-    console.log('[DOSSIER] Dossier construit en mode fallback:', dossier);
+    console.log('[DOSSIER] Dossier généré via DossierModel:', dossier);
 
-    // --- Legacy bookingDetails for backward compatibility ---
-    const bookingDetails = {
-        group: dossier.sejour,
-        dates: { start: dossier.sejour.dateArrivee, end: dossier.sejour.dateDepart, nights: dossier.sejour.nights },
-        sleeping: dossier.sleeping,
-        meals: { mode: mealMode, counts: mealCounts },
-        options: dossier.options
-    };
-
-    // Budget range text
-    const budgetRangeText = totalEl ? totalEl.innerText : "0€";
-
-    // Type
+    // --- Type ---
     let typeSejour = "séjour personnel";
     if (currentMode === 'pro') {
         typeSejour = "séminaire professionnel";
@@ -2299,11 +2266,10 @@ async function sendQuoteRequest() {
             "Email": dossier.client.email,
             "Date arrivée": dossier.sejour.dateArrivee,
             "Date départ": dossier.sejour.dateDepart,
-            // "Nuits" est un champ calculé (formule) dans Airtable — ne pas l'envoyer
             "Nombre de personnes": dossier.sejour.participants,
             "Type": [typeSejour],
             "Statut": ["à traiter"],
-            "Budget estimé": budgetRangeText,
+            "Budget estimé": dossier.financials.totalTTC.toFixed(0) + "€",
             "Message": ( 
                 (dossier.client.organisation ? `Société: ${dossier.client.organisation}\n` : '') + 
                 (dossier.client.phone ? `Tél: ${dossier.client.phone}\n` : '') + 
@@ -2314,11 +2280,19 @@ async function sendQuoteRequest() {
             "Montant Hébergement HT": dossier.financials.subtotals.hebergement,
             "Montant Repas HT": dossier.financials.subtotals.restauration,
             "Montant Options HT": dossier.financials.subtotals.options,
+            "Total TTC": dossier.financials.totalTTC,
             "Repas petit-déj": totalPtDej,
             "Repas déjeuner": totalDejeuner,
             "Repas dîner": totalDiner,
             "Qté Collation": totalPauses,
-            "Détails JSON": JSON.stringify(bookingDetails, null, 2)
+            "Détails JSON": JSON.stringify({
+                group: dossier.sejour,
+                dates: { start: dossier.sejour.dateArrivee, end: dossier.sejour.dateDepart, nights: dossier.sejour.nights },
+                sleeping: dossier.sleeping,
+                meals: { mode: mealMode, counts: mealCounts },
+                options: dossier.options
+            }, null, 2),
+            "Dossier JSON": JSON.stringify(dossier, null, 2)
         }
     };
 
