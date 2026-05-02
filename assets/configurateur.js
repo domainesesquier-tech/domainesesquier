@@ -1699,9 +1699,9 @@ function updateCalculations() {
                 }
             } else {
                 // Mode classique : Somme simple des repas + collations
-                const pPrice = getPriceHT(modeIsPro ? 'REPAS_SEMINAIRE_PDJ' : 'REPAS_PERSO_PDJ', totalVisitors, nights, modeIsPro ? 14 : 11);
-                const dPrice = getPriceHT(modeIsPro ? 'REPAS_SEMINAIRE_DEJ' : 'REPAS_PERSO_DEJ', totalVisitors, nights, modeIsPro ? 26 : 24);
-                const dinPrice = getPriceHT(modeIsPro ? 'REPAS_SEMINAIRE_DINER' : 'REPAS_PERSO_DINER', totalVisitors, nights, modeIsPro ? 30 : 27);
+                const pPrice = getHT(modeIsPro ? 'REPAS_SEMINAIRE_PDJ' : 'REPAS_PERSO_PDJ', totalVisitors, nights, 0);
+                const dPrice = getHT(modeIsPro ? 'REPAS_SEMINAIRE_DEJ' : 'REPAS_PERSO_DEJ', totalVisitors, nights, 0);
+                const dinPrice = getHT(modeIsPro ? 'REPAS_SEMINAIRE_DINER' : 'REPAS_PERSO_DINER', totalVisitors, nights, 0);
                 const colPrice = 5;
                 repasCost = (countPtDej * pPrice) + (countDejeuner * dPrice) + (countDiner * dinPrice) + (countCollation * colPrice);
             }
@@ -1856,27 +1856,24 @@ function updateCalculations() {
         // La logique de badge est maintenant centralisée dans le bloc 'pro' ci-dessous.
 
         if (currentMode === 'pro') {
-            // On récupère le prix dynamique pour le calcul réel
-            let pricing = getPricing('SALLE_TRAVAIL_SEMINAIRE', totalVisitors, nights);
-            if (!pricing || pricing.source === 'backup') {
-                const legacy = getPricing('SALLE_SEMINAIRE_TRAVAIL', totalVisitors, nights);
-                if (legacy && legacy.source !== 'backup') pricing = legacy;
-            }
-            const realPrice = (pricing && pricing.priceHT) ? pricing.priceHT : 500;
-            console.log(`[DEBUG] Salle de réunion - Prix réel calculé: ${realPrice}€ HT`);
-
-            // On s'assure que le badge est aussi à jour ici (sécurité)
+            const realPrice = getHT('SALLE_TRAVAIL_SEMINAIRE', totalVisitors, nights, 0);
+            
+            // On s'assure que le badge est aussi à jour ici
             const badge = document.getElementById('salle-price-badge');
-            if (badge) badge.innerText = `${realPrice}€ HT / jour`;
+            if (badge) {
+                if (missingPrices.includes('SALLE_TRAVAIL_SEMINAIRE')) {
+                    badge.innerHTML = '<span style="color:#e74c3c;">⚠️ CONFIG AIRTABLE</span>';
+                } else {
+                    badge.innerText = `${realPrice}€ HT / jour`;
+                }
+            }
 
             const salleEl = document.getElementById('salleReunion');
             if (salleEl && salleEl.checked) {
-                const isForfait = pricing && typeof pricing.unit === 'string' && pricing.unit.toLowerCase().includes('forfait');
                 const billDays = nights;
-                const salleCost = Math.round(isForfait ? realPrice : realPrice * billDays);
-
+                const salleCost = Math.round(realPrice * billDays);
                 optionsCost += salleCost; total += salleCost;
-                const roomLabel = isForfait ? "Salle équipée (Forfait)" : `Salle équipée (${billDays} jours)`;
+                const roomLabel = `Salle équipée (${billDays} jours)`;
                 roomDisplayHtml = `<div style="margin-bottom:15px;"><strong>Location :</strong> ${roomLabel}</div>`;
             }
         }
