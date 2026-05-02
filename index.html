@@ -2533,24 +2533,18 @@
         }
 
         async function loadAllRecords() {
-            console.log('🔍 [DIAG 1] loadAllRecords appelé');
             if (typeof SesquierUtils === 'undefined') {
                 alert("ERREUR: SesquierUtils non chargé (vérifiez assets/utils.js)");
                 return;
             }
-            console.log('🔍 [DIAG 2] SesquierUtils OK, URL:', SesquierUtils.API_RESERVATIONS_URL);
             showSkeleton();
             const refreshBtn = document.getElementById('btn-refresh');
             if (refreshBtn) refreshBtn.classList.add('spinning');
 
             try {
-                console.log('🔍 [DIAG 3] Début fetch...');
                 const data = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL);
-                console.log('🔍 [DIAG 4] Réponse reçue:', data);
-                console.log('🔍 [DIAG 5] Nb records:', data?.records?.length);
                 if (data && data.records) {
                     allRecords = data.records.map(r => ({ id: r.id, fields: r.fields || {} }));
-                    console.log('🔍 [DIAG 6] allRecords chargé:', allRecords.length, 'enregistrements');
                     sortRecords();
                     updateKPIs();
                     updateFilters();
@@ -2561,13 +2555,11 @@
                     }
                     document.getElementById('dash-subtitle').textContent =
                         `${allRecords.length} réservation${allRecords.length > 1 ? 's' : ''} au total`;
-                    console.log('🔍 [DIAG 7] Rendu terminé ✅');
                 } else {
-                    console.warn('🔍 [DIAG] data.records absent:', data);
                     showEmptyState('Aucune donnée', 'Impossible de récupérer les événements');
                 }
             } catch (e) {
-                console.error('🔍 [DIAG] ERREUR:', e);
+                console.error("Erreur de chargement:", e);
                 showEmptyState('Erreur de chargement', e.message);
             } finally {
                 if (refreshBtn) refreshBtn.classList.remove('spinning');
