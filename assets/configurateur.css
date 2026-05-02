@@ -113,7 +113,7 @@ body {
     transition: all 0.2s;
 }
 .calendar-mini-grid .calendar-day:hover:not(.is-unavailable) { border-color: var(--accent); background: white; color: var(--accent); }
-.calendar-mini-grid .calendar-day.is-unavailable { opacity: 0.25; cursor: not-allowed; background: #f1f5f9; }
+.calendar-mini-grid .calendar-day.is-occupied { background: #fff7ed; color: #ea580c; border: 1px dashed #fdba74; }
 .calendar-mini-grid .calendar-day.range-selected { background: #fef3c7; color: #92400e; font-weight: 700; border-radius: 0; }
 .calendar-mini-grid .calendar-day.range-start { border-top-left-radius: 6px; border-bottom-left-radius: 6px; background: var(--accent) !important; color: white !important; }
 .calendar-mini-grid .calendar-day.range-end { border-top-right-radius: 6px; border-bottom-right-radius: 6px; background: var(--accent) !important; color: white !important; }
@@ -469,7 +469,7 @@ textarea.input-text-dense {
     transition: all 0.15s ease;
 }
 .calendar-day:hover { background: #e2e8f0; transform: scale(1.05); }
-.calendar-day.is-unavailable { opacity: 0.3; pointer-events: none; text-decoration: line-through; background: #fff;}
+.calendar-day.is-occupied { background: #fff7ed; color: #ea580c; border: 1px dashed #fdba74; }
 .calendar-day.range-selected { background: rgba(185, 138, 77, 0.1); color: var(--accent-hover); font-weight: 700; border-radius: 0;}
 .calendar-day.range-start { background: var(--accent); color: #fff; border-radius: 8px 0 0 8px; }
 .calendar-day.range-end { background: var(--accent); color: #fff; border-radius: 0 8px 8px 0; }
@@ -769,7 +769,7 @@ input:checked + .slider:before { transform: translateX(20px); }
     transition: all 0.2s;
 }
 .calendar-modal-grid .calendar-day:hover:not(.is-unavailable) { border-color: var(--accent); background: white; color: var(--accent); }
-.calendar-modal-grid .calendar-day.is-unavailable { opacity: 0.3; cursor: not-allowed; background: #f1f5f9; }
+.calendar-modal-grid .calendar-day.is-occupied { background: #fff7ed; color: #ea580c; border: 1px dashed #fdba74; }
 .calendar-modal-grid .calendar-day.range-selected { background: #fef3c7; color: #92400e; font-weight: 700; border-radius: 0; }
 .calendar-modal-grid .calendar-day.range-start { border-top-left-radius: 8px; border-bottom-left-radius: 8px; background: var(--accent) !important; color: white !important; }
 .calendar-modal-grid .calendar-day.range-end { border-top-right-radius: 8px; border-bottom-right-radius: 8px; background: var(--accent) !important; color: white !important; }

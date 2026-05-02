@@ -810,18 +810,18 @@ let startDate = null;
 let endDate = null;
 let usedGites = [];
 
-function isDateAvailable(date) {
+function isDateOccupied(date) {
     if (!date) return false;
-    return !UNAVAILABLE_DATES.includes(toDateKey(date));
+    return UNAVAILABLE_DATES.includes(toDateKey(date));
+}
+
+function isDateAvailable(date) {
+    // Désormais toujours disponible pour permettre les chevauchements
+    return true; 
 }
 
 function isRangeAvailable(start, end) {
-    if (!start || !end) return isDateAvailable(start || end);
-    let current = new Date(start);
-    while (current < end) {
-        if (!isDateAvailable(current)) return false;
-        current.setDate(current.getDate() + 1);
-    }
+    // On ne bloque plus, on informe juste si besoin
     return true;
 }
 
@@ -865,8 +865,8 @@ function renderCalendar() {
             dayEl.className = 'calendar-day';
             dayEl.innerText = i;
 
-            const available = isDateAvailable(date);
-            dayEl.classList.add(available ? 'is-available' : 'is-unavailable');
+            const occupied = isDateOccupied(date);
+            dayEl.classList.add(occupied ? 'is-occupied' : 'is-available');
 
             const isStart = startDate && date.toDateString() === startDate.toDateString();
             const isEnd = endDate && date.toDateString() === endDate.toDateString();
@@ -878,12 +878,10 @@ function renderCalendar() {
                 if (isEnd) dayEl.classList.add('range-end');
             }
 
-            if (available) {
-                dayEl.onclick = (e) => {
-                    e.stopPropagation();
-                    selectDate(date);
-                };
-            }
+            dayEl.onclick = (e) => {
+                e.stopPropagation();
+                selectDate(date);
+            };
             container.appendChild(dayEl);
         }
     });
