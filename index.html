@@ -2562,12 +2562,6 @@
         }
 
         function openDocFromDossier(type, id) {
-            if (type === 'pro') {
-                document.getElementById('dev-id-input').value = id;
-                document.getElementById('dossier-overlay').classList.remove('show');
-                switchTab('iframe-pro', document.getElementById('nav-pro'), id);
-                return;
-            }
             document.getElementById('dossier-overlay').classList.remove('show');
             openDocForRecord(type, id);
         }
