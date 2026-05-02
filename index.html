@@ -13,35 +13,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="assets/utils.js"></script>
     <script>
-        // =====================================================================
-        // SYSTÈME DE STATUTS (FIX FINAL - STRINGS CAPITALISÉES)
-        // =====================================================================
-        const STATUS_MAP = {
-            'à traiter':    { airtable: 'À traiter',    label: 'À TRAITER',     class: 'badge-traiter' },
-            'confirmé':     { airtable: 'Confirmé',     label: 'CONFIRMÉ',      class: 'badge-confirme' },
-            'devis envoyé': { airtable: 'Devis envoyé', label: 'DEVIS ENVOYÉ',  class: 'badge-devis' },
-            'effectué':     { airtable: 'Effectué',     label: 'EFFECTUÉ',      class: 'badge-effectue' },
-            'annulé':       { airtable: 'Annulé',       label: 'ANNULÉ',        class: 'badge-annule' }
-        };
-
-        function normalizeStatut(raw) {
-            if (Array.isArray(raw)) raw = raw[0];
-            if (!raw) return 'à traiter';
-            return raw.toLowerCase().trim();
-        }
-
-        // Détection intelligente de la valeur exacte attendue par Airtable (majuscules/accents)
-        function getBestAirtableValue(norm) {
-            if (!window.allRecords) return STATUS_MAP[norm]?.airtable || norm;
-            for (const r of allRecords) {
-                const s = r.fields["Statut"];
-                if (s) {
-                    const val = Array.isArray(s) ? s[0] : s;
-                    if (val && val.toLowerCase().trim() === norm) return val;
-                }
-            }
-            return STATUS_MAP[norm]?.airtable || norm;
-        }
 
         function escapeHtml(text) {
             if (!text) return "";
@@ -2252,6 +2223,34 @@
         let calendarDate = new Date();
 
         // =====================================================================
+        // SYSTÈME DE STATUTS (CONSOLIDÉ)
+        // =====================================================================
+        const STATUS_MAP = {
+            'à traiter':    { airtable: 'À traiter',    label: 'À TRAITER',     class: 'badge-traiter' },
+            'confirmé':     { airtable: 'Confirmé',     label: 'CONFIRMÉ',      class: 'badge-confirme' },
+            'devis envoyé': { airtable: 'Devis envoyé', label: 'DEVIS ENVOYÉ',  class: 'badge-devis' },
+            'effectué':     { airtable: 'Effectué',     label: 'EFFECTUÉ',      class: 'badge-effectue' },
+            'annulé':       { airtable: 'Annulé',       label: 'ANNULÉ',        class: 'badge-annule' }
+        };
+
+        function normalizeStatut(raw) {
+            if (Array.isArray(raw)) raw = raw[0];
+            if (!raw) return 'à traiter';
+            return raw.toLowerCase().trim();
+        }
+
+        function getBestAirtableValue(norm) {
+            for (const r of allRecords) {
+                const s = r.fields["Statut"];
+                if (s) {
+                    const val = Array.isArray(s) ? s[0] : s;
+                    if (val && val.toLowerCase().trim() === norm) return val;
+                }
+            }
+            return STATUS_MAP[norm]?.airtable || norm;
+        }
+
+        // =====================================================================
         // THEME
         // =====================================================================
         function toggleTheme() {
@@ -2530,9 +2529,13 @@
         }
 
         async function loadAllRecords() {
+            if (typeof SesquierUtils === 'undefined') {
+                alert("ERREUR: SesquierUtils non chargé (vérifiez assets/utils.js)");
+                return;
+            }
             showSkeleton();
             const refreshBtn = document.getElementById('btn-refresh');
-            refreshBtn.classList.add('spinning');
+            if (refreshBtn) refreshBtn.classList.add('spinning');
 
             try {
                 const data = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL);
@@ -2633,12 +2636,6 @@
             });
         }
 
-        function normalizeStatut(fields) {
-            let raw = fields["Statut"];
-            if (Array.isArray(raw)) raw = raw[0];
-            if (!raw) return 'à traiter';
-            return raw.toLowerCase().trim();
-        }
 
         // =====================================================================
         // FILTERS
