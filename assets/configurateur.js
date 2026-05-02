@@ -513,9 +513,10 @@ const normalizeCode = (value) => {
         return null;
     }
 
-    if (typeof value === 'string') {
-        // Normalisation avancée pour matcher Airtable (espaces -> underscores, etc)
-        return value
+    if (typeof value === 'string' || typeof value === 'number') {
+        // Normalisation avancée pour matcher Airtable (espaces -> underscores, accents, retours à la ligne)
+        return value.toString()
+            .replace(/[\r\n]+/g, ' ') // Remplacer retours ligne par espace
             .toUpperCase()
             .trim()
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Supprimer accents
@@ -525,12 +526,7 @@ const normalizeCode = (value) => {
             || null;
     }
 
-    if (Array.isArray(value) && value.length > 0) {
-        return normalizeCode(value[0]);
-    }
-
-    const out = String(value).trim().toUpperCase();
-    return out || null;
+    return null;
 };
 
 const toDateKey = (date) => new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())).toISOString().slice(0, 10);
@@ -611,8 +607,9 @@ async function loadPricingFromAirtable() {
         const pricing = [];
 
         records.forEach((record) => {
-            const fields = record.fields || {};
-            const code = normalizeCode(fields['Code']);
+            const fields = record.fields;
+            const rawCode = fields['Code'];
+            const code = normalizeCode(rawCode);
             if (!code) return;
 
             pricing.push({
@@ -1636,8 +1633,13 @@ function updateCalculations() {
         let priceIndiv = 0;
         let pricePartage = 0;
         if (modeIsPro) {
-            priceIndiv = getHT('HEBERGEMENT_SEMINAIRE_SINGLE', totalVisitors, nights, 0);
-            pricePartage = getHT('HEBERGEMENT_SEMINAIRE_TWIN', totalVisitors, nights, 0);
+            // Price Twin (Base)
+            pricePartage = getHT('HEBERGEMENT_SEMINAIRE_NUITEECHAMBREPARTAGEE_TWIN', totalVisitors, nights, 0);
+            
+            // Price Single = Twin + Supplement
+            const supplementSingle = getHT('HEBERGEMENT_SEMINAIRE_SUPPL_SINGLE', totalVisitors, nights, 0);
+            priceIndiv = pricePartage + supplementSingle;
+            
             hebergementCost = Math.round((pIndiv * priceIndiv * nights) + ((pPartage + pCouple) * pricePartage * nights));
         } else {
             const hebergementCode = 'HEBERGEMENT_PERSO_NUITEE';
@@ -1645,13 +1647,12 @@ function updateCalculations() {
                 hebergementCode,
                 totalVisitors,
                 nights,
-                nights === 1 ? 60 : (nights === 2 ? 50 : 40)
+                0
             );
             priceIndiv = pricePerso;
             pricePartage = pricePerso;
             hebergementCost = Math.round(totalVisitors * pricePerso * nights);
         }
-
 
         total += hebergementCost;
 
@@ -1700,9 +1701,9 @@ function updateCalculations() {
             } else {
                 // Mode classique : Somme simple des repas + collations
                 const pPrice = getHT(modeIsPro ? 'REPAS_SEMINAIRE_PDJ' : 'REPAS_PERSO_PDJ', totalVisitors, nights, 0);
-                const dPrice = getHT(modeIsPro ? 'REPAS_SEMINAIRE_DEJ' : 'REPAS_PERSO_DEJ', totalVisitors, nights, 0);
+                const dPrice = getHT(modeIsPro ? 'REPAS_SEMINAIRE_DEJEUNER' : 'REPAS_PERSO_DEJ', totalVisitors, nights, 0);
                 const dinPrice = getHT(modeIsPro ? 'REPAS_SEMINAIRE_DINER' : 'REPAS_PERSO_DINER', totalVisitors, nights, 0);
-                const colPrice = 5;
+                const colPrice = getHT('REPAS_SEMINAIRE_COLLATION', totalVisitors, nights, 5);
                 repasCost = (countPtDej * pPrice) + (countDejeuner * dPrice) + (countDiner * dinPrice) + (countCollation * colPrice);
             }
         }
