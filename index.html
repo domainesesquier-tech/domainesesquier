@@ -2538,7 +2538,6 @@
                 const data = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL);
                 if (data && data.records) {
                     allRecords = data.records.map(r => ({ id: r.id, fields: r.fields || {} }));
-                    resolveAirtableStatuses();
                     sortRecords();
                     updateKPIs();
                     updateFilters();
