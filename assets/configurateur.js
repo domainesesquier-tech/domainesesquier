@@ -790,11 +790,11 @@ function getPricing(baseCode, nbPers = 1, nbNights = 1) {
         // S'il y a plusieurs correspondances, on prend la plus spécifique 
         // (celle avec le palier de personnes le plus restreint)
         const best = matches.sort((a, b) => (a.maxPers - a.minPers) - (b.maxPers - b.minPers))[0];
-        console.log(`[PRICING] Match trouvé pour ${normalizedBase} (${nbPers} pers, ${nbNights} nuits): ${best.priceHT}€ (Source: Airtable)`);
+        console.log(`[PRICING] Match trouvé pour ${baseCode} (${nbPers} pers, ${nbNights} nuits): ${best.priceHT}€ (Source: Airtable)`);
         return best;
     }
 
-    console.warn(`[PRICING] Aucun match Airtable pour ${normalizedBase} (${nbPers} pers, ${nbNights} nuits).`);
+    console.warn(`[PRICING] Aucun match Airtable pour ${baseCode} (${nbPers} pers, ${nbNights} nuits).`);
     return null;
 }
 
