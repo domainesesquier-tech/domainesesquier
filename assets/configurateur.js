@@ -231,11 +231,15 @@ async function loadFromAirtable(recordId) {
         else if (fields["Détails JSON"]) {
             try {
                 const details = JSON.parse(fields["Détails JSON"]);
-                // ... (existing legacy logic)
+                if (details.type) {
+                    currentMode = details.type;
+                    document.body.classList.toggle('mode-pro', currentMode === 'pro');
+                }
                 if (details.sleeping?.mode) setSleepingMode(details.sleeping.mode);
-                document.getElementById('nbIndividuel').value = details.sleeping?.indiv || 0;
-                document.getElementById('nbPartage').value = details.sleeping?.partage || 0;
-                document.getElementById('nbCouple').value = details.sleeping?.couple || 0;
+                if (document.getElementById('nbIndividuel')) document.getElementById('nbIndividuel').value = details.sleeping?.indiv || 0;
+                if (document.getElementById('nbPartage')) document.getElementById('nbPartage').value = details.sleeping?.partage || 0;
+                if (document.getElementById('nbCouple')) document.getElementById('nbCouple').value = details.sleeping?.couple || 0;
+
                 if (details.meals) {
                     const radio = document.querySelector(`input[name="repasType"][value="${details.meals.mode}"]`);
                     if (radio) {
@@ -243,12 +247,16 @@ async function loadFromAirtable(recordId) {
                         toggleMeals(details.meals.mode);
                     }
                 }
+
                 if (details.options) {
-                    if (document.getElementById('draps')) document.getElementById('draps').checked = !!details.options.draps;
-                    if (document.getElementById('menage')) document.getElementById('menage').checked = !!details.options.menage;
-                    if (document.getElementById('salleReunion')) document.getElementById('salleReunion').checked = !!details.options.salleReunion;
+                    if (details.options.draps && document.getElementById('draps')) document.getElementById('draps').checked = true;
+                    if (details.options.menage && document.getElementById('menage')) document.getElementById('menage').checked = true;
+                    if (details.options.lateArrival && document.getElementById('lateArrival')) document.getElementById('lateArrival').checked = true;
+                    if (details.options.salleReunion && document.getElementById('salleReunion')) document.getElementById('salleReunion').checked = true;
                 }
-            } catch (e) { }
+            } catch (e) {
+                console.warn("Erreur parsing Détails JSON", e);
+            }
         }
 
         updateDateDisplay();
@@ -750,18 +758,29 @@ function getPricing(baseCode, nbPers = 1, nbNights = 1) {
         const isPersoMatch = nbPers >= item.minPers && nbPers <= item.maxPers;
         const isNightMatch = nbNights >= item.minNights && nbNights <= item.maxNights;
 
-        // Si le type client est défini en base, il doit correspondre
-        // On accepte 'SEMINAIRE' ou 'PRO' comme synonymes de 'PROFESSIONNEL'
+        // Normalisation du type pour comparaison robuste
+        const normType = (item.typeClient || "").toString().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         let isTypeMatch = !item.typeClient;
         if (item.typeClient) {
             if (targetType === 'PROFESSIONNEL') {
-                isTypeMatch = ['PROFESSIONNEL', 'PRO', 'SEMINAIRE'].includes(item.typeClient);
+                isTypeMatch = ['PROFESSIONNEL', 'PRO', 'SEMINAIRE'].includes(normType);
             } else {
-                isTypeMatch = (item.typeClient === 'PERSONNEL');
+                isTypeMatch = (normType === 'PERSONNEL');
             }
         }
 
-        return isCodeMatch && isPersoMatch && isNightMatch && isTypeMatch;
+        const ok = isCodeMatch && isPersoMatch && isNightMatch && isTypeMatch;
+        
+        // Log détaillé seulement si le code match mais que le reste échoue (pour debug)
+        if (isCodeMatch && !ok) {
+            console.log(`[PRICING DEBUG] ${item.code} rejeté car: ` + 
+                (!isPersoMatch ? `Pers(${nbPers} vs ${item.minPers}-${item.maxPers}) ` : "") +
+                (!isNightMatch ? `Nuits(${nbNights} vs ${item.minNights}-${item.maxNights}) ` : "") +
+                (!isTypeMatch ? `Type(${normType} vs ${targetType})` : "")
+            );
+        }
+
+        return ok;
     });
 
     if (matches.length > 0) {
