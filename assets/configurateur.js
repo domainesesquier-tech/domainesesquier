@@ -117,22 +117,53 @@ async function loadFromAirtable(recordId) {
         isEditingMode = true;
         bookingDraft.id = recordId;
 
-        // On priorité les données brutes d'Airtable, puis le JSON technique si présent
+        // --- 1. Basic Fields Mapping ---
         if (fields["Date arrivée"]) {
             startDate = new Date(fields["Date arrivée"]);
             currentMonth = new Date(fields["Date arrivée"]);
         }
         if (fields["Date départ"]) endDate = new Date(fields["Date départ"]);
 
-        document.getElementById('nbTotal').value = fields["Nombre de personnes"] || 0;
-        document.getElementById('organisation').value = fields["Entreprise"] || fields["Organisation"] || fields["Société"] || '';
-        document.getElementById('firstname').value = fields["Prénom"] || fields["Nom client"]?.split(' ')[0] || '';
-        document.getElementById('lastname').value = fields["Nom"] || fields["Nom client"]?.split(' ').slice(1).join(' ') || '';
-        document.getElementById('email').value = fields["Email"] || '';
-        document.getElementById('phone').value = fields["Téléphone"] || '';
-        document.getElementById('message').value = fields["Message"] || '';
+        const nbPers = fields["Nombre de personnes"] || fields["Nb personnes"] || 0;
+        document.getElementById('nbTotal').value = nbPers;
+        if (document.getElementById('nbAdult')) document.getElementById('nbAdult').value = nbPers;
 
-        // Chargement du JSON technique s'il existe
+        // Organisation / Société
+        const orgVal = fields["Entreprise"] || fields["Organisation"] || fields["Société"] || '';
+        document.getElementById('organisation').value = orgVal;
+
+        // Parse Nom client (Format: "Entreprise (Prénom Nom)")
+        const nomClient = fields["Nom client"] || "";
+        if (nomClient.includes('(')) {
+            const parts = nomClient.split(' (');
+            if (!orgVal) document.getElementById('organisation').value = parts[0];
+            const contact = parts[1].replace(')', '');
+            document.getElementById('firstname').value = contact.split(' ')[0] || "";
+            document.getElementById('lastname').value = contact.split(' ').slice(1).join(' ') || "";
+        } else if (!orgVal) {
+            document.getElementById('organisation').value = nomClient;
+        }
+
+        document.getElementById('email').value = fields["Email"] || '';
+        
+        // Parse Message for Phone
+        const msg = fields["Message"] || "";
+        const telMatch = msg.match(/Tél: (.*)\n/);
+        if (telMatch) document.getElementById('phone').value = telMatch[1];
+        document.getElementById('message').value = msg.replace(/Tél: .*\n?/, '').replace(/Source: .*\n?/, '').trim();
+
+        // --- 2. Determine Mode (Pro/Perso) ---
+        const typeRaw = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "");
+        if (typeRaw.toLowerCase().includes('séminaire') || typeRaw.toLowerCase().includes('professionnel')) {
+            currentMode = 'pro';
+        } else {
+            currentMode = 'perso';
+        }
+        
+        // Initialiser le flow sans écraser les données
+        startFlow(currentMode, true);
+
+        // --- 3. Technical JSON (Détails JSON) ---
         if (fields["Détails JSON"]) {
             try {
                 const details = JSON.parse(fields["Détails JSON"]);
@@ -938,7 +969,7 @@ function changeMonth(delta) {
     renderCalendar();
 }
 
-function startFlow(mode) {
+function startFlow(mode, isInit = false) {
     currentMode = mode;
     const configContainer = document.getElementById('main-configurator');
     document.getElementById('step0').style.display = 'none';
@@ -956,22 +987,24 @@ function startFlow(mode) {
         document.body.classList.add('is-expert'); // Mode interne — skip validation legacy client
         if (title) title.innerText = "Votre Séminaire Pro";
         if (subtitle) subtitle.innerText = "Un cadre inspirant pour vos équipes";
-        setSleepingMode('pro-double'); // Default to shared rooms for Pro
-        document.getElementById('salleReunion').checked = true;
-
-        // Set default meal mode for Pro (default to Pension)
-        document.getElementById('repasPension').checked = true;
-        toggleMeals('pension');
+        
+        if (!isInit) {
+            setSleepingMode('pro-double'); // Default to shared rooms for Pro
+            document.getElementById('salleReunion').checked = true;
+            document.getElementById('repasPension').checked = true;
+            toggleMeals('pension');
+        }
     } else {
         configContainer.classList.add('mode-perso');
         document.body.classList.remove('is-expert');
         if (title) title.innerText = "Votre Séjour Personnel";
         if (subtitle) subtitle.innerText = "Des moments précieux en famille et entre amis";
-        setSleepingMode('auto'); // Default for Perso
-
-        // Set default meal mode for Perso
-        document.getElementById('repasLibre').checked = true;
-        toggleMeals('libre');
+        
+        if (!isInit) {
+            setSleepingMode('auto'); // Default for Perso
+            document.getElementById('repasLibre').checked = true;
+            toggleMeals('libre');
+        }
     }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1869,26 +1902,28 @@ function updateCalculations() {
             html += `<div style="margin-bottom:15px;"><i class="fas fa-sparkles" style="color:var(--primary);"></i> <strong>Options :</strong> ${selectedOptions.join(', ')}</div>`;
         }
 
-        const emailVal = document.getElementById('email').value;
-        const isFormFilled = emailVal.includes('@') && emailVal.length > 5;
         const cta = document.getElementById('cta-quote');
+        if (cta) {
+            if (available) {
+                cta.style.display = 'block';
+                const contactSection = document.getElementById('step-contact');
+                const contactIsVisible = contactSection ? contactSection.style.display !== 'none' : true;
+                const emailVal = document.getElementById('email').value;
+                const isFormFilled = emailVal.includes('@') && emailVal.length > 5;
 
-        if (available) {
-            cta.style.display = 'block';
-            const contactIsVisible = document.getElementById('step-contact').style.display !== 'none';
-
-            if (!contactIsVisible) {
-                cta.innerText = "Créer le dossier client";
-                cta.style.background = "var(--primary)";
-            } else if (isFormFilled) {
-                cta.innerHTML = '<i class="fas fa-folder-plus"></i> Créer le dossier client';
-                cta.style.background = "var(--primary)";
+                if (!contactIsVisible) {
+                    cta.innerText = "Enregistrer les modifications";
+                    cta.style.background = "var(--primary)";
+                } else if (isFormFilled) {
+                    cta.innerHTML = '<i class="fas fa-save"></i> Enregistrer';
+                    cta.style.background = "var(--primary)";
+                } else {
+                    cta.innerHTML = '<i class="fas fa-check"></i> Valider les choix';
+                    cta.style.background = "#D48D6C";
+                }
             } else {
-                cta.innerHTML = '<i class="fas fa-user-edit"></i> Compléter contact client';
-                cta.style.background = "#D48D6C";
+                cta.style.display = 'none';
             }
-        } else {
-            cta.style.display = 'none';
         }
 
         const htSuffix = currentMode === 'pro' ? ' HT' : '';
@@ -2033,6 +2068,9 @@ function updateCalculations() {
 function handleMainCTA() {
     const total = parseInt(document.getElementById('nbTotal').value) || 0;
     const email = document.getElementById('email')?.value || '';
+    const isValid = (startDate && endDate && total > 0);
+    const emailVal = document.getElementById('email')?.value || '';
+    const isFormFilled = emailVal.includes('@') && emailVal.length > 5;
 
     // En mode Expert/Editing, on sauvegarde directement si les fondamentaux sont là
     if (isEditingMode || document.body.classList.contains('is-expert')) {
@@ -2047,14 +2085,17 @@ function handleMainCTA() {
         sendQuoteRequest();
     } else {
         // Logique habituelle pour le client (legacy)
-        const contactSection = document.getElementById('step-contact');
-        if (!startDate || !endDate) {
+        if (isValid && isFormFilled) {
+            saveDraft();
+            const contactSection = document.getElementById('step-contact');
+            if (contactSection) {
+                contactSection.style.display = 'block';
+                setTimeout(() => scrollToStep('step-contact'), 50);
+            }
+        } else if (!isValid) {
             scrollToStep('step-dates');
         } else if (total < 1) {
             scrollToStep('step-group');
-        } else if (contactSection.style.display === 'none') {
-            contactSection.style.display = 'block';
-            setTimeout(() => scrollToStep('step-contact'), 50);
             updateCalculations();
         } else {
             sendQuoteRequest();
@@ -2328,6 +2369,15 @@ async function sendQuoteRequest() {
                 id: recordId,
                 dossier: dossier
             }, '*');
+
+            // NEW: Generic update broadcast for other iframes
+            if (isEditingMode) {
+                window.parent.postMessage({
+                    type: 'RECORD_UPDATED',
+                    id: recordId,
+                    fields: payload.fields
+                }, '*');
+            }
         }
 
         if (recordId) {
@@ -2613,3 +2663,19 @@ function showSyncBanner(msg) {
 // Export pour le mode expert global
 window.applyExpertPreset = applyExpertPreset;
 window.toggleAllMeals = toggleAllMeals;
+
+// --- Cross-Component Sync ---
+window.addEventListener('message', async (event) => {
+    if (event.data.type === 'RECORD_UPDATED' && event.data.id === bookingDraft.id) {
+        console.log("🔄 Configurator: Syncing data for", event.data.id);
+        // Avoid reloading if we are currently interacting with an input
+        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+            console.log("⚠️ Skip sync: user is typing");
+            return;
+        }
+        await loadFromAirtable(bookingDraft.id);
+    }
+});
+
+// Update the save functions to broadcast updates
+// (I will check if there's a main save function to wrap or update)

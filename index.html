@@ -1975,7 +1975,7 @@
             <div class="nav-divider"></div>
             <div class="nav-section-title">Outils</div>
 
-            <li class="nav-item" id="nav-pro" onclick="switchTab('iframe-pro', this)">
+            <li class="nav-item" id="nav-client-new" onclick="openNewDossier(this)">
                 <i class="fa-solid fa-user-plus"></i>
                 <span>Nouveau client</span>
             </li>
@@ -2199,6 +2199,11 @@
                     </div>
                 </div>
             </div>
+            <div class="dossier-footer" style="padding: 20px 40px; border-top: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: flex-end;">
+                <button class="btn-secondary" style="color: #dc2626; border-color: #fecaca;" onclick="confirmDeleteActiveDossier()">
+                    <i class="fa-solid fa-trash-can"></i> Supprimer ce dossier
+                </button>
+            </div>
         </div>
     </div>
 
@@ -2296,6 +2301,8 @@
                     switchTab('iframe-facture', document.getElementById('nav-facture'), recordId);
                 } else if (tabParam === 'facture-finale') {
                     switchTab('iframe-facture-finale', document.getElementById('nav-facture-finale'), recordId);
+                } else if (tabParam === 'client') {
+                    switchTab('iframe-client', document.getElementById('nav-client-new'), recordId);
                 } else {
                     switchTab('iframe-devis', document.getElementById('nav-devis'), recordId);
                 }
@@ -2338,6 +2345,57 @@
             document.querySelectorAll('#iframe-layer iframe').forEach(f => f.style.display = 'none');
             activeIframeId = null;
             activeRecordId = null;
+        }
+
+        async function openNewDossier(navEl) {
+            // Indiquer chargement
+            const originalIcon = navEl.querySelector('i').className;
+            navEl.querySelector('i').className = 'fa-solid fa-spinner fa-spin';
+            
+            try {
+                const defaultFields = {
+                    "Nom client": "Nouveau Dossier " + new Date().toLocaleDateString('fr-FR'),
+                    "Statut": ["à traiter"],
+                    "Type": ["séminaire professionnel"]
+                };
+
+                const res = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fields: defaultFields })
+                });
+
+                if (res.id) {
+                    // Ajouter au state local immédiatement
+                    const newRecord = { id: res.id, fields: { ...defaultFields, ...res.fields } };
+                    allRecords.unshift(newRecord);
+                    renderTable();
+                    
+                    // Ouvrir le panneau de vignettes !
+                    openDossier(res.id);
+                }
+            } catch (err) {
+                alert("Erreur lors de la création du dossier : " + err.message);
+            } finally {
+                navEl.querySelector('i').className = originalIcon;
+            }
+        }
+
+        async function confirmDeleteActiveDossier() {
+            if (!activeRecordId) return;
+            if (!confirm("Êtes-vous sûr de vouloir supprimer définitivement ce dossier ?")) return;
+            
+            try {
+                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: activeRecordId })
+                });
+                closeDossier();
+                loadAllRecords(); // Refresh list
+            } catch (err) {
+                alert("Erreur suppression : " + err.message);
+            }
         }
 
         function goBackToDossiers() {
@@ -3037,12 +3095,24 @@
                 switchTab('iframe-devis', document.getElementById('nav-devis'));
             }
             if (event.data.type === 'SWITCH_TAB') {
-                const map = { 'devis': 'nav-devis', 'facture': 'nav-facture', 'facture-finale': 'nav-facture-finale' };
+                const map = { 'devis': 'nav-devis', 'facture': 'nav-facture', 'facture-finale': 'nav-facture-finale', 'client': 'nav-client-new' };
                 const navId = map[event.data.tab];
                 if (navId) {
                     if (event.data.recordId) document.getElementById('dev-id-input').value = event.data.recordId;
                     switchTab('iframe-' + event.data.tab, document.getElementById(navId), event.data.recordId);
                 }
+            }
+            if (event.data.type === 'RECORD_UPDATED') {
+                console.log('🔄 Sync globale: Enregistrement mis à jour', event.data.id);
+                // 1. Mettre à jour le dashboard (liste)
+                if (typeof loadAllRecords === 'function') loadAllRecords();
+                
+                // 2. Propager à tous les AUTRES iframes chargés
+                document.querySelectorAll('#iframe-layer iframe').forEach(frame => {
+                    if (frame.contentWindow && frame.contentWindow !== event.source) {
+                        frame.contentWindow.postMessage({ type: 'RECORD_UPDATED', id: event.data.id, fields: event.data.fields }, '*');
+                    }
+                });
             }
         });
 

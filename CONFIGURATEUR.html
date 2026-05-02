@@ -870,15 +870,21 @@
     <script src="assets/utils.js?v=3"></script>
     <script src="assets/configurateur.js?v=3"></script>
     <script>
-      // Initialize properly as if we clicked correctly
+      // Initialize properly
       document.addEventListener("DOMContentLoaded", () => {
         if (typeof renderGitesGrid === "function") renderGitesGrid();
-        // Delay to allow configurateur.js to parse and wait for any defaults it has
-        setTimeout(() => {
-          document.getElementById("main-configurator").style.display = "grid"; // because we use grid in the new CSS
-          startFlow("pro"); // Force Pro mode
-          if (typeof checkDraftBanner === "function") checkDraftBanner();
-        }, 300);
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.get('id')) {
+          // Si pas d'ID, on montre l'étape 0 ou un défaut
+          setTimeout(() => {
+            if (document.getElementById("main-configurator")) {
+                document.getElementById("main-configurator").style.display = "grid";
+            }
+            if (typeof startFlow === "function") startFlow("pro"); 
+            if (typeof checkDraftBanner === "function") checkDraftBanner();
+          }, 300);
+        }
       });
     </script>
   </body>

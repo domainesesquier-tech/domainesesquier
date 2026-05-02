@@ -1073,10 +1073,15 @@
                         "JSON": JSON.stringify(snapshot)
                     }
                 };
+
                 const data = await SesquierUtils.fetchJson(API_RESERVATIONS_URL, {
                     method: 'PATCH',
                     body: JSON.stringify(payload)
                 });
+
+                // Broadcast update
+                SesquierUtils.broadcast('RECORD_UPDATED', { id: currentRequestId, fields: payload.fields });
+
                 alert("✅ Devis et intitulé sauvegardés dans Airtable !");
             } catch (e) { alert("❌ Erreur : " + e.message); }
             finally { if (btn) { btn.innerText = "Enregistrer (Airtable)"; btn.disabled = false; } }
@@ -1122,6 +1127,17 @@
         document.body.addEventListener('blur', (e) => {
             if (e.target.contentEditable === 'true') updateCalculations();
         }, true);
+
+        // --- Sync Logic ---
+        window.addEventListener('message', async (event) => {
+            if (event.data.type === 'RECORD_UPDATED' && event.data.id === currentRequestId) {
+                console.log("🔄 Devis: Syncing data for", event.data.id);
+                // On ne recharge que si on n'est pas en train d'éditer ? 
+                // Pour le devis c'est un peu différent car il y a beaucoup d'état local
+                // Mais le nom du client par exemple doit être mis à jour.
+                loadReservationData(currentRequestId);
+            }
+        });
     </script>
 </body>
 

@@ -3,112 +3,303 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infos Client - Domaine Sesquier</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Fiche Dossier Client - Domaine Sesquier</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="assets/configurateur.css">
     <script src="assets/utils.js"></script>
     <style>
-        body { overflow-y: auto; }
-        .app-container { height: 100vh; display: flex; flex-direction: column; }
-        .workspace { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 0; max-width: 680px; }
-        .module { margin-bottom: 0; border-radius: 0; border-bottom: none; padding: 16px 20px; box-shadow: none; }
-        .module:first-child { border-radius: 12px 12px 0 0; }
-        .module:last-child { border-radius: 0 0 12px 12px; border-bottom: 1px solid rgba(226,232,240,0.8); margin-bottom: 0; }
-        .module-header { padding-bottom: 10px; margin-bottom: 12px; }
-        .form-row-vert { margin-bottom: 10px; }
-        .form-row { gap: 10px; margin-bottom: 10px; }
-        .col-full { width: 100%; }
-        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .input-text-dense { height: 36px; font-size: 13px; }
-        textarea.input-text-dense { height: auto; min-height: 80px; }
-        .topbar { height: 56px; padding: 0 20px; }
-        .topbar-brand { font-size: 14px; }
-        .btn-primary { padding: 8px 16px; font-size: 12px; }
-        .toast { position: fixed; bottom: 16px; right: 16px; background: var(--primary); color: white; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transform: translateY(20px); opacity: 0; transition: all 0.3s ease; pointer-events: none; z-index: 100; }
-        .toast.show { transform: translateY(0); opacity: 1; }
-        .toast.error { background: #ef4444; }
+        :root {
+            --bg-page: #f8fafc;
+            --surface: #ffffff;
+            --primary: #3a5538;
+            --accent: #b98a4d;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        body { 
+            background: var(--bg-page);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow-y: auto;
+            margin: 0;
+            padding-bottom: 40px;
+        }
+
+        .app-container { max-width: 800px; margin: 0 auto; padding: 20px; }
+
+        /* HEADER */
+        .fiche-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            background: var(--surface);
+            padding: 20px 24px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .header-title { display: flex; align-items: center; gap: 12px; }
+        .header-title i { color: var(--primary); font-size: 20px; }
+        .header-title h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+
+        .save-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: #f1f5f9;
+            transition: all 0.3s;
+        }
+        .save-status.saving { color: var(--accent); background: #fef3c7; }
+        .save-status.saved { color: #059669; background: #ecfdf5; }
+        .save-status.error { color: #dc2626; background: #fef2f2; }
+
+        /* GRID LAYOUT */
+        .sections-grid { display: flex; flex-direction: column; gap: 20px; }
+
+        .section-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 16px 24px;
+            background: #fafafa;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-header h2 { 
+            margin: 0; 
+            font-size: 13px; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em; 
+            color: var(--text-muted);
+        }
+        .section-header i { color: var(--accent); font-size: 14px; }
+
+        .section-body { padding: 24px; }
+
+        /* FORMS */
+        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .form-grid.full { grid-template-columns: 1fr; }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { 
+            font-size: 11px; 
+            font-weight: 700; 
+            color: var(--text-muted); 
+            text-transform: uppercase; 
+            letter-spacing: 0.02em;
+        }
+
+        .input-field {
+            height: 42px;
+            padding: 0 14px;
+            font-size: 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #fcfcfc;
+            transition: all 0.2s;
+            font-family: inherit;
+            color: var(--text-main);
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(58, 85, 56, 0.08);
+        }
+        textarea.input-field { height: auto; padding: 12px 14px; resize: vertical; min-height: 80px; }
+
+        select.input-field { appearance: none; cursor: pointer; }
+
+        /* BADGES */
+        .badge-new {
+            background: var(--primary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .loading-overlay {
+            position: fixed; top:0; left:0; right:0; bottom:0;
+            background: rgba(255,255,255,0.8);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 640px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .fiche-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+        }
     </style>
 </head>
 <body>
+    <div id="loading" class="loading-overlay" style="display:none;">
+        <i class="fas fa-spinner fa-spin fa-2x" style="color:var(--primary)"></i>
+    </div>
+
     <div class="app-container">
-        <header class="topbar">
-            <div class="topbar-brand">
-                <i class="fas fa-leaf"></i> Domaine Sesquier — Infos Client
+        <header class="fiche-header">
+            <div class="header-title">
+                <i class="fas fa-folder-open"></i>
+                <h1 id="fiche-title">Dossier Client</h1>
+                <span id="new-badge" class="badge-new" style="display:none;">Nouveau</span>
             </div>
-            <div class="topbar-actions">
-                <button class="btn-primary" id="btn-save" onclick="saveData()">
-                    <i class="fas fa-save"></i> Enregistrer
-                </button>
+            <div class="save-status" id="save-status">
+                <i class="fas fa-cloud-check"></i>
+                <span>Synchronisé</span>
             </div>
         </header>
 
-            <div class="module">
-                <div class="module-header">
-                    <h3><i class="fas fa-address-card"></i> Informations client</h3>
+        <div class="sections-grid">
+            <!-- SECTION 1: INFOS CLIENT -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="fas fa-user-tie"></i>
+                    <h2>Informations Client & Entreprise</h2>
                 </div>
-                <div class="form-row-vert">
-                    <label class="form-label">Société / Groupe</label>
-                    <input type="text" id="f-entreprise" class="input-text-dense" placeholder="Nom de l'entreprise">
-                </div>
-                <div class="two-col">
-                    <div class="form-row-vert">
-                        <label class="form-label">Prénom</label>
-                        <input type="text" id="f-prenom" class="input-text-dense" placeholder="Jean">
-                    </div>
-                    <div class="form-row-vert">
-                        <label class="form-label">Nom</label>
-                        <input type="text" id="f-nom" class="input-text-dense" placeholder="Dupont">
-                    </div>
-                </div>
-                <div class="two-col">
-                    <div class="form-row-vert">
-                        <label class="form-label">Email</label>
-                        <input type="text" id="f-email" class="input-text-dense" placeholder="contact@email.com" oninput="checkEmail(this)">
-                        <span id="email-warn" style="display:none; color:#d97706; font-size:11px; margin-top:2px;"><i class="fas fa-triangle-exclamation"></i> Adresse email invalide</span>
-                    </div>
-                    <div class="form-row-vert">
-                        <label class="form-label">Téléphone</label>
-                        <input type="tel" id="f-telephone" class="input-text-dense" placeholder="06 00 00 00 00">
-                    </div>
-                </div>
-                <div class="two-col">
-                    <div class="form-row-vert">
-                        <label class="form-label">Arrivée souhaitée</label>
-                        <input type="date" id="f-arrivee" class="input-text-dense" onchange="checkDates()">
-                    </div>
-                    <div class="form-row-vert">
-                        <label class="form-label">Départ souhaité</label>
-                        <input type="date" id="f-depart" class="input-text-dense" onchange="checkDates()">
+                <div class="section-body">
+                    <div class="form-grid">
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Société / Organisation</label>
+                            <input type="text" id="Entreprise" class="input-field" placeholder="Ex: Google France" data-field="Entreprise">
+                        </div>
+                        <div class="form-group">
+                            <label>Prénom du contact</label>
+                            <input type="text" id="Prénom" class="input-field" placeholder="Ex: Jean" data-field="Prénom">
+                        </div>
+                        <div class="form-group">
+                            <label>Nom du contact</label>
+                            <input type="text" id="Nom" class="input-field" placeholder="Ex: Dupont" data-field="Nom">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="Email" class="input-field" placeholder="Ex: jean.dupont@entreprise.fr" data-field="Email">
+                        </div>
+                        <div class="form-group">
+                            <label>Téléphone</label>
+                            <input type="tel" id="Téléphone" class="input-field" placeholder="Ex: 06 12 34 56 78" data-field="Téléphone">
+                        </div>
                     </div>
                 </div>
-                <div class="two-col">
-                    <div class="form-row-vert">
-                        <label class="form-label">Nombre de personnes</label>
-                        <input type="number" id="f-nb-personnes" class="input-text-dense" placeholder="Ex : 25" min="1">
-                    </div>
-                    <div class="form-row-vert">
-                        <label class="form-label">Source</label>
-                        <select id="f-source" class="input-text-dense">
-                            <option value="">Sélectionner...</option>
-                            <option value="Bouche à oreille">Bouche à oreille</option>
-                            <option value="LinkedIn">LinkedIn</option>
-                            <option value="Site web">Site web</option>
-                            <option value="Prescripteur">Prescripteur</option>
-                            <option value="Autre">Autre</option>
-                        </select>
+            </div>
+
+            <!-- SECTION 2: ÉVÉNEMENT -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="fas fa-calendar-star"></i>
+                    <h2>Détails de l'Événement</h2>
+                </div>
+                <div class="section-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Type d'événement</label>
+                            <select id="Type" class="input-field" data-field="Type">
+                                <option value="Séminaire professionnel">Séminaire professionnel</option>
+                                <option value="Séjour privé">Séjour privé</option>
+                                <option value="Autre">Autre</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Statut</label>
+                            <select id="Statut" class="input-field" data-field="Statut">
+                                <option value="à traiter">À traiter</option>
+                                <option value="devis envoyé">Devis envoyé</option>
+                                <option value="confirmé">Confirmé</option>
+                                <option value="effectué">Effectué</option>
+                                <option value="annulé">Annulé</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Date d'arrivée</label>
+                            <input type="date" id="Date arrivée" class="input-field" data-field="Date arrivée">
+                        </div>
+                        <div class="form-group">
+                            <label>Date de départ</label>
+                            <input type="date" id="Date départ" class="input-field" data-field="Date départ">
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre de participants</label>
+                            <input type="number" id="Nb personnes" class="input-field" placeholder="Ex: 15" data-field="Nombre de personnes">
+                        </div>
+                        <div class="form-group">
+                            <label>Source du lead</label>
+                            <select id="Suivi_Source" class="input-field" data-field="Suivi_Source" onchange="toggleCustomSource(this.value)">
+                                <option value="">Choisir...</option>
+                                <option value="LinkedIn">LinkedIn</option>
+                                <option value="Site Web">Site Web</option>
+                                <option value="Kactus">Kactus</option>
+                                <option value="Prescripteur">Prescripteur</option>
+                                <option value="Bouche à oreille">Bouche à oreille</option>
+                                <option value="Autre">Autre (préciser...)</option>
+                            </select>
+                            <input type="text" id="Custom_Source" class="input-field" placeholder="Précisez la source..." style="margin-top: 8px; display: none;">
+                        </div>
                     </div>
                 </div>
-                <div class="form-row-vert">
-                    <label class="form-label">Notes internes</label>
-                <div class="form-row-vert">
-                    <textarea id="f-message" class="input-text-dense" rows="4" placeholder="Besoins particuliers, budget, restrictions..."></textarea>
+            </div>
+
+            <!-- SECTION 3: LOGISTIQUE -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="fas fa-utensils"></i>
+                    <h2>Logistique (Hébergement & Repas)</h2>
                 </div>
-                <!-- Archive button -->
-                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--border);">
-                    <button onclick="archiveDossier()" style="background:none; border:1px solid #cbd5e1; color:var(--text-muted); padding:7px 14px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; transition: all 0.2s;" onmouseover="this.style.borderColor='#94a3b8'; this.style.color='#475569'" onmouseout="this.style.borderColor='#cbd5e1'; this.style.color='var(--text-muted)'">
-                        <i class="fas fa-box-archive"></i> Archiver ce dossier
-                    </button>
+                <div class="section-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Qté Petits-déjeuners</label>
+                            <input type="number" id="Repas petit-déj" class="input-field" data-field="Repas petit-déj">
+                        </div>
+                        <div class="form-group">
+                            <label>Qté Déjeuners</label>
+                            <input type="number" id="Repas déjeuner" class="input-field" data-field="Repas déjeuner">
+                        </div>
+                        <div class="form-group">
+                            <label>Qté Dîners</label>
+                            <input type="number" id="Repas dîner" class="input-field" data-field="Repas dîner">
+                        </div>
+                        <div class="form-group">
+                            <label>Qté Collations</label>
+                            <input type="number" id="Qté Collation" class="input-field" data-field="Qté Collation">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: NOTES -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="fas fa-comment-dots"></i>
+                    <h2>Notes & Besoins Particuliers</h2>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <textarea id="Message" class="input-field" placeholder="Notes internes, régimes alimentaires, demandes spécifiques..." data-field="Message"></textarea>
+                    </div>
                 </div>
             </div>
         </div>
@@ -117,39 +308,193 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        let recordId = sessionStorage.getItem('currentDossierId');
+        let currentId = new URLSearchParams(window.location.search).get('id') || sessionStorage.getItem('currentDossierId');
+        let saveTimeout = null;
+        let isCreating = !currentId;
 
-        if (recordId && recordId !== 'undefined' && recordId !== 'null') {
-            loadData(recordId);
-        } else {
-            // No dossier selected: disable form and show message
-            document.getElementById('btn-save').disabled = true;
-            document.querySelector('.module').insertAdjacentHTML('afterbegin',
-                `<div style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:8px; padding:10px 14px; font-size:13px; font-weight:600; margin-bottom:14px;">
-                    <i class="fas fa-triangle-exclamation"></i> Aucun dossier sélectionné. Ouvrez un dossier depuis le tableau de bord.
-                </div>`
-            );
+        if (currentId === 'null' || currentId === 'undefined') {
+            currentId = null;
+            isCreating = true;
         }
 
-        async function loadData(id) {
+        // INIT
+        if (isCreating) {
+            document.getElementById('new-badge').style.display = 'inline-block';
+            document.getElementById('fiche-title').innerText = "Nouveau Dossier Client";
+        } else {
+            loadRecord(currentId);
+        }
+
+        // EVENT LISTENERS FOR AUTO-SAVE
+        document.querySelectorAll('.input-field').forEach(input => {
+            input.addEventListener('input', () => {
+                if (input.id === 'Entreprise') {
+                    const title = input.value.trim() || "Nouveau Dossier";
+                    document.getElementById('fiche-title').innerText = title;
+                }
+                scheduleSave(input.dataset.field);
+            });
+            input.addEventListener('blur', () => {
+                if (saveTimeout) {
+                    clearTimeout(saveTimeout);
+                    saveData();
+                }
+            });
+        });
+
+        async function loadRecord(id) {
+            document.getElementById('loading').style.display = 'flex';
             try {
                 const data = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
                 const record = data.records ? data.records[0] : data;
-                if (!record?.fields) throw new Error("Aucune donnée trouvée.");
+                if (!record?.fields) throw new Error("Dossier introuvable.");
+                
                 const f = record.fields;
+                // Fix header title
+                document.getElementById('fiche-title').innerText = f["Nom client"] || "Dossier #" + id.slice(-4);
 
-                document.getElementById('f-entreprise').value = f["Entreprise"] || "";
-                document.getElementById('f-prenom').value = f["Prénom"] || "";
-                document.getElementById('f-nom').value = f["Nom"] || "";
-                document.getElementById('f-email').value = f["Email"] || "";
-                document.getElementById('f-telephone').value = f["Téléphone"] || "";
-                document.getElementById('f-arrivee').value = f["Date arrivée"] || "";
-                document.getElementById('f-depart').value = f["Date départ"] || "";
-                document.getElementById('f-nb-personnes').value = f["Nb personnes"] || "";
-                document.getElementById('f-source').value = f["Suivi_Source"] || "";
-                document.getElementById('f-message').value = f["Message"] || "";
+                document.querySelectorAll('.input-field').forEach(input => {
+                    const field = input.dataset.field;
+                    let val = f[field];
+                    if (Array.isArray(val)) val = val[0];
+                    input.value = val || "";
+                });
+
+                // PARSE SPECIAL FIELDS
+                const nomClient = f["Nom client"] || "";
+                if (nomClient.includes('(')) {
+                    document.getElementById('Entreprise').value = nomClient.split(' (')[0];
+                    const contact = nomClient.split(' (')[1].replace(')', '');
+                    document.getElementById('Prénom').value = contact.split(' ')[0] || "";
+                    document.getElementById('Nom').value = contact.split(' ').slice(1).join(' ') || "";
+                } else {
+                    document.getElementById('Entreprise').value = nomClient;
+                }
+
+                const msg = f["Message"] || "";
+                const telMatch = msg.match(/Tél: (.*)\n/);
+                if (telMatch) document.getElementById('Téléphone').value = telMatch[1];
+                const sourceMatch = msg.match(/Source: (.*)\n/);
+                if (sourceMatch) {
+                    const sourceVal = sourceMatch[1];
+                    const select = document.getElementById('Suivi_Source');
+                    const options = Array.from(select.options).map(o => o.value);
+                    if (options.includes(sourceVal)) {
+                        select.value = sourceVal;
+                    } else {
+                        select.value = "Autre";
+                        document.getElementById('Custom_Source').value = sourceVal;
+                        document.getElementById('Custom_Source').style.display = 'block';
+                    }
+                }
+                
+                // Clean message from parsed info for the textarea
+                document.getElementById('Message').value = msg.replace(/Tél: .*\n?/, '').replace(/Source: .*\n?/, '').trim();
+                
+                setSaveStatus('saved');
             } catch (err) {
-                showToast("Erreur de chargement : " + err.message, true);
+                showToast("Erreur : " + err.message, true);
+                setSaveStatus('error', "Échec chargement");
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function scheduleSave() {
+            setSaveStatus('saving');
+            if (saveTimeout) clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(saveData, 1000);
+        }
+
+        async function saveData() {
+            saveTimeout = null;
+            setSaveStatus('saving');
+
+            // Combine name fields for Airtable "Nom client"
+            const entreprise = document.getElementById('Entreprise').value.trim();
+            const prenom = document.getElementById('Prénom').value.trim();
+            const nom = document.getElementById('Nom').value.trim();
+            const fullContactName = (prenom + " " + nom).trim();
+            const nomClient = entreprise && fullContactName ? `${entreprise} (${fullContactName})` : (entreprise || fullContactName || "Sans nom");
+
+            // Build payload with ONLY known Airtable fields to avoid 500 error
+            const fields = {
+                "Nom client": nomClient,
+                "Email": document.getElementById('Email').value || null,
+                "Type": [document.getElementById('Type').value],
+                "Statut": [document.getElementById('Statut').value],
+                "Date arrivée": document.getElementById('Date arrivée').value || null,
+                "Date départ": document.getElementById('Date départ').value || null,
+                "Nombre de personnes": parseInt(document.getElementById('Nb personnes').value, 10) || 0,
+                "Repas petit-déj": parseInt(document.getElementById('Repas petit-déj').value, 10) || 0,
+                "Repas déjeuner": parseInt(document.getElementById('Repas déjeuner').value, 10) || 0,
+                "Repas dîner": parseInt(document.getElementById('Repas dîner').value, 10) || 0,
+                "Qté Collation": parseInt(document.getElementById('Qté Collation').value, 10) || 0,
+                "Message": (
+                    (document.getElementById('Téléphone').value ? `Tél: ${document.getElementById('Téléphone').value}\n` : '') +
+                    (document.getElementById('Suivi_Source').value ? `Source: ${document.getElementById('Suivi_Source').value === 'Autre' ? document.getElementById('Custom_Source').value : document.getElementById('Suivi_Source').value}\n` : '') +
+                    document.getElementById('Message').value
+                ).trim()
+            };
+
+            try {
+                if (isCreating) {
+                    const res = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fields })
+                    });
+                    
+                    currentId = res.id;
+                    isCreating = false;
+                    document.getElementById('new-badge').style.display = 'none';
+                    sessionStorage.setItem('currentDossierId', currentId);
+                    SesquierUtils.broadcast('devis_created', { id: currentId });
+                } else {
+                    await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: currentId, fields })
+                    });
+                }
+
+                setSaveStatus('saved');
+                SesquierUtils.broadcast('RECORD_UPDATED', { id: currentId, fields });
+            } catch (err) {
+                console.error("Save error:", err);
+                setSaveStatus('error', "Erreur");
+                showToast("Échec de sauvegarde : " + err.message, true);
+            }
+        }
+
+        function toggleCustomSource(val) {
+            const customInput = document.getElementById('Custom_Source');
+            if (val === 'Autre') {
+                customInput.style.display = 'block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+                customInput.value = '';
+            }
+            scheduleSave();
+        }
+
+        function setSaveStatus(state, customText) {
+            const el = document.getElementById('save-status');
+            const icon = el.querySelector('i');
+            const span = el.querySelector('span');
+            
+            el.className = 'save-status ' + state;
+            
+            if (state === 'saving') {
+                icon.className = 'fas fa-spinner fa-spin';
+                span.innerText = customText || 'Enregistrement...';
+            } else if (state === 'saved') {
+                icon.className = 'fas fa-cloud-check';
+                span.innerText = customText || 'Synchronisé';
+            } else if (state === 'error') {
+                icon.className = 'fas fa-circle-exclamation';
+                span.innerText = customText || 'Erreur';
             }
         }
 
@@ -160,109 +505,16 @@
             setTimeout(() => t.className = 'toast', 3000);
         }
 
-        function checkEmail(el) {
-            const warn = document.getElementById('email-warn');
-            warn.style.display = el.value && !el.value.includes('@') ? 'block' : 'none';
-        }
-
-        function checkDates() {
-            const arr = document.getElementById('f-arrivee').value;
-            const dep = document.getElementById('f-depart').value;
-            let warn = document.getElementById('date-warn');
-            if (!warn) {
-                warn = document.createElement('span');
-                warn.id = 'date-warn';
-                warn.style.cssText = 'display:none; color:#d97706; font-size:11px; margin-top:2px;';
-                warn.innerHTML = '<i class="fas fa-triangle-exclamation"></i> La date de départ est avant l\'arrivée';
-                document.getElementById('f-depart').parentNode.appendChild(warn);
-            }
-            warn.style.display = (arr && dep && dep < arr) ? 'block' : 'none';
-            return !(arr && dep && dep < arr);
-        }
-
-        async function saveData() {
-            if (!recordId) { showToast("Aucun dossier sélectionné", true); return; }
-            if (!checkDates()) { showToast("Vérifiez les dates avant d'enregistrer", true); return; }
-
-            const nbVal = document.getElementById('f-nb-personnes').value;
-            const payload = {
-                "Entreprise": document.getElementById('f-entreprise').value || null,
-                "Prénom": document.getElementById('f-prenom').value || null,
-                "Nom": document.getElementById('f-nom').value || null,
-                "Email": document.getElementById('f-email').value || null,
-                "Téléphone": document.getElementById('f-telephone').value || null,
-                "Date arrivée": document.getElementById('f-arrivee').value || null,
-                "Date départ": document.getElementById('f-depart').value || null,
-                "Nb personnes": nbVal ? parseInt(nbVal, 10) : null,
-                "Suivi_Source": document.getElementById('f-source').value || null,
-                "Message": document.getElementById('f-message').value || null
-            };
-
-            const btn = document.getElementById('btn-save');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
-            btn.disabled = true;
-
-            try {
-                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: recordId, fields: payload })
-                });
-
-                // Sync parent dashboard (lightweight: update local record + header spans only)
-                if (window.parent?.allRecords) {
-                    const parentRecord = window.parent.allRecords.find(r => r.id === recordId);
-                    if (parentRecord) {
-                        Object.assign(parentRecord.fields, payload);
-                        const p = payload["Prénom"] ?? parentRecord.fields["Prénom"] ?? "";
-                        const n = payload["Nom"] ?? parentRecord.fields["Nom"] ?? "";
-                        if (p || n) parentRecord.fields["Nom client"] = (p + " " + n).trim();
-                        // Update just the visible header title, avoid full re-render flash
-                        const titleEl = window.parent.document.getElementById('dossier-title');
-                        if (titleEl) titleEl.textContent = parentRecord.fields["Nom client"] || parentRecord.fields["Entreprise"] || "Sans nom";
-                        window.parent.renderTable();
-                        // Background refresh (silent, no spinner)
-                        setTimeout(() => { if (window.parent.loadAllRecords) window.parent.loadAllRecords(); }, 3000);
-                    }
-                }
-
-                showToast("Informations enregistrées !");
-                btn.innerHTML = '<i class="fas fa-check"></i> Enregistré !';
-                setTimeout(() => {
-                    btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer';
-                    btn.disabled = false;
-                }, 2000);
-            } catch (err) {
-                showToast("Erreur : " + err.message, true);
-                btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer';
-                btn.disabled = false;
+        function handleMessage(event) {
+            if (event.data.type === 'RECORD_UPDATED' && event.data.id === currentId) {
+                // If update came from elsewhere, reload to keep source of truth
+                // But avoid reload if WE are currently typing
+                if (document.activeElement.classList.contains('input-field')) return;
+                loadRecord(currentId);
             }
         }
-        async function archiveDossier() {
-            if (!recordId) return;
-            const ok = confirm("Archiver ce dossier ?\nIl n'apparaître plus dans la liste principale.");
-            if (!ok) return;
+        window.addEventListener('message', handleMessage);
 
-            try {
-                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: recordId, fields: { "est_archive": true } })
-                });
-
-                // Update parent and close modal
-                if (window.parent?.allRecords) {
-                    const parentRecord = window.parent.allRecords.find(r => r.id === recordId);
-                    if (parentRecord) {
-                        parentRecord.fields['est_archive'] = true;
-                        window.parent.renderTable();
-                    }
-                    if (window.parent.closeDossier) window.parent.closeDossier();
-                }
-            } catch (err) {
-                showToast("Erreur : " + err.message, true);
-            }
-        }
     </script>
 </body>
 </html>

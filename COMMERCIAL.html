@@ -221,6 +221,16 @@
             setTimeout(() => t.className = 'toast', 3000);
         }
 
+
+        // --- Sync Logic ---
+        window.addEventListener('message', async (event) => {
+            if (event.data.type === 'RECORD_UPDATED' && event.data.id === recordId) {
+                console.log("🔄 Commercial: Syncing data for", event.data.id);
+                if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+                loadData(recordId);
+            }
+        });
+
         async function saveData() {
             if (!recordId) { showToast("Aucun dossier sélectionné", true); return; }
 
@@ -244,6 +254,10 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: recordId, fields: payload })
                 });
+                
+                // Broadcast update
+                SesquierUtils.broadcast('RECORD_UPDATED', { id: recordId, fields: payload });
+
                 showToast("Suivi enregistré !");
                 btn.innerHTML = '<i class="fas fa-check"></i> Enregistré !';
                 setTimeout(() => { btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer'; btn.disabled = false; }, 2000);
