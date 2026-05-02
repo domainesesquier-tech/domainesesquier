@@ -239,7 +239,6 @@
         }
     </script>
     <script src="assets/constants.js"></script>
-    <script src="assets/dossier-model.js"></script>
     <style>
         /* ========== DESIGN TOKENS ========== */
         :root {
@@ -2638,10 +2637,10 @@
 
         function animateValue(id, value) {
             const el = document.getElementById(id);
+            el.innerText = value; // S'assure que la valeur s'affiche tout de suite
             el.style.transition = 'none';
             el.style.opacity = '0';
             el.style.transform = 'translateY(8px)';
-            el.innerText = value;
             requestAnimationFrame(() => {
                 el.style.transition = 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
                 el.style.opacity = '1';
@@ -2888,7 +2887,7 @@
             // On s'assure que le badge n'a pas de styles CSS qui bloquent le select
 
             const isArchived = !!f['est_archive'];
-            return `<div class="table-row" onclick="handleRowClick(event, '${id}')" style="display: grid; grid-template-columns: 50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr; animation: fadeSlideUp 0.3s ease ${delay}s both; ${isArchived ? 'opacity:0.5;' : ''}">
+            return `<div class="table-row" onclick="handleRowClick(event, '${id}')" style="display: grid; grid-template-columns: 50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr; ${isArchived ? 'opacity:0.5;' : ''}">
                 <div class="row-expand">
                     <i class="fa-solid fa-plus"></i>
                 </div>
