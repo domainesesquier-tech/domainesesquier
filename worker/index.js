@@ -94,7 +94,21 @@ export default {
       }
 
       if (url.pathname === "/api/pricing" && method === "GET") {
-        const records = await fetchAllRecords(env, env.AIRTABLE_PRICING_TABLE);
+        let records = await fetchAllRecords(env, env.AIRTABLE_PRICING_TABLE);
+        
+        // Nettoyage systématique des codes (trim, espaces -> _, MAJUSCULES)
+        records = records.map(record => {
+          if (record.fields && record.fields.Code) {
+            let codeVal = record.fields.Code;
+            // Si le code est un tableau (lookup/formula), on prend le premier élément
+            if (Array.isArray(codeVal)) codeVal = codeVal[0];
+            if (codeVal) {
+              record.fields.Code = codeVal.toString().trim().replace(/\s+/g, '_').toUpperCase();
+            }
+          }
+          return record;
+        });
+
         return json({ records }, 200, env);
       }
 
