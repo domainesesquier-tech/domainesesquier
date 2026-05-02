@@ -719,24 +719,7 @@ function getPricing(baseCode, nbPers = 1, nbNights = 1) {
         return best;
     }
 
-    console.warn(`[PRICING] Aucun match Airtable pour ${normalizedBase} (${nbPers} pers, ${nbNights} nuits). Tentative backup...`);
-
-    // 2. BACKUP (SesquierConstants.PRICING_BACKUP)
-    const backup = (typeof SesquierConstants !== 'undefined') ? SesquierConstants.PRICING_BACKUP : {};
-    
-    // Try exact match
-    if (backup[normalizedBase]) return { ...backup[normalizedBase], source: 'backup' };
-
-    // Try duration-based suffixes (e.g. _1NUIT, _2NUITS, _3PLUS)
-    let suffix = '';
-    if (nbNights === 1) suffix = '_1NUIT';
-    else if (nbNights === 2) suffix = '_2NUITS';
-    else if (nbNights >= 3) suffix = '_3PLUS';
-
-    if (suffix && backup[normalizedBase + suffix]) {
-        return { ...backup[normalizedBase + suffix], source: 'backup' };
-    }
-
+    console.warn(`[PRICING] Aucun match Airtable pour ${normalizedBase} (${nbPers} pers, ${nbNights} nuits).`);
     return null;
 }
 
@@ -1639,17 +1622,22 @@ function updateCalculations() {
     }
 
     if (totalVisitors > 0 && nights >= 1) {
+        const missingPrices = [];
         const getHT = (code, p = null, n = null, fallback = 0) => {
             const price = getPriceHT(code, p, n);
-            return (price === null || Number.isNaN(price)) ? fallback : price;
+            if (price === null || Number.isNaN(price)) {
+                missingPrices.push(code);
+                return fallback;
+            }
+            return price;
         };
         const modeIsPro = currentMode === 'pro';
 
         let priceIndiv = 0;
         let pricePartage = 0;
         if (modeIsPro) {
-            priceIndiv = getHT('HEBERGEMENT_SEMINAIRE_SINGLE', totalVisitors, nights, 100);
-            pricePartage = getHT('HEBERGEMENT_SEMINAIRE_TWIN', totalVisitors, nights, 70);
+            priceIndiv = getHT('HEBERGEMENT_SEMINAIRE_SINGLE', totalVisitors, nights, 0);
+            pricePartage = getHT('HEBERGEMENT_SEMINAIRE_TWIN', totalVisitors, nights, 0);
             hebergementCost = Math.round((pIndiv * priceIndiv * nights) + ((pPartage + pCouple) * pricePartage * nights));
         } else {
             const hebergementCode = 'HEBERGEMENT_PERSO_NUITEE';
@@ -1690,9 +1678,9 @@ function updateCalculations() {
             if (modeIsPro && mealMode === 'pension') {
                 repasCost = 0;
                 const totalDays = nights + 1;
-                const pPrice = getPriceHT('REPAS_SEMINAIRE_PDJ', totalVisitors, nights, 14);
-                const dPrice = getPriceHT('REPAS_SEMINAIRE_DEJ', totalVisitors, nights, 26);
-                const dinPrice = getPriceHT('REPAS_SEMINAIRE_DINER', totalVisitors, nights, 30);
+                const pPrice = getHT('REPAS_SEMINAIRE_PDJ', totalVisitors, nights, 0);
+                const dPrice = getHT('REPAS_SEMINAIRE_DEJ', totalVisitors, nights, 0);
+                const dinPrice = getHT('REPAS_SEMINAIRE_DINER', totalVisitors, nights, 0);
                 const colPrice = 5;
 
                 for (let i = 0; i < totalDays; i++) {
@@ -2038,13 +2026,31 @@ function updateCalculations() {
 
             // Breakdown avec gestion intelligente
             const breakdownH = document.getElementById('breakdown-hebergement-new');
-            if (breakdownH) breakdownH.innerText = `${hebergementCost}€${htSuffix}`;
+            if (breakdownH) {
+                if (missingPrices.some(c => c.includes('HEBERGEMENT'))) {
+                    breakdownH.innerHTML = '<span style="color:#e74c3c; font-weight:bold;">⚠️ CONFIG AIRTABLE</span>';
+                } else {
+                    breakdownH.innerText = `${hebergementCost}€${htSuffix}`;
+                }
+            }
 
             const breakdownR = document.getElementById('breakdown-repas-new');
-            if (breakdownR) breakdownR.innerText = repasCost > 0 ? `${repasCost}€${htSuffix}` : "Non sélectionné";
+            if (breakdownR) {
+                if (missingPrices.some(c => c.includes('REPAS'))) {
+                    breakdownR.innerHTML = '<span style="color:#e74c3c; font-weight:bold;">⚠️ CONFIG AIRTABLE</span>';
+                } else {
+                    breakdownR.innerText = repasCost > 0 ? `${repasCost}€${htSuffix}` : "Non sélectionné";
+                }
+            }
 
             const breakdownO = document.getElementById('breakdown-options-new');
-            if (breakdownO) breakdownO.innerText = optionsCost > 0 ? `${optionsCost}€${htSuffix}` : "Aucune";
+            if (breakdownO) {
+                if (missingPrices.some(c => c.includes('OPTION') || c.includes('SALLE'))) {
+                    breakdownO.innerHTML = '<span style="color:#e74c3c; font-weight:bold;">⚠️ CONFIG AIRTABLE</span>';
+                } else {
+                    breakdownO.innerText = optionsCost > 0 ? `${optionsCost}€${htSuffix}` : "Aucune";
+                }
+            }
 
             const breakdownLinesEl = document.getElementById('budget-breakdown-lines');
             if (breakdownLinesEl) breakdownLinesEl.style.display = 'block';
