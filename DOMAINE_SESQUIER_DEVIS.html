@@ -292,6 +292,17 @@
             loadReservationData(currentRequestId);
         } else if (urlParams.get('live') === 'true') {
             loadFromDraftPreview();
+        } else {
+            // Protection: ID absent
+            const clientInfoEl = document.querySelector('.client-info');
+            if (clientInfoEl) {
+                clientInfoEl.innerHTML = `
+                    <div style="color: var(--accent); padding: 15px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-elevated); text-align: center;">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 24px; margin-bottom: 10px;"></i><br>
+                        <strong>ID de réservation manquant</strong><br>
+                        Impossible de charger le devis car aucun ID n'est présent dans l'URL.
+                    </div>`;
+            }
         }
 
         async function loadFromDraftPreview() {

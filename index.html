@@ -2293,11 +2293,11 @@
             if (recordId) {
                 document.getElementById('dev-id-input').value = recordId;
                 if (tabParam === 'facture') {
-                    switchTab('iframe-facture', document.getElementById('nav-facture'));
+                    switchTab('iframe-facture', document.getElementById('nav-facture'), recordId);
                 } else if (tabParam === 'facture-finale') {
-                    switchTab('iframe-facture-finale', document.getElementById('nav-facture-finale'));
+                    switchTab('iframe-facture-finale', document.getElementById('nav-facture-finale'), recordId);
                 } else {
-                    switchTab('iframe-devis', document.getElementById('nav-devis'));
+                    switchTab('iframe-devis', document.getElementById('nav-devis'), recordId);
                 }
             } else {
                 loadAllRecords();
@@ -3012,9 +3012,9 @@
             if (!val) return alert("Veuillez saisir un ID Airtable.");
 
             if (activeIframeId) {
-                switchTab(activeIframeId, document.querySelector('.nav-item.active'));
+                switchTab(activeIframeId, document.querySelector('.nav-item.active'), val);
             } else {
-                switchTab('iframe-devis', document.getElementById('nav-devis'));
+                switchTab('iframe-devis', document.getElementById('nav-devis'), val);
             }
         }
 
@@ -3041,7 +3041,7 @@
                 const navId = map[event.data.tab];
                 if (navId) {
                     if (event.data.recordId) document.getElementById('dev-id-input').value = event.data.recordId;
-                    switchTab('iframe-' + event.data.tab, document.getElementById(navId));
+                    switchTab('iframe-' + event.data.tab, document.getElementById(navId), event.data.recordId);
                 }
             }
         });
