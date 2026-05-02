@@ -455,14 +455,14 @@
             // =====================================================================
             if (fields["Dossier JSON"]) {
                 try {
-                    const dossier = JSON.parse(fields["Dossier JSON"]);
-                    if (dossier && dossier.version) {
-                        console.log('[DEVIS] Dossier JSON trouvé (v' + dossier.version + ') — rendu direct');
-                        renderFromDossier(dossier, fields);
-                        return;
-                    }
+                    const dossierData = JSON.parse(fields["Dossier JSON"]);
+                    // On reconstruit l'objet via le modèle pour avoir toutes les méthodes de calcul
+                    const dossier = DossierModel.buildFromAirtableFields(fields); 
+                    console.log('[DEVIS] Dossier JSON synchronisé — rendu direct');
+                    renderFromDossier(dossier, fields);
+                    return;
                 } catch (e) {
-                    console.warn('[DEVIS] Dossier JSON invalide, fallback legacy...', e);
+                    console.warn('[DEVIS] Erreur lecture Dossier JSON, fallback legacy...', e);
                 }
             }
 
@@ -727,12 +727,21 @@
                 addSubtotalRow("Activités & Loisirs", "subtotal-activities", "activities-body");
             }
 
-            // 9. TAXE DE SÉJOUR
-            const tsEl = document.getElementById('display-taxe-sejour');
-            if (tsEl) tsEl.innerText = formatEuro(dossier.financials.taxeSejour);
-
             // 10. TOTAUX — directement depuis le dossier
-            updateCalculations();
+            const financials = dossier.financials;
+            const totalHT = financials.totalHT;
+            const totalTVA = financials.totalTVA;
+            const totalTTC = financials.totalTTC;
+
+            if (document.getElementById('total-ht')) document.getElementById('total-ht').innerText = formatEuro(totalHT);
+            if (document.getElementById('total-tva')) document.getElementById('total-tva').innerText = formatEuro(totalTVA);
+            if (document.getElementById('total-ttc')) document.getElementById('total-ttc').innerText = formatEuro(totalTTC);
+
+            // Mise à jour des sous-totaux spécifiques
+            if (document.getElementById('subtotal-hebergement')) document.getElementById('subtotal-hebergement').innerText = formatEuro(financials.subtotals.hebergement || 0);
+            if (document.getElementById('subtotal-restauration')) document.getElementById('subtotal-restauration').innerText = formatEuro(financials.subtotals.restauration || 0);
+            if (document.getElementById('subtotal-salles')) document.getElementById('subtotal-salles').innerText = formatEuro(financials.subtotals.options || 0);
+            if (document.getElementById('subtotal-activities')) document.getElementById('subtotal-activities').innerText = formatEuro(financials.subtotals.activities || 0);
         }
 
         /**
