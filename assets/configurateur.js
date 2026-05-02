@@ -163,19 +163,79 @@ async function loadFromAirtable(recordId) {
         // Initialiser le flow sans écraser les données
         startFlow(currentMode, true);
 
-        // --- 3. Technical JSON (Détails JSON) ---
-        if (fields["Détails JSON"]) {
+        // --- 3. Dossier JSON (Preferred) ---
+        if (fields["Dossier JSON"]) {
+            try {
+                const dossier = JSON.parse(fields["Dossier JSON"]);
+                console.log("[EDIT] Chargement depuis Dossier JSON v" + (dossier.version || '1'));
+                
+                // Mode
+                currentMode = dossier.meta.mode || 'perso';
+                document.body.classList.toggle('is-expert', currentMode === 'pro');
+                
+                // Participants
+                document.getElementById('nbTotal').value = dossier.sejour.participants || 0;
+                document.getElementById('nbAdult').value = dossier.sejour.adultes || 0;
+                document.getElementById('nbChild').value = dossier.sejour.enfants || 0;
+                document.getElementById('nbBaby').value = dossier.sejour.bebes || 0;
+
+                // Sleeping
+                if (dossier.sleeping) {
+                    setSleepingMode(dossier.sleeping.mode || 'auto');
+                    document.getElementById('nbIndividuel').value = dossier.sleeping.individuel || 0;
+                    document.getElementById('nbPartage').value = dossier.sleeping.partage || 0;
+                    document.getElementById('nbCouple').value = dossier.sleeping.couple || 0;
+                    usedGites = dossier.sleeping.usedGites || [];
+                }
+
+                // Meals
+                if (dossier.sejour.mealMode) {
+                    const mode = dossier.sejour.mealMode;
+                    const radio = document.querySelector(`input[name="repasType"][value="${mode}"]`);
+                    if (radio) {
+                        radio.checked = true;
+                        toggleMeals(mode);
+                        // Restauration des counts si présents
+                        if (dossier.mealsPlanning) {
+                            renderMealsSchedule(); // Generate inputs first
+                            dossier.mealsPlanning.forEach((day, i) => {
+                                const m = day.meals;
+                                if (document.getElementById(`meal-${i}-petitDej`)) {
+                                    document.getElementById(`meal-${i}-petitDej`).value = m.petitDej || 0;
+                                    document.getElementById(`meal-${i}-dejeuner`).value = m.dejeuner || 0;
+                                    document.getElementById(`meal-${i}-diner`).value = m.diner || 0;
+                                    document.getElementById(`meal-${i}-collationMatin`).value = m.collationMatin || 0;
+                                    document.getElementById(`meal-${i}-collationAprem`).value = m.collationAprem || 0;
+                                }
+                            });
+                        }
+                    }
+                }
+
+                // Options
+                if (dossier.options) {
+                    if (document.getElementById('draps')) document.getElementById('draps').checked = !!dossier.options.draps;
+                    if (document.getElementById('menage')) document.getElementById('menage').checked = !!dossier.options.menage;
+                    if (document.getElementById('lateArrival')) document.getElementById('lateArrival').checked = !!dossier.options.lateArrival;
+                    if (document.getElementById('salleReunion')) document.getElementById('salleReunion').checked = !!dossier.options.salleReunion;
+                    if (document.getElementById('kitSoiree')) document.getElementById('kitSoiree').checked = !!dossier.options.kitSoiree;
+                    if (document.getElementById('chambreIndiv')) document.getElementById('chambreIndiv').checked = !!dossier.options.chambreIndiv;
+                    bookingDraft.activities = dossier.options.activities || {};
+                }
+
+            } catch (e) {
+                console.warn("Erreur Dossier JSON:", e);
+            }
+        }
+        // --- 4. Fallback: Détails JSON (Legacy) ---
+        else if (fields["Détails JSON"]) {
             try {
                 const details = JSON.parse(fields["Détails JSON"]);
-                if (details.type) {
-                    currentMode = details.type;
-                    document.body.classList.toggle('mode-pro', currentMode === 'pro');
-                }
+                // ... (existing legacy logic)
                 if (details.sleeping?.mode) setSleepingMode(details.sleeping.mode);
                 document.getElementById('nbIndividuel').value = details.sleeping?.indiv || 0;
                 document.getElementById('nbPartage').value = details.sleeping?.partage || 0;
                 document.getElementById('nbCouple').value = details.sleeping?.couple || 0;
-
                 if (details.meals) {
                     const radio = document.querySelector(`input[name="repasType"][value="${details.meals.mode}"]`);
                     if (radio) {
@@ -183,16 +243,12 @@ async function loadFromAirtable(recordId) {
                         toggleMeals(details.meals.mode);
                     }
                 }
-
                 if (details.options) {
-                    if (details.options.draps) document.getElementById('draps').checked = true;
-                    if (details.options.menage) document.getElementById('menage').checked = true;
-                    if (details.options.lateArrival) document.getElementById('lateArrival').checked = true;
-                    if (details.options.salleReunion) document.getElementById('salleReunion').checked = true;
+                    if (document.getElementById('draps')) document.getElementById('draps').checked = !!details.options.draps;
+                    if (document.getElementById('menage')) document.getElementById('menage').checked = !!details.options.menage;
+                    if (document.getElementById('salleReunion')) document.getElementById('salleReunion').checked = !!details.options.salleReunion;
                 }
-            } catch (e) {
-                console.warn("Erreur parsing Détails JSON, utilisation des champs standards", e);
-            }
+            } catch (e) { }
         }
 
         updateDateDisplay();
@@ -1633,10 +1689,10 @@ function updateCalculations() {
         let priceIndiv = 0;
         let pricePartage = 0;
         if (modeIsPro) {
-            // Price Twin (Base)
-            pricePartage = getHT('HEBERGEMENT_SEMINAIRE_NUITEECHAMBREPARTAGEE_TWIN', totalVisitors, nights, 0);
+            // Price Twin (Base) - Match Airtable: HEBERGEMENT_SEMINAIRE_NUITEE_CHAMBREPARTAGEE_TWIN
+            pricePartage = getHT('HEBERGEMENT_SEMINAIRE_NUITEE_CHAMBREPARTAGEE_TWIN', totalVisitors, nights, 0);
             
-            // Price Single = Twin + Supplement
+            // Price Single = Twin + Supplement - Match Airtable: HEBERGEMENT_SEMINAIRE_SUPPL_SINGLE
             const supplementSingle = getHT('HEBERGEMENT_SEMINAIRE_SUPPL_SINGLE', totalVisitors, nights, 0);
             priceIndiv = pricePartage + supplementSingle;
             
