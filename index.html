@@ -190,10 +190,9 @@
             }
 
             try {
-                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}/${id}`, {
                     method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id })
+                    headers: { 'Content-Type': 'application/json' }
                 });
 
                 // Retirer localement

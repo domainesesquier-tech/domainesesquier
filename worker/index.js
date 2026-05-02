@@ -123,10 +123,17 @@ export default {
         return json(result, 200, env);
       }
 
-      if (url.pathname === "/api/reservations" && method === "DELETE") {
-        const body = await request.json().catch(() => ({}));
-        const recordId = body.id;
-        if (!recordId) return json({ error: { message: "Invalid payload: expected { id }." } }, 400, env);
+      if (url.pathname.startsWith("/api/reservations") && method === "DELETE") {
+        // Try to get ID from URL path first (e.g., /api/reservations/rec123)
+        let recordId = url.pathname.split("/").pop();
+        
+        // If the last part is "reservations", it means no ID was in path, check body
+        if (recordId === "reservations") {
+            const body = await request.json().catch(() => ({}));
+            recordId = body.id;
+        }
+
+        if (!recordId) return json({ error: { message: "Invalid payload: expected ID in URL or body { id }." } }, 400, env);
 
         const result = await airtableRequest(env, `${buildAirtableUrl(env, env.AIRTABLE_RESERVATIONS_TABLE)}/${recordId}`, {
           method: "DELETE"
