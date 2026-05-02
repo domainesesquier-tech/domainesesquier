@@ -2534,18 +2534,24 @@
         }
 
         async function loadAllRecords() {
+            console.log('🔍 [DIAG 1] loadAllRecords appelé');
             if (typeof SesquierUtils === 'undefined') {
                 alert("ERREUR: SesquierUtils non chargé (vérifiez assets/utils.js)");
                 return;
             }
+            console.log('🔍 [DIAG 2] SesquierUtils OK, URL:', SesquierUtils.API_RESERVATIONS_URL);
             showSkeleton();
             const refreshBtn = document.getElementById('btn-refresh');
             if (refreshBtn) refreshBtn.classList.add('spinning');
 
             try {
+                console.log('🔍 [DIAG 3] Début fetch...');
                 const data = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL);
+                console.log('🔍 [DIAG 4] Réponse reçue:', data);
+                console.log('🔍 [DIAG 5] Nb records:', data?.records?.length);
                 if (data && data.records) {
                     allRecords = data.records.map(r => ({ id: r.id, fields: r.fields || {} }));
+                    console.log('🔍 [DIAG 6] allRecords chargé:', allRecords.length, 'enregistrements');
                     sortRecords();
                     updateKPIs();
                     updateFilters();
@@ -2556,14 +2562,16 @@
                     }
                     document.getElementById('dash-subtitle').textContent =
                         `${allRecords.length} réservation${allRecords.length > 1 ? 's' : ''} au total`;
+                    console.log('🔍 [DIAG 7] Rendu terminé ✅');
                 } else {
+                    console.warn('🔍 [DIAG] data.records absent:', data);
                     showEmptyState('Aucune donnée', 'Impossible de récupérer les événements');
                 }
             } catch (e) {
-                console.error("Erreur:", e);
+                console.error('🔍 [DIAG] ERREUR:', e);
                 showEmptyState('Erreur de chargement', e.message);
             } finally {
-                refreshBtn.classList.remove('spinning');
+                if (refreshBtn) refreshBtn.classList.remove('spinning');
             }
         }
 
@@ -2863,8 +2871,8 @@
             const isPast = f["Date départ"] && new Date(f["Date départ"]) < new Date();
 
             // --- Badge de Statut (Version Epurée) ---
-            const statut = normalizeStatut(f);
             const config = STATUS_MAP[statut] || STATUS_MAP['à traiter'];
+
             
             const statusBadgeHtml = `
                 <div class="badge ${config.class}" onclick="event.stopPropagation()" style="display:inline-flex; align-items:center; padding:0; height:26px; min-width:130px; overflow:hidden; border:1px solid rgba(0,0,0,0.05);">
