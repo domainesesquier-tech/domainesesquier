@@ -568,26 +568,29 @@ const toNumberOrNull = (value) => {
     return null;
 };
 
-const normalizeCode = (value) => {
+const normalizeCode = (value, stripUnderscores = false) => {
     if (value == null) return null;
 
     // Si c'est un objet (cas des formules Airtable via API)
     if (typeof value === 'object' && !Array.isArray(value)) {
-        if (value.value) return normalizeCode(value.value);
+        if (value.value) return normalizeCode(value.value, stripUnderscores);
         return null;
     }
 
     if (typeof value === 'string' || typeof value === 'number') {
-        // Normalisation avancée pour matcher Airtable (espaces -> underscores, accents, retours à la ligne)
-        return value.toString()
-            .replace(/[\r\n]+/g, ' ') // Remplacer retours ligne par espace
+        let out = value.toString()
+            .replace(/[\r\n]+/g, ' ')
             .toUpperCase()
             .trim()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Supprimer accents
-            .replace(/[^A-Z0-9_]/g, '_') // Remplacer tout le reste par _
-            .replace(/__+/g, '_') // Éviter les doubles underscores
-            .replace(/^_|_$/g, '') // Nettoyer début/fin
-            || null;
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Supprimer accents
+            
+        if (stripUnderscores) {
+            return out.replace(/[^A-Z0-9]/g, ''); // Garder uniquement lettres et chiffres
+        } else {
+            return out.replace(/[^A-Z0-9_]/g, '_')
+                .replace(/__+/g, '_')
+                .replace(/^_|_$/g, '') || null;
+        }
     }
 
     return null;
@@ -674,10 +677,12 @@ async function loadPricingFromAirtable() {
             const fields = record.fields;
             const rawCode = fields['Code'];
             const code = normalizeCode(rawCode);
+            const strippedCode = normalizeCode(rawCode, true);
             if (!code) return;
 
             pricing.push({
                 code: code,
+                strippedCode: strippedCode,
                 priceHT: toNumberOrNull(fields['Prix unitaire']),
                 tva: toNumberOrNull(fields['TVA % (auto)']),
                 priceTTC: toNumberOrNull(fields['Prix TTC (calculé)']),
@@ -747,14 +752,15 @@ function updateDayTotals() {
 }
 
 function getPricing(baseCode, nbPers = 1, nbNights = 1) {
-    const normalizedBase = normalizeCode(baseCode);
-    if (!normalizedBase || !window.PRICING_DB) return null;
+    const strippedBase = normalizeCode(baseCode, true);
+    if (!strippedBase || !window.PRICING_DB) return null;
 
     const targetType = (currentMode === 'pro') ? 'PROFESSIONNEL' : 'PERSONNEL';
 
     // On cherche dans la DB Airtable avec filtres de paliers + type client
     const matches = window.PRICING_DB.filter(item => {
-        const isCodeMatch = item.code === normalizedBase || item.code.startsWith(normalizedBase + '_');
+        const itemStripped = item.strippedCode || normalizeCode(item.code, true);
+        const isCodeMatch = itemStripped === strippedBase || itemStripped.startsWith(strippedBase);
         const isPersoMatch = nbPers >= item.minPers && nbPers <= item.maxPers;
         const isNightMatch = nbNights >= item.minNights && nbNights <= item.maxNights;
 
