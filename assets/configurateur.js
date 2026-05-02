@@ -721,19 +721,23 @@ function getPricing(baseCode, nbPers = 1, nbNights = 1) {
 
     console.warn(`[PRICING] Aucun match Airtable pour ${normalizedBase} (${nbPers} pers, ${nbNights} nuits). Tentative backup...`);
 
-    // 2. Si pas trouvé dans Airtable, on regarde dans le backup (ancien système)
-    // On essaie d'abord un match par palier dans le backup pour la salle
-    if (normalizedBase === 'SALLE_TRAVAIL_SEMINAIRE' || normalizedBase === 'SALLE_SEMINAIRE_TRAVAIL') {
-        if (nbPers >= 30 && PRICING_BACKUP['SALLE_TRAVAIL_SEMINAIRE_UP']) {
-            return { ...PRICING_BACKUP['SALLE_TRAVAIL_SEMINAIRE_UP'], source: 'backup' };
-        }
-        if (nbPers >= 20 && PRICING_BACKUP['SALLE_TRAVAIL_SEMINAIRE_BASE']) {
-            return { ...PRICING_BACKUP['SALLE_TRAVAIL_SEMINAIRE_BASE'], source: 'backup' };
-        }
+    // 2. BACKUP (SesquierConstants.PRICING_BACKUP)
+    const backup = (typeof SesquierConstants !== 'undefined') ? SesquierConstants.PRICING_BACKUP : {};
+    
+    // Try exact match
+    if (backup[normalizedBase]) return { ...backup[normalizedBase], source: 'backup' };
+
+    // Try duration-based suffixes (e.g. _1NUIT, _2NUITS, _3PLUS)
+    let suffix = '';
+    if (nbNights === 1) suffix = '_1NUIT';
+    else if (nbNights === 2) suffix = '_2NUITS';
+    else if (nbNights >= 3) suffix = '_3PLUS';
+
+    if (suffix && backup[normalizedBase + suffix]) {
+        return { ...backup[normalizedBase + suffix], source: 'backup' };
     }
 
-    const backup = PRICING_BACKUP[normalizedBase];
-    return backup ? { ...backup, source: 'backup' } : null;
+    return null;
 }
 
 function getPriceHT(code, nbPers = 1, nbNights = 1, fallback = null) {
@@ -1670,7 +1674,7 @@ function updateCalculations() {
         let countCollation = 0;
 
         const mealMode = getSelectedMealMode();
-        if (mealMode === 'pension' && !modeIsPro) {
+        if (mealMode === 'pension') {
             applyPensionComplete(false);
         }
 
@@ -2172,11 +2176,12 @@ async function sendQuoteRequest(silent = false) {
     const nbTotal = parseInt(document.getElementById('nbTotal')?.value) || 0;
 
     const isExpert = document.body.classList.contains('is-expert') || isEditingMode;
-    // Email n'est plus obligatoire
-    
 
-    // --- Capture Meal Details (legacy) ---
     const mealMode = getSelectedMealMode();
+    if (mealMode === 'pension') {
+        applyPensionComplete(false);
+    }
+    
     let totalPtDej = 0, totalDejeuner = 0, totalDiner = 0, totalPauses = 0;
     let mealInfo = "";
     let activitiesInfo = "";
@@ -2201,7 +2206,6 @@ async function sendQuoteRequest(silent = false) {
         if (diet && diet.value) mealInfo += `\nRégimes/Allergies: ${diet.value}`;
     }
 
-    // --- Build meal counts per day ---
     const mealCounts = [];
     if (mealMode !== 'libre' && startDate && endDate) {
         const diffDays = Math.ceil((endDate - startDate) / 86400000);
@@ -2217,19 +2221,9 @@ async function sendQuoteRequest(silent = false) {
         }
     }
 
-    // =====================================================================
-    // 🧠 DOSSIER MODEL — Unification (Source unique de vérité)
-    // =====================================================================
     const dossier = DossierModel.build({
         mode: currentMode,
-        client: {
-            organisation: organisation,
-            firstName: firstName,
-            lastName: lastName,
-            email: email,
-            phone: phone,
-            message: message
-        },
+        client: { organisation, firstName, lastName, email, phone, message },
         dates: { start: startDate, end: endDate },
         group: {
             total: nbTotal,
@@ -2244,10 +2238,7 @@ async function sendQuoteRequest(silent = false) {
             couple: parseInt(document.getElementById('nbCouple')?.value) || 0,
             usedGites: usedGites
         },
-        meals: {
-            mode: mealMode,
-            counts: mealCounts
-        },
+        meals: { mode: mealMode, counts: mealCounts },
         options: {
             draps: document.getElementById('draps')?.checked || false,
             menage: document.getElementById('menage')?.checked || false,
@@ -2260,15 +2251,7 @@ async function sendQuoteRequest(silent = false) {
         pricingDB: pricingMap || []
     });
 
-    console.log('[DOSSIER] Dossier généré via DossierModel:', dossier);
-
-    // --- Type ---
-    let typeSejour = "séjour personnel";
-    if (currentMode === 'pro') {
-        typeSejour = "séminaire professionnel";
-    } else if (nbTotal > 15) {
-        typeSejour = "séjour de groupe";
-    }
+    let typeSejour = currentMode === 'pro' ? "séminaire professionnel" : (nbTotal > 15 ? "séjour de groupe" : "séjour personnel");
 
     const payload = {
         fields: {
@@ -2276,22 +2259,20 @@ async function sendQuoteRequest(silent = false) {
             "Email": dossier.client.email,
             "Date arrivée": dossier.sejour.dateArrivee,
             "Date départ": dossier.sejour.dateDepart,
+            "Nb personnes": dossier.sejour.participants,
             "Nombre de personnes": dossier.sejour.participants,
+            "Nuits": dossier.sejour.nights,
             "Type": [typeSejour],
             "Statut": ["à traiter"],
             "Budget estimé": dossier.financials.totalTTC.toFixed(0) + "€",
-            "Message": ( 
-                (dossier.client.organisation ? `Société: ${dossier.client.organisation}\n` : '') + 
-                (dossier.client.phone ? `Tél: ${dossier.client.phone}\n` : '') + 
-                message + mealInfo + activitiesInfo
-            ).trim(),
+            "Message": ((dossier.client.organisation ? `Société: ${dossier.client.organisation}\n` : '') + (dossier.client.phone ? `Tél: ${dossier.client.phone}\n` : '') + message + mealInfo + activitiesInfo).trim(),
             "Option draps": dossier.options.draps ? "Oui" : "Non",
             "Option ménage": dossier.options.menage ? "Oui" : "Non",
             "Montant Hébergement HT": dossier.financials.subtotals.hebergement,
             "Montant Repas HT": dossier.financials.subtotals.restauration,
             "Montant Options HT": dossier.financials.subtotals.options,
+            "Total HT": dossier.financials.totalHT,
             "Total TTC": dossier.financials.totalTTC,
-            "Repas petit-déj": totalPtDej,
             "Repas déjeuner": totalDejeuner,
             "Repas dîner": totalDiner,
             "Qté Collation": totalPauses,
