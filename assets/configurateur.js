@@ -2254,7 +2254,7 @@ async function sendQuoteRequest(silent = false) {
             chambreIndiv: document.getElementById('chambreIndiv')?.checked || false,
             activities: bookingDraft.activities || {}
         },
-        pricingDB: pricingMap || []
+        pricingDB: window.PRICING_DB || []
     });
 
     let typeSejour = currentMode === 'pro' ? "séminaire professionnel" : (nbTotal > 15 ? "séjour de groupe" : "séjour personnel");
