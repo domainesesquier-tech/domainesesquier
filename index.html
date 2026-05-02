@@ -14,20 +14,33 @@
     <script src="assets/utils.js"></script>
     <script>
         // =====================================================================
-        // SYSTÈME DE STATUTS (VERSION ULTRA-SIMPLE ET ROBUSTE)
+        // SYSTÈME DE STATUTS (FIX FINAL - STRINGS CAPITALISÉES)
         // =====================================================================
         const STATUS_MAP = {
-            'à traiter':    { airtable: 'à traiter',    label: 'À TRAITER',     class: 'badge-traiter' },
-            'confirmé':     { airtable: 'confirmé',     label: 'CONFIRMÉ',      class: 'badge-confirme' },
-            'devis envoyé': { airtable: 'devis envoyé', label: 'DEVIS ENVOYÉ',  class: 'badge-devis' },
-            'effectué':     { airtable: 'effectué',     label: 'EFFECTUÉ',      class: 'badge-effectue' },
-            'annulé':       { airtable: 'annulé',       label: 'ANNULÉ',        class: 'badge-annule' }
+            'à traiter':    { airtable: 'À traiter',    label: 'À TRAITER',     class: 'badge-traiter' },
+            'confirmé':     { airtable: 'Confirmé',     label: 'CONFIRMÉ',      class: 'badge-confirme' },
+            'devis envoyé': { airtable: 'Devis envoyé', label: 'DEVIS ENVOYÉ',  class: 'badge-devis' },
+            'effectué':     { airtable: 'Effectué',     label: 'EFFECTUÉ',      class: 'badge-effectue' },
+            'annulé':       { airtable: 'Annulé',       label: 'ANNULÉ',        class: 'badge-annule' }
         };
 
         function normalizeStatut(raw) {
             if (Array.isArray(raw)) raw = raw[0];
             if (!raw) return 'à traiter';
             return raw.toLowerCase().trim();
+        }
+
+        // Détection intelligente de la valeur exacte attendue par Airtable (majuscules/accents)
+        function getBestAirtableValue(norm) {
+            if (!window.allRecords) return STATUS_MAP[norm]?.airtable || norm;
+            for (const r of allRecords) {
+                const s = r.fields["Statut"];
+                if (s) {
+                    const val = Array.isArray(s) ? s[0] : s;
+                    if (val && val.toLowerCase().trim() === norm) return val;
+                }
+            }
+            return STATUS_MAP[norm]?.airtable || norm;
         }
 
         function escapeHtml(text) {
@@ -51,8 +64,10 @@
             let finalVal = val;
             if (field === 'Statut') {
                 const norm = val.toLowerCase().trim();
-                const config = STATUS_MAP[norm] || STATUS_MAP['à traiter'];
-                finalVal = [config.airtable]; // Envoi systématique en tableau (format linked record)
+                const bestVal = getBestAirtableValue(norm);
+                // On s'adapte au format existant (Array vs String) pour éviter le "Cannot parse"
+                const isArray = Array.isArray(record.fields[field]);
+                finalVal = isArray ? [bestVal] : bestVal;
             }
 
             const oldVal = record.fields[field];
