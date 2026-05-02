@@ -16,8 +16,8 @@ let bookingDraft = {
 let isEditingMode = false;
 
 function saveDraft() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (isEditingMode || urlParams.get('id') || urlParams.get('live') || document.body.dataset.loadingDraft === 'true') return;
+    const recordId = new URLSearchParams(window.location.search).get('id') || 'new';
+    if (document.body.dataset.loadingDraft === 'true') return;
 
     try {
         const draft = {};
@@ -33,7 +33,7 @@ function saveDraft() {
         if (endDate) draft['_endDate'] = endDate.toISOString();
 
         draft['_savedAt'] = Date.now();
-        localStorage.setItem('ds_expert_draft', JSON.stringify(draft));
+        localStorage.setItem('ds_expert_draft_' + recordId, JSON.stringify(draft));
     } catch(e) {}
 }
 
@@ -44,7 +44,8 @@ function clearDraft() {
 }
 
 function restoreDraft() {
-    const saved = localStorage.getItem('ds_expert_draft');
+    const recordId = new URLSearchParams(window.location.search).get('id') || 'new';
+    const saved = localStorage.getItem('ds_expert_draft_' + recordId);
     if (!saved) return;
     
     document.body.dataset.loadingDraft = 'true';
@@ -90,12 +91,8 @@ function restoreDraft() {
 }
 
 function checkDraftBanner() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('id') || urlParams.get('live')) {
-        localStorage.removeItem('ds_expert_draft');
-        return;
-    }
-    const saved = localStorage.getItem('ds_expert_draft');
+    const recordId = new URLSearchParams(window.location.search).get('id') || 'new';
+    const saved = localStorage.getItem('ds_expert_draft_' + recordId);
     if (saved) {
         const banner = document.getElementById('draft-banner');
         if (banner) banner.style.display = 'flex';
@@ -2468,6 +2465,18 @@ function saveActivities() {
 
 // Auto-restore + synchro Airtable au chargement
 window.addEventListener('load', async () => {
+    // --- Init Listeners for Auto-Save ---
+    document.addEventListener('input', (e) => {
+        if (e.target.closest('.workspace') || e.target.closest('.modal-container')) {
+            saveDraft();
+        }
+    });
+    document.addEventListener('change', (e) => {
+        if (e.target.closest('.workspace') || e.target.closest('.modal-container')) {
+            saveDraft();
+        }
+    });
+
     const urlParams = new URLSearchParams(window.location.search);
     const recordId = urlParams.get('id');
 

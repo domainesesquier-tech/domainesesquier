@@ -2272,8 +2272,8 @@
         function updateThemeButton() {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             const btn = document.getElementById('theme-toggle');
-            btn.innerHTML = isDark
-                ? '<i class="fa-regular fa-sun"></i><span>Mode clair</span>'
+            if (btn) btn.innerHTML = isDark 
+                ? '<i class="fa-regular fa-sun"></i><span>Mode clair</span>' 
                 : '<i class="fa-regular fa-moon"></i><span>Mode sombre</span>';
         }
 
@@ -3048,9 +3048,15 @@
                     baseSrc += `${separator}live=true&t=${Date.now()}`;
                 }
 
-                const currentSrcId = new URL(targetFrame.src || 'about:blank', window.location.href).searchParams.get('id');
-                if (!targetFrame.src.includes(baseSrc.split('?')[0]) || targetFrame.src.includes('about:blank') || currentSrcId !== inputVal) {
+                const currentFullSrc = targetFrame.src || '';
+                const currentId = new URL(currentFullSrc.includes('://') ? currentFullSrc : window.location.origin + '/' + currentFullSrc).searchParams.get('id');
+                
+                // On ne recharge l'iframe QUE si l'ID a changé ou si elle est vide
+                if (currentId !== inputVal || currentFullSrc.includes('about:blank') || !targetFrame.src) {
+                    console.log(`[NAV] Rechargement de ${frameId} pour l'ID ${inputVal}`);
                     targetFrame.src = baseSrc;
+                } else {
+                    console.log(`[NAV] Conservation de l'état pour ${frameId}`);
                 }
 
                 activeIframeId = frameId;
