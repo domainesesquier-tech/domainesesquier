@@ -13,7 +13,8 @@
         rel="stylesheet">
 
     <link rel="stylesheet" href="assets/document.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="assets/utils.js"></script>
     <script src="assets/constants.js"></script>
     <script src="assets/dossier-model.js"></script>
@@ -1743,7 +1744,7 @@
 
 
 
-        function generatePDF() {
+        async function generatePDF() {
             const numEl = document.getElementById('devis-number');
             if (!numEl) { alert('Erreur : impossible de trouver le numéro de devis.'); return; }
             const num = numEl.innerText.trim();
@@ -1763,89 +1764,157 @@
             overlay.innerHTML = '<div style="text-align:center"><div style="font-size:28px;margin-bottom:10px;">📄</div><strong>Génération du PDF en cours…</strong></div>';
             document.body.appendChild(overlay);
 
-            const source = document.getElementById('pdf-wrapper');
+            // ── ÉTAPE 1 : Sauvegarder et neutraliser le DOM réel ──────────────
 
-            window.scrollTo(0, 0);
+            // body
+            const origBodyDisplay    = document.body.style.display;
+            const origBodyAlign      = document.body.style.alignItems;
+            const origBodyPadding    = document.body.style.padding;
 
-            document.body.style.display = 'block';
-            document.body.style.alignItems = 'unset';
+            // #pdf-wrapper
+            const wrapper = document.getElementById('pdf-wrapper');
+            const origWrapperPadding = wrapper.style.padding;
+            const origWrapperMargin  = wrapper.style.margin;
+            const origWrapperGap     = wrapper.style.gap;
 
-            SesquierUtils.generatePDF(source, fileName, {
-                margin: [0, 0, 0, 0],
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    letterRendering: true,
+            // #devis-content
+            const dc = document.getElementById('devis-content');
+            const origDcMinHeight    = dc.style.minHeight;
+            const origDcHeight       = dc.style.height;
+            const origDcPadding      = dc.style.padding;
+            const origDcMargin       = dc.style.margin;
+
+            // #page2-content
+            const p2 = document.getElementById('page2-content');
+            const origP2MinHeight    = p2.style.minHeight;
+            const origP2Height       = p2.style.height;
+            const origP2Padding      = p2.style.padding;
+            const origP2Margin       = p2.style.margin;
+
+            // Tous les section et div enfants directs du wrapper
+            const breakEls = wrapper.querySelectorAll('section, div');
+            const origBreaks = Array.from(breakEls).map(el => ({
+                el,
+                breakInside:     el.style.breakInside,
+                pageBreakInside: el.style.pageBreakInside,
+            }));
+
+            // Éléments à masquer pendant la capture (boutons, no-print)
+            const hideEls = Array.from(document.querySelectorAll(
+                '.no-print, .drag-handle, [onclick*="addRowBefore"], [onclick*="removeRow"]'
+            ));
+            const origDisplay = hideEls.map(el => el.style.display);
+
+            try {
+                // Masquer les éléments non imprimables
+                hideEls.forEach(el => { el.style.display = 'none'; });
+
+                // Appliquer les neutralisations
+                document.body.style.display    = 'block';
+                document.body.style.alignItems = 'unset';
+                document.body.style.padding    = '0';
+
+                wrapper.style.padding = '0';
+                wrapper.style.margin  = '0';
+                wrapper.style.gap     = '0';
+
+                dc.style.minHeight = '0';
+                dc.style.height    = 'auto';
+                dc.style.padding   = '0';
+                dc.style.margin    = '0';
+
+                p2.style.minHeight = '0';
+                p2.style.height    = 'auto';
+                p2.style.padding   = '0';
+                p2.style.margin    = '0';
+
+                breakEls.forEach(el => {
+                    el.style.breakInside     = 'auto';
+                    el.style.pageBreakInside = 'auto';
+                });
+
+                window.scrollTo(0, 0);
+
+                // ── ÉTAPE 2 : Capturer avec html2canvas ───────────────────────
+                const canvas = await html2canvas(wrapper, {
+                    scale:           2,
+                    useCORS:         true,
                     backgroundColor: '#ffffff',
-                    x: 0,
-                    y: 0,
-                    scrollX: -window.scrollX,
-                    scrollY: -window.scrollY,
-                    // windowWidth = largeur A4 exacte à 96dpi (210mm).
-                    // Sans ça, html2canvas utilise la largeur du navigateur → décalage.
-                    windowWidth: 794,
-                    // onclone : modifie le document cloné d'html2canvas avant rendu.
-                    // C'est ici qu'on corrige le body flex (qui décale la capture),
-                    // sans jamais toucher au vrai DOM visible.
-                    onclone: (clonedDoc) => {
-                        const style = clonedDoc.createElement('style');
-                        style.textContent = `
-                            body {
-                                display: block !important;
-                                padding: 0 !important;
-                                margin: 0 !important;
-                                background: white !important;
-                                align-items: unset !important;
-                            }
-                            #pdf-wrapper { margin: 0 !important; width: 794px !important; }
-                            .no-print, .page-separator, .controls-bar,
-                            .btn, .controls-bar button,
-                            #library-toggle, #library-panel { display: none !important; }
-                            .page {
-                                box-shadow: none !important;
-                                margin-bottom: 0 !important;
-                                min-height: 0 !important;
-                                font-size: 9.5pt !important;
-                                width: 794px !important;
-                            }
-                            .subtotal-row td {
-                                color: #222222 !important;
-                                opacity: 1 !important;
-                                background: #f5f5f5 !important;
-                            }
-                            .subtotal-row .subtotal-val {
-                                color: #3A5538 !important;
-                                font-weight: 700 !important;
-                            }
-                            .print-footer {
-                                position: relative !important;
-                                inset: auto !important;
-                                bottom: auto !important;
-                                left: auto !important;
-                                right: auto !important;
-                                margin-top: 10px !important;
-                            }
-                            #options-proposal {
-                                page-break-before: always !important;
-                                break-before: page !important;
-                            }
-                        `;
-                        clonedDoc.head.appendChild(style);
-                    },
-                },
-                pagebreak: {
-                    mode: ['css', 'legacy'],
-                    before: '#options-proposal',
-                    avoid: ['tr', '.subtotal-row', '.category-row', '.meal-grid-row'],
-                },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-            }).finally(() => {
-                document.body.style.display = '';
-                document.body.style.alignItems = '';
+                    scrollX:         0,
+                    scrollY:         0,
+                    x:               0,
+                    y:               0,
+                    windowWidth:     wrapper.offsetWidth,
+                });
+
+                // ── ÉTAPE 3 : Générer le PDF avec jsPDF ───────────────────────
+                const A4_W_PT  = 595.28;  // largeur A4 en points
+                const A4_H_PT  = 841.89;  // hauteur A4 en points
+                const MARGIN_MM = 15;
+                const MARGIN_PT = MARGIN_MM * 72 / 25.4;  // 15mm → ~42.52 pt
+
+                // Zone de contenu utile à l'intérieur des marges
+                const CONTENT_W_PT = A4_W_PT - 2 * MARGIN_PT;
+                const CONTENT_H_PT = A4_H_PT - 2 * MARGIN_PT;
+
+                const ratio      = CONTENT_W_PT / canvas.width;  // pts par pixel canvas
+                const pageH_px   = Math.floor(CONTENT_H_PT / ratio); // hauteur d'une page en px canvas
+
+                // eslint-disable-next-line no-undef
+                const pdf = new jspdf.jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait', compress: true });
+
+                let yOffset = 0;
+                while (yOffset < canvas.height) {
+                    if (yOffset > 0) pdf.addPage();
+
+                    // Extraire la tranche de canvas correspondant à cette page
+                    const sliceH    = Math.min(pageH_px, canvas.height - yOffset);
+                    const tmpCanvas = document.createElement('canvas');
+                    tmpCanvas.width  = canvas.width;
+                    tmpCanvas.height = sliceH;
+                    tmpCanvas.getContext('2d').drawImage(canvas, 0, yOffset, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+
+                    const imgData   = tmpCanvas.toDataURL('image/jpeg', 0.98);
+                    const sliceH_pt = sliceH * ratio;
+                    // Image placée à (MARGIN_PT, MARGIN_PT) — marges 15mm sur les 4 côtés
+                    pdf.addImage(imgData, 'JPEG', MARGIN_PT, MARGIN_PT, CONTENT_W_PT, sliceH_pt);
+
+                    yOffset += pageH_px;
+                }
+
+                pdf.save(fileName);
+
+            } finally {
+                // ── ÉTAPE 4 : Restaurer le DOM réel ───────────────────────────
+                document.body.style.display    = origBodyDisplay;
+                document.body.style.alignItems = origBodyAlign;
+                document.body.style.padding    = origBodyPadding;
+
+                wrapper.style.padding = origWrapperPadding;
+                wrapper.style.margin  = origWrapperMargin;
+                wrapper.style.gap     = origWrapperGap;
+
+                dc.style.minHeight = origDcMinHeight;
+                dc.style.height    = origDcHeight;
+                dc.style.padding   = origDcPadding;
+                dc.style.margin    = origDcMargin;
+
+                p2.style.minHeight = origP2MinHeight;
+                p2.style.height    = origP2Height;
+                p2.style.padding   = origP2Padding;
+                p2.style.margin    = origP2Margin;
+
+                origBreaks.forEach(({ el, breakInside, pageBreakInside }) => {
+                    el.style.breakInside     = breakInside;
+                    el.style.pageBreakInside = pageBreakInside;
+                });
+
+                // Restaurer les éléments masqués
+                hideEls.forEach((el, i) => { el.style.display = origDisplay[i]; });
+
                 document.body.removeChild(overlay);
                 if (libWasOpen) libPanel.classList.add('open');
-            });
+            }
         }
 
         document.body.addEventListener('input', (e) => {
