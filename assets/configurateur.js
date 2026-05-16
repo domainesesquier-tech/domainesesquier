@@ -524,7 +524,11 @@ function updateGiteSelection() {
 }
 
 // ===== API Proxy config (Cloudflare Worker) =====
-const API_BASE = (window.CONFIGURATEUR_API_BASE || 'https://domainesesquier-api.domainesesquier.workers.dev').replace(/\/+$/, '');
+// En dev (localhost), pointe sur le worker local ; en prod, worker Cloudflare
+const _API_BASE_DEFAULT = (typeof location !== 'undefined' && location.hostname === 'localhost')
+    ? 'http://localhost:8787'
+    : 'https://domainesesquier-api.domainesesquier.workers.dev';
+const API_BASE = (window.CONFIGURATEUR_API_BASE || _API_BASE_DEFAULT).replace(/\/+$/, '');
 const API_RESERVATIONS_URL = `${API_BASE}/api/reservations`;
 const API_PRICING_URL = `${API_BASE}/api/pricing`;
 
