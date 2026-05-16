@@ -1799,9 +1799,9 @@
                 pageBreakInside: el.style.pageBreakInside,
             }));
 
-            // Éléments à masquer pendant la capture (boutons, no-print)
+            // Éléments à masquer pendant la capture (boutons, no-print, footers)
             const hideEls = Array.from(document.querySelectorAll(
-                '.no-print, .drag-handle, [onclick*="addRowBefore"], [onclick*="removeRow"]'
+                '.no-print, .print-footer, .drag-handle, [onclick*="addRowBefore"], [onclick*="removeRow"]'
             ));
             const origDisplay = hideEls.map(el => el.style.display);
 
@@ -1848,38 +1848,76 @@
                 });
 
                 // ── ÉTAPE 3 : Générer le PDF avec jsPDF ───────────────────────
-                const A4_W_PT  = 595.28;  // largeur A4 en points
-                const A4_H_PT  = 841.89;  // hauteur A4 en points
+                const A4_W_PT   = 595.28;
+                const A4_H_PT   = 841.89;
                 const MARGIN_MM = 15;
-                const MARGIN_PT = MARGIN_MM * 72 / 25.4;  // 15mm → ~42.52 pt
+                const MARGIN_PT = MARGIN_MM * 72 / 25.4;  // ~42.52 pt
+                const SCALE     = 2; // html2canvas scale
 
-                // Zone de contenu utile à l'intérieur des marges
                 const CONTENT_W_PT = A4_W_PT - 2 * MARGIN_PT;
                 const CONTENT_H_PT = A4_H_PT - 2 * MARGIN_PT;
 
-                const ratio      = CONTENT_W_PT / canvas.width;  // pts par pixel canvas
-                const pageH_px   = Math.floor(CONTENT_H_PT / ratio); // hauteur d'une page en px canvas
+                const ratio    = CONTENT_W_PT / canvas.width;
+                const pageH_px = Math.floor(CONTENT_H_PT / ratio); // hauteur max d'une page en px canvas
 
+                // ── Coupures inter-sections ────────────────────────────────────
+                // Récupère le Y canvas (px) du début de chaque section majeure.
+                // Les coupures se font entre sections, jamais à l'intérieur.
+                const wrapperTop = wrapper.getBoundingClientRect().top;
+                const sectionEls = Array.from(wrapper.querySelectorAll(
+                    '.pricing-section, #options-proposal, #activities-proposal, .bottom-section, .info-section'
+                ));
+                const sectionTops = sectionEls
+                    .map(el => Math.round((el.getBoundingClientRect().top - wrapperTop) * SCALE))
+                    .filter(y => y > 0)
+                    .sort((a, b) => a - b);
+
+                // Construit la liste des coupures de page :
+                // on accumule les sections sur la page courante ;
+                // dès qu'une section ferait déborder la page, on coupe avant elle.
+                // Fallback : si une section seule dépasse pageH_px, coupure fixe.
+                const pageCuts = [0];
+                let pageStart  = 0;
+
+                for (const sTop of sectionTops) {
+                    if (sTop - pageStart > pageH_px) {
+                        // La section dépasse la page courante → couper juste avant
+                        pageCuts.push(sTop);
+                        pageStart = sTop;
+                    }
+                    // Si la section tient dans la page courante, on continue d'accumuler
+                }
+                // Fallback : si le reste du contenu après la dernière coupure
+                // dépasse encore pageH_px, ajouter des coupures fixes supplémentaires
+                let lastCut = pageCuts[pageCuts.length - 1];
+                while (canvas.height - lastCut > pageH_px) {
+                    lastCut += pageH_px;
+                    pageCuts.push(lastCut);
+                }
+                pageCuts.push(canvas.height);
+
+                // ── Rendu page par page ────────────────────────────────────────
                 // eslint-disable-next-line no-undef
                 const pdf = new jspdf.jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait', compress: true });
 
-                let yOffset = 0;
-                while (yOffset < canvas.height) {
-                    if (yOffset > 0) pdf.addPage();
+                for (let i = 0; i < pageCuts.length - 1; i++) {
+                    if (i > 0) pdf.addPage();
 
-                    // Extraire la tranche de canvas correspondant à cette page
-                    const sliceH    = Math.min(pageH_px, canvas.height - yOffset);
+                    const yStart    = pageCuts[i];
+                    const yEnd      = pageCuts[i + 1];
+                    const sliceH    = yEnd - yStart;
+
                     const tmpCanvas = document.createElement('canvas');
                     tmpCanvas.width  = canvas.width;
                     tmpCanvas.height = sliceH;
-                    tmpCanvas.getContext('2d').drawImage(canvas, 0, yOffset, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+                    tmpCanvas.getContext('2d').drawImage(
+                        canvas, 0, yStart, canvas.width, sliceH,
+                        0, 0,     canvas.width, sliceH
+                    );
 
                     const imgData   = tmpCanvas.toDataURL('image/jpeg', 0.98);
                     const sliceH_pt = sliceH * ratio;
-                    // Image placée à (MARGIN_PT, MARGIN_PT) — marges 15mm sur les 4 côtés
                     pdf.addImage(imgData, 'JPEG', MARGIN_PT, MARGIN_PT, CONTENT_W_PT, sliceH_pt);
-
-                    yOffset += pageH_px;
                 }
 
                 pdf.save(fileName);
