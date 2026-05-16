@@ -1821,7 +1821,7 @@
                     scrollY: 0,
                     // windowWidth = largeur A4 exacte à 96dpi (210mm).
                     // Sans ça, html2canvas utilise la largeur du navigateur → décalage.
-                    windowWidth: 794,
+                    windowWidth: 860,
                     // onclone : modifie le document cloné d'html2canvas avant rendu.
                     // C'est ici qu'on corrige le body flex (qui décale la capture),
                     // sans jamais toucher au vrai DOM visible.
@@ -1830,6 +1830,7 @@
                         style.textContent = `
                             body {
                                 display: block !important;
+                                width: 860px !important;
                                 padding: 0 !important;
                                 margin: 0 !important;
                                 background: white !important;
