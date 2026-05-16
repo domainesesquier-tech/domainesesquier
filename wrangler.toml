@@ -2,10 +2,18 @@ name = "domainesesquier-api"
 main = "worker/index.js"
 compatibility_date = "2025-01-01"
 
+# Origines autorisées (CORS) — séparées par des virgules
 [vars]
-# Set this to your production site origin for stricter CORS.
-# Example: "https://example.com"
-ALLOWED_ORIGIN = "*"
-AIRTABLE_BASE_ID = "app6AAb5nlRHVnGzW"
-AIRTABLE_RESERVATIONS_TABLE = "Réservation"
-AIRTABLE_PRICING_TABLE = "Politique tarifaire"
+ALLOWED_ORIGINS = "https://admin.domainesesquier.com,https://www.domainesesquier.com,https://domainesesquier.com"
+ENVIRONMENT = "production"
+
+# Environnement de développement local (npx wrangler dev --env dev)
+# Ajoute localhost pour permettre les tests en local sans toucher à la prod
+[env.dev.vars]
+ALLOWED_ORIGINS = "https://admin.domainesesquier.com,https://www.domainesesquier.com,https://domainesesquier.com,http://localhost:8080,http://localhost:3000"
+ENVIRONMENT = "development"
+
+# SUPABASE_URL et SUPABASE_ANON_KEY sont des secrets Cloudflare.
+# Ne jamais les mettre ici en clair.
+# Les injecter via : wrangler secret put SUPABASE_URL
+#                    wrangler secret put SUPABASE_ANON_KEY

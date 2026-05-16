@@ -680,7 +680,7 @@ async function loadPricingFromAirtable() {
             pricing.push({
                 code: code,
                 strippedCode: strippedCode,
-                priceHT: toNumberOrNull(fields['Prix unitaire']),
+                priceHT: toNumberOrNull(fields['PU']),
                 tva: toNumberOrNull(fields['TVA % (auto)']),
                 priceTTC: toNumberOrNull(fields['Prix TTC (calculé)']),
                 unit: fields['Unité'],
@@ -768,7 +768,7 @@ function getPricing(baseCode, nbPers = 1, nbNights = 1) {
             if (targetType === 'PROFESSIONNEL') {
                 isTypeMatch = ['PROFESSIONNEL', 'PRO', 'SEMINAIRE'].includes(normType);
             } else {
-                isTypeMatch = (normType === 'PERSONNEL');
+                isTypeMatch = ['PERSONNEL', 'PERSO'].includes(normType);
             }
         }
 
@@ -1913,13 +1913,13 @@ function updateCalculations() {
             if (el) el.innerText = price !== null ? `${price}${unit}` : 'Sur demande';
         };
 
-        updateBadge('draps-badge', getHT('FORFAIT_DRAPS_PERSO_DRAPS', totalVisitors, nights, 7), '€ / pers');
-        updateBadge('menage-badge', getHT('OPTION_PERSO_MENAGE', totalVisitors, nights, 300), '€');
-        updateBadge('pro-indiv-card-badge', `+${getHT('OPTION_PERSO_CHAMBRE_INDIV', totalVisitors, nights, 30)}`, '€ HT / pers');
-        updateBadge('perso-indiv-row-badge', `+${getHT('OPTION_PERSO_CHAMBRE_INDIV', totalVisitors, nights, 30)}`, '€ / nuit / pers');
-        updateBadge('pro-indiv-row-badge', `(+ ${getHT('OPTION_PERSO_CHAMBRE_INDIV', totalVisitors, nights, 30)}€ HT)`, '');
+        updateBadge('draps-badge', getPriceHT('FORFAIT_DRAPS_PERSO_DRAPS', totalVisitors, nights, 7), '€ / pers');
+        updateBadge('menage-badge', getPriceHT('OPTION_PERSO_MENAGE', totalVisitors, nights, 300), '€');
+        updateBadge('pro-indiv-card-badge', `+${getPriceHT('OPTION_PERSO_CHAMBRE_INDIV', totalVisitors, nights, 30)}`, '€ HT / pers');
+        updateBadge('perso-indiv-row-badge', `+${getPriceHT('OPTION_PERSO_CHAMBRE_INDIV', totalVisitors, nights, 30)}`, '€ / nuit / pers');
+        updateBadge('pro-indiv-row-badge', `(+ ${getPriceHT('OPTION_PERSO_CHAMBRE_INDIV', totalVisitors, nights, 30)}€ HT)`, '');
 
-        const soireePrice = getHT('OPTION_PRO_KIT_SOIREE', totalVisitors, nights, 500);
+        const soireePrice = getPriceHT('OPTION_PRO_KIT_SOIREE', totalVisitors, nights, 500);
         updateBadge('soiree-badge', soireePrice, '€');
 
         const pPrice = getPriceHT('REPAS_SEMINAIRE_PDJ', totalVisitors, nights, 14);
@@ -2339,9 +2339,7 @@ async function sendQuoteRequest(silent = false) {
             "Email": dossier.client.email,
             "Date arrivée": dossier.sejour.dateArrivee,
             "Date départ": dossier.sejour.dateDepart,
-            "Nb personnes": dossier.sejour.participants,
             "Nombre de personnes": dossier.sejour.participants,
-            "Nuits": dossier.sejour.nights,
             "Type": [typeSejour],
             "Statut": ["à traiter"],
             "Budget estimé": dossier.financials.totalTTC.toFixed(0) + "€",
@@ -2351,8 +2349,6 @@ async function sendQuoteRequest(silent = false) {
             "Montant Hébergement HT": dossier.financials.subtotals.hebergement,
             "Montant Repas HT": dossier.financials.subtotals.restauration,
             "Montant Options HT": dossier.financials.subtotals.options,
-            "Total HT": dossier.financials.totalHT,
-            "Total TTC": dossier.financials.totalTTC,
             "Repas déjeuner": totalDejeuner,
             "Repas dîner": totalDiner,
             "Qté Collation": totalPauses,
@@ -2363,7 +2359,7 @@ async function sendQuoteRequest(silent = false) {
                 meals: { mode: mealMode, counts: mealCounts },
                 options: dossier.options
             }, null, 2),
-            "Dossier JSON": JSON.stringify(dossier, null, 2)
+            "DOSSIER JSON": JSON.stringify(dossier, null, 2)
         }
     };
 

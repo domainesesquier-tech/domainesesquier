@@ -1,163 +1,430 @@
-function corsHeaders(env) {
-  // Ultra permissive CORS for debugging
+// ============================================================
+// Domaine Sesquier — Cloudflare Worker (Supabase backend)
+// ============================================================
+
+function corsHeaders(env = {}, requestOrigin = "") {
+  const allowed = (env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
+  const origin = allowed.includes(requestOrigin) ? requestOrigin : (allowed[0] || "*");
   return {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
     "Access-Control-Max-Age": "86400",
   };
 }
 
-function json(body, status = 200, env) {
+function json(body, status = 200, env = {}, requestOrigin = "") {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "no-store",
-      ...corsHeaders(env),
+      ...corsHeaders(env, requestOrigin),
     },
   });
 }
 
-function buildAirtableUrl(env, tableName, query = "") {
-  const base = `https://api.airtable.com/v0/${env.AIRTABLE_BASE_ID}/${encodeURIComponent(tableName)}`;
-  return query ? `${base}?${query}` : base;
-}
+// ── Supabase helpers ────────────────────────────────────────
 
-async function airtableRequest(env, url, init = {}) {
+async function sbFetch(env, path, init = {}) {
+  const url = `${env.SUPABASE_URL}/rest/v1${path}`;
   const res = await fetch(url, {
     ...init,
     headers: {
-      Authorization: `Bearer ${env.AIRTABLE_TOKEN}`,
+      "apikey": env.SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${env.SUPABASE_ANON_KEY}`,
       "Content-Type": "application/json",
+      "Prefer": "return=representation",
       ...(init.headers || {}),
     },
   });
-
-  const payload = await res.json().catch(() => ({}));
-  if (!res.ok || payload.error) {
-    const msg = payload?.error?.message || `Airtable error (${res.status})`;
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = text; }
+  if (!res.ok) {
+    const msg = (data && (data.message || data.error)) || `Supabase error (${res.status})`;
     throw new Error(msg);
   }
-  return payload;
+  return data;
 }
 
-async function fetchAllRecords(env, tableName, queryParams = "") {
-  const records = [];
-  let offset = null;
+// Génère un ID de type Airtable (crypto-safe) pour les nouvelles réservations
+function newRecId() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = new Uint8Array(14);
+  crypto.getRandomValues(bytes);
+  let s = 'rec';
+  for (let i = 0; i < 14; i++) s += chars[bytes[i] % chars.length];
+  return s;
+}
 
-  while (true) {
-    const params = new URLSearchParams(queryParams);
-    if (offset) params.set("offset", offset);
+// ── Conversion Supabase row → Airtable record ───────────────
 
-    const page = await airtableRequest(env, buildAirtableUrl(env, tableName, params.toString()));
-    if (Array.isArray(page.records)) records.push(...page.records);
-    if (!page.offset) break;
-    offset = page.offset;
+function rowToRecord(row) {
+  return {
+    id: row.id,
+    fields: {
+      'Nom client':               row.nom_client,
+      'Entreprise':               row.entreprise,
+      'Prénom contact':           row.prenom_contact,
+      'Nom contact':              row.nom_contact,
+      'Email':                    row.email,
+      'Téléphone':                row.telephone,
+      'Type':                     row.type,
+      'Statut':                   row.statut,
+      'Date arrivée':             row.date_arrivee,
+      'Date départ':              row.date_depart,
+      'Nombre de personnes':      row.nombre_de_personnes,
+      'Nb personnes':             row.nombre_de_personnes,
+      'Option draps':             row.option_draps,
+      'Option ménage':            row.option_menage,
+      'Repas petit-déjeuner':     row.repas_petit_dej,
+      'Repas déjeuner':           row.repas_dejeuner,
+      'Repas dîner':              row.repas_diner,
+      'Qté collation':            row.qte_collation,
+      'Montant Hébergement HT':   row.montant_hebergement_ht,
+      'Montant Repas HT':         row.montant_repas_ht,
+      'Montant Options HT':       row.montant_options_ht,
+      'Message':                  row.message,
+      'Budget estimé':            row.budget_estime,
+      'Details JSON':             row.details_json,
+      'JSON Snapshot':            row.json_snapshot,
+      'DOSSIER JSON':             row.dossier_json,
+      'Timeline JSON':            row.timeline_json,
+      'Rooming JSON':             row.rooming_json,
+      'Notes':                    row.notes,
+      'Suivi Source':             row.suivi_source,
+      'Suivi Décideur':           row.suivi_decideur,
+      'Suivi Date devis':         row.suivi_date_devis,
+      'Suivi Probabilité':        row.suivi_probabilite,
+      'Suivi Date relance':       row.suivi_date_relance,
+      'Suivi Prochaine action':   row.suivi_prochaine_action,
+      'Suivi Log':                row.suivi_log,
+      'est_archive':              row.est_archive,
+      'Created':                  row.created_at,
+      'Updated':                  row.updated_at,
+    },
+  };
+}
+
+// ── Conversion champs Airtable → colonnes Supabase ──────────
+
+const FIELD_MAP = {
+  'Nom client':               'nom_client',
+  'Entreprise':               'entreprise',
+  'Prénom contact':           'prenom_contact',
+  'Nom contact':              'nom_contact',
+  'Email':                    'email',
+  'Téléphone':                'telephone',
+  'Type':                     'type',
+  'Statut':                   'statut',
+  'Date arrivée':             'date_arrivee',
+  'Date départ':              'date_depart',
+  'Nombre de personnes':      'nombre_de_personnes',
+  'Nb personnes':             'nombre_de_personnes',
+  'Option draps':             'option_draps',
+  'Option ménage':            'option_menage',
+  'Repas petit-déjeuner':     'repas_petit_dej',
+  'Repas déjeuner':           'repas_dejeuner',
+  'Repas dîner':              'repas_diner',
+  'Qté collation':            'qte_collation',
+  'Montant Hébergement HT':   'montant_hebergement_ht',
+  'Montant Repas HT':         'montant_repas_ht',
+  'Montant Options HT':       'montant_options_ht',
+  'Message':                  'message',
+  'Budget estimé':            'budget_estime',
+  'Details JSON':             'details_json',
+  'JSON Snapshot':            'json_snapshot',
+  'DOSSIER JSON':             'dossier_json',
+  'Timeline JSON':            'timeline_json',
+  'Rooming JSON':             'rooming_json',
+  'Notes':                    'notes',
+  'Suivi Source':             'suivi_source',
+  'Suivi Décideur':           'suivi_decideur',
+  'Suivi Date devis':         'suivi_date_devis',
+  'Suivi Probabilité':        'suivi_probabilite',
+  'Suivi Date relance':       'suivi_date_relance',
+  'Suivi Prochaine action':   'suivi_prochaine_action',
+  'Suivi Log':                'suivi_log',
+  'est_archive':              'est_archive',
+};
+
+function fieldsToRow(fields) {
+  const row = {};
+  for (const [airtableKey, value] of Object.entries(fields)) {
+    const col = FIELD_MAP[airtableKey];
+    if (col) row[col] = value;
   }
-
-  return records;
+  return row;
 }
+
+// ── Pricing : row → Airtable record ────────────────────────
+
+function pricingRowToRecord(row) {
+  return {
+    id: `price_${row.id}`,
+    fields: {
+      'Catégorie':          row.categorie,
+      'Type':               row.type,
+      'Intitulé':           row.intitule,
+      'Unité':              row.unite,
+      'PU':                 row.pu,
+      'TVA % (auto)':       row.tva_pct,
+      'Prix TTC (calculé)': row.prix_ttc,
+      'Code':               row.code,
+      'Condition':          row.condition,
+      'Durée min nuits':    row.duree_min_nuits,
+      'Durée max nuits':    row.duree_max_nuits,
+      'Nb pers min':        row.nb_pers_min,
+      'Nb pers max':        row.nb_pers_max,
+    },
+  };
+}
+
+// ── Library : row → Airtable record ────────────────────────
+
+function libraryRowToRecord(row) {
+  return {
+    id: `lib_${row.id}`,
+    fields: {
+      'Nom':         row.nom,
+      'Description': row.description,
+      'Catégorie':   row.categorie,
+      'Prix HT':     row.prix_ht,
+      'TVA':         row.tva,
+      'Actif':       row.actif,
+    },
+  };
+}
+
+// ============================================================
+// HANDLER PRINCIPAL
+// ============================================================
 
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url);
-    const method = request.method.toUpperCase();
+    const url           = new URL(request.url);
+    const method        = request.method.toUpperCase();
+    const requestOrigin = request.headers.get("Origin") || "";
 
-    if (!env.AIRTABLE_TOKEN) {
-      return json({ error: { message: "AIRTABLE_TOKEN missing in Worker secrets." } }, 500, env);
+    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+      return json({ error: { message: "SUPABASE_URL or SUPABASE_ANON_KEY missing." } }, 500, env, requestOrigin);
     }
 
     if (method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders(env) });
+      return new Response(null, { status: 204, headers: corsHeaders(env, requestOrigin) });
     }
 
     try {
+
+      // ── HEALTH ─────────────────────────────────────────────
       if (url.pathname === "/api/health" && method === "GET") {
-        return json({ ok: true }, 200, env);
+        return json({ ok: true, backend: "supabase" }, 200, env, requestOrigin);
       }
 
+      // ── RESERVATIONS ───────────────────────────────────────
       if (url.pathname === "/api/reservations" && method === "GET") {
         const id = url.searchParams.get("id");
         if (id) {
-          const record = await airtableRequest(env, `${buildAirtableUrl(env, env.AIRTABLE_RESERVATIONS_TABLE)}/${id}`);
-          return json({ records: [record] }, 200, env);
+          const rows = await sbFetch(env, `/reservations?id=eq.${encodeURIComponent(id)}`);
+          if (!rows.length) return json({ error: { message: "Not found" } }, 404, env, requestOrigin);
+          return json({ records: [rowToRecord(rows[0])] }, 200, env, requestOrigin);
         }
-
-        const formula = "AND({Date arrivée}, {Date départ})";
-        const records = await fetchAllRecords(
-          env,
-          env.AIRTABLE_RESERVATIONS_TABLE,
-          `filterByFormula=${encodeURIComponent(formula)}`
-        );
-        return json({ records }, 200, env);
-      }
-
-      if (url.pathname === "/api/pricing" && method === "GET") {
-        let records = await fetchAllRecords(env, env.AIRTABLE_PRICING_TABLE);
-        
-        // Nettoyage systématique des codes (trim, espaces -> _, MAJUSCULES)
-        records = records.map(record => {
-          if (record.fields && record.fields.Code) {
-            let codeVal = record.fields.Code;
-            // Si le code est un tableau (lookup/formula), on prend le premier élément
-            if (Array.isArray(codeVal)) codeVal = codeVal[0];
-            if (codeVal) {
-              record.fields.Code = codeVal.toString().trim().replace(/\s+/g, '_').toUpperCase();
-            }
-          }
-          return record;
-        });
-
-        return json({ records }, 200, env);
+        const rows = await sbFetch(env, `/reservations?order=created_at.desc`);
+        return json({ records: rows.map(rowToRecord) }, 200, env, requestOrigin);
       }
 
       if (url.pathname === "/api/reservations" && method === "POST") {
-        const body = await request.json().catch(() => ({}));
-        const fields = body && typeof body.fields === "object" ? body.fields : null;
-        if (!fields) return json({ error: { message: "Invalid payload: expected { fields }." } }, 400, env);
-
-        const result = await airtableRequest(env, buildAirtableUrl(env, env.AIRTABLE_RESERVATIONS_TABLE), {
+        const body   = await request.json().catch(() => ({}));
+        const fields = body?.fields;
+        if (!fields) return json({ error: { message: "{ fields } requis" } }, 400, env, requestOrigin);
+        const row = { id: newRecId(), ...fieldsToRow(fields) };
+        const result = await sbFetch(env, `/reservations`, {
           method: "POST",
-          body: JSON.stringify({ fields, typecast: true }),
+          body: JSON.stringify(row),
         });
-        return json(result, 201, env);
+        const saved = Array.isArray(result) ? result[0] : result;
+        return json(rowToRecord(saved), 201, env, requestOrigin);
       }
 
       if (url.pathname === "/api/reservations" && method === "PATCH") {
         const body = await request.json().catch(() => ({}));
-        const recordId = body.id;
-        const fields = body.fields;
-        if (!recordId || !fields) return json({ error: { message: "Invalid payload: expected { id, fields }." } }, 400, env);
-
-        const result = await airtableRequest(env, `${buildAirtableUrl(env, env.AIRTABLE_RESERVATIONS_TABLE)}/${recordId}`, {
+        if (!body.id || !body.fields) return json({ error: { message: "{ id, fields } requis" } }, 400, env, requestOrigin);
+        const row = fieldsToRow(body.fields);
+        if (Object.keys(row).length === 0) return json({ error: { message: "Aucun champ valide à mettre à jour" } }, 400, env, requestOrigin);
+        const result = await sbFetch(env, `/reservations?id=eq.${encodeURIComponent(body.id)}`, {
           method: "PATCH",
-          body: JSON.stringify({ fields, typecast: true }),
+          body: JSON.stringify(row),
         });
-        return json(result, 200, env);
+        const saved = Array.isArray(result) ? result[0] : result;
+        if (!saved) return json({ error: { message: `Record '${body.id}' introuvable` } }, 404, env, requestOrigin);
+        return json(rowToRecord(saved), 200, env, requestOrigin);
       }
 
       if (url.pathname.startsWith("/api/reservations") && method === "DELETE") {
-        // Try to get ID from URL path first (e.g., /api/reservations/rec123)
-        let recordId = url.pathname.split("/").pop();
-        
-        // If the last part is "reservations", it means no ID was in path, check body
-        if (recordId === "reservations") {
-            const body = await request.json().catch(() => ({}));
-            recordId = body.id;
+        // 1. Query param (source prioritaire — toujours fiable)
+        let id = url.searchParams.get("id");
+
+        // 2. URL path /api/reservations/:id
+        if (!id) {
+          const parts = url.pathname.split("/").filter(Boolean);
+          const lastPart = parts[parts.length - 1];
+          if (lastPart && lastPart !== "reservations") id = lastPart;
         }
 
-        if (!recordId) return json({ error: { message: "Invalid payload: expected ID in URL or body { id }." } }, 400, env);
+        // 3. Body JSON — dernier recours (navigateurs peuvent stripper le body sur DELETE)
+        if (!id) {
+          const body = await request.json().catch(() => ({}));
+          id = body.id || null;
+        }
 
-        const result = await airtableRequest(env, `${buildAirtableUrl(env, env.AIRTABLE_RESERVATIONS_TABLE)}/${recordId}`, {
-          method: "DELETE"
-        });
-        return json({ success: true, id: recordId, result }, 200, env);
+        if (!id) return json({ error: { message: "ID requis (?id= en query param)" } }, 400, env, requestOrigin);
+        await sbFetch(env, `/reservations?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
+        return json({ deleted: true, id }, 200, env, requestOrigin);
       }
 
-      return json({ error: { message: "Not found" } }, 404, env);
-    } catch (error) {
-      return json({ error: { message: String(error.message || error) } }, 500, env);
+      // ── PRICING ────────────────────────────────────────────
+      if (url.pathname === "/api/pricing" && method === "GET") {
+        const rows = await sbFetch(env, `/politique_tarifaire?order=id.asc`);
+        return json({ records: rows.map(pricingRowToRecord) }, 200, env, requestOrigin);
+      }
+
+      // ── PLANNING (utilise la table reservations) ───────────
+      if (url.pathname === "/api/planning" && method === "GET") {
+        const mois = url.searchParams.get("mois");
+        let path = `/reservations?order=date_arrivee.asc`;
+        if (mois && /^\d{4}-\d{2}$/.test(mois)) {
+          const [year, month] = mois.split("-").map(Number);
+          const firstDay  = `${year}-${String(month).padStart(2,"0")}-01`;
+          const nextFirst = new Date(Date.UTC(year, month, 1)).toISOString().split("T")[0];
+          path = `/reservations?date_arrivee=lt.${nextFirst}&date_depart=gt.${firstDay}&order=date_arrivee.asc`;
+        }
+        const rows = await sbFetch(env, path);
+        const reservations = rows.map(r => ({
+          id:        r.id,
+          nom:       r.nom_client     || "",
+          type:      r.type           || "",
+          logements: [],
+          arrivee:   r.date_arrivee   || "",
+          depart:    r.date_depart    || "",
+          personnes: r.nombre_de_personnes || 0,
+          montant:   (parseFloat(r.montant_hebergement_ht) || 0)
+                   + (parseFloat(r.montant_repas_ht)       || 0)
+                   + (parseFloat(r.montant_options_ht)     || 0),
+          statut:    r.statut         || "",
+          notes:     r.notes          || "",
+        }));
+        return json({ reservations }, 200, env, requestOrigin);
+      }
+
+      if (url.pathname === "/api/planning" && method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        if (!body.fields) return json({ error: { message: "{ fields } requis" } }, 400, env, requestOrigin);
+        const f = body.fields;
+        const row = {
+          id:               newRecId(),
+          nom_client:       f.Nom_Client       || f['Nom client'] || "",
+          type:             f.Type_Reservation || f.Type || "",
+          date_arrivee:     f.Date_Arrivee     || f['Date arrivée'] || null,
+          date_depart:      f.Date_Depart      || f['Date départ']  || null,
+          nombre_de_personnes: parseInt(f.Nb_Personnes || f['Nombre de personnes'] || 0, 10),
+          statut:           f.Statut           || "à traiter",
+          notes:            f.Notes            || "",
+        };
+        const result = await sbFetch(env, `/reservations`, { method: "POST", body: JSON.stringify(row) });
+        const saved = Array.isArray(result) ? result[0] : result;
+        if (!saved) return json({ error: { message: "Échec création planning" } }, 500, env, requestOrigin);
+        return json({ id: saved.id, nom: saved.nom_client, type: saved.type,
+          logements: [], arrivee: saved.date_arrivee, depart: saved.date_depart,
+          personnes: saved.nombre_de_personnes, montant: 0, statut: saved.statut, notes: saved.notes }, 201, env, requestOrigin);
+      }
+
+      if (url.pathname === "/api/planning" && method === "PATCH") {
+        const body = await request.json().catch(() => ({}));
+        if (!body.id || !body.fields) return json({ error: { message: "{ id, fields } requis" } }, 400, env, requestOrigin);
+        const f = body.fields;
+        const row = {};
+        if (f.Nom_Client       !== undefined) row.nom_client          = f.Nom_Client;
+        if (f.Type_Reservation !== undefined) row.type                = f.Type_Reservation;
+        if (f.Date_Arrivee     !== undefined) row.date_arrivee        = f.Date_Arrivee;
+        if (f.Date_Depart      !== undefined) row.date_depart         = f.Date_Depart;
+        if (f.Nb_Personnes     !== undefined) row.nombre_de_personnes = parseInt(f.Nb_Personnes, 10);
+        if (f.Statut           !== undefined) row.statut              = f.Statut;
+        if (f.Notes            !== undefined) row.notes               = f.Notes;
+        const result = await sbFetch(env, `/reservations?id=eq.${encodeURIComponent(body.id)}`, {
+          method: "PATCH", body: JSON.stringify(row),
+        });
+        const saved = Array.isArray(result) ? result[0] : result;
+        if (!saved) return json({ error: { message: `Record '${body.id}' introuvable` } }, 404, env, requestOrigin);
+        return json({ id: saved.id, nom: saved.nom_client, type: saved.type,
+          logements: [], arrivee: saved.date_arrivee, depart: saved.date_depart,
+          personnes: saved.nombre_de_personnes, montant: 0, statut: saved.statut, notes: saved.notes }, 200, env, requestOrigin);
+      }
+
+      if (url.pathname === "/api/planning" && method === "DELETE") {
+        const id = url.searchParams.get("id");
+        if (!id) return json({ error: { message: "?id= requis" } }, 400, env, requestOrigin);
+        await sbFetch(env, `/reservations?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
+        return json({ deleted: true, id }, 200, env, requestOrigin);
+      }
+
+      // ── LIBRARY ────────────────────────────────────────────
+      if (url.pathname === "/api/library" && method === "GET") {
+        const rows = await sbFetch(env, `/bibliotheque_prestations?order=id.asc`);
+        return json({ records: rows.map(libraryRowToRecord) }, 200, env, requestOrigin);
+      }
+
+      if (url.pathname === "/api/library" && method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        if (!body.fields) return json({ error: { message: "{ fields } requis" } }, 400, env, requestOrigin);
+        const f = body.fields;
+        const row = {
+          nom:         f.Nom         || f.nom         || "",
+          description: f.Description || f.description || "",
+          categorie:   f.Catégorie   || f.categorie   || "",
+          prix_ht:     f['Prix HT']  || f.prix_ht     || 0,
+          tva:         f.TVA         || f.tva         || "10%",
+          actif:       f.Actif !== undefined ? f.Actif : true,
+        };
+        const result = await sbFetch(env, `/bibliotheque_prestations`, { method: "POST", body: JSON.stringify(row) });
+        const saved = Array.isArray(result) ? result[0] : result;
+        if (!saved) return json({ error: { message: "Échec création bibliothèque" } }, 500, env, requestOrigin);
+        return json(libraryRowToRecord(saved), 201, env, requestOrigin);
+      }
+
+      if (url.pathname === "/api/library" && method === "PATCH") {
+        const body = await request.json().catch(() => ({}));
+        if (!body.id || !body.fields) return json({ error: { message: "{ id, fields } requis" } }, 400, env, requestOrigin);
+        const numId = String(body.id).replace(/^lib_/, '');
+        const f = body.fields;
+        const row = {};
+        if (f.Nom         !== undefined) row.nom         = f.Nom;
+        if (f.Description !== undefined) row.description = f.Description;
+        if (f.Catégorie   !== undefined) row.categorie   = f.Catégorie;
+        if (f['Prix HT']  !== undefined) row.prix_ht     = f['Prix HT'];
+        if (f.TVA         !== undefined) row.tva         = f.TVA;
+        if (f.Actif       !== undefined) row.actif       = f.Actif;
+        const result = await sbFetch(env, `/bibliotheque_prestations?id=eq.${numId}`, {
+          method: "PATCH", body: JSON.stringify(row),
+        });
+        const saved = Array.isArray(result) ? result[0] : result;
+        if (!saved) return json({ error: { message: `Item '${body.id}' introuvable` } }, 404, env, requestOrigin);
+        return json(libraryRowToRecord(saved), 200, env, requestOrigin);
+      }
+
+      if (url.pathname === "/api/library" && method === "DELETE") {
+        const body = await request.json().catch(() => ({}));
+        const rawId = body.id || url.searchParams.get("id");
+        if (!rawId) return json({ error: { message: "ID requis" } }, 400, env, requestOrigin);
+        const numId = String(rawId).replace(/^lib_/, '');
+        await sbFetch(env, `/bibliotheque_prestations?id=eq.${numId}`, { method: "DELETE" });
+        return json({ success: true, id: rawId }, 200, env, requestOrigin);
+      }
+
+      return json({ error: { message: "Not found" } }, 404, env, requestOrigin);
+
+    } catch (err) {
+      return json({ error: { message: String(err.message || err) } }, 500, env, requestOrigin);
     }
   },
 };

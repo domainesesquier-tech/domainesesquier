@@ -248,7 +248,7 @@ const DossierModel = {
             const partage = (sleeping.partage || 0) + (sleeping.couple || 0);
 
             if (indiv > 0) {
-                const priceIndiv = resolver('HEBERGEMENT_SEMINAIRE_SINGLE', totalPers, nights, 100);
+                const priceIndiv = resolver('HEBERGEMENT_SEMINAIRE_SUPPL_SINGLE', totalPers, nights, 100);
                 lines.push(this._pricingLine(
                     'Hébergement chambre individuelle',
                     indiv * nights,
@@ -259,7 +259,7 @@ const DossierModel = {
             }
 
             if (partage > 0) {
-                const pricePartage = resolver('HEBERGEMENT_SEMINAIRE_TWIN', totalPers, nights, 70);
+                const pricePartage = resolver('HEBERGEMENT_SEMINAIRE_NUITEECHAMBREPARTAGEE_TWIN', totalPers, nights, 70);
                 lines.push(this._pricingLine(
                     'Hébergement chambre partagée (twin)',
                     partage * nights,
@@ -271,7 +271,7 @@ const DossierModel = {
 
             // Si pas de répartition, ligne unique
             if (indiv === 0 && partage === 0) {
-                const price = resolver('HEBERGEMENT_SEMINAIRE_TWIN', totalPers, nights, 70);
+                const price = resolver('HEBERGEMENT_SEMINAIRE_NUITEECHAMBREPARTAGEE_TWIN', totalPers, nights, 70);
                 lines.push(this._pricingLine(
                     'Hébergement en gîte tout confort',
                     totalPers * nights,
@@ -329,7 +329,7 @@ const DossierModel = {
 
         // Prices
         const pPDJ = resolver(isPro ? 'REPAS_SEMINAIRE_PDJ' : 'REPAS_PERSO_PDJ', totalPers, nights, isPro ? 14 : 11);
-        const pCollation = isPro ? 5 : 5;
+        const pCollation = resolver(isPro ? 'REPAS_SEMINAIRE_COLLATION' : 'REPAS_SEMINAIRE_COLLATION', totalPers, nights, 5);
         const pDEJ = resolver(isPro ? 'REPAS_SEMINAIRE_DEJ' : 'REPAS_PERSO_DEJ', totalPers, nights, isPro ? 26 : 24);
         const pDIN = resolver(isPro ? 'REPAS_SEMINAIRE_DINER' : 'REPAS_PERSO_DINER', totalPers, nights, isPro ? 30 : 27);
 
@@ -621,7 +621,10 @@ const DossierModel = {
      * @returns {object} Dossier complet
      */
     buildFromAirtableFields(fields, pricingDB = []) {
-        const details = fields['Détails JSON'] ? JSON.parse(fields['Détails JSON']) : {};
+        let details = {};
+        if (fields['Détails JSON']) {
+            try { details = JSON.parse(fields['Détails JSON']); } catch(e) { details = {}; }
+        }
         const typeRaw = Array.isArray(fields['Type']) ? fields['Type'][0] : (fields['Type'] || '');
         const mode = (typeRaw.toLowerCase().includes('séminaire') || typeRaw.toLowerCase().includes('professionnel')) ? 'pro' : 'perso';
 

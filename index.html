@@ -12,6 +12,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="assets/utils.js"></script>
+    <script src="assets/records.js"></script>
     <script>
 
         function escapeHtml(text) {
@@ -22,60 +23,52 @@
         }
 
         async function fastUpdateRecord(id, field, value, element = null) {
-            let val = typeof value === 'string' ? value.trim() : value;
-            
-            if (field === 'Nb personnes') {
-                val = parseInt(val, 10);
-                if (isNaN(val)) val = null;
-            }
             const record = allRecords.find(r => r.id === id);
             if (!record) return;
+
+            // Utilisation de la couche de normalisation pour préparer le payload
+            const updatePayload = SesquierRecords.prepareUpdate(field, value);
             
-            let finalVal = val; // valeur par défaut
-            // CRITIQUE: Airtable stocke le statut comme un tableau de strings en minuscules
-            // On le renvoie toujours sous forme de tableau pour matcher le format exact
-            if (field === 'Statut') {
-                const norm = val.toLowerCase().trim();
-                const bestVal = getBestAirtableValue(norm);
-                finalVal = [bestVal]; // Toujours un tableau (format confirmé par l'API)
-            }
-
-
-            const oldVal = record.fields[field];
+            // On récupère la valeur "propre" pour la comparaison et le log
+            const newVal = Array.isArray(updatePayload[field]) ? updatePayload[field][0] : updatePayload[field];
+            const oldVal = record._raw.fields[field];
             const currentVal = Array.isArray(oldVal) ? oldVal[0] : oldVal;
-            if (currentVal === val) return; 
+
+            if (currentVal === newVal) return; 
 
             if (element) {
                 element.style.opacity = '0.5';
                 element.style.pointerEvents = 'none';
-                if (element.tagName === 'SELECT' && element.parentElement.classList.contains('badge')) {
-                    element.parentElement.style.opacity = '0.5';
-                }
             }
 
-            console.log(`[FastUpdate] Field: ${field}, Value:`, val, "RecordID:", id);
+            console.log(`[FastUpdate] Field: ${field}, Value:`, newVal, "RecordID:", id);
 
             try {
                 await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, fields: { [field]: finalVal } })
+                    body: JSON.stringify({ id, fields: updatePayload })
                 });
 
-                // Si c'est un changement de statut, on ajoute une entrée auto dans la timeline
-                if (field === 'Statut' && record) {
-                    await autoLogTimeline(id, `Statut changé : **${oldVal || 'Inconnu'}** → **${val}**`);
+                // Logs auto
+                if (field === SesquierRecords.FIELDS.STATUT) {
+                    await autoLogTimeline(id, `Statut changé : **${currentVal || 'Inconnu'}** → **${newVal}**`);
                 }
 
-                record.fields[field] = val;
+                // Mise à jour locale (on repasse par normalize pour être sûr)
+                const rawResponse = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${id}`);
+                if (rawResponse && rawResponse.records && rawResponse.records[0]) {
+                    const updated = SesquierRecords.normalize(rawResponse.records[0]);
+                    const idx = allRecords.findIndex(r => r.id === id);
+                    if (idx !== -1) allRecords[idx] = updated;
+                }
                 
                 if (element) {
                     element.style.opacity = '1';
                     element.style.pointerEvents = 'auto';
                 }
-                showSyncBanner(`${field === 'Statut' ? 'Statut' : field} mis à jour !`);
+                showSyncBanner(`${field} mis à jour !`);
                 
-                // Rafraîchissement global
                 updateKPIs();
                 updateFilters();
                 
@@ -96,14 +89,7 @@
                     element.style.opacity = '1';
                     element.style.pointerEvents = 'auto';
                     if (element.tagName === 'SELECT') {
-                        element.value = oldVal || '';
-                        if (element.parentElement.classList.contains('badge')) {
-                            element.parentElement.style.opacity = '1';
-                        }
-                    } else if (element.isContentEditable) {
-                        element.innerText = oldVal || '';
-                    } else if (element.tagName === 'INPUT') {
-                        element.value = oldVal || '';
+                        element.value = currentVal || '';
                     }
                 }
                 return false;
@@ -211,10 +197,7 @@
         async function autoLogTimeline(recordId, text) {
             const record = allRecords.find(r => r.id === recordId);
             if (!record) return;
-            let logs = [];
-            try {
-                logs = record.fields["Timeline JSON"] ? JSON.parse(record.fields["Timeline JSON"]) : [];
-            } catch (e) { logs = []; }
+            let logs = record.timeline || [];
             
             logs.push({ date: new Date().toISOString(), text: text });
             
@@ -224,10 +207,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         id: recordId,
-                        fields: { "Timeline JSON": JSON.stringify(logs) }
+                        fields: { [SesquierRecords.FIELDS.TIMELINE_JSON]: JSON.stringify(logs) }
                     })
                 });
-                record.fields["Timeline JSON"] = JSON.stringify(logs);
+                // On met à jour localement
+                record.timeline = logs;
             } catch(e) { console.error("AutoLog failed", e); }
         }
 
@@ -2014,12 +1998,14 @@
                     <span class="filter-count" id="count-effectue">0</span>
                 </div>
             </div>
-            <!-- Archive toggle -->
-            <div style="padding: 12px 16px; border-top: 1px solid var(--border); margin-top: 4px;">
-                <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); cursor:pointer; user-select:none;">
-                    <input type="checkbox" id="toggle-archive" onchange="renderTable()" style="width:14px; height:14px; accent-color: var(--primary); cursor:pointer;">
-                    Afficher les archivés
-                </label>
+
+            <!-- Archives section -->
+            <div class="nav-section-title" style="margin-top: 16px;">Archives</div>
+            <div class="sidebar-filters">
+                <div class="sidebar-filter" data-filter="archived" onclick="setFilter('archived')">
+                    <span class="filter-label"><i class="fa-solid fa-box-archive" style="font-size:10px; opacity:0.6; margin-right:4px;"></i>Archivés</span>
+                    <span class="filter-count" id="count-archived">0</span>
+                </div>
             </div>
         </ul>
 
@@ -2168,6 +2154,16 @@
             <button class="dossier-close" onclick="closeDossier()">
                 <i class="fa-solid fa-xmark"></i>
             </button>
+            <button id="btn-archive-dossier" onclick="toggleArchiveDossier()" title="Archiver / Désarchiver ce dossier"
+                style="position:absolute; top:24px; right:72px; height:36px; background:none; border:1px solid #cbd5e1; border-radius:18px; color:#94a3b8; cursor:pointer; padding:0 14px; font-size:11px; display:flex; align-items:center; gap:6px; transition:all 0.2s; z-index:10;">
+                <i class="fa-solid fa-box-archive"></i>
+                <span id="archive-btn-label">Archiver</span>
+            </button>
+            <button id="btn-duplicate-dossier" onclick="duplicateDossier()" title="Dupliquer ce dossier"
+                style="position:absolute; top:24px; right:210px; height:36px; background:none; border:1px solid #cbd5e1; border-radius:18px; color:#94a3b8; cursor:pointer; padding:0 14px; font-size:11px; display:flex; align-items:center; gap:6px; transition:all 0.2s; z-index:10;">
+                <i class="fa-solid fa-copy"></i>
+                <span>Dupliquer</span>
+            </button>
             <div class="dossier-header" id="dossier-header">
                 <!-- Dynamic content -->
             </div>
@@ -2225,38 +2221,7 @@
         let currentViewMode = 'list';
         let calendarDate = new Date();
 
-        // =====================================================================
-        // SYSTÈME DE STATUTS (CONSOLIDÉ)
-        // =====================================================================
-        const STATUS_MAP = {
-            'à traiter':    { airtable: 'à traiter',    label: 'À TRAITER',     class: 'badge-traiter' },
-            'confirmé':     { airtable: 'confirmé',     label: 'CONFIRMÉ',      class: 'badge-confirme' },
-            'devis envoyé': { airtable: 'devis envoyé', label: 'DEVIS ENVOYÉ',  class: 'badge-devis' },
-            'effectué':     { airtable: 'effectué',     label: 'EFFECTUÉ',      class: 'badge-effectue' },
-            'annulé':       { airtable: 'annulé',       label: 'ANNULÉ',        class: 'badge-annule' }
-        };
-
-        // Accepte soit un objet fields, soit la valeur brute du champ Statut
-        function normalizeStatut(rawOrFields) {
-            let raw = rawOrFields;
-            if (rawOrFields && typeof rawOrFields === 'object' && !Array.isArray(rawOrFields)) {
-                raw = rawOrFields["Statut"];
-            }
-            if (Array.isArray(raw)) raw = raw[0];
-            if (!raw || typeof raw !== 'string') return 'à traiter';
-            return raw.toLowerCase().trim();
-        }
-
-        function getBestAirtableValue(norm) {
-            for (const r of allRecords) {
-                const s = r.fields["Statut"];
-                if (s) {
-                    const val = Array.isArray(s) ? s[0] : s;
-                    if (val && val.toLowerCase().trim() === norm) return val;
-                }
-            }
-            return STATUS_MAP[norm]?.airtable || norm;
-        }
+        // STATUS_MAP, normalizeRecord définis dans assets/records.js
 
         // =====================================================================
         // THEME
@@ -2354,9 +2319,9 @@
             
             try {
                 const defaultFields = {
-                    "Nom client": "Nouveau Dossier " + new Date().toLocaleDateString('fr-FR'),
-                    "Statut": ["à traiter"],
-                    "Type": ["séminaire professionnel"]
+                    [SesquierRecords.FIELDS.NOM]: "Nouveau Dossier " + new Date().toLocaleDateString('fr-FR'),
+                    [SesquierRecords.FIELDS.STATUT]: ["à traiter"],
+                    [SesquierRecords.FIELDS.TYPE]: ["séminaire professionnel"]
                 };
 
                 const res = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
@@ -2366,8 +2331,8 @@
                 });
 
                 if (res.id) {
-                    // Ajouter au state local immédiatement
-                    const newRecord = { id: res.id, fields: { ...defaultFields, ...res.fields } };
+                    // Normalisation immédiate du nouveau record
+                    const newRecord = normalizeRecord(res);
                     allRecords.unshift(newRecord);
                     renderTable();
                     
@@ -2465,28 +2430,23 @@
             // Timeline / Journal de Bord
             renderTimeline(record);
 
-            document.getElementById('dossier-overlay').classList.add('show');
-        }
+            // Bouton archive
+            const archiveBtn = document.getElementById('btn-archive-dossier');
+            const archiveLabel = document.getElementById('archive-btn-label');
+            if (archiveBtn && archiveLabel) {
+                const isArchived = record.estArchive;
+                archiveLabel.innerText = isArchived ? 'Désarchiver' : 'Archiver';
+                archiveBtn.style.color = isArchived ? '#ef4444' : '#94a3b8';
+                archiveBtn.style.borderColor = isArchived ? '#fca5a5' : '#cbd5e1';
+            }
 
-        function closeDossier() {
-            document.getElementById('dossier-overlay').classList.remove('show');
-            activeRecordId = null;
+            document.getElementById('dossier-overlay').classList.add('show');
         }
 
         function renderTimeline(record) {
             const container = document.getElementById('dossier-timeline');
             const countLabel = document.getElementById('log-count');
-            const f = record.fields;
-
-            let logs = [];
-            try {
-                if (f["Timeline JSON"]) {
-                    logs = JSON.parse(f["Timeline JSON"]);
-                } else if (f["Notes"]) {
-                    // Migration
-                    logs = [{ date: f["Dernière modification"] || new Date().toISOString(), text: "Ancienne note : " + f["Notes"] }];
-                }
-            } catch (e) { logs = []; }
+            const logs = record.timeline || [];
 
             countLabel.innerText = `${logs.length} entrée${logs.length > 1 ? 's' : ''}`;
 
@@ -2495,21 +2455,12 @@
                 return;
             }
 
-            container.innerHTML = logs.sort((a, b) => new Date(b.date) - new Date(a.date)).map(l => {
-                const d = new Date(l.date);
-                const day = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-                const hour = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-
-                return `
-                    <div class="timeline-entry">
-                        <div class="timeline-header">
-                            <span><i class="fa-regular fa-clock"></i> ${hour}</span>
-                            <span>${day}</span>
-                        </div>
-                        <div class="timeline-content">${l.text}</div>
-                    </div>
-                `;
-            }).join('');
+            container.innerHTML = logs.sort((a, b) => new Date(b.date) - new Date(a.date)).map(l => `
+                <div class="timeline-item">
+                    <div class="timeline-date">${new Date(l.date).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                    <div class="timeline-text">${l.text}</div>
+                </div>
+            `).join('');
         }
 
         async function addTimelineEntry() {
@@ -2561,6 +2512,76 @@
             activeRecordId = null;
         }
 
+        async function duplicateDossier() {
+            if (!activeRecordId) return;
+            const record = allRecords.find(r => r.id === activeRecordId);
+            if (!record) return;
+            const btn = document.getElementById('btn-duplicate-dossier');
+            if (btn) { btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; }
+            try {
+                const f = record.fields;
+                const newFields = {
+                    'Nom client': (f['Nom client'] || 'Copie') + ' (copie)',
+                    'Email': f['Email'] || '',
+                    'Téléphone': f['Téléphone'] || '',
+                    'Type': f['Type'] || '',
+                    'Date arrivée': f['Date arrivée'] || null,
+                    'Date départ': f['Date départ'] || null,
+                    'Nombre de personnes': f['Nombre de personnes'] || null,
+                    'Message': f['Message'] || '',
+                    'Statut': ['à traiter'],
+                    'JSON': f['JSON'] || '',
+                    'DOSSIER JSON': f['DOSSIER JSON'] || '',
+                };
+                // Nettoyer les champs null
+                Object.keys(newFields).forEach(k => { if (newFields[k] === null || newFields[k] === '') delete newFields[k]; });
+
+                const res = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fields: newFields })
+                });
+                const newRecord = normalizeRecord(res);
+                allRecords.unshift(newRecord);
+                updateKPIs();
+                updateFilters();
+                renderTable();
+                closeDossier();
+                openDossier(newRecord.id);
+                showSyncBanner('Dossier dupliqué avec succès !');
+            } catch (e) {
+                alert('Erreur duplication : ' + e.message);
+            } finally {
+                if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+            }
+        }
+
+        async function toggleArchiveDossier() {
+            if (!activeRecordId) return;
+            const record = allRecords.find(r => r.id === activeRecordId);
+            if (!record) return;
+            const newVal = !record.estArchive;
+            const btn = document.getElementById('btn-archive-dossier');
+            if (btn) { btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; }
+            try {
+                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: activeRecordId, fields: { 'est_archive': newVal } })
+                });
+                record.estArchive = newVal;
+                if (record._n) record._n.estArchive = newVal;
+                document.getElementById('archive-btn-label').innerText = newVal ? 'Désarchiver' : 'Archiver';
+                if (btn) { btn.style.color = newVal ? '#ef4444' : '#94a3b8'; btn.style.borderColor = newVal ? '#fca5a5' : '#cbd5e1'; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+                updateFilters();
+                renderTable();
+                showSyncBanner(newVal ? 'Dossier archivé' : 'Dossier désarchivé');
+            } catch (e) {
+                alert('Erreur archivage : ' + e.message);
+                if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+            }
+        }
+
         function openDocFromDossier(type, id) {
             document.getElementById('dossier-overlay').classList.remove('show');
             openDocForRecord(type, id);
@@ -2595,7 +2616,7 @@
             try {
                 const data = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL);
                 if (data && data.records) {
-                    allRecords = data.records.map(r => ({ id: r.id, fields: r.fields || {} }));
+                    allRecords = data.records.map(normalizeRecord);
                     sortRecords();
                     updateKPIs();
                     updateFilters();
@@ -2647,17 +2668,14 @@
 
         function sortRecords() {
             if (sortMode === 'date-desc') {
-                allRecords.sort((a, b) => (b.fields["Date arrivée"] || "").localeCompare(a.fields["Date arrivée"] || ""));
+                allRecords.sort((a, b) => (b.dateArrivee || "").localeCompare(a.dateArrivee || ""));
             } else if (sortMode === 'date-asc') {
-                allRecords.sort((a, b) => (a.fields["Date arrivée"] || "").localeCompare(b.fields["Date arrivée"] || ""));
+                allRecords.sort((a, b) => (a.dateArrivee || "").localeCompare(b.dateArrivee || ""));
             } else if (sortMode === 'amount-desc') {
-                allRecords.sort((a, b) => getTotal(b.fields) - getTotal(a.fields));
+                allRecords.sort((a, b) => b.totalHT - a.totalHT);
             }
         }
 
-        function getTotal(f) {
-            return (parseFloat(f["Montant Hébergement HT"]) || 0) + (parseFloat(f["Montant Repas HT"]) || 0) + (parseFloat(f["Montant Options HT"]) || 0);
-        }
 
         // =====================================================================
         // KPIs
@@ -2665,11 +2683,9 @@
         function updateKPIs() {
             let caTotal = 0, pending = 0, confirmed = 0;
             allRecords.forEach(r => {
-                const f = r.fields;
-                const s = normalizeStatut(f);
-                caTotal += getTotal(f);
-                if (s === 'à traiter') pending++;
-                if (s === 'confirmé') confirmed++;
+                caTotal += r.totalHT;
+                if (r.statut === 'à traiter') pending++;
+                if (r.statut === 'confirmé') confirmed++;
             });
 
             animateValue('kpi-total', allRecords.length);
@@ -2696,11 +2712,11 @@
         // FILTERS
         // =====================================================================
         function updateFilters() {
-            const nonArchived = allRecords.filter(r => !r.fields['est_archive']);
+            const nonArchived = allRecords.filter(r => !r.estArchive);
+            const archived = allRecords.filter(r => r.estArchive);
             const counts = { all: nonArchived.length };
             nonArchived.forEach(r => {
-                const s = normalizeStatut(r.fields);
-                counts[s] = (counts[s] || 0) + 1;
+                counts[r.statut] = (counts[r.statut] || 0) + 1;
             });
             document.getElementById('count-all').innerText = counts.all || 0;
             document.getElementById('count-traiter').innerText = counts['à traiter'] || 0;
@@ -2708,6 +2724,7 @@
             document.getElementById('count-devis').innerText = counts['devis envoyé'] || 0;
             document.getElementById('count-annule').innerText = counts['annulé'] || 0;
             document.getElementById('count-effectue').innerText = counts['effectué'] || 0;
+            document.getElementById('count-archived').innerText = archived.length || 0;
         }
 
         function setFilter(f) {
@@ -2787,45 +2804,35 @@
                 let dayEvents = '';
                 
                 let recordsToDisplay = allRecords;
-                const showArchived = document.getElementById('toggle-archive')?.checked;
-                if (!showArchived) {
-                    recordsToDisplay = recordsToDisplay.filter(r => !r.fields['est_archive']);
-                }
-                if (currentFilter !== 'all') {
-                    recordsToDisplay = recordsToDisplay.filter(r => normalizeStatut(r.fields) === currentFilter);
+                if (currentFilter === 'archived') {
+                    recordsToDisplay = recordsToDisplay.filter(r => r.estArchive);
+                } else {
+                    recordsToDisplay = recordsToDisplay.filter(r => !r.estArchive);
+                    if (currentFilter !== 'all') {
+                        recordsToDisplay = recordsToDisplay.filter(r => r.statut === currentFilter);
+                    }
                 }
                 
                 if (searchQuery) {
                     recordsToDisplay = recordsToDisplay.filter(r => {
-                        const f = r.fields;
-                        const searchStr = [f["Nom client"], f["Entreprise"], f["Email"], f["Date arrivée"]].filter(Boolean).join(' ').toLowerCase();
+                        const searchStr = [r.nomClient, r.entreprise, r.email, r.dateArrivee].filter(Boolean).join(' ').toLowerCase();
                         return searchStr.includes(searchQuery);
                     });
                 }
                 
                 recordsToDisplay.forEach(r => {
-                    const f = r.fields;
-                    if (f["Date arrivée"] && f["Date départ"]) {
-                        const arr = new Date(f["Date arrivée"]);
+                    if (r.dateArrivee && r.dateDepart) {
+                        const arr = new Date(r.dateArrivee);
                         arr.setHours(0,0,0,0);
-                        const dep = new Date(f["Date départ"]);
+                        const dep = new Date(r.dateDepart);
                         dep.setHours(23,59,59,999);
                         
                         const curr = new Date(currentDate);
                         curr.setHours(12,0,0,0); // Midday to avoid timezone issues
                         
                         if (curr >= arr && curr <= dep) {
-                            const statut = normalizeStatut(f);
-                            const badgeClass = { 
-                                'à traiter': 'traiter', 
-                                'confirmé': 'confirme', 
-                                'devis envoyé': 'devis', 
-                                'annulé': 'annule',
-                                'effectué': 'effectue'
-                            }[statut] || 'traiter';
-                            
-                            const name = f["Nom client"] || f["Entreprise"] || "Séminaire";
-                            dayEvents += `<div class="cal-event ${badgeClass}" onclick="openDossier('${r.id}')" title="${escapeHtml(name)}">${escapeHtml(name)}</div>`;
+                            const name = r.nomClient || r.entreprise || "Séminaire";
+                            dayEvents += `<div class="cal-event ${r.statutClass}" onclick="openDossier('${r.id}')" title="${escapeHtml(name)}">${escapeHtml(name)}</div>`;
                         }
                     }
                 });
@@ -2850,22 +2857,20 @@
             const body = document.getElementById('table-body');
             let records = allRecords;
 
-            const showArchived = document.getElementById('toggle-archive')?.checked;
-
-            // Always exclude archived unless toggle is on
-            if (!showArchived) {
-                records = records.filter(r => !r.fields['est_archive']);
+            // Filtre archive
+            if (currentFilter === 'archived') {
+                records = records.filter(r => r.estArchive);
+            } else {
+                records = records.filter(r => !r.estArchive);
+                if (currentFilter !== 'all') {
+                    records = records.filter(r => r.statut === currentFilter);
+                }
             }
 
-            // Then apply status filter
-            if (currentFilter !== 'all') {
-                records = records.filter(r => normalizeStatut(r.fields) === currentFilter);
-            }
-
+            // Recherche
             if (searchQuery) {
                 records = records.filter(r => {
-                    const f = r.fields;
-                    const searchStr = [f["Nom client"], f["Entreprise"], f["Email"], f["Date arrivée"]].filter(Boolean).join(' ').toLowerCase();
+                    const searchStr = [r.nomClient, r.entreprise, r.email, r.dateArrivee].filter(Boolean).join(' ').toLowerCase();
                     return searchStr.includes(searchQuery);
                 });
             }
@@ -2873,71 +2878,43 @@
                 showEmptyState('Aucun événement trouvé', 'Essayez un autre filtre ou recherche');
                 return;
             }
-            body.innerHTML = records.map((r, i) => renderRow(r, i)).join('');
+            body.innerHTML = records.map((r, i) => renderRow(r._n || r, i)).join('');
         }
 
         function renderRow(r, i) {
-            const { id, fields: f } = r;
-            const nom = f["Nom client"] || "Sans nom";
-            const org = f["Entreprise"];
+            const { id } = r;
             
-            // Formatage de date plus sympa
+            // Formatage de date
             const formatDate = (str) => {
                 if (!str) return "—";
                 const d = new Date(str);
                 return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
             };
 
-            const dArr = formatDate(f["Date arrivée"]);
-            const dDep = formatDate(f["Date départ"]);
-            
-            const pers = f["Nombre de personnes"] || 0;
-            const total = getTotal(f);
-            const statut = normalizeStatut(f);
+            const dArr = formatDate(r.dateArrivee);
+            const dDep = formatDate(r.dateDepart);
+            const isPast = r.dateDepart && new Date(r.dateDepart) < new Date();
 
-            
-            const relanceDateStr = f["Suivi_Date_Relance"];
-            let needsRelance = false;
-            if (relanceDateStr && !['confirmé', 'effectué', 'archivé'].includes(statut)) {
-                const rDate = new Date(relanceDateStr);
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                if (rDate < today) {
-                    needsRelance = true;
-                }
-            }
-
-            const delay = i * 0.05;
-
-            // Détection si le séjour est passé
-            const isPast = f["Date départ"] && new Date(f["Date départ"]) < new Date();
-
-            // --- Badge de Statut (Version Epurée) ---
-            const config = STATUS_MAP[statut] || STATUS_MAP['à traiter'];
-
-            
+            // --- Badge de Statut (Utilisant SesquierRecords) ---
             const statusBadgeHtml = `
-                <div class="badge ${config.class}" onclick="event.stopPropagation()" style="display:inline-flex; align-items:center; padding:0; height:26px; min-width:130px; overflow:hidden; border:1px solid rgba(0,0,0,0.05);">
+                <div class="badge" onclick="event.stopPropagation()" style="display:inline-flex; align-items:center; padding:0; height:26px; min-width:130px; overflow:hidden; border:1px solid rgba(0,0,0,0.05); background-color:${r.statutBg}; color:${r.statutColor};">
                     <select onchange="fastUpdateRecord('${id}', 'Statut', this.value, this)" 
                             style="width:100%; height:100%; background:none; border:none; color:inherit; font-family:inherit; font-size:9px; font-weight:700; text-transform:uppercase; text-align:center; cursor:pointer; outline:none; -webkit-appearance:none; padding:0 12px; margin:0;">
-                        ${Object.keys(STATUS_MAP).map(key => `
-                            <option value="${key}" ${statut === key ? 'selected' : ''}>${STATUS_MAP[key].label}</option>
+                        ${Object.keys(SesquierRecords.STATUS_MAP).map(key => `
+                            <option value="${key}" ${r.statut === key ? 'selected' : ''} style="background:white; color:black;">${SesquierRecords.STATUS_MAP[key].label}</option>
                         `).join('')}
                     </select>
                 </div>
             `;
             
-            // On s'assure que le badge n'a pas de styles CSS qui bloquent le select
-
-            const isArchived = !!f['est_archive'];
-            return `<div class="table-row" onclick="handleRowClick(event, '${id}')" style="display: grid; grid-template-columns: 50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr; ${isArchived ? 'opacity:0.5;' : ''}">
+            return `<div class="table-row" onclick="handleRowClick(event, '${id}')" style="display: grid; grid-template-columns: 50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr; ${r.estArchive ? 'opacity:0.5;' : ''}">
                 <div class="row-expand">
                     <i class="fa-solid fa-plus"></i>
                 </div>
                 <div class="row-client">
-                    <span class="row-client-name link">${escapeHtml(nom)}</span>
+                    <span class="row-client-name link">${escapeHtml(r.nomClient)}</span>
                     <div style="display:flex; align-items:center; gap:6px;">
-                        <span class="row-client-org">${escapeHtml(org || 'Particulier')}</span>
+                        <span class="row-client-org">${escapeHtml(r.entreprise || 'Particulier')}</span>
                         <a href="https://airtable.com/${SesquierUtils.AIRTABLE_BASE_ID}/${SesquierUtils.AIRTABLE_RESERVATIONS_TABLE}/${id}" 
                            target="_blank" class="airtable-link" onclick="event.stopPropagation()" title="Ouvrir dans Airtable">
                            <i class="fa-solid fa-up-right-from-square" style="font-size:8px; opacity:0.5;"></i>
@@ -2948,16 +2925,15 @@
                     <i class="fa-regular fa-calendar"></i> ${dArr} → ${dDep}
                     ${isPast ? '<span class="date-past" title="Ce séjour est terminé" style="margin-left:4px;"><i class="fa-solid fa-check"></i></span>' : ''}
                 </div>
-                <div class="row-persons">${pers}</div>
+                <div class="row-persons">${r.nbPersonnes}</div>
                 <div>
                     ${statusBadgeHtml}
-                    ${isArchived ? '<div style="margin-top:4px; font-size:9px; font-weight:700; color:#888; background:#f1f5f9; padding:2px 6px; border-radius:4px; display:inline-block; border:1px solid #cbd5e1;"><i class="fa-solid fa-box-archive"></i> Archivé</div>' : ''}
-                    ${!isArchived && needsRelance ? '<div style="margin-top:4px; font-size:9px; font-weight:700; color:#d32f2f; background:#ffeaea; padding:2px 6px; border-radius:4px; display:inline-block; border:1px solid #d32f2f;"><i class="fa-solid fa-clock"></i> Relancer</div>' : ''}
+                    ${r.estArchive ? '<div style="margin-top:4px; font-size:9px; font-weight:700; color:#888; background:#f1f5f9; padding:2px 6px; border-radius:4px; display:inline-block; border:1px solid #cbd5e1;"><i class="fa-solid fa-box-archive"></i> Archivé</div>' : ''}
                 </div>
                 <div class="row-amount" style="text-align:right; position:relative; display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:2px;">
-                    <span style="font-weight:700;">${total > 0 ? SesquierUtils.formatEuro(total) : '—'}</span>
+                    <span style="font-weight:700;">${r.totalHT > 0 ? SesquierUtils.formatEuro(r.totalHT) : '—'}</span>
                     <div class="row-actions">
-                        <button class="action-btn" onclick="event.stopPropagation(); deleteRecord('${id}', '${nom.replace(/'/g, "\\'")}')" 
+                        <button class="action-btn" onclick="event.stopPropagation(); deleteRecord('${id}', '${r.nomClient.replace(/'/g, "\\'")}')" 
                                 style="color:var(--danger); border-color:var(--danger-bg); background:var(--danger-bg); padding:4px 8px; font-size:10px;"
                                 title="Supprimer définitivement">
                             <i class="fa-solid fa-trash-can"></i>

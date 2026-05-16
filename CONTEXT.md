@@ -12,6 +12,7 @@ Documentation technique de référence pour le projet. À mettre à jour à chaq
 - **`assets/utils.js`** : Utilitaires partagés (`SesquierUtils`, `fetchJson`, `formatEuro`, etc.)
 - **`assets/constants.js`** : Constantes globales
 - **`assets/dossier-model.js`** : Modèle de données du dossier client
+- **`assets/records.js`** : **Source unique de vérité** — `FIELDS` (noms de champs Airtable), `STATUS_MAP`, `normalizeRecord()`. Chargé en premier dans index.html.
 
 ---
 
@@ -105,10 +106,18 @@ finalVal = 'à traiter';     // string simple — "Cannot parse value"
 
 ## Mémo Airtable
 
-| Champ | Type Airtable | Format attendu |
-|---|---|---|
-| `Statut` | Linked Record | `["à traiter"]` (tableau, minuscules) |
-| `Date arrivée` | Date | `"YYYY-MM-DD"` |
-| `Date départ` | Date | `"YYYY-MM-DD"` |
-| `est_archive` | Checkbox | `true` / `false` |
-| `Nb personnes` | Number | `18` (entier) |
+Base ID : `app6AAb5nlRHVnGzW` — Table Réservation : `tbl3Ku22gmRNJSRIz`
+
+| Champ | Type Airtable | Format attendu | Notes |
+|---|---|---|---|
+| `Statut` | multiSelect | `["confirmé"]` (tableau, minuscules) | Valeurs : `demande`, `à traiter`, `devis envoyé`, `confirmé`, `effectué`, `annulé` |
+| `Date arrivée` | Date | `"YYYY-MM-DD"` | |
+| `Date départ` | Date | `"YYYY-MM-DD"` | |
+| `est_archive` | Select (vide) | truthy si valeur présente | Pas une checkbox — `!!f['est_archive']` |
+| `Nombre de personnes` | Number | `18` (décimal en base, traité comme entier) | Le champ `Nb personnes` N'EXISTE PAS |
+| `DOSSIER JSON` | multilineText | JSON string | Casse importante : tout en majuscules |
+| `Timeline JSON` | text | JSON string `[{date, text}]` | Créé le 2026-05-02 |
+| `Entreprise` | **N'EXISTE PAS** | — | Utiliser `Nom client` à la place |
+
+### Règle : toujours passer par `normalizeRecord()` (assets/records.js)
+Ne jamais lire `r.fields["Statut"]` depuis les données brutes Airtable — toujours normaliser d'abord. Le `.trim()` et la gestion `Array vs String` sont dans `SesquierRecords.normalize()`.

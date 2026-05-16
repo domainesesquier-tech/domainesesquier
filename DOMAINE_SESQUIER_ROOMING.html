@@ -31,7 +31,7 @@
             background: var(--bg);
             color: var(--text);
             padding-bottom: 200px;
-            font-size: 12px;
+            font-size: 14px;
         }
 
         .no-print {
@@ -80,18 +80,18 @@
         .gite-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: 20px;
         }
 
         .gite-card {
             border: 1px solid var(--border);
             border-radius: 15px;
             background: #fff;
-            padding: 12px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.02);
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.04);
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 8px;
         }
 
         .gite-card.inactive {
@@ -119,27 +119,27 @@
         .gite-title {
             font-weight: 700;
             color: var(--primary);
-            font-size: 14px;
+            font-size: 16px;
             margin: 0;
         }
 
         .gite-desc {
             border: none;
             background: transparent;
-            font-size: 10px;
+            font-size: 12px;
             color: #888;
             width: 100%;
             outline: none;
             font-style: italic;
-            margin-top: 1px;
+            margin-top: 2px;
         }
 
         .gite-amenities {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-top: 2px;
-            font-size: 9px;
+            margin-top: 4px;
+            font-size: 11px;
             color: #999;
             font-weight: 500;
         }
@@ -152,13 +152,13 @@
 
         .room-row {
             display: grid;
-            grid-template-columns: 1fr 90px 55px 22px;
+            grid-template-columns: 1fr 110px 65px 26px;
             align-items: center;
-            gap: 5px;
-            padding: 4px 6px;
+            gap: 8px;
+            padding: 8px 10px;
             background: #F9FAFB;
             border-radius: 8px;
-            margin-bottom: 3px;
+            margin-bottom: 5px;
             border: 1px solid #f1f1f1;
         }
 
@@ -166,17 +166,17 @@
             border: none;
             background: transparent;
             font-family: inherit;
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 500;
             color: var(--text);
             outline: none;
         }
 
         .bed-toggle {
-            font-size: 8px;
+            font-size: 10px;
             font-weight: 800;
             cursor: pointer;
-            padding: 2px 4px;
+            padding: 3px 6px;
             border-radius: 4px;
             border: 1px solid var(--border);
             background: #fff;
@@ -217,19 +217,19 @@
         }
 
         .count-btn {
-            width: 18px;
-            height: 18px;
+            width: 22px;
+            height: 22px;
             border: none;
             background: transparent;
             cursor: pointer;
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 800;
         }
 
         .count-val {
-            width: 15px;
+            width: 18px;
             text-align: center;
-            font-size: 10px;
+            font-size: 13px;
             font-weight: 800;
         }
 
@@ -237,7 +237,7 @@
             color: #f2f2f2;
             cursor: pointer;
             text-align: center;
-            font-size: 10px;
+            font-size: 13px;
         }
 
         .room-row:hover .remove-btn {
@@ -258,8 +258,8 @@
         }
 
         .gite-footer {
-            margin-top: 8px;
-            padding-top: 8px;
+            margin-top: 10px;
+            padding-top: 10px;
             border-top: 1px solid #f2f2f2;
             display: flex;
             justify-content: space-between;
@@ -269,8 +269,8 @@
         .gite-note-input {
             border: 1px solid #efefef;
             background: #fdfdfd;
-            font-size: 10px;
-            padding: 4px 8px;
+            font-size: 12px;
+            padding: 6px 10px;
             border-radius: 6px;
             width: 70%;
             outline: none;
@@ -317,18 +317,36 @@
         }
 
         @media print {
+            body { font-size: 13px; padding-bottom: 0; }
 
             .no-print,
             .btn-add-bed,
             .grand-total-bar,
-            .remove-btn {
+            .remove-btn,
+            .count-btn {
                 display: none !important;
+            }
+
+            .gite-grid {
+                gap: 14px;
+            }
+
+            .gite-card {
+                break-inside: avoid;
+                page-break-inside: avoid;
+                padding: 14px;
+                box-shadow: none;
+                border: 1.5px solid var(--border);
             }
 
             .gite-note-input {
                 border: none !important;
                 background: transparent !important;
                 padding: 0 !important;
+            }
+
+            .count-val {
+                font-size: 13px;
             }
         }
     </style>
@@ -528,62 +546,84 @@
             document.getElementById('grand-total').innerHTML = `<i class="fa-solid fa-users"></i> <span>TOTAL GÉNÉRAL : ${grandTotal} PERSONNES</span>`;
         }
 
-        async function generatePDF() {
-            const element = document.createElement('div');
-            element.style.cssText = 'padding:30px; font-family:Outfit, sans-serif; background:#fff;';
-
+        function generatePDF() {
+            // Injection d'un en-tête d'impression via une feuille de style temporaire
             let gTotal = 0;
-            let html = `
-                <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:3px solid #3A5538; padding-bottom:15px; margin-bottom:25px;">
-                    <div>
-                        <h1 style="color:#3A5538; font-size:26px; font-weight:700; margin:0;">DOMAINE SESQUIER</h1>
-                        <p style="color:#9E5D4C; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:2px; margin-top:4px;">Logistique Hébergement & Rooming</p>
-                    </div>
-                    <div style="text-align:right;">
-                        <h2 style="font-size:14px; margin:0;">PLAN D'OCCUPATION</h2>
-                        <p style="font-size:11px; color:#777; margin-top:2px;">Client : <strong>${state.clientName}</strong></p>
-                        <p style="font-size:11px; color:#777;">Séjour : <strong>${state.stayDates}</strong></p>
-                    </div>
-                </div>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            `;
+            let cardsHtml = '';
 
             INITIAL_GITES.forEach(g => {
                 if (state.activeGites.includes(g.id)) {
                     const gs = state.configs[g.id];
                     let st = 0;
-                    html += `<div style="border:1.5px solid #E2DDD5; padding:10px; border-radius:12px; background:#fff; break-inside:avoid;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f0f0f0; padding-bottom:4px; margin-bottom:6px;">
-                                    <div>
-                                        <div style="font-weight:700; color:#3A5538; font-size:12px;">${g.name}</div>
-                                        <div style="font-size:8px; color:#999; font-style:italic;">${gs.desc}</div>
-                                    </div>
-                                    <div style="font-size:9px; color:#444; font-weight:600;">🚿 1 SdB</div>
-                                </div>`;
+                    let bedsHtml = '';
                     gs.beds.forEach(b => {
-                        const typeLabel = { 'double': 'Lit Double', 'twin': '2 Simples', 'single': '1 Simple', 'quad': '4 Simples' }[b.type];
+                        const typeLabel = { 'double': 'Lit Double', 'twin': '2 Simples', 'single': '1 Simple', 'quad': '4 Simples' }[b.type] || b.type;
                         st += b.count;
-                        html += `<div style="display:flex; justify-content:space-between; font-size:9px; padding:3px 0; border-bottom:1px solid rgba(0,0,0,0.02);">
-                                    <span style="color:#444;">${b.name}</span>
-                                    <span style="font-weight:600;">${b.count} pers. <span style="font-weight:400; color:#999; font-size:7px;">(${typeLabel})</span></span>
-                                 </div>`;
+                        bedsHtml += `<div class="bed-row"><span>${b.name}</span><span class="bed-count">${b.count} pers. <span class="bed-type">(${typeLabel})</span></span></div>`;
                     });
                     gTotal += st;
-                    if (gs.note) html += `<div style="margin-top:5px; padding:4px 6px; background:#f9f9f9; border-radius:4px; font-size:8px; color:#666; font-style:italic;">Note : ${gs.note}</div>`;
-                    html += `<div style="text-align:right; font-size:9px; font-weight:800; color:#3A5538; margin-top:5px;">Sous-total : ${st} pers.</div>
-                            </div>`;
+                    const noteHtml = gs.note ? `<div class="card-note">Note : ${gs.note}</div>` : '';
+                    cardsHtml += `
+                        <div class="gite-card-print">
+                            <div class="card-header">
+                                <div>
+                                    <div class="card-title">${g.name}</div>
+                                    <div class="card-desc">${gs.desc || ''}</div>
+                                </div>
+                                <div class="card-sdb">🚿 1 SdB</div>
+                            </div>
+                            ${bedsHtml}
+                            ${noteHtml}
+                            <div class="card-subtotal">Sous-total : ${st} pers.</div>
+                        </div>`;
                 }
             });
 
-            html += `</div>
-                <div style="margin-top:30px; padding:15px; background:#3A5538; color:#fff; border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
-                    <div style="font-size:14px; font-weight:700; letter-spacing:1px;">TOTAL DES PERSONNES HÉBERGÉES</div>
-                    <div style="font-size:22px; font-weight:700;">${gTotal} PERSONNES</div>
+            const printWindow = window.open('', '_blank', 'width=900,height=700');
+            printWindow.document.write(`<!DOCTYPE html><html><head>
+                <meta charset="UTF-8">
+                <title>Plan d'occupation — ${state.clientName}</title>
+                <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+                <style>
+                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    body { font-family: 'Outfit', sans-serif; background: #fff; color: #2D302A; font-size: 11px; padding: 20mm 15mm; }
+                    .doc-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #3A5538; padding-bottom: 12px; margin-bottom: 20px; }
+                    .doc-title { color: #3A5538; font-size: 22px; font-weight: 700; }
+                    .doc-subtitle { color: #9E5D4C; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; margin-top: 3px; }
+                    .doc-meta { text-align: right; font-size: 10px; color: #555; line-height: 1.6; }
+                    .doc-meta strong { color: #2D302A; }
+                    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+                    .gite-card-print { border: 1.5px solid #E2DDD5; padding: 12px; border-radius: 10px; break-inside: avoid; page-break-inside: avoid; }
+                    .card-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; margin-bottom: 8px; }
+                    .card-title { font-weight: 700; color: #3A5538; font-size: 12px; }
+                    .card-desc { font-size: 8px; color: #999; font-style: italic; margin-top: 2px; }
+                    .card-sdb { font-size: 8px; color: #666; white-space: nowrap; }
+                    .bed-row { display: flex; justify-content: space-between; font-size: 9px; padding: 3px 0; border-bottom: 1px solid rgba(0,0,0,0.04); }
+                    .bed-count { font-weight: 600; }
+                    .bed-type { font-weight: 400; color: #999; font-size: 7px; }
+                    .card-note { margin-top: 5px; padding: 4px 6px; background: #f9f9f9; border-radius: 4px; font-size: 8px; color: #666; font-style: italic; }
+                    .card-subtotal { text-align: right; font-size: 9px; font-weight: 800; color: #3A5538; margin-top: 6px; }
+                    .total-bar { margin-top: 20px; padding: 12px 20px; background: #3A5538; color: #fff; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
+                    .total-bar-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+                    .total-bar-val { font-size: 18px; font-weight: 700; }
+                </style>
+            </head><body>
+                <div class="doc-header">
+                    <div><div class="doc-title">DOMAINE SESQUIER</div><div class="doc-subtitle">Logistique Hébergement & Rooming</div></div>
+                    <div class="doc-meta">
+                        <strong>PLAN D'OCCUPATION</strong><br>
+                        Client : <strong>${state.clientName}</strong><br>
+                        Séjour : <strong>${state.stayDates}</strong>
+                    </div>
                 </div>
-            `;
-
-            element.innerHTML = html;
-            await SesquierUtils.generatePDF(element, `Rooming_${state.clientName}.pdf`, { margin: 5, html2canvas: { scale: 3 } });
+                <div class="grid">${cardsHtml}</div>
+                <div class="total-bar">
+                    <div class="total-bar-label">TOTAL DES PERSONNES HÉBERGÉES</div>
+                    <div class="total-bar-val">${gTotal} PERSONNES</div>
+                </div>
+            </body></html>`);
+            printWindow.document.close();
+            printWindow.onload = () => { printWindow.focus(); printWindow.print(); };
         }
 
         async function saveRooming() {

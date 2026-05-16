@@ -18,18 +18,394 @@
     <script src="assets/constants.js"></script>
     <script src="assets/dossier-model.js"></script>
     <style>
-        /* Specific overrides for Devis if any */
-        .doc-type {
-            color: var(--text-main);
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.65; }
         }
+        @keyframes shake-save {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+        #btn-save-devis.has-changes {
+            background: #d97706 !important;
+            color: white !important;
+            animation: shake-save 0.5s ease-in-out infinite;
+            animation-iteration-count: 3;
+        }
+        #btn-save-devis.has-changes:hover { background: #b45309 !important; }
+        .row-subtitle:empty:before {
+            content: attr(data-placeholder);
+            color: #ccc;
+            font-style: italic;
+            pointer-events: none;
+        }
+        .row-subtitle:focus:before { content: none; }
+        .row-label { font-weight: 500; }
+
+        tr.dragging { opacity: 0.35; background: #f1f5f9 !important; }
+        tr.drag-over td { border-top: 3px solid #6B7060; }
+        .drag-handle {
+            color: #c9d0d8 !important;
+            transition: color 0.15s, transform 0.15s;
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 6px !important;
+        }
+        tr:hover .drag-handle { color: #9aa5b1 !important; }
+        .drag-handle:hover { color: #6B7060 !important; transform: scale(1.2); }
+        .drag-handle::before { content: 'Déplacer'; font-size: 8px; color: #aaa; margin-right: 3px; font-family: sans-serif; font-weight: 500; opacity: 0; transition: opacity 0.2s; }
+        tr:hover .drag-handle::before { opacity: 1; }
+        @media print { .drag-handle { display: none; } }
+
+        /* Specific overrides for Devis if any */
+        .doc-type { color: var(--text-main); }
+
+        /* Controls bar : autoriser le retour à la ligne si trop de boutons */
+        .controls-bar {
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            max-width: calc(100vw - 40px);
+        }
+
+        /* === BIBLIOTHÈQUE PANEL === */
+        #library-toggle {
+            background: #3A5538;
+        }
+        #library-toggle:hover { background: #2d4229; }
+
+        #library-panel {
+            position: fixed;
+            top: 0; right: -380px;
+            width: 360px;
+            height: 100vh;
+            background: #fff;
+            border-left: 1px solid #e5e7eb;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.3s ease;
+        }
+        #library-panel.open { right: 0; }
+
+        .lib-header {
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .lib-header h3 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: #2d3748;
+            margin: 0;
+        }
+        .lib-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #9ca3af;
+            font-size: 18px;
+            padding: 2px 6px;
+        }
+        .lib-close:hover { color: #374151; }
+
+        .lib-search {
+            padding: 10px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            flex-shrink: 0;
+        }
+        .lib-search input {
+            width: 100%;
+            padding: 7px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 12px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .lib-search input:focus { border-color: #6B7060; }
+
+        .lib-body {
+            overflow-y: auto;
+            flex: 1;
+            padding: 12px 0;
+        }
+
+        .lib-category {
+            padding: 8px 16px 4px;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #9ca3af;
+        }
+        .lib-category:not(:first-child) { margin-top: 6px; }
+
+        .lib-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f9f9f9;
+            transition: background 0.15s;
+        }
+        .lib-item:hover { background: #f0f2ee; }
+        .lib-item:hover .lib-item-add { opacity: 1; }
+
+        .lib-item-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .lib-item-name {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #1f2937;
+            line-height: 1.3;
+        }
+        .lib-item-desc {
+            font-size: 10px;
+            font-weight: 400;
+            color: #6b7280;
+            margin-top: 2px;
+            line-height: 1.35;
+        }
+        /* Drag depuis la bibliothèque */
+        .lib-item[draggable="true"] { cursor: grab; }
+        .lib-item[draggable="true"]:active { cursor: grabbing; }
+        .lib-item.lib-dragging { opacity: 0.45; background: #e8ece6 !important; }
+        /* Zone de drop dans les tableaux du devis */
+        tr.lib-drop-target td { border-top: 3px solid #b98a4d !important; background: #fef9f0 !important; }
+        tr.lib-drop-after td  { border-bottom: 3px solid #b98a4d !important; background: #fef9f0 !important; }
+        .lib-item-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 5px;
+        }
+        .lib-item-price {
+            font-size: 11px;
+            font-weight: 700;
+            color: #6B7060;
+        }
+        .lib-item-tva {
+            font-size: 10px;
+            color: #9ca3af;
+        }
+        .lib-item-add {
+            opacity: 0;
+            background: #6B7060;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 9px;
+            font-size: 16px;
+            cursor: pointer;
+            line-height: 1;
+            flex-shrink: 0;
+            transition: opacity 0.15s, background 0.15s;
+        }
+        .lib-item-add:hover { background: #4a4e40; }
+
+        .lib-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #9ca3af;
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        @media print { #library-panel, #library-toggle { display: none !important; } }
+
+        /* --- Boutons action sur item bibliothèque --- */
+        .lib-item-actions {
+            display: flex;
+            gap: 4px;
+            margin-left: 6px;
+            flex-shrink: 0;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        .lib-item:hover .lib-item-actions { opacity: 1; }
+        .lib-item-edit, .lib-item-del {
+            background: none;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 6px;
+            line-height: 1;
+            color: #6b7280;
+        }
+        .lib-item-edit:hover { background: #eff6ff; color: #3b82f6; border-color: #93c5fd; }
+        .lib-item-del:hover  { background: #fef2f2; color: #ef4444; border-color: #fca5a5; }
+
+        /* --- Bouton + Ajouter dans le header --- */
+        .lib-add-btn {
+            background: #6B7060;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: .04em;
+        }
+        .lib-add-btn:hover { background: #4a4e40; }
+
+        /* --- Modal bibliothèque --- */
+        #lib-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 500;
+            justify-content: center;
+            align-items: center;
+        }
+        #lib-modal-overlay.open { display: flex; }
+        #lib-modal {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.25);
+            width: 100%;
+            max-width: 440px;
+            padding: 24px;
+            animation: libModalIn .16s ease;
+        }
+        @keyframes libModalIn {
+            from { transform: translateY(-12px); opacity: 0; }
+            to   { transform: translateY(0);     opacity: 1; }
+        }
+        .lib-modal-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 16px;
+        }
+        .lib-form-row { margin-bottom: 12px; }
+        .lib-form-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            margin-bottom: 3px;
+        }
+        .lib-form-input, .lib-form-select, .lib-form-textarea {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            color: #1f2937;
+        }
+        .lib-form-input:focus, .lib-form-select:focus, .lib-form-textarea:focus {
+            outline: none;
+            border-color: #6B7060;
+            box-shadow: 0 0 0 2px rgba(107,112,96,.15);
+        }
+        .lib-form-textarea { resize: vertical; min-height: 60px; }
+        .lib-form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .lib-modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .lib-btn { padding: 6px 14px; border-radius: 5px; border: 1px solid #e5e7eb; background: #fff; font-size: 13px; cursor: pointer; }
+        .lib-btn:hover { background: #f9f9f9; }
+        .lib-btn-primary { background: #6B7060; color: #fff; border-color: #6B7060; }
+        .lib-btn-primary:hover { background: #4a4e40; border-color: #4a4e40; }
+        .lib-btn-danger { background: #ef4444; color: #fff; border-color: #ef4444; }
+        .lib-btn-danger:hover { background: #dc2626; border-color: #dc2626; }
     </style>
 </head>
 
 <body>
 
+    <!-- Bibliothèque panel -->
+    <div id="library-panel">
+        <div class="lib-header">
+            <h3>Bibliothèque de Prestations</h3>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <button class="lib-add-btn" onclick="openLibraryModal(null)" title="Ajouter une prestation">+ Ajouter</button>
+                <button class="lib-close" onclick="toggleLibrary()">✕</button>
+            </div>
+        </div>
+        <div class="lib-search">
+            <input type="text" id="lib-search-input" placeholder="Rechercher une prestation..." oninput="renderLibrary(this.value)">
+        </div>
+        <div class="lib-body" id="lib-body">
+            <div class="lib-empty">Chargement...</div>
+        </div>
+    </div>
+
+    <!-- Modal CRUD Bibliothèque -->
+    <div id="lib-modal-overlay" onclick="if(event.target===this)closeLibraryModal()">
+        <div id="lib-modal">
+            <div class="lib-modal-title" id="lib-modal-title">Nouvelle prestation</div>
+            <input type="hidden" id="lib-modal-id">
+            <div class="lib-form-row">
+                <label class="lib-form-label" for="lib-f-nom">Nom *</label>
+                <input class="lib-form-input" id="lib-f-nom" type="text" placeholder="Ex : Déjeuner buffet">
+            </div>
+            <div class="lib-form-row">
+                <label class="lib-form-label" for="lib-f-desc">Description</label>
+                <textarea class="lib-form-textarea" id="lib-f-desc" placeholder="Détails optionnels..."></textarea>
+            </div>
+            <div class="lib-form-row">
+                <label class="lib-form-label" for="lib-f-cat">Catégorie *</label>
+                <select class="lib-form-select" id="lib-f-cat">
+                    <option value="">— Choisir —</option>
+                    <option>Hébergement</option>
+                    <option>Restauration</option>
+                    <option>Options &amp; Salles</option>
+                    <option>Activités &amp; Services Annexes</option>
+                    <option>Team Building</option>
+                    <option>Sport &amp; Plein Air</option>
+                    <option>Culture &amp; Découverte</option>
+                    <option>Bien-être &amp; Spa</option>
+                </select>
+            </div>
+            <div class="lib-form-row lib-form-row-2">
+                <div>
+                    <label class="lib-form-label" for="lib-f-prix">Prix HT (€)</label>
+                    <input class="lib-form-input" id="lib-f-prix" type="number" min="0" step="0.01" placeholder="0.00">
+                </div>
+                <div>
+                    <label class="lib-form-label" for="lib-f-tva">TVA</label>
+                    <select class="lib-form-select" id="lib-f-tva">
+                        <option>10%</option>
+                        <option>20%</option>
+                        <option>5.5%</option>
+                        <option>0%</option>
+                    </select>
+                </div>
+            </div>
+            <div class="lib-modal-actions">
+                <button class="lib-btn lib-btn-danger" id="lib-modal-del-btn" style="margin-right:auto;display:none;" onclick="confirmDeleteLibraryItem()">Supprimer</button>
+                <button class="lib-btn" onclick="closeLibraryModal()">Annuler</button>
+                <button class="lib-btn lib-btn-primary" onclick="saveLibraryItem()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Controls -->
     <div class="controls-bar no-print">
-        <button class="btn" onclick="saveToAirtable()">
+        <span id="unsaved-badge" style="display:none; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; align-self:center; animation: pulse 2s infinite;">
+            <i class="fas fa-circle-exclamation" style="margin-right:4px;"></i> Modifications non enregistrées
+        </span>
+        <button class="btn" id="btn-save-devis" onclick="saveToAirtable()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                 <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -50,6 +426,9 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M5 12h14M12 5l7 7-7 7"></path>
             </svg>
+        </button>
+        <button id="library-toggle" class="btn no-print" onclick="toggleLibrary()">
+            📋 Bibliothèque
         </button>
     </div>
 
@@ -154,9 +533,13 @@
         </div>
     </div>
 
-    <!-- Page 2 -->
-    <div class="page" id="page2" style="page-break-before: always;">
-        <!-- C. Options & Salles (Forcé début Page 2) -->
+    <!-- Séparateur visuel browser uniquement (masqué en PDF) -->
+    <div class="page-separator no-print"></div>
+
+    <!-- Wrapper visuel page 2 (marges browser) — neutralisé en PDF via onclone -->
+    <div class="page" id="page2-content">
+
+        <!-- C. Options & Salles (début Page 2 — saut de page géré par CSS) -->
         <section id="options-proposal" style="margin-bottom: 20px;">
             <table class="pricing-table">
                 <thead>
@@ -175,15 +558,15 @@
             </table>
         </section>
 
-        <!-- D. Activités & Loisirs (Suite Page 2) -->
+        <!-- D. Activités & Services Annexes (Suite Page 2) -->
         <section id="activities-proposal" style="margin-bottom: 20px;">
             <table class="pricing-table">
                 <thead>
                     <tr>
-                        <th class="col-detail">Activités & Loisirs (sur devis)</th>
-                        <th class="col-qty" style="text-align:center; width:60px;"></th>
-                        <th class="col-price" style="text-align:right; width:80px;"></th>
-                        <th class="col-tva" style="text-align:center; width:60px;"></th>
+                        <th class="col-detail">Activités & Services Annexes</th>
+                        <th class="col-qty" style="text-align:center; width:60px;">Qté</th>
+                        <th class="col-price" style="text-align:right; width:80px;">PU HT</th>
+                        <th class="col-tva" style="text-align:center; width:60px;">TVA</th>
                         <th class="col-total" style="text-align:right; width:90px;">Total HT</th>
                         <th class="no-print" style="width: 30px;"></th>
                     </tr>
@@ -204,8 +587,7 @@
                         l'arrivée.</li>
                     <li contenteditable="true">• <strong>Annulation :</strong> Acompte conservé. J-29/J-15: 50%.
                         J-14/J-8: 75%. < J-7: 100%.</li>
-                    <li contenteditable="true">• <strong>Divers :</strong> Chambres dispo 16h (arrivée) / Libérées 11h
-                        (départ).</li>
+                    <li contenteditable="true">• <strong>Divers :</strong> Chambres disponibles à 15h ou avant selon demandes (arrivée) / Libérées 11h, flexible selon déroulé du séjour (départ).</li>
                 </ul>
                 <div style="font-size: 7.5pt; color: #999; margin-top: 10px; line-height: 1.2;">
                     <strong>OZZA SASU</strong> — SIRET 903 246 478 00015 — BNP Paribas<br>
@@ -262,7 +644,8 @@
             <span>Domaine Sesquier — DEVIS <span class="devis-num-footer">2026-02-XXX</span></span>
             <span>Page 2 / 2</span>
         </div>
-    </div>
+
+    </div><!-- /#page2-content -->
 
     </div><!-- /#pdf-wrapper -->
 
@@ -276,9 +659,42 @@
         const API_RESERVATIONS_URL = SesquierUtils ? SesquierUtils.API_RESERVATIONS_URL : '';
 
         let currentRecord = null;
+        let currentDossier = null; // Dossier complet chargé — source de vérité pour la sauvegarde
         let pricingMap = {}; // { CODE: { pu, tva } } — rempli depuis /api/pricing
+        let hasUnsavedChanges = false;
+        let suppressDirtyFlag = false; // pour ne pas marquer pendant le chargement initial
         const urlParams = new URLSearchParams(window.location.search);
-        let currentRequestId = urlParams.get('id');
+        let currentRequestId = urlParams.get('id') || sessionStorage.getItem('currentDossierId');
+
+        // ===== Tracker modifications =====
+        function markDirty() {
+            if (suppressDirtyFlag) return;
+            if (hasUnsavedChanges) return;
+            hasUnsavedChanges = true;
+            const badge = document.getElementById('unsaved-badge');
+            const btn = document.getElementById('btn-save-devis');
+            if (badge) badge.style.display = 'inline-flex';
+            if (btn) btn.classList.add('has-changes');
+        }
+        function markClean() {
+            hasUnsavedChanges = false;
+            const badge = document.getElementById('unsaved-badge');
+            const btn = document.getElementById('btn-save-devis');
+            if (badge) badge.style.display = 'none';
+            if (btn) btn.classList.remove('has-changes');
+        }
+        // Capter tous les types de modifications dans le devis (édition, drag, ajout, suppression)
+        document.addEventListener('input',  (e) => { if (e.target.closest('#pdf-wrapper')) markDirty(); }, true);
+        document.addEventListener('change', (e) => { if (e.target.closest('#pdf-wrapper')) markDirty(); }, true);
+        document.addEventListener('drop',   (e) => { if (e.target.closest('#pdf-wrapper')) markDirty(); }, true);
+        // Alerte avant de quitter / rafraîchir
+        window.addEventListener('beforeunload', (e) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+                return '';
+            }
+        });
 
         console.log('[DEVIS] API URL =', API_RESERVATIONS_URL);
         console.log('[DEVIS] ID demandé =', currentRequestId);
@@ -395,6 +811,7 @@
         }
 
         async function loadReservationData(id) {
+            suppressDirtyFlag = true; // Inhibe le marquage pendant le rendu
             const clientInfoEl = document.querySelector('.client-info');
             try {
                 console.log("Fetching ID:", id);
@@ -426,20 +843,32 @@
             }
         }
 
-        // Charge la table des tarifs depuis Airtable et peuple pricingMap
+        // Charge la table des tarifs depuis Airtable et peuple pricingMap + window.PRICING_DB
         async function loadPricingData() {
             try {
                 const data = await SesquierUtils.fetchJson(`${SesquierUtils.API_PRICING_URL}?t=${Date.now()}`);
                 if (data.records) {
+                    const db = [];
                     data.records.forEach(rec => {
-                        const code = SesquierUtils.normalizeCode(rec.fields?.Code);
-                        if (code) {
-                            pricingMap[code] = {
-                                pu: rec.fields?.PU ?? 0,
-                                tva: rec.fields?.['TVA % (auto)'] ?? 10
-                            };
-                        }
+                        const f = rec.fields || {};
+                        const code = SesquierUtils.normalizeCode(f.Code);
+                        if (!code) return;
+                        pricingMap[code] = {
+                            pu: f.PU ?? 0,
+                            tva: f['TVA % (auto)'] ?? 10
+                        };
+                        db.push({
+                            code,
+                            priceHT: f.PU ?? 0,
+                            tva: f['TVA % (auto)'] ?? 10,
+                            typeClient: SesquierUtils.normalizeCode(f['Type client'] || f['Type'] || f['Cible']),
+                            minPers: SesquierUtils.toNumber(f['Nb pers min']) ?? 0,
+                            maxPers: SesquierUtils.toNumber(f['Nb pers max']) ?? 999,
+                            minNights: SesquierUtils.toNumber(f['Durée min nuits']) ?? 0,
+                            maxNights: SesquierUtils.toNumber(f['Durée max nuits']) ?? 999,
+                        });
                     });
+                    window.PRICING_DB = db;
                 }
                 console.log('[DEVIS] pricingMap chargé:', Object.keys(pricingMap).length, 'tarifs');
             } catch (e) {
@@ -453,13 +882,12 @@
             // =====================================================================
             // 🧠 PRIORITÉ 1 : Utiliser "Dossier JSON" (nouveau système)
             // =====================================================================
-            if (fields["Dossier JSON"]) {
+            if (fields["DOSSIER JSON"]) {
                 try {
-                    const dossierData = JSON.parse(fields["Dossier JSON"]);
-                    // On reconstruit l'objet via le modèle pour avoir toutes les méthodes de calcul
-                    const dossier = DossierModel.buildFromAirtableFields(fields); 
-                    console.log('[DEVIS] Dossier JSON synchronisé — rendu direct');
+                    const dossier = JSON.parse(fields["DOSSIER JSON"]);
+                    console.log('[DEVIS] Dossier JSON chargé directement —', dossier.financials?.lines?.length || 0, 'lignes');
                     renderFromDossier(dossier, fields);
+                    setTimeout(() => { suppressDirtyFlag = false; markClean(); }, 50);
                     return;
                 } catch (e) {
                     console.warn('[DEVIS] Erreur lecture Dossier JSON, fallback legacy...', e);
@@ -473,9 +901,9 @@
             const activities = details.activities || {};
 
             // 0. CHECK FOR SNAPSHOT (Re-édition)
-            if (fields["JSON"]) {
+            if (fields["DOSSIER JSON"] && false) { // legacy snapshot path désactivé — géré par renderFromDossier
                 try {
-                    const snap = JSON.parse(fields["JSON"]);
+                    const snap = JSON.parse(fields["DOSSIER JSON"]);
                     // Vérifier si le snapshot est valide : au moins un libellé de prestation doit être non vide
                     // et on s'assure que les lignes de type 'pricing' ont bien un label.
                     const pricingRows = snap.pricing?.filter(p => p.type === 'pricing') || [];
@@ -619,7 +1047,7 @@
                     actBody.appendChild(createPricingRow(label, 1, 0, "20%"));
                 }
                 // Pas de placeholder "Aucune activité", on laisse le tableau prêt pour ajout manuel
-                addSubtotalRow("Activités & Loisirs", "subtotal-activities", "activities-body");
+                addSubtotalRow("Activités & Services Annexes", "subtotal-activities", "activities-body");
             }
 
             // --- E. Initial Taxe de séjour Calculation ---
@@ -630,14 +1058,21 @@
             }
 
             updateCalculations();
+            // Fin du rendu initial : réactiver le tracking et marquer "propre"
+            setTimeout(() => { suppressDirtyFlag = false; markClean(); }, 50);
         }
         // =====================================================================
         // 🧠 RENDER FROM DOSSIER — Rendu direct depuis l'objet dossier
         // =====================================================================
         function renderFromDossier(dossier, fields) {
+            if (!dossier || !dossier.financials) {
+                console.warn('[renderFromDossier] Dossier incomplet, rendu annulé');
+                return;
+            }
+            currentDossier = dossier; // Stocker pour la sauvegarde
             const now = new Date();
             const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-            const num = (dossier.meta.airtableId || currentRequestId || "").toString().slice(-6).toUpperCase();
+            const num = (currentRequestId || dossier.meta?.airtableId || "").toString().slice(-6).toUpperCase();
 
             // 1. META
             const devNumEl = document.getElementById('devis-number');
@@ -658,13 +1093,13 @@
             }
 
             // 3. SÉJOUR SNAPSHOT
-            const s = dossier.sejour;
+            const s = dossier.sejour || {};
             const snapshot = document.querySelectorAll('.snapshot-val');
             if (snapshot.length >= 4) {
-                snapshot[0].innerText = dossier.meta.typeLabel;
-                snapshot[1].innerText = `${s.dateArriveeFormatted} → ${s.dateDepartFormatted}`;
-                snapshot[2].innerText = `${s.nights} ${s.nights > 1 ? 'nuits' : 'nuit'}`;
-                snapshot[3].innerText = `${s.participants} personnes`;
+                snapshot[0].innerText = dossier.meta?.typeLabel || '';
+                snapshot[1].innerText = s.dateArriveeFormatted ? `${s.dateArriveeFormatted} → ${s.dateDepartFormatted}` : '—';
+                snapshot[2].innerText = s.nights != null ? `${s.nights} ${s.nights > 1 ? 'nuits' : 'nuit'}` : '—';
+                snapshot[3].innerText = s.participants != null ? `${s.participants} personnes` : '—';
             }
 
             // 4. SYNTHÈSE
@@ -680,12 +1115,48 @@
             const optionsLines = [];
             let currentSection = 'pricing';
             lines.forEach(line => {
-                if (line.type === 'category' && line.title && (line.title.includes('espaces') || line.title.includes('Options'))) {
-                    currentSection = 'options';
+                if (line.section) {
+                    // Nouveau format : marqueur explicite → fiable à 100%
+                    if (line.section === 'options') optionsLines.push(line);
+                    else pricingLines.push(line);
+                } else {
+                    // Ancien format sans marqueur : fallback includes() pour rétrocompatibilité
+                    if (line.type === 'category' && line.title &&
+                       (line.title.includes('espaces') || line.title.includes('Options'))) {
+                        currentSection = 'options';
+                    }
+                    if (currentSection === 'pricing') pricingLines.push(line);
+                    else optionsLines.push(line);
                 }
-                if (currentSection === 'pricing') pricingLines.push(line);
-                else optionsLines.push(line);
             });
+
+            // Mapping label → ID fixe attendu par runCommonCalculations()
+            const SUBTOTAL_ID_MAP = {
+                'hébergement': 'subtotal-hebergement',
+                'restauration': 'subtotal-restauration',
+                'options':      'subtotal-salles',
+                'salles':       'subtotal-salles',
+                'activités':    'subtotal-activities',
+                'activites':    'subtotal-activities',
+            };
+            function resolveSubtotalId(label) {
+                const key = (label || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+                for (const [k, id] of Object.entries(SUBTOTAL_ID_MAP)) {
+                    if (key.includes(k)) return id;
+                }
+                return label ? 'subtotal-' + key.replace(/\s+/g, '-') : 'subtotal-unknown';
+            }
+
+            // Helper : ajoute une ligne pricing avec subtitle optionnel
+            const addPricingRowWithSubtitle = (line, targetId) => {
+                const row = SesquierUtils.createPricingRow(line.label, line.qty, line.unitPriceHT, line.tvaRate + '%', line.mealKey);
+                if (line.subtitle) {
+                    const sub = row.querySelector('.row-subtitle');
+                    if (sub) sub.innerText = line.subtitle;
+                }
+                const tbody = document.getElementById(targetId);
+                if (tbody) tbody.appendChild(row);
+            };
 
             // Render pricing body
             const pricingBody = document.getElementById('pricing-body');
@@ -693,8 +1164,8 @@
                 pricingBody.innerHTML = '';
                 pricingLines.forEach(line => {
                     if (line.type === 'category') addCategoryRow(line.title);
-                    else if (line.type === 'subtotal') addSubtotalRow(line.label, line.id);
-                    else if (line.type === 'pricing') addPricingRow(line.label, line.qty, line.unitPriceHT, line.tvaRate + '%', line.mealKey);
+                    else if (line.type === 'subtotal') addSubtotalRow(line.label, line.id || resolveSubtotalId(line.label));
+                    else if (line.type === 'pricing') addPricingRowWithSubtitle(line, 'pricing-body');
                 });
             }
 
@@ -710,8 +1181,8 @@
                 optBody.innerHTML = '';
                 optionsLines.forEach(line => {
                     if (line.type === 'category') SesquierUtils.addCategoryRow(line.title, 'options-body');
-                    else if (line.type === 'subtotal') SesquierUtils.addSubtotalRow(line.label, line.id, 'options-body');
-                    else if (line.type === 'pricing') SesquierUtils.addPricingRow(line.label, line.qty, line.unitPriceHT, line.tvaRate + '%', line.mealKey, 'options-body');
+                    else if (line.type === 'subtotal') SesquierUtils.addSubtotalRow(line.label, line.id || resolveSubtotalId(line.label), 'options-body');
+                    else if (line.type === 'pricing') addPricingRowWithSubtitle(line, 'options-body');
                 });
             }
 
@@ -720,11 +1191,14 @@
             if (actBody) {
                 actBody.innerHTML = '';
                 activitesLines.forEach(line => {
-                    if (line.type === 'pricing') {
-                        actBody.appendChild(createPricingRow(line.label, line.qty, line.unitPriceHT, line.tvaRate + '%'));
-                    }
+                    if (line.type === 'category') SesquierUtils.addCategoryRow(line.title, 'activities-body');
+                    else if (line.type === 'subtotal') SesquierUtils.addSubtotalRow(line.label, line.id || resolveSubtotalId(line.label), 'activities-body');
+                    else if (line.type === 'pricing') addPricingRowWithSubtitle(line, 'activities-body');
                 });
-                addSubtotalRow("Activités & Loisirs", "subtotal-activities", "activities-body");
+                // Ajouter le sous-total activités s'il n'est pas déjà dans les lignes
+                if (!activitesLines.find(l => l.type === 'subtotal')) {
+                    addSubtotalRow("Activités & Services Annexes", "subtotal-activities", "activities-body");
+                }
             }
 
             // 10. TOTAUX — directement depuis le dossier
@@ -737,47 +1211,61 @@
             if (document.getElementById('total-tva')) document.getElementById('total-tva').innerText = formatEuro(totalTVA);
             if (document.getElementById('total-ttc')) document.getElementById('total-ttc').innerText = formatEuro(totalTTC);
 
-            // Mise à jour des sous-totaux spécifiques
+            // Lancer le moteur de calcul pour remplir les totaux ligne par ligne + grand total
+            updateCalculations();
+
+            // Forcer les sous-totaux depuis le dossier (plus fiables que la recalculation DOM)
             if (document.getElementById('subtotal-hebergement')) document.getElementById('subtotal-hebergement').innerText = formatEuro(financials.subtotals.hebergement || 0);
             if (document.getElementById('subtotal-restauration')) document.getElementById('subtotal-restauration').innerText = formatEuro(financials.subtotals.restauration || 0);
             if (document.getElementById('subtotal-salles')) document.getElementById('subtotal-salles').innerText = formatEuro(financials.subtotals.options || 0);
             if (document.getElementById('subtotal-activities')) document.getElementById('subtotal-activities').innerText = formatEuro(financials.subtotals.activities || 0);
+
+            // Grand total depuis le dossier (source de vérité)
+            if (document.getElementById('display-total-ht'))  document.getElementById('display-total-ht').innerText  = formatEuro(totalHT);
+            if (document.getElementById('display-total-tva')) document.getElementById('display-total-tva').innerText = formatEuro(totalTVA);
+            if (document.getElementById('display-total-ttc')) document.getElementById('display-total-ttc').innerText = formatEuro(totalTTC);
+            if (document.getElementById('display-deposit'))   document.getElementById('display-deposit').innerText   = formatEuro(financials.acompte30 || totalTTC * 0.3);
         }
 
         /**
          * Construit la grille de repas depuis le planning du dossier
          */
         function addMealGridFromDossier(dossier) {
-            const mealGridContainer = document.getElementById('meal-grid-section');
-            if (!mealGridContainer) return;
+            if (!dossier || !dossier.sejour) return;
 
-            const planning = dossier.mealsPlanning;
-            if (!planning || planning.length === 0) return;
+            // Source de vérité : nuits depuis le séjour (dérivées des dates),
+            // PAS depuis la longueur de planning sauvegardée.
+            const planning = dossier.mealsPlanning || [];
+            const nights = (typeof dossier.sejour.nights === 'number')
+                ? dossier.sejour.nights
+                : Math.max(0, planning.length - 1);
+            const days = nights + 1;
+            if (days <= 0) return;
 
-            let html = `<table class="pricing-table meal-grid" style="font-size: 8pt; margin-top: 5px;">
-                <thead><tr>
-                    <th style="text-align:left; padding:4px 8px;">Jour</th>
-                    <th style="text-align:center; padding:4px;">Pt-déj</th>
-                    <th style="text-align:center; padding:4px;">Col. M</th>
-                    <th style="text-align:center; padding:4px;">Déjeuner</th>
-                    <th style="text-align:center; padding:4px;">Col. AM</th>
-                    <th style="text-align:center; padding:4px;">Dîner</th>
-                </tr></thead><tbody>`;
+            const fakeFields = {
+                'Date arrivée':        dossier.sejour.dateArrivee,
+                'Nuits':               nights,
+                'Nombre de personnes': dossier.sejour.participants || 1,
+            };
 
-            planning.forEach(day => {
-                const m = day.meals;
-                html += `<tr>
-                    <td style="padding:3px 8px; font-weight:600;">${day.label}</td>
-                    <td style="text-align:center; padding:3px;">${m.petitDej || '—'}</td>
-                    <td style="text-align:center; padding:3px;">${m.collationMatin || '—'}</td>
-                    <td style="text-align:center; padding:3px;">${m.dejeuner || '—'}</td>
-                    <td style="text-align:center; padding:3px;">${m.collationAprem || '—'}</td>
-                    <td style="text-align:center; padding:3px;">${m.diner || '—'}</td>
-                </tr>`;
+            // Padder/tronquer pour matcher le nombre de jours réel du séjour.
+            // Les jours sans état sauvegardé apparaissent avec toutes les cases décochées
+            // au lieu de disparaître (auto-réparation des dossiers tronqués).
+            const savedState = Array.from({ length: days }, (_, i) => {
+                const day = planning[i];
+                if (!day || !day.meals) {
+                    return { petitDej: false, collationMatin: false, dejeuner: false, collationAprem: false, diner: false };
+                }
+                return {
+                    petitDej:       (day.meals.petitDej       || 0) > 0,
+                    collationMatin: (day.meals.collationMatin || 0) > 0,
+                    dejeuner:       (day.meals.dejeuner       || 0) > 0,
+                    collationAprem: (day.meals.collationAprem || 0) > 0,
+                    diner:          (day.meals.diner          || 0) > 0,
+                };
             });
 
-            html += '</tbody></table>';
-            mealGridContainer.innerHTML = html;
+            addMealGrid(fakeFields, savedState);
         }
 
         // --- NOUVEAUTÉ : Fonctions de Snapshot ---
@@ -900,10 +1388,90 @@
             return state;
         }
 
+        /**
+         * Capture les lignes d'un tbody et les normalise au format financials.lines.
+         * Extrait le contenu propre (label + subtitle) depuis les divs dédiés,
+         * pas le HTML brut de la cellule entière.
+         */
+        function captureRowsForDossier(tbodyId) {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return [];
+            const rows = [];
+            Array.from(tbody.children).forEach(tr => {
+                if (tr.tagName !== 'TR') return;
+                if (tr.classList.contains('category-row')) {
+                    rows.push({ type: 'category', title: tr.querySelector('td')?.innerText.trim() });
+                } else if (tr.classList.contains('subtotal-row')) {
+                    const label = tr.querySelector('span')?.innerText.replace('Sous-total ', '').replace(' HT', '') || '';
+                    const id = tr.querySelector('.subtotal-val')?.id;
+                    rows.push({ type: 'subtotal', label, id });
+                } else if (!tr.classList.contains('meal-grid-row')) {
+                    // Extraire label et subtitle depuis leurs divs propres
+                    const labelEl    = tr.querySelector('.row-label');
+                    const subtitleEl = tr.querySelector('.row-subtitle');
+                    const labelText    = labelEl    ? labelEl.innerHTML.trim()    : (tr.cells[0]?.innerText.trim() || '');
+                    const subtitleText = subtitleEl ? subtitleEl.innerText.trim() : '';
+
+                    const qtyStr   = tr.querySelector('.qty')?.innerText      || '0';
+                    const priceStr = tr.querySelector('.price')?.innerText     || '0';
+                    const tvaStr   = tr.querySelector('.tva-rate')?.innerText  || '10%';
+                    const mealKey  = tr.getAttribute('data-meal-key') || null;
+
+                    const qty      = parseFloat(String(qtyStr).replace(',', '.'))                           || 0;
+                    const price    = parseFloat(String(priceStr).replace(/[^\d.,-]/g, '').replace(',', '.'))|| 0;
+                    const tvaNum   = parseFloat(String(tvaStr).replace(/[^\d.,]/g, '').replace(',', '.'))   || 0;
+
+                    const entry = {
+                        type: 'pricing',
+                        label: labelText,
+                        qty,
+                        unitPriceHT: price,
+                        tvaRate: tvaNum,
+                        totalHT: Math.round(qty * price * 100) / 100,
+                        mealKey,
+                    };
+                    if (subtitleText) entry.subtitle = subtitleText;
+                    rows.push(entry);
+                }
+            });
+            return rows;
+        }
+
+        /**
+         * Capture le planning repas au format mealsPlanning du dossier
+         */
+        function captureMealPlanningForDossier() {
+            const gridState = captureMealGrid();
+            if (!gridState || gridState.length === 0) return currentDossier?.mealsPlanning || [];
+            const labels = [];
+            document.querySelector('.meal-check-grid')?.querySelectorAll('tbody tr').forEach(tr => {
+                labels.push(tr.cells[0]?.innerText?.trim() || '');
+            });
+            return gridState.map((day, i) => {
+                const prev = currentDossier?.mealsPlanning?.[i]?.meals || {};
+                return {
+                    label: labels[i] || `Jour ${i + 1}`,
+                    meals: {
+                        petitDej:       day.petitDej       ? (prev.petitDej       || 1) : 0,
+                        collationMatin: day.collationMatin ? (prev.collationMatin || 1) : 0,
+                        dejeuner:       day.dejeuner       ? (prev.dejeuner       || 1) : 0,
+                        collationAprem: day.collationAprem ? (prev.collationAprem || 1) : 0,
+                        diner:          day.diner          ? (prev.diner          || 1) : 0,
+                    }
+                };
+            });
+        }
+
         const addRowBefore = (btn) => SesquierUtils.addRowBefore(btn);
 
         function addCategoryRow(title, targetId) { return SesquierUtils.addCategoryRow(title, targetId); }
         function addPricingRow(label, qty, price, tva, mealKey, targetId) { return SesquierUtils.addPricingRow(label, qty, price, tva, mealKey, targetId); }
+
+        function addManualRow(targetId) {
+            SesquierUtils.addPricingRow('Prestation...', 1, 0, '10%', null, targetId);
+            updateCalculations();
+        }
+
         function createPricingRow(label, qty, price, tva, mealKey) { return SesquierUtils.createPricingRow(label, qty, price, tva, mealKey); }
         function removeRow(btn, event) { return SesquierUtils.removeRow(btn, event); }
         function addSubtotalRow(label, id, targetId) { return SesquierUtils.addSubtotalRow(label, id, targetId); }
@@ -1028,7 +1596,7 @@
             if (depositEl) depositEl.innerText = formatEuro(ttc * 0.3);
 
             // Mise à jour de la synthèse (Total par personne)
-            const n = currentRecord?.fields?.["Nombre de personnes"] || 0;
+            const n = currentRecord?.nbPersonnes || currentRecord?.fields?.["Nombre de personnes"] || 0;
             if (n > 0) {
                 const tsBox = document.getElementById('price-total-summary');
                 if (tsBox) tsBox.innerText = `Total séjour : ${formatEuro(totalHT)} HT (${formatEuro(ttc)} TTC)`;
@@ -1046,87 +1614,228 @@
             const btn = document.querySelector('button[onclick="saveToAirtable()"]');
             try {
                 if (btn) { btn.innerText = "Sauvegarde..."; btn.disabled = true; }
-                const parseVal = (id) => {
+
+                // 1. Recalculer les totaux depuis le DOM
+                SesquierUtils.runCommonCalculations();
+
+                const getNum = (id) => {
                     const el = document.getElementById(id);
                     if (!el) return 0;
-                    // Check if parent row is visible
-                    const parentRow = el.closest('.total-row');
-                    if (parentRow && parentRow.style.display === 'none') return 0;
                     return parseFloat(el.innerText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
                 };
 
-                // CAPTURE DU SNAPSHOT COMPLET
-                const snapshot = {
-                    pricing: captureTableRows('pricing-body'),
-                    options: captureTableRows('options-body'),
-                    activities: captureTableRows('activities-body'),
-                    mealGridState: captureMealGrid()
+                // 2. Capturer les lignes au format dossier
+                const pricingLines  = captureRowsForDossier('pricing-body');
+                const optionsLines  = captureRowsForDossier('options-body');
+                const activitesLines = captureRowsForDossier('activities-body');
+                const mealsPlanning = captureMealPlanningForDossier();
+
+                // 3. Lire les sous-totaux depuis le DOM
+                const sHeberg = getNum('subtotal-hebergement');
+                const sRestau = getNum('subtotal-restauration');
+                const sOpt    = getNum('subtotal-salles');
+                const sActiv  = getNum('subtotal-activities');
+
+                // 4. Lire les grands totaux
+                const totalHT  = getNum('display-total-ht');
+                const totalTVA = getNum('display-total-tva');
+                const totalTTC = getNum('display-total-ttc');
+                const acompte  = Math.round(totalTTC * 0.3 * 100) / 100;
+
+                // 5. Lire les infos client depuis le DOM
+                const clientInfoEl = document.querySelector('.client-info');
+                const tds = clientInfoEl ? [...clientInfoEl.querySelectorAll('td')] : [];
+                const org      = tds[1]?.innerText?.trim() || currentDossier?.client?.organisation || '';
+                const fullName = tds[3]?.innerText?.trim() || currentDossier?.client?.fullName || '';
+                const email    = tds[5]?.innerText?.trim() || currentDossier?.client?.email || '';
+                const phone    = tds[7]?.innerText?.trim() || currentDossier?.client?.phone || '';
+
+                // 6. Construire le dossier complet (on part de currentDossier pour garder sejour/sleeping/options)
+                // Si currentDossier est null (nouveau record), reconstruire sejour depuis les champs du record
+                const baseFields = currentRecord?.fields || {};
+                const fallbackSejour = currentDossier?.sejour || {
+                    dateArrivee: baseFields['Date arrivée'] || null,
+                    dateDepart:  baseFields['Date départ']  || null,
+                    dateArriveeFormatted: baseFields['Date arrivée'] ? new Date(baseFields['Date arrivée']).toLocaleDateString('fr-FR', {day:'numeric', month:'long'}) : '—',
+                    dateDepartFormatted:  baseFields['Date départ']  ? new Date(baseFields['Date départ']).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'}) : '—',
+                    nights: 1,
+                    days: 2,
+                    participants: parseInt(baseFields['Nombre de personnes'] || baseFields['Nb personnes'] || 0, 10),
+                    adultes: parseInt(baseFields['Nombre de personnes'] || 0, 10),
+                    enfants: 0,
+                    bebes: 0,
+                    mealMode: 'pension',
+                    mealModeLabel: 'Pension Complète',
                 };
 
-                // Récupération des infos client éventuellement modifiées
-                const clientBox = document.querySelector('.client-info');
-                const orgName = clientBox?.querySelector('strong')?.innerText || "";
-                
-                // On cherche le nom du référent (souvent 2ème ligne du tableau info)
-                const refCell = clientBox?.querySelectorAll('td')[3]; // Organisation est en index 1, Nom en 3
-                const clientName = refCell?.innerText || "";
+                const dossier = {
+                    ...(currentDossier || {}),
+                    version: "1.0.0",
+                    meta: {
+                        ...(currentDossier?.meta || {}),
+                        airtableId: currentRequestId,
+                        statut: "devis envoyé",
+                        updatedAt: new Date().toISOString(),
+                        typeLabel: currentDossier?.meta?.typeLabel || baseFields['Type'] || 'Séminaire professionnel',
+                        mode: currentDossier?.meta?.mode || 'pro',
+                    },
+                    client: {
+                        ...(currentDossier?.client || {}),
+                        organisation: org,
+                        fullName,
+                        email,
+                        phone,
+                    },
+                    sejour: fallbackSejour,
+                    financials: {
+                        ...(currentDossier?.financials || {}),
+                        lines: [
+                            ...pricingLines.map(l => ({ ...l, section: 'pricing' })),
+                            ...optionsLines.map(l => ({ ...l, section: 'options' })),
+                        ],
+                        activitesLines,
+                        subtotals: { hebergement: sHeberg, restauration: sRestau, options: sOpt, activites: sActiv },
+                        totalHT,
+                        totalTVA,
+                        totalTTC,
+                        acompte30: acompte,
+                        solde: Math.round((totalTTC - acompte) * 100) / 100,
+                        prixParPersonneHT: (currentDossier?.sejour?.participants || 1) > 0
+                            ? Math.round(totalHT / (currentDossier?.sejour?.participants || 1) * 100) / 100 : 0,
+                    },
+                    mealsPlanning,
+                };
 
+                // 7. Mettre à jour currentDossier
+                currentDossier = dossier;
+
+                // 8. Envoi vers le backend
                 const payload = {
                     id: currentRequestId,
                     fields: {
-                        "Nom client": clientName.trim(),
-                        "Montant Hébergement HT": parseVal('subtotal-hebergement'),
-                        "Montant Repas HT": parseVal('subtotal-restauration'),
-                        "Montant Options HT": parseVal('subtotal-salles'),
-                        "Statut": ["devis envoyé"],
-                        "JSON": JSON.stringify(snapshot)
+                        "Nom client": fullName || org || currentDossier?.client?.fullName || '',
+                        "Statut": "devis envoyé",
+                        "Montant Hébergement HT": sHeberg,
+                        "Montant Repas HT": sRestau,
+                        "Montant Options HT": sOpt + sActiv,
+                        "Budget estimé": Math.round(totalTTC) + "€",
+                        "DOSSIER JSON": JSON.stringify(dossier)
                     }
                 };
 
-                const data = await SesquierUtils.fetchJson(API_RESERVATIONS_URL, {
+                await SesquierUtils.fetchJson(API_RESERVATIONS_URL, {
                     method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
 
-                // Broadcast update
+                _ignoreSelfUpdate = true; // Ne pas recharger après notre propre sauvegarde
                 SesquierUtils.broadcast('RECORD_UPDATED', { id: currentRequestId, fields: payload.fields });
-
-                alert("✅ Devis et intitulé sauvegardés dans Airtable !");
-            } catch (e) { alert("❌ Erreur : " + e.message); }
-            finally { if (btn) { btn.innerText = "Enregistrer (Airtable)"; btn.disabled = false; } }
+                markClean(); // ✅ Plus de modifications non sauvegardées
+                if (btn) btn.style.background = '#2D8B56';
+                setTimeout(() => { if (btn) btn.style.background = ''; }, 2000);
+                if (btn) { btn.innerText = "✅ Sauvegardé !"; btn.disabled = false; }
+                setTimeout(() => { if (btn) btn.innerText = "Enregistrer"; }, 2500);
+                return; // Évite le finally de remettre le texte trop tôt
+            } catch (e) { alert("❌ Erreur de sauvegarde : " + e.message); }
+            finally { if (btn && btn.innerText === "Sauvegarde...") { btn.innerText = "Enregistrer"; btn.disabled = false; } }
         }
 
 
 
         function generatePDF() {
-            const num = document.getElementById('devis-number').innerText.trim();
+            const numEl = document.getElementById('devis-number');
+            if (!numEl) { alert('Erreur : impossible de trouver le numéro de devis.'); return; }
+            const num = numEl.innerText.trim();
             const client = (currentRecord?.fields?.["Nom client"] || "Client").trim();
-            
             const safeClient = client.replace(/[^a-z0-9]/gi, '_').substring(0, 30);
             const safeNum = num.replace(/[^a-z0-9]/gi, '_');
             const fileName = `Devis_${safeClient}_${safeNum}.pdf`;
 
-            const wrapper = document.getElementById('pdf-wrapper');
-            const pages = document.querySelectorAll('.page');
+            // Masquer bibliothèque si ouverte
+            const libPanel = document.getElementById('library-panel');
+            const libWasOpen = libPanel?.classList.contains('open');
+            if (libWasOpen) libPanel.classList.remove('open');
 
-            // Préparation pour l'export
-            document.body.classList.add('is-exporting-pdf');
-            pages.forEach(p => p.style.minHeight = 'unset');
+            // Overlay utilisateur pendant la génération
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,0.96);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;font-size:14px;color:#3A5538;';
+            overlay.innerHTML = '<div style="text-align:center"><div style="font-size:28px;margin-bottom:10px;">📄</div><strong>Génération du PDF en cours…</strong></div>';
+            document.body.appendChild(overlay);
 
-            // On utilise margin: 0 car la classe .page a déjà ses propres marges de 15mm
-            SesquierUtils.generatePDF(wrapper, fileName, {
-                margin: 0,
-                html2canvas: { 
-                    scale: 2, 
-                    useCORS: true, 
+            const source = document.getElementById('pdf-wrapper');
+
+            SesquierUtils.generatePDF(source, fileName, {
+                margin: [0, 0, 0, 0],
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
                     letterRendering: true,
+                    backgroundColor: '#ffffff',
                     scrollX: 0,
-                    scrollY: 0
+                    scrollY: 0,
+                    // windowWidth = largeur A4 exacte à 96dpi (210mm).
+                    // Sans ça, html2canvas utilise la largeur du navigateur → décalage.
+                    windowWidth: 794,
+                    // onclone : modifie le document cloné d'html2canvas avant rendu.
+                    // C'est ici qu'on corrige le body flex (qui décale la capture),
+                    // sans jamais toucher au vrai DOM visible.
+                    onclone: (clonedDoc) => {
+                        const style = clonedDoc.createElement('style');
+                        style.textContent = `
+                            body {
+                                display: block !important;
+                                padding: 0 !important;
+                                margin: 0 !important;
+                                background: white !important;
+                                align-items: unset !important;
+                            }
+                            #pdf-wrapper { margin: 0 !important; width: 794px !important; }
+                            .no-print, .page-separator, .controls-bar,
+                            .btn, .controls-bar button,
+                            #library-toggle, #library-panel { display: none !important; }
+                            .page {
+                                box-shadow: none !important;
+                                margin-bottom: 0 !important;
+                                min-height: 0 !important;
+                                font-size: 9.5pt !important;
+                                width: 794px !important;
+                            }
+                            .subtotal-row td {
+                                color: #222222 !important;
+                                opacity: 1 !important;
+                                background: #f5f5f5 !important;
+                            }
+                            .subtotal-row .subtotal-val {
+                                color: #3A5538 !important;
+                                font-weight: 700 !important;
+                            }
+                            .print-footer {
+                                position: relative !important;
+                                inset: auto !important;
+                                bottom: auto !important;
+                                left: auto !important;
+                                right: auto !important;
+                                margin-top: 10px !important;
+                            }
+                            #options-proposal {
+                                page-break-before: always !important;
+                                break-before: page !important;
+                            }
+                        `;
+                        clonedDoc.head.appendChild(style);
+                    },
                 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                pagebreak: {
+                    mode: ['css', 'legacy'],
+                    before: '#options-proposal',
+                    avoid: ['tr', '.subtotal-row', '.category-row', '.meal-grid-row'],
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
             }).finally(() => {
-                document.body.classList.remove('is-exporting-pdf');
-                pages.forEach(p => p.style.minHeight = '');
+                document.body.removeChild(overlay);
+                if (libWasOpen) libPanel.classList.add('open');
             });
         }
 
@@ -1138,15 +1847,372 @@
         }, true);
 
         // --- Sync Logic ---
+        // Le devis NE recharge JAMAIS son propre DOM sur RECORD_UPDATED.
+        // Il est la source des modifications : recharger effacerait les éditions en cours.
+        // Les autres iframes (Suivi, Config…) peuvent recharger, pas le Devis.
         window.addEventListener('message', async (event) => {
-            if (event.data.type === 'RECORD_UPDATED' && event.data.id === currentRequestId) {
-                console.log("🔄 Devis: Syncing data for", event.data.id);
-                // On ne recharge que si on n'est pas en train d'éditer ? 
-                // Pour le devis c'est un peu différent car il y a beaucoup d'état local
-                // Mais le nom du client par exemple doit être mis à jour.
-                loadReservationData(currentRequestId);
+            if (event.data.type === 'SWITCH_TAB' && event.data.tab) {
+                // Gestion changement d'onglet demandé par un autre iframe
             }
+            // RECORD_UPDATED ignoré volontairement dans le Devis
         });
+
+        // =====================================================================
+        // BIBLIOTHÈQUE DE PRESTATIONS
+        // =====================================================================
+        let libraryData = [];
+        let libraryLoaded = false;
+
+        const CATEGORY_MAP = {
+            'Hébergement':          { tbody: 'pricing-body',     color: '#3b82f6' },
+            'Restauration':         { tbody: 'pricing-body',     color: '#10b981' },
+            'Options & Salles':     { tbody: 'options-body',     color: '#f59e0b' },
+            'Activités & Services Annexes':  { tbody: 'activities-body',  color: '#f97316' },
+            'Team Building':        { tbody: 'activities-body',  color: '#ef4444' },
+            'Sport & Plein Air':    { tbody: 'activities-body',  color: '#22c55e' },
+            'Culture & Découverte': { tbody: 'activities-body',  color: '#8b5cf6' },
+            'Bien-être & Spa':      { tbody: 'activities-body',  color: '#ec4899' },
+        };
+
+        async function loadLibrary() {
+            if (libraryLoaded) return;
+            try {
+                const data = await SesquierUtils.fetchJson(
+                    `${SesquierUtils.API_BASE}/api/library`
+                );
+                libraryData = (data.records || []).map(r => ({
+                    id: r.id,
+                    nom: r.fields['Nom'] || '',
+                    description: r.fields['Description'] || '',
+                    categorie: r.fields['Catégorie'] || '',
+                    prixHT: parseFloat(r.fields['Prix HT']) || 0,
+                    tva: r.fields['TVA'] || '10%',
+                }));
+                libraryLoaded = true;
+                renderLibrary();
+            } catch(e) {
+                const libBody = document.getElementById('lib-body');
+                if (libBody) {
+                    libBody.innerHTML = `<div class="lib-empty">Erreur de chargement.<br>${e.message}</div>`;
+                } else {
+                    console.error('[Bibliothèque] Erreur de chargement :', e.message);
+                }
+            }
+        }
+
+        function renderLibrary(search = '') {
+            const body = document.getElementById('lib-body');
+            if (!body) return;
+            const q = search.toLowerCase().trim();
+            const items = q
+                ? libraryData.filter(i => (i.nom + i.description + i.categorie).toLowerCase().includes(q))
+                : libraryData;
+
+            if (items.length === 0) {
+                body.innerHTML = `<div class="lib-empty">${libraryLoaded ? 'Aucune prestation trouvée.' : 'Chargement...'}</div>`;
+                return;
+            }
+
+            // Grouper par catégorie
+            const groups = {};
+            const catOrder = [
+                'Hébergement', 'Restauration', 'Options & Salles',
+                'Activités & Services Annexes', 'Team Building', 'Sport & Plein Air',
+                'Culture & Découverte', 'Bien-être & Spa'
+            ];
+            items.forEach(i => {
+                const cat = i.categorie || 'Autres';
+                if (!groups[cat]) groups[cat] = [];
+                groups[cat].push(i);
+            });
+
+            let html = '';
+            const orderedCats = [...catOrder.filter(c => groups[c]), ...Object.keys(groups).filter(c => !catOrder.includes(c))];
+            orderedCats.forEach(cat => {
+                const color = CATEGORY_MAP[cat]?.color || '#6b7280';
+                html += `<div class="lib-category" style="color:${color};">${cat}</div>`;
+                groups[cat].forEach(item => {
+                    const itemJson = JSON.stringify(item).replace(/"/g, '&quot;');
+                    const displayName = item.nom || item.description || '(sans nom)';
+                    const displaySubLabel = item.nom && item.description ? item.description : '';
+                    html += `
+                        <div class="lib-item" draggable="true" data-item-id="${item.id}"
+                             title="Glisser-déposer dans le devis, ou cliquer + pour ajouter"
+                             ondragstart="libDragStart(event, ${itemJson})"
+                             ondragend="libDragEnd(event)">
+                            <div class="lib-item-row">
+                                <div style="flex:1; min-width:0; cursor:pointer;" onclick="addLibraryItem(${itemJson})">
+                                    <div class="lib-item-name">${displayName}</div>
+                                    ${displaySubLabel ? `<div class="lib-item-desc">${displaySubLabel}</div>` : ''}
+                                    <div class="lib-item-meta">
+                                        <span class="lib-item-price">${item.prixHT.toFixed(2)} € HT</span>
+                                        <span class="lib-item-tva">· TVA ${item.tva}</span>
+                                    </div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:4px;">
+                                    <button class="lib-item-add" title="Ajouter au devis" onclick="addLibraryItem(${itemJson})">+</button>
+                                    <div class="lib-item-actions">
+                                        <button class="lib-item-edit" title="Modifier" onclick="openLibraryModal(${itemJson})">✏️</button>
+                                        <button class="lib-item-del"  title="Supprimer" onclick="confirmDeleteLibraryItem('${item.id}')">🗑</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+            });
+            body.innerHTML = html;
+        }
+
+        // Mapping catégorie → sous-section précise dans pricing-body
+        const SECTION_SUBTOTAL = {
+            'Hébergement': 'subtotal-hebergement',
+            'Restauration': 'subtotal-restauration',
+        };
+
+        function addLibraryItem(item) {
+            const map = CATEGORY_MAP[item.categorie];
+            const tbodyId = map ? map.tbody : 'pricing-body';
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+
+            // Pour les items existants en base (nom vide, texte dans description),
+            // on utilise description comme titre affiché.
+            const displayNom = item.nom || item.description || 'Prestation';
+            const displayDesc = item.nom ? item.description : ''; // subtitle seulement si nom distinct
+
+            const newRow = SesquierUtils.createPricingRow(displayNom, 1, item.prixHT, item.tva || '10%');
+            const labelEl = newRow.querySelector('.row-label');
+            if (labelEl) labelEl.innerText = displayNom; // force innerText (sécurité html)
+            if (displayDesc) {
+                const subtitleEl = newRow.querySelector('.row-subtitle');
+                if (subtitleEl) subtitleEl.innerText = displayDesc;
+            }
+
+            // Trouver l'ancre d'insertion : sous-total de la bonne sous-section
+            const subtotalId = SECTION_SUBTOTAL[item.categorie];
+            let anchor = subtotalId ? document.getElementById(subtotalId)?.closest('tr') : null;
+            // Fallback : premier sous-total du tbody
+            if (!anchor) anchor = tbody.querySelector('.subtotal-row');
+
+            if (anchor) {
+                tbody.insertBefore(newRow, anchor);
+            } else {
+                tbody.appendChild(newRow);
+            }
+
+            if (typeof updateCalculations === 'function') updateCalculations();
+
+            // Scroll vers la nouvelle ligne + flash
+            newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            newRow.style.background = '#f0f9f4';
+            setTimeout(() => { newRow.style.background = ''; }, 1000);
+        }
+
+        // =====================================================================
+        // DRAG-AND-DROP DEPUIS LA BIBLIOTHÈQUE
+        // =====================================================================
+        let _libDragItem = null;
+
+        function libDragStart(event, item) {
+            _libDragItem = item;
+            event.dataTransfer.effectAllowed = 'copy';
+            event.dataTransfer.setData('text/plain', JSON.stringify(item));
+            // Style visuel sur l'élément draggé
+            const el = event.currentTarget;
+            setTimeout(() => el.classList.add('lib-dragging'), 0);
+            // Activer les zones de drop dans les tableaux
+            enableTableDropZones();
+        }
+
+        function libDragEnd(event) {
+            _libDragItem = null;
+            event.currentTarget.classList.remove('lib-dragging');
+            clearTableDropZones();
+        }
+
+        function enableTableDropZones() {
+            const tbodies = ['pricing-body', 'options-body', 'activities-body'];
+            tbodies.forEach(tbodyId => {
+                const tbody = document.getElementById(tbodyId);
+                if (!tbody) return;
+                tbody.querySelectorAll('tr').forEach(tr => {
+                    tr.addEventListener('dragover', _rowDragOver);
+                    tr.addEventListener('dragleave', _rowDragLeave);
+                    tr.addEventListener('drop', _rowDrop);
+                });
+                // Drop sur le tbody lui-même (fin de tableau)
+                tbody.addEventListener('dragover', _tbodyDragOver);
+                tbody.addEventListener('drop', _tbodyDrop);
+            });
+        }
+
+        function clearTableDropZones() {
+            document.querySelectorAll('tr.lib-drop-target, tr.lib-drop-after').forEach(tr => {
+                tr.classList.remove('lib-drop-target', 'lib-drop-after');
+                tr.removeEventListener('dragover', _rowDragOver);
+                tr.removeEventListener('dragleave', _rowDragLeave);
+                tr.removeEventListener('drop', _rowDrop);
+            });
+            ['pricing-body','options-body','activities-body'].forEach(id => {
+                const t = document.getElementById(id);
+                if (t) { t.removeEventListener('dragover', _tbodyDragOver); t.removeEventListener('drop', _tbodyDrop); }
+            });
+        }
+
+        function _rowDragOver(e) {
+            if (!_libDragItem) return;
+            e.preventDefault(); e.stopPropagation();
+            e.dataTransfer.dropEffect = 'copy';
+            document.querySelectorAll('tr.lib-drop-target').forEach(r => r.classList.remove('lib-drop-target'));
+            this.classList.add('lib-drop-target');
+        }
+        function _rowDragLeave(e) { this.classList.remove('lib-drop-target'); }
+        function _rowDrop(e) {
+            if (!_libDragItem) return;
+            e.preventDefault(); e.stopPropagation();
+            this.classList.remove('lib-drop-target');
+            const tbody = this.closest('tbody');
+            _insertLibItemBefore(_libDragItem, this, tbody);
+            clearTableDropZones();
+        }
+        function _tbodyDragOver(e) {
+            if (!_libDragItem) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        }
+        function _tbodyDrop(e) {
+            if (!_libDragItem) return;
+            e.preventDefault();
+            const tbody = e.currentTarget;
+            // Insérer à la fin (avant le dernier sous-total)
+            const lastSubtotal = [...tbody.querySelectorAll('.subtotal-row')].pop();
+            _insertLibItemBefore(_libDragItem, lastSubtotal || null, tbody);
+            clearTableDropZones();
+        }
+
+        function _insertLibItemBefore(item, refRow, tbody) {
+            const displayNom  = item.nom || item.description || 'Prestation';
+            const displayDesc = item.nom ? item.description : '';
+            const newRow = SesquierUtils.createPricingRow(displayNom, 1, item.prixHT, item.tva || '10%');
+            const labelEl = newRow.querySelector('.row-label');
+            if (labelEl) labelEl.innerText = displayNom;
+            if (displayDesc) {
+                const sub = newRow.querySelector('.row-subtitle');
+                if (sub) sub.innerText = displayDesc;
+            }
+            if (refRow) tbody.insertBefore(newRow, refRow);
+            else tbody.appendChild(newRow);
+            if (typeof updateCalculations === 'function') updateCalculations();
+            newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            newRow.style.background = '#fef9f0';
+            setTimeout(() => { newRow.style.background = ''; }, 1000);
+        }
+
+        function toggleLibrary() {
+            const panel = document.getElementById('library-panel');
+            if (!panel) return;
+            const isOpen = panel.classList.toggle('open');
+            // Décale la barre de contrôles pour éviter la superposition
+            const ctrl = document.querySelector('.controls-bar');
+            if (ctrl) ctrl.style.right = isOpen ? '380px' : '20px';
+            if (isOpen && !libraryLoaded) loadLibrary();
+        }
+
+        // =====================================================================
+        // CRUD BIBLIOTHÈQUE
+        // =====================================================================
+        function openLibraryModal(item) {
+            const overlay = document.getElementById('lib-modal-overlay');
+            if (!overlay) return;
+
+            const setVal  = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+            const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+            setText('lib-modal-title', item ? 'Modifier la prestation' : 'Nouvelle prestation');
+            setVal('lib-modal-id',  item ? (item.id || '') : '');
+            setVal('lib-f-nom',     item ? (item.nom || '') : '');
+            setVal('lib-f-desc',    item ? (item.description || '') : '');
+            setVal('lib-f-cat',     item ? (item.categorie || '') : '');
+            setVal('lib-f-prix',    item ? (item.prixHT || '') : '');
+            setVal('lib-f-tva',     item ? (item.tva || '10%') : '10%');
+
+            const delBtn = document.getElementById('lib-modal-del-btn');
+            if (delBtn) {
+                delBtn.style.display = item ? 'inline-block' : 'none';
+                delBtn.onclick = item ? () => confirmDeleteLibraryItem(item.id) : null;
+            }
+
+            overlay.classList.add('open');
+            const nomEl = document.getElementById('lib-f-nom');
+            if (nomEl) nomEl.focus();
+        }
+
+        function closeLibraryModal() {
+            document.getElementById('lib-modal-overlay').classList.remove('open');
+        }
+
+        async function saveLibraryItem() {
+            const id     = document.getElementById('lib-modal-id').value;
+            const nom    = document.getElementById('lib-f-nom').value.trim();
+            const desc   = document.getElementById('lib-f-desc').value.trim();
+            const cat    = document.getElementById('lib-f-cat').value;
+            const prix   = parseFloat(document.getElementById('lib-f-prix').value) || 0;
+            const tva    = document.getElementById('lib-f-tva').value;
+
+            if (!nom) { alert('Le nom est obligatoire.'); return; }
+            if (!cat) { alert('Sélectionnez une catégorie.'); return; }
+
+            const fields = { Nom: nom, Description: desc, 'Catégorie': cat, 'Prix HT': prix, TVA: tva };
+
+            const btn = document.querySelector('#lib-modal-overlay button[onclick="saveLibraryItem()"]');
+            if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
+
+            try {
+                let result;
+                if (id) {
+                    result = await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/library`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id, fields }),
+                    });
+                    const idx = libraryData.findIndex(i => i.id === id);
+                    if (idx !== -1) libraryData[idx] = { id, nom, description: desc, categorie: cat, prixHT: prix, tva };
+                } else {
+                    result = await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/library`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fields }),
+                    });
+                    if (!result?.id) throw new Error('Réponse invalide du serveur (id manquant)');
+                    libraryData.push({
+                        id: result.id,
+                        nom, description: desc, categorie: cat, prixHT: prix, tva
+                    });
+                }
+                closeLibraryModal();
+                renderLibrary(document.getElementById('lib-search-input')?.value || '');
+            } catch(e) {
+                alert('Erreur : ' + e.message);
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer'; }
+            }
+        }
+
+        async function confirmDeleteLibraryItem(id) {
+            if (!confirm('Supprimer définitivement cette prestation ?')) return;
+            try {
+                await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/library`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id }),
+                });
+                libraryData = libraryData.filter(i => i.id !== id);
+                closeLibraryModal();
+                renderLibrary(document.getElementById('lib-search-input')?.value || '');
+            } catch(e) {
+                alert('Erreur suppression : ' + e.message);
+            }
+        }
     </script>
 </body>
 

@@ -54,7 +54,20 @@ body {
 /* --- PDF Export Optimization --- */
 #pdf-wrapper {
     width: var(--width-a4);
-    background: #f0f0f0; /* Même fond que le body pour la capture si besoin */
+    background: white;
+}
+
+/* Body : retire le centrage flex pendant l'export — sinon html2canvas
+   capture le wrapper avec son décalage horizontal, ce qui rogne le contenu. */
+body.is-exporting-pdf {
+    display: block !important;
+    align-items: unset !important;
+    padding: 0 !important;
+    background: white !important;
+}
+
+body.is-exporting-pdf #pdf-wrapper {
+    margin: 0 !important;
 }
 
 .is-exporting-pdf .no-print,
@@ -64,9 +77,77 @@ body {
     display: none !important;
 }
 
+/* Le padding interne du .page est supprimé : html2pdf gère les marges A4
+   via son option `margin`. Avoir 2 niveaux de padding superpose des marges. */
 .is-exporting-pdf .page {
     margin-bottom: 0;
     box-shadow: none;
+    min-height: 0 !important;
+    padding: 0 !important;
+    font-size: 9.5pt;
+}
+
+.is-exporting-pdf tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+.is-exporting-pdf .pricing-table {
+    page-break-inside: auto;
+}
+
+.is-exporting-pdf #options-proposal {
+    page-break-before: always;
+    break-before: page;
+}
+
+/* Remet le footer dans le flux pour qu'il contribue à la hauteur capturée */
+.is-exporting-pdf .print-footer {
+    position: relative !important;
+    inset: auto !important;
+    margin-top: 10px !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+}
+
+.is-exporting-pdf header {
+    padding-bottom: 7px;
+    margin-bottom: 10px;
+}
+
+.is-exporting-pdf .info-section {
+    margin-bottom: 10px;
+}
+
+.is-exporting-pdf .pricing-table td,
+.is-exporting-pdf .pricing-table th {
+    padding: 4px 4px;
+}
+
+.is-exporting-pdf .pricing-section {
+    margin-bottom: 0;
+}
+
+/* Forcer la visibilité des sous-totaux dans le PDF */
+.is-exporting-pdf .subtotal-row td {
+    color: #1A1A1A !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    background: #f5f5f5 !important;
+}
+
+.is-exporting-pdf .subtotal-row .subtotal-val {
+    color: var(--primary) !important;
+    font-weight: 700 !important;
+}
+
+/* --- Séparateur visuel entre les deux pages (browser uniquement) --- */
+.page-separator {
+    width: var(--width-a4);
+    height: 20px;
+    background: #f0f0f0;
+    margin-bottom: 0;
 }
 
 /* --- Header --- */
@@ -404,6 +485,7 @@ section {
     display: flex;
     gap: 8px;
     z-index: 1000;
+    transition: right 0.3s ease;
 }
 
 .btn {

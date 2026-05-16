@@ -33,18 +33,15 @@ const SesquierUtils = {
      * @param {object} options 
      */
     async fetchJson(url, options = {}) {
-        console.log(`[API] Appel : ${url}`, options);
         try {
             const response = await fetch(url, options);
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error(`[API] Erreur ${response.status}:`, errorText);
                 let errorJson = {};
                 try { errorJson = JSON.parse(errorText); } catch (e) { }
                 throw new Error(errorJson.error?.message || `Erreur Serveur (${response.status})`);
             }
             const data = await response.json();
-            console.log(`[API] Succès :`, data);
             return data;
         } catch (err) {
             console.error(`[API] Échec critique pour ${url}:`, err);
@@ -136,17 +133,63 @@ const SesquierUtils = {
     createPricingRow(label, qty, price, tva, mealKey = null) {
         const tr = document.createElement('tr');
         if (mealKey) tr.dataset.mealKey = mealKey;
+        tr.draggable = true;
         tr.innerHTML = `
-            <td contenteditable="true" class="col-detail">${label}</td>
+            <td class="col-detail">
+                <div contenteditable="true" class="row-label">${label}</div>
+                <div contenteditable="true" class="row-subtitle" data-placeholder="Ajouter une description..." style="font-size:8pt; color:#888; font-style:italic; margin-top:2px; outline:none; min-height:0;"></div>
+            </td>
             <td contenteditable="true" class="qty" style="text-align: center;">${qty}</td>
             <td contenteditable="true" class="price" style="text-align: right;">${parseFloat(price).toFixed(2)}</td>
             <td class="tva-rate" contenteditable="true" style="text-align: right;">${tva}</td>
             <td class="row-total" style="text-align: right; font-weight: 600;">0.00</td>
-            <td class="no-print" style="text-align: center; vertical-align: middle;">
+            <td class="no-print" style="text-align: center; vertical-align: middle; white-space:nowrap;">
+                <span class="drag-handle no-print" title="Déplacer" style="cursor:grab; color:#ccc; font-size:11pt; padding:0 4px; user-select:none;"><i class="fa-solid fa-grip-vertical"></i></span>
                 <button onclick="SesquierUtils.removeRow(this, event)" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-size:16pt; padding:0 5px;">&times;</button>
             </td>
         `;
+        this._bindDragRow(tr);
         return tr;
+    },
+
+    _bindDragRow(tr) {
+        tr.addEventListener('dragstart', e => {
+            e.dataTransfer.effectAllowed = 'move';
+            tr.classList.add('dragging');
+            window._dragSrcRow = tr;
+        });
+        tr.addEventListener('dragend', () => {
+            tr.classList.remove('dragging');
+            document.querySelectorAll('tr.drag-over').forEach(r => r.classList.remove('drag-over'));
+            window._dragSrcRow = null;
+        });
+        tr.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (window._dragSrcRow && window._dragSrcRow !== tr) {
+                tr.classList.add('drag-over');
+            }
+        });
+        tr.addEventListener('dragleave', () => tr.classList.remove('drag-over'));
+        tr.addEventListener('drop', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            tr.classList.remove('drag-over');
+            const src = window._dragSrcRow;
+            if (!src || src === tr) return;
+            // Only reorder within same tbody
+            if (src.parentNode !== tr.parentNode) return;
+            const tbody = tr.parentNode;
+            const rows = [...tbody.querySelectorAll('tr:not(.category-row):not(.subtotal-row)')];
+            const srcIdx = rows.indexOf(src);
+            const tgtIdx = rows.indexOf(tr);
+            if (srcIdx < tgtIdx) {
+                tbody.insertBefore(src, tr.nextSibling);
+            } else {
+                tbody.insertBefore(src, tr);
+            }
+            if (typeof window.updateCalculations === 'function') window.updateCalculations();
+        });
     },
 
     removeRow(btn, event) {
@@ -247,7 +290,7 @@ const SesquierUtils = {
                 totalHT += line;
 
                 if (tbodyId === 'pricing-body') {
-                    const label = (row.cells[0]?.innerText || "").toLowerCase();
+                    const label = (row.querySelector('.row-label')?.innerText || row.cells[0]?.innerText || "").toLowerCase();
                     const isHeberg = label.includes("chambre") || label.includes("hébergement") || label.includes("héberg") || label.includes("twin");
                     
                     if (isHeberg) {
