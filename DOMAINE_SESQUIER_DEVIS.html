@@ -1835,10 +1835,14 @@
                                 background: white !important;
                                 align-items: unset !important;
                             }
-                            #pdf-wrapper { margin: 0 !important; width: 794px !important; }
+                            #pdf-wrapper {
+                                display: block !important;
+                                margin: 0 !important;
+                                width: 794px !important;
+                            }
+                            .page { display: block !important; }
                             .no-print, .page-separator, .controls-bar,
-                            .btn, .controls-bar button,
-                            #library-toggle, #library-panel { display: none !important; }
+                            .controls-bar button, #library-toggle, #library-panel { display: none !important; }
                             .page {
                                 box-shadow: none !important;
                                 margin-bottom: 0 !important;
