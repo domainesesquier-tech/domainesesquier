@@ -743,7 +743,7 @@
                     // Prevent timezone issue where midnight UTC-1 becomes previous day
                     dArr.setHours(12, 0, 0, 0);
                     dDep.setHours(12, 0, 0, 0);
-                    nights = Math.max(0, Math.round((dDep - dArr) / 86400000));
+                    nights = Math.max(1, Math.round((dDep - dArr) / 86400000));
                 }
 
                 const totalPers = draft.group?.total || 1;
@@ -923,28 +923,10 @@
             fillMetaAndClient(fields);
 
             // 3. Stay Overview Table
-            const _rawType = fields["Type"];
-            const typeLabel = (() => {
-                if (!_rawType) return "Séjour";
-                if (Array.isArray(_rawType)) return _rawType[0] || "Séjour";
-                if (typeof _rawType === 'string' && _rawType.startsWith('[')) {
-                    try { const p = JSON.parse(_rawType); return Array.isArray(p) ? p[0] : _rawType; } catch(e) {}
-                }
-                return _rawType;
-            })();
+            const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
             const dArr = fields["Date arrivée"] ? new Date(fields["Date arrivée"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : "?";
             const dDep = fields["Date départ"] ? new Date(fields["Date départ"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : "?";
-            const nNights = fields["Nuits"] != null ? fields["Nuits"] : (() => {
-                const a = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null;
-                const d = fields["Date départ"]  ? new Date(fields["Date départ"])  : null;
-                return (a && d) ? Math.max(0, Math.round((d - a) / 86400000)) : 0;
-            })();
-            console.log('[DEBUG nuits]', {
-                dateArrivéeBrute:  fields["Date arrivée"],
-                dateDépartBrute:   fields["Date départ"],
-                champsNuits:       fields["Nuits"],
-                nNightsCalculé:    nNights,
-            });
+            const nNights = fields["Nuits"] || 0;
             const nbPers = fields["Nombre de personnes"] || 0;
 
             if (document.getElementById('snap-type')) document.getElementById('snap-type').innerText = typeLabel;
@@ -962,19 +944,11 @@
                 else if (details.meals?.mode === 'demi') mealLabel = "Demi-pension";
                 else if (details.meals?.mode === 'libre') mealLabel = "Gestion libre";
 
-                const _rawTypeSyn = fields["Type"];
-                const typeLabelSyn = (() => {
-                    if (!_rawTypeSyn) return "Séjour";
-                    if (Array.isArray(_rawTypeSyn)) return _rawTypeSyn[0] || "Séjour";
-                    if (typeof _rawTypeSyn === 'string' && _rawTypeSyn.startsWith('[')) {
-                        try { const p = JSON.parse(_rawTypeSyn); return Array.isArray(p) ? p[0] : _rawTypeSyn; } catch(e) {}
-                    }
-                    return _rawTypeSyn;
-                })();
+                const typeLabelSyn = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
                 const jourTxt = daysSyn > 1 ? "jours" : "jour";
                 const nuitTxt = nNights > 1 ? "nuits" : "nuit";
                 const synthEl = document.getElementById('stay-synthesis');
-                if (synthEl) synthEl.innerText = `${typeLabelSyn} de ${nbPers} personnes — ${daysSyn} ${jourTxt} / ${nNights} ${nuitTxt}`;
+                if (synthEl) synthEl.innerText = `${typeLabelSyn} de ${nbPers} personnes — ${daysSyn} ${jourTxt} / ${nNights} ${nuitTxt} — ${mealLabel}`;
             } catch (e) { console.error("Synthesis error:", e); }
 
             // 5. Build Main Pricing Table
@@ -1041,7 +1015,7 @@
             // --- C. Options & Salles (Page 2) ---
             addCategoryRow("Mise à disposition des espaces", "options-body");
             const salleLabel = `Location Salles & Coordination logistique<br><small style='color:#666; font-weight:400;'>Coordination on-site, Salle équipée, Support technique</small>`;
-            const qS = fields["Nuits"] != null ? fields["Nuits"] : (() => { const a = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null; const d = fields["Date départ"] ? new Date(fields["Date départ"]) : null; return (a && d) ? Math.max(0, Math.round((d - a) / 86400000)) : 1; })();
+            const qS = fields["Nuits"] || 1;
             let salleAmountHT = fields["Montant Options HT"] || 0;
 
             // If amount is 0, we only show the section headers/subtotal for manual adding
@@ -1237,8 +1211,20 @@
             if (document.getElementById('total-tva')) document.getElementById('total-tva').innerText = formatEuro(totalTVA);
             if (document.getElementById('total-ttc')) document.getElementById('total-ttc').innerText = formatEuro(totalTTC);
 
-            // updateCalculations() est la seule source de vérité — calcule tout depuis le DOM
+            // Lancer le moteur de calcul pour remplir les totaux ligne par ligne + grand total
             updateCalculations();
+
+            // Forcer les sous-totaux depuis le dossier (plus fiables que la recalculation DOM)
+            if (document.getElementById('subtotal-hebergement')) document.getElementById('subtotal-hebergement').innerText = formatEuro(financials.subtotals.hebergement || 0);
+            if (document.getElementById('subtotal-restauration')) document.getElementById('subtotal-restauration').innerText = formatEuro(financials.subtotals.restauration || 0);
+            if (document.getElementById('subtotal-salles')) document.getElementById('subtotal-salles').innerText = formatEuro(financials.subtotals.options || 0);
+            if (document.getElementById('subtotal-activities')) document.getElementById('subtotal-activities').innerText = formatEuro(financials.subtotals.activities || 0);
+
+            // Grand total depuis le dossier (source de vérité)
+            if (document.getElementById('display-total-ht'))  document.getElementById('display-total-ht').innerText  = formatEuro(totalHT);
+            if (document.getElementById('display-total-tva')) document.getElementById('display-total-tva').innerText = formatEuro(totalTVA);
+            if (document.getElementById('display-total-ttc')) document.getElementById('display-total-ttc').innerText = formatEuro(totalTTC);
+            if (document.getElementById('display-deposit'))   document.getElementById('display-deposit').innerText   = formatEuro(financials.acompte30 || totalTTC * 0.3);
         }
 
         /**
@@ -1306,22 +1292,10 @@
                     </table>`;
             }
 
-            const _rawType = fields["Type"];
-            const typeLabel = (() => {
-                if (!_rawType) return "Séjour";
-                if (Array.isArray(_rawType)) return _rawType[0] || "Séjour";
-                if (typeof _rawType === 'string' && _rawType.startsWith('[')) {
-                    try { const p = JSON.parse(_rawType); return Array.isArray(p) ? p[0] : _rawType; } catch(e) {}
-                }
-                return _rawType;
-            })();
+            const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
             const dArr = fields["Date arrivée"] ? new Date(fields["Date arrivée"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : "?";
             const dDep = fields["Date départ"] ? new Date(fields["Date départ"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : "?";
-            const nNights = fields["Nuits"] != null ? fields["Nuits"] : (() => {
-                const a = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null;
-                const d = fields["Date départ"]  ? new Date(fields["Date départ"])  : null;
-                return (a && d) ? Math.max(0, Math.round((d - a) / 86400000)) : 0;
-            })();
+            const nNights = (fields["Nuits"] !== undefined) ? fields["Nuits"] : 0;
             const nbPers = (fields["Nombre de personnes"] !== undefined) ? fields["Nombre de personnes"] : 0;
 
             if (document.getElementById('snap-type')) document.getElementById('snap-type').innerText = typeLabel;
@@ -1337,7 +1311,7 @@
                 if (details.meals?.mode === 'pension') mealLabel = "Pension Complète";
                 else if (details.meals?.mode === 'demi') mealLabel = "Demi-pension";
                 else if (details.meals?.mode === 'libre') mealLabel = "Gestion libre";
-                synthEl.innerText = `${typeLabel} de ${nbPers} personnes — ${daysSyn} jours / ${nNights} nuits`;
+                synthEl.innerText = `${typeLabel} de ${nbPers} personnes — ${daysSyn} jours / ${nNights} nuits — ${mealLabel}`;
             }
 
 
@@ -1505,11 +1479,7 @@
         function addMealGrid(fields, savedState = null) {
             const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
             const dArrStr = fields["Date arrivée"];
-            const nights = fields["Nuits"] != null ? fields["Nuits"] : (() => {
-                const a = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null;
-                const d = fields["Date départ"]  ? new Date(fields["Date départ"])  : null;
-                return (a && d) ? Math.max(0, Math.round((d - a) / 86400000)) : 0;
-            })();
+            const nights = fields["Nuits"] || 0;
             const nbPers = fields["Nombre de personnes"] || 1;
             const days = nights + 1;
 
@@ -1683,18 +1653,13 @@
                 // 6. Construire le dossier complet (on part de currentDossier pour garder sejour/sleeping/options)
                 // Si currentDossier est null (nouveau record), reconstruire sejour depuis les champs du record
                 const baseFields = currentRecord?.fields || {};
-                const _fArr = baseFields['Date arrivée'] ? new Date(baseFields['Date arrivée']) : null;
-                const _fDep = baseFields['Date départ']  ? new Date(baseFields['Date départ'])  : null;
-                const _fNights = (_fArr && _fDep)
-                    ? Math.max(0, Math.round((_fDep - _fArr) / 86400000))
-                    : 0;
                 const fallbackSejour = currentDossier?.sejour || {
                     dateArrivee: baseFields['Date arrivée'] || null,
                     dateDepart:  baseFields['Date départ']  || null,
                     dateArriveeFormatted: baseFields['Date arrivée'] ? new Date(baseFields['Date arrivée']).toLocaleDateString('fr-FR', {day:'numeric', month:'long'}) : '—',
                     dateDepartFormatted:  baseFields['Date départ']  ? new Date(baseFields['Date départ']).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'}) : '—',
-                    nights: _fNights,
-                    days: _fNights + 1,
+                    nights: 1,
+                    days: 2,
                     participants: parseInt(baseFields['Nombre de personnes'] || baseFields['Nb personnes'] || 0, 10),
                     adultes: parseInt(baseFields['Nombre de personnes'] || 0, 10),
                     enfants: 0,
@@ -1711,16 +1676,7 @@
                         airtableId: currentRequestId,
                         statut: "devis envoyé",
                         updatedAt: new Date().toISOString(),
-                        typeLabel: (() => {
-                            if (currentDossier?.meta?.typeLabel) return currentDossier.meta.typeLabel;
-                            const _rt = baseFields['Type'];
-                            if (!_rt) return 'Séminaire professionnel';
-                            if (Array.isArray(_rt)) return _rt[0] || 'Séminaire professionnel';
-                            if (typeof _rt === 'string' && _rt.startsWith('[')) {
-                                try { const p = JSON.parse(_rt); return Array.isArray(p) ? p[0] : _rt; } catch(e) {}
-                            }
-                            return _rt;
-                        })(),
+                        typeLabel: currentDossier?.meta?.typeLabel || baseFields['Type'] || 'Séminaire professionnel',
                         mode: currentDossier?.meta?.mode || 'pro',
                     },
                     client: {
@@ -1809,6 +1765,11 @@
 
             const source = document.getElementById('pdf-wrapper');
 
+            window.scrollTo(0, 0);
+
+            document.body.style.display = 'block';
+            document.body.style.alignItems = 'unset';
+
             SesquierUtils.generatePDF(source, fileName, {
                 margin: [0, 0, 0, 0],
                 image: { type: 'jpeg', quality: 0.98 },
@@ -1817,11 +1778,13 @@
                     useCORS: true,
                     letterRendering: true,
                     backgroundColor: '#ffffff',
-                    scrollX: 0,
-                    scrollY: 0,
+                    x: 0,
+                    y: 0,
+                    scrollX: -window.scrollX,
+                    scrollY: -window.scrollY,
                     // windowWidth = largeur A4 exacte à 96dpi (210mm).
                     // Sans ça, html2canvas utilise la largeur du navigateur → décalage.
-                    windowWidth: 860,
+                    windowWidth: 794,
                     // onclone : modifie le document cloné d'html2canvas avant rendu.
                     // C'est ici qu'on corrige le body flex (qui décale la capture),
                     // sans jamais toucher au vrai DOM visible.
@@ -1830,20 +1793,15 @@
                         style.textContent = `
                             body {
                                 display: block !important;
-                                width: 860px !important;
                                 padding: 0 !important;
                                 margin: 0 !important;
                                 background: white !important;
                                 align-items: unset !important;
                             }
-                            #pdf-wrapper {
-                                display: block !important;
-                                margin: 0 !important;
-                                width: 794px !important;
-                            }
-                            .page { display: block !important; }
+                            #pdf-wrapper { margin: 0 !important; width: 794px !important; }
                             .no-print, .page-separator, .controls-bar,
-                            .controls-bar button, #library-toggle, #library-panel { display: none !important; }
+                            .btn, .controls-bar button,
+                            #library-toggle, #library-panel { display: none !important; }
                             .page {
                                 box-shadow: none !important;
                                 margin-bottom: 0 !important;
@@ -1883,6 +1841,8 @@
                 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
             }).finally(() => {
+                document.body.style.display = '';
+                document.body.style.alignItems = '';
                 document.body.removeChild(overlay);
                 if (libWasOpen) libPanel.classList.add('open');
             });
