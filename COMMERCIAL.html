@@ -149,7 +149,7 @@
                 const prob = f["Suivi Probabilité"] || f["Suivi_Probabilite"];
                 if (prob) {
                     const rb = document.querySelector(`input[name="prob"][value="${prob}"]`);
-                    if (rb) rb.checked = true;
+                    if (rb) rb.checked = true; // garde null déjà présente
                 }
 
                 document.getElementById('f-date-relance').value = f["Suivi Date relance"]      || f["Suivi_Date_Relance"]      || "";
@@ -232,7 +232,12 @@
         });
 
         async function saveData() {
-            if (!recordId) { showToast("Aucun dossier sélectionné", true); return; }
+            const btn = document.getElementById('btn-save');
+            if (!recordId) {
+                if (btn) { btn.disabled = true; setTimeout(() => { btn.disabled = false; }, 1500); }
+                showToast("Aucun dossier sélectionné", true);
+                return;
+            }
 
             const probChecked = document.querySelector('input[name="prob"]:checked');
             const payload = {
@@ -244,7 +249,6 @@
                 "Suivi Log":             document.getElementById('f-log').value || null
             };
 
-            const btn = document.getElementById('btn-save');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
             btn.disabled = true;
 
