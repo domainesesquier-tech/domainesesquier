@@ -24,8 +24,8 @@
       --border:         #E8E5DE;
       --shadow:         0 2px 12px rgba(0,0,0,.10);
       --radius:         8px;
-      --cell-w:         36px;
-      --col-left:       160px;
+      --cell-w:         42px;
+      --col-left:       200px;
       /* — variables sidebar identiques à index.html — */
       --primary:        #3A5538;
       --primary-subtle: rgba(58,85,56,0.06);
@@ -59,7 +59,7 @@
     .app {
       display: flex;
       flex-direction: row;
-      min-height: 100vh;
+      height: 100vh;
     }
 
     /* ------------------------------------------------------------------ */
@@ -148,8 +148,7 @@
       display: flex;
       flex-direction: column;
       min-width: 0;
-      height: 100vh;
-      overflow-y: auto;
+      overflow: hidden;
     }
 
     /* ------------------------------------------------------------------ */
@@ -307,8 +306,7 @@
 
     .calendar-wrapper {
       flex: 1;
-      overflow-x: auto;
-      overflow-y: visible;
+      overflow: auto;
       -webkit-overflow-scrolling: touch;
     }
 
@@ -537,24 +535,27 @@
 
     .kpi-label {
       font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
+      text-transform: none;
+      letter-spacing: 0;
       color: var(--text-muted);
-      font-weight: 600;
+      font-weight: 400;
       margin-bottom: 4px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
     .kpi-value {
-      font-size: 28px;
+      font-size: 18px;
       font-weight: 700;
       color: var(--text);
       line-height: 1.1;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
     .kpi-sub {
       font-size: 10px;
       color: var(--text-muted);
       margin-top: 2px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
     /* ------------------------------------------------------------------ */
@@ -848,6 +849,7 @@
     <button class="btn" id="btn-today">Aujourd'hui</button>
     <a href="archives.html" class="btn" style="margin-left:auto;">Archives</a>
     <button class="btn btn-primary" id="btn-new">+ Nouvelle réservation</button>
+    <button class="btn btn-icon" id="btn-fullscreen" title="Plein écran" onclick="toggleFullscreen()">⛶</button>
   </div>
 
   <!-- LEGEND -->
@@ -1888,6 +1890,25 @@ function init() {
 
   loadPlanning();
 }
+
+function toggleFullscreen() {
+  const btn = document.getElementById('btn-fullscreen');
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+    btn.textContent = '✕';
+    btn.title = 'Quitter le plein écran';
+  } else {
+    document.exitFullscreen();
+    btn.textContent = '⛶';
+    btn.title = 'Plein écran';
+  }
+}
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement) {
+    const btn = document.getElementById('btn-fullscreen');
+    if (btn) { btn.textContent = '⛶'; btn.title = 'Plein écran'; }
+  }
+});
 </script>
 <div id="gantt-tooltip"></div>
 <button class="fab-mobile" id="fab-mobile" aria-label="Nouvelle réservation">＋</button>
