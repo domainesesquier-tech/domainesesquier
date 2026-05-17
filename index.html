@@ -2361,9 +2361,10 @@
         }
 
         async function deleteDocument(path) {
-            const res = await fetch(`${SB_URL}/storage/v1/object/${SB_BUCKET}/${path}`, {
+            const res = await fetch(`${SB_URL}/storage/v1/object/${SB_BUCKET}`, {
                 method: 'DELETE',
-                headers: SB_HEADERS
+                headers: { ...SB_HEADERS, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prefixes: [path] })
             });
             if (!res.ok) throw new Error(`Delete: ${res.status}`);
         }

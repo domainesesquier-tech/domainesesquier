@@ -1936,6 +1936,21 @@
 
                 pdf.save(fileName);
 
+                // Upload automatique vers Supabase Storage
+                if (currentRequestId) {
+                    try {
+                        const SB_URL      = 'https://ymwebdihbmzrcaivldxu.supabase.co';
+                        const SB_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inltd2ViZGloYm16cmNhaXZsZHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0ODkxMjMsImV4cCI6MjA5NDA2NTEyM30.htAc4nHjbv-yFHW-59i_1eBPUsNcfd8-DMq9D1igVPw';
+                        const pdfBlob = pdf.output('blob');
+                        const path    = `${currentRequestId}/${Date.now()}_${fileName}`;
+                        await fetch(`${SB_URL}/storage/v1/object/documents/${path}`, {
+                            method:  'POST',
+                            headers: { 'apikey': SB_ANON_KEY, 'Authorization': `Bearer ${SB_ANON_KEY}`, 'Content-Type': 'application/pdf', 'x-upsert': 'true' },
+                            body:    pdfBlob
+                        });
+                    } catch (_) { /* upload silencieux, ne bloque pas le téléchargement */ }
+                }
+
             } finally {
                 // ── ÉTAPE 4 : Restaurer le DOM réel ───────────────────────────
                 document.body.style.display    = origBodyDisplay;
