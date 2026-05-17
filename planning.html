@@ -1760,16 +1760,16 @@ function init() {
   document.getElementById('btn-new').addEventListener('click', () => {
     openCreateModal(LOGEMENTS[0].name, toYMD(new Date()));
   });
-  document.getElementById('fab-mobile').addEventListener('click', () => {
+  const fabMobile = document.getElementById('fab-mobile');
+  if (fabMobile) fabMobile.addEventListener('click', () => {
     openCreateModal(LOGEMENTS[0].name, toYMD(new Date()));
   });
 
   loadPlanning();
 }
-
-init();
 </script>
 <div id="gantt-tooltip"></div>
 <button class="fab-mobile" id="fab-mobile" aria-label="Nouvelle réservation">＋</button>
+<script>init();</script>
 </body>
 </html>
