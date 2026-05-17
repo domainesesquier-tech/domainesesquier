@@ -1064,7 +1064,11 @@ function renderGrid() {
 
   container.querySelectorAll('td.cell.occupied').forEach(td => {
     const res = reservations.find(r => r.id === td.dataset.resId);
-    if (res) td.title = buildTooltip(res);
+    if (res) {
+      td.title = buildTooltip(res);
+      const label = td.querySelector('.cell-label');
+      if (label) label.title = buildTooltip(res);
+    }
   });
 
   container.addEventListener('click', onCellClick);
