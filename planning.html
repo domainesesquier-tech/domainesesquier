@@ -206,6 +206,19 @@
       pointer-events: none; z-index: 10;
     }
 
+    .conflict-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--beige);
+    }
+    .conflict-list-item:last-child { border-bottom: none; }
+    .conflict-list-info { flex: 1; min-width: 0; }
+    .conflict-list-nom  { font-weight: 700; font-size: 13px; }
+    .conflict-list-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
     #gantt-tooltip {
       position: fixed;
       background: #222;
@@ -1107,6 +1120,7 @@ function renderGrid() {
           data-res-id="${esc(res.id)}"
           data-logement="${esc(logement.name)}"
           data-day="${d}"
+          data-conflict-ids="${conflictList.length >= 2 ? conflictList.map(r => r.id).join(',') : ''}"
           role="gridcell"
           tabindex="0"
         ><span class="cell-label">${label}</span>${conflictBadge}</td>`;
@@ -1181,6 +1195,37 @@ function hideGanttTooltip() {
 }
 
 /* ------------------------------------------------------------------ */
+/*  CONFLICT MODAL                                                      */
+/* ------------------------------------------------------------------ */
+function openConflictModal(ids) {
+  const list = ids.map(id => reservations.find(r => r.id === id)).filter(Boolean);
+  const rows = list.map(r => `
+    <div class="conflict-list-item">
+      <div class="conflict-list-info">
+        <div class="conflict-list-nom">${esc(r.nom)}</div>
+        <div class="conflict-list-meta">
+          ${formatDate(r.arrivee)} → ${formatDate(r.depart)}
+          ${r.montant ? ' · ' + Number(r.montant).toLocaleString('fr-FR', {style:'currency',currency:'EUR',maximumFractionDigits:0}) : ''}
+        </div>
+      </div>
+      <button class="btn btn-primary" style="font-size:11px;padding:4px 10px;"
+        onclick="closeModal(); setTimeout(() => openDetailModal(reservations.find(r=>r.id==='${esc(r.id)}')), 50)">
+        Voir
+      </button>
+    </div>`).join('');
+
+  openModal(`
+    <div class="modal-header">
+      <span class="modal-title">⚠ Conflits sur cette date</span>
+      <button class="modal-close" onclick="closeModal()" title="Fermer">&#x2715;</button>
+    </div>
+    <div style="padding:0 4px;">${rows}</div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Fermer</button>
+    </div>`);
+}
+
+/* ------------------------------------------------------------------ */
 /*  CELL CLICK                                                          */
 /* ------------------------------------------------------------------ */
 function onCellClick(e) {
@@ -1192,8 +1237,13 @@ function onCellClick(e) {
   const resId    = cell.dataset.resId;
 
   if (resId) {
-    const res = reservations.find(r => r.id === resId);
-    if (res) openDetailModal(res);
+    const conflictIds = (cell.dataset.conflictIds || '').split(',').filter(Boolean);
+    if (conflictIds.length >= 2) {
+      openConflictModal(conflictIds);
+    } else {
+      const res = reservations.find(r => r.id === resId);
+      if (res) openDetailModal(res);
+    }
   } else {
     const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     openCreateModal(logement, dateStr);
