@@ -1039,7 +1039,7 @@ function renderGrid() {
         const optionCls = res.statut === 'Option' ? ' reservation-option' : '';
         html += `<td
           class="cell occupied${todayCls}${optionCls}"
-          style="background:${color.bg};color:${color.text};"
+          style="background-color:${color.bg};color:${color.text};"
           data-res-id="${esc(res.id)}"
           data-logement="${esc(logement.name)}"
           data-day="${d}"
