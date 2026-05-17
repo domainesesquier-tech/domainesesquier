@@ -152,6 +152,7 @@ const FIELD_MAP = {
   'est_archive':              'est_archive',
   'Acompte Payé':             'acompte_paye',
   'Acompte Montant':          'acompte_montant',
+  'planning_id':              'planning_id',
 };
 
 function fieldsToRow(fields) {

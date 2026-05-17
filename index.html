@@ -2341,11 +2341,12 @@
                 });
 
                 if (res.id) {
+                    console.log('[openNewDossier] record créé — id:', res.id, '(pas de dates → syncToPlanning NON appelée)');
                     // Normalisation immédiate du nouveau record
                     const newRecord = normalizeRecord(res);
                     allRecords.unshift(newRecord);
                     renderTable();
-                    
+
                     // Ouvrir le panneau de vignettes !
                     openDossier(res.id);
                 }
@@ -3081,12 +3082,16 @@
         // PLANNING SYNC
         // =====================================================================
         async function syncToPlanning(recordId) {
+            console.log('[syncToPlanning] ENTRÉE — recordId:', recordId);
             const record = allRecords.find(r => r.id === recordId);
-            if (!record) return;
+            console.log('[syncToPlanning] record trouvé dans allRecords:', !!record, record ? record.nomClient : 'N/A');
+            if (!record) { console.warn('[syncToPlanning] ❌ record introuvable, early return'); return; }
             const f = record._raw.fields;
             const arrivee = f['Date arrivée'];
             const depart  = f['Date départ'];
-            if (!arrivee || !depart) return;
+            console.log('[syncToPlanning] dates:', arrivee, '→', depart);
+            if (!arrivee || !depart) { console.warn('[syncToPlanning] ❌ dates manquantes, early return'); return; }
+            console.log('[syncToPlanning] planning_id existant:', f['planning_id'] || 'AUCUN → POST');
 
             const planningFields = {
                 'Nom':          f['Nom client'] || '',
@@ -3136,6 +3141,7 @@
         // =====================================================================
         window.addEventListener('message', (event) => {
             if (event.data.type === 'devis_created') {
+                console.log('[devis_created] reçu — id:', event.data.id, '(syncToPlanning NON appelée ici)');
                 const newId = event.data.id;
                 document.getElementById('dev-id-input').value = newId;
                 const newUrl = window.location.pathname + '?id=' + newId;
@@ -3152,10 +3158,13 @@
                 }
             }
             if (event.data.type === 'RECORD_UPDATED') {
-                console.log('🔄 Sync globale: Enregistrement mis à jour', event.data.id);
+                console.log('[RECORD_UPDATED] reçu — id:', event.data.id, 'fields:', JSON.stringify(event.data.fields));
                 // 1. Mettre à jour le dashboard (liste) puis syncer le planning
                 if (typeof loadAllRecords === 'function') {
-                    loadAllRecords().then(() => syncToPlanning(event.data.id));
+                    loadAllRecords().then(() => {
+                        console.log('[RECORD_UPDATED] loadAllRecords terminé, appel syncToPlanning');
+                        syncToPlanning(event.data.id);
+                    });
                 } else {
                     syncToPlanning(event.data.id);
                 }
