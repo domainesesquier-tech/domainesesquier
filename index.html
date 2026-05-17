@@ -68,7 +68,7 @@
                     element.style.pointerEvents = 'auto';
                 }
                 showSyncBanner(`${field} mis à jour !`);
-                const syncFields = ['Date arrivée', 'Date départ', 'Statut', 'Montant Hébergement HT'];
+                const syncFields = ['Date arrivée', 'Date départ', 'Statut', 'Montant Hébergement HT', 'Nom client', 'Nb personnes'];
                 if (syncFields.includes(field)) syncToPlanning(id);
                 
                 updateKPIs();
