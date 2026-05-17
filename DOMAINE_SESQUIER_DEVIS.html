@@ -543,16 +543,6 @@
         <!-- C. Options & Salles (début Page 2 — saut de page géré par CSS) -->
         <section id="options-proposal" style="margin-bottom: 20px;">
             <table class="pricing-table">
-                <thead>
-                    <tr>
-                        <th class="col-detail">Options & Salles</th>
-                        <th class="col-qty" style="text-align:center; width:60px;">Qté</th>
-                        <th class="col-price" style="text-align:right; width:80px;">PU HT</th>
-                        <th class="col-tva" style="text-align:center; width:60px;">TVA</th>
-                        <th class="col-total" style="text-align:right; width:90px;">Total HT</th>
-                        <th class="no-print" style="width: 30px;"></th>
-                    </tr>
-                </thead>
                 <tbody id="options-body">
                     <!-- Rempli par JS -->
                 </tbody>
@@ -1122,20 +1112,36 @@
             const pricingLines = [];
             const optionsLines = [];
             let currentSection = 'pricing';
+
+            // Détecteurs de section par contenu (pour migration des anciens dossiers)
+            const isOptionsCategory = (title) => {
+                const t = (title || '').toLowerCase();
+                return t.includes('espaces') || t.includes('mise à disposition') ||
+                       t.includes('options & salles') || t.includes('options &amp; salles');
+            };
+            const isPricingCategory = (title) => {
+                const t = (title || '').toLowerCase();
+                return t.includes('hébergement') || t.includes('hebergement') ||
+                       t.includes('restauration') || t.includes('catering');
+            };
+
             lines.forEach(line => {
-                if (line.section) {
-                    // Nouveau format : marqueur explicite → fiable à 100%
-                    if (line.section === 'options') optionsLines.push(line);
-                    else pricingLines.push(line);
-                } else {
-                    // Ancien format sans marqueur : fallback includes() pour rétrocompatibilité
-                    if (line.type === 'category' && line.title &&
-                       (line.title.includes('espaces') || line.title.includes('Options'))) {
-                        currentSection = 'options';
-                    }
-                    if (currentSection === 'pricing') pricingLines.push(line);
-                    else optionsLines.push(line);
+                // section: 'options' est toujours autoritaire (nouveau format)
+                if (line.section === 'options') {
+                    currentSection = 'options';
+                    optionsLines.push(line);
+                    return;
                 }
+
+                // Pour section: 'pricing' ou sans section : détection par contenu des catégories
+                // (corrige les anciens dossiers où tout était en pricing-body)
+                if (line.type === 'category' && line.title) {
+                    if (isOptionsCategory(line.title)) currentSection = 'options';
+                    else if (isPricingCategory(line.title)) currentSection = 'pricing';
+                }
+
+                if (currentSection === 'options') optionsLines.push(line);
+                else pricingLines.push(line);
             });
 
             // Mapping label → ID fixe attendu par runCommonCalculations()
