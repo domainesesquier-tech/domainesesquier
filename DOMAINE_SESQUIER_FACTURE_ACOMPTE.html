@@ -261,7 +261,7 @@
         // =====================================================================
         async function init() {
             const urlParams = new URLSearchParams(window.location.search);
-            const recordId  = urlParams.get('id');
+            const recordId  = urlParams.get('id') || sessionStorage.getItem('currentDossierId');
 
             if (!recordId) {
                 const el = document.getElementById('client-info');

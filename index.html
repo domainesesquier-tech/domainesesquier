@@ -3026,7 +3026,7 @@
             if (targetFrame) {
                 targetFrame.style.display = 'block';
 
-                let inputVal = explicitId !== null ? explicitId.trim() : document.getElementById('dev-id-input').value.trim();
+                let inputVal = (explicitId != null && explicitId.trim() !== '') ? explicitId.trim() : document.getElementById('dev-id-input').value.trim();
                 let baseSrc = iframeSrcMap[frameId];
 
                 if (inputVal) {
