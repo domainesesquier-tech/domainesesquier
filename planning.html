@@ -813,6 +813,16 @@
       box-shadow: 0 4px 16px rgba(0,0,0,.25);
       z-index: 1000;
     }
+
+    /* Plein écran : masque la sidebar, contenu prend toute la largeur */
+    :fullscreen .sidebar,
+    :-webkit-full-screen .sidebar { display: none !important; }
+
+    :fullscreen .app,
+    :-webkit-full-screen .app { height: 100vh; width: 100vw; }
+
+    :fullscreen .content,
+    :-webkit-full-screen .content { width: 100vw; overflow: hidden; }
   </style>
 </head>
 <body>
