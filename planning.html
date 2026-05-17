@@ -87,11 +87,11 @@
     }
 
     .nav-section-title {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
-      letter-spacing: .1em;
+      letter-spacing: .08em;
       text-transform: uppercase;
-      color: var(--text-muted);
+      color: #6B7280;
       padding: 12px 8px 4px;
     }
 
@@ -100,18 +100,18 @@
       align-items: center;
       gap: 10px;
       padding: 8px 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 13px;
       font-weight: 500;
-      color: var(--text-muted);
+      color: #374151;
       cursor: pointer;
       transition: background .15s, color .15s;
       text-decoration: none;
       margin-bottom: 2px;
     }
-    .nav-item:hover { background: #eef4f0; color: var(--green-dark); }
+    .nav-item:hover { background: #F3F4F6; color: #111827; }
     .nav-item.active {
-      background: var(--green-dark);
+      background: #1B4332;
       color: var(--white);
       box-shadow: 0 2px 8px rgba(27,67,50,.25);
     }
@@ -133,7 +133,8 @@
     .month-bar {
       background: var(--white);
       border-bottom: 1px solid var(--border);
-      padding: 10px 20px;
+      padding: 0 20px;
+      height: 56px;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -289,7 +290,7 @@
     .calendar-table {
       border-collapse: collapse;
       table-layout: fixed;
-      min-width: 100%;
+      width: 100%;
     }
 
     .calendar-table th,
@@ -303,8 +304,6 @@
       left: 0;
       z-index: 20;
       width: var(--col-left);
-      min-width: var(--col-left);
-      max-width: var(--col-left);
       background: var(--white);
       padding: 0 10px;
       white-space: nowrap;
@@ -329,20 +328,19 @@
     .logement-name {
       font-weight: 600;
       font-size: 13px;
+      color: #111827;
       display: block;
     }
 
     .logement-cap {
       font-size: 11px;
-      color: var(--text-muted);
+      color: #6B7280;
       display: block;
     }
 
     /* Day header cells */
     .col-day {
-      width: var(--cell-w);
-      min-width: var(--cell-w);
-      max-width: var(--cell-w);
+      min-width: 28px;
       text-align: center;
       vertical-align: middle;
       padding: 2px 0;
@@ -353,6 +351,8 @@
       background: var(--beige);
       height: 44px;
       font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
       color: var(--text-muted);
     }
     thead .col-day.today {
@@ -385,9 +385,6 @@
     /* Body cells */
     .cell {
       height: 38px;
-      width: var(--cell-w);
-      min-width: var(--cell-w);
-      max-width: var(--cell-w);
       cursor: pointer;
       padding: 0 2px;
       vertical-align: middle;
@@ -473,37 +470,54 @@
     /* ------------------------------------------------------------------ */
     /*  SUMMARY FOOTER                                                      */
     /* ------------------------------------------------------------------ */
-    .summary {
-      background: var(--green-dark);
-      color: var(--white);
-      padding: 14px 24px;
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--beige-light);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .kpi-card {
+      background: var(--white);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 18px 20px;
+      min-height: 90px;
       display: flex;
-      flex-wrap: wrap;
-      gap: 28px;
       align-items: center;
+      gap: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      transition: box-shadow .15s, transform .15s;
     }
+    .kpi-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); transform: translateY(-1px); }
 
-    .summary-item {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
+    .kpi-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
     }
+    .kpi-card:nth-child(1) .kpi-icon { background: #eef4f0; }
+    .kpi-card:nth-child(2) .kpi-icon { background: #fef3f2; }
+    .kpi-card:nth-child(3) .kpi-icon { background: #fffbeb; }
+    .kpi-card:nth-child(4) .kpi-icon { background: #f0fdf4; }
 
-    .summary-label {
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      opacity: .65;
-    }
-
-    .summary-value {
-      font-size: 20px;
+    .kpi-val {
+      font-size: 28px;
       font-weight: 700;
+      color: var(--green-dark);
+      line-height: 1;
     }
 
-    .summary-value.highlight {
-      color: #86EFAC;
+    .kpi-lbl {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-muted);
+      margin-top: 4px;
     }
 
     /* ------------------------------------------------------------------ */
@@ -734,7 +748,7 @@
       .app { flex-direction: column; }
       .month-bar { top: 0; }
       #btn-new { display: none; }
-      .summary { display: none; }
+      .kpi-strip { display: none; }
       .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px 12px; }
       .cell { height: 32px; }
       tbody .col-logement { height: 32px; }
@@ -778,7 +792,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         Planning
       </li>
-      <div class="nav-section-title">Navigation</div>
+      <div class="nav-section-title">Gestion</div>
       <a href="index.html" class="nav-item">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
         Séminaires
@@ -802,6 +816,26 @@
   <!-- LEGEND -->
   <div class="legend" id="legend"></div>
 
+  <!-- KPI CARDS -->
+  <div class="kpi-strip" id="summary">
+    <div class="kpi-card">
+      <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div><div class="kpi-val" id="sum-dispo">—</div><div class="kpi-lbl">Nuits disponibles</div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div><div class="kpi-val" id="sum-occ">—</div><div class="kpi-lbl">Nuits occupées</div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+      <div><div class="kpi-val" id="sum-taux">—</div><div class="kpi-lbl">Taux d'occupation</div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      <div><div class="kpi-val" id="sum-ca">—</div><div class="kpi-lbl">CA du mois</div></div>
+    </div>
+  </div>
+
   <!-- MAIN CALENDAR AREA -->
   <div class="main">
     <div class="calendar-wrapper">
@@ -811,26 +845,6 @@
           Chargement du planning…
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- SUMMARY FOOTER -->
-  <div class="summary" id="summary">
-    <div class="summary-item">
-      <span class="summary-label">Nuits disponibles</span>
-      <span class="summary-value" id="sum-dispo">—</span>
-    </div>
-    <div class="summary-item">
-      <span class="summary-label">Nuits occupées</span>
-      <span class="summary-value" id="sum-occ">—</span>
-    </div>
-    <div class="summary-item">
-      <span class="summary-label">Taux d'occupation</span>
-      <span class="summary-value highlight" id="sum-taux">—</span>
-    </div>
-    <div class="summary-item">
-      <span class="summary-label">CA du mois (confirmé)</span>
-      <span class="summary-value highlight" id="sum-ca">—</span>
     </div>
   </div>
 
