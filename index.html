@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion des Séminaires — Domaine Sesquier</title>
+    <title>Séminaires — Domaine Sesquier</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -1949,13 +1949,18 @@
             <p>Gestion Séminaires</p>
         </div>
 
-        <a href="planning.html" style="display:block;padding:8px 16px 4px;font-size:12px;color:#888;text-decoration:none;">← Planning</a>
+        <ul class="nav-list" style="padding:8px 8px 0;">
+            <a href="planning.html" class="nav-item active" style="text-decoration:none;margin-bottom:8px;">
+                <i class="fa-regular fa-calendar-days"></i>
+                <span>Planning</span>
+            </a>
+        </ul>
 
         <ul class="nav-list">
             <div class="nav-section-title">Gestion</div>
             <li class="nav-item active" id="nav-dossiers" onclick="showDossiers(this)">
                 <i class="fa-regular fa-folder-open"></i>
-                <span>Séminaires & Événements</span>
+                <span>Séminaires</span>
             </li>
 
             <div class="nav-divider"></div>
@@ -2027,7 +2032,7 @@
 
             <div class="dash-top">
                 <div class="dash-top-left">
-                    <h2>Séminaires & Événements</h2>
+                    <h2>Séminaires</h2>
                     <div class="subtitle" id="dash-subtitle">Vue d'ensemble des séminaires</div>
                 </div>
                 <div class="dash-top-right">
