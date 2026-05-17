@@ -11,21 +11,38 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --green-dark:   #1B4332;
-      --green:        #2D6A4F;
-      --green-mid:    #40916C;
-      --green-light:  #D8F3DC;
-      --beige-dark:   #C8BEA8;
-      --beige:        #EDE8DC;
-      --beige-light:  #F8F5EF;
-      --white:        #FFFFFF;
-      --text:         #1A1A1A;
-      --text-muted:   #6B7280;
-      --border:       #D6D0C4;
-      --shadow:       0 2px 12px rgba(0,0,0,.10);
-      --radius:       8px;
-      --cell-w:       36px;
-      --col-left:     160px;
+      --green-dark:     #1B4332;
+      --green:          #2D6A4F;
+      --green-mid:      #40916C;
+      --green-light:    #D8F3DC;
+      --beige-dark:     #C8BEA8;
+      --beige:          #EDE8DC;
+      --beige-light:    #F8F5EF;
+      --white:          #FFFFFF;
+      --text:           #1A1A1A;
+      --text-muted:     #9DA393;
+      --border:         #E8E5DE;
+      --shadow:         0 2px 12px rgba(0,0,0,.10);
+      --radius:         8px;
+      --cell-w:         36px;
+      --col-left:       160px;
+      /* — variables sidebar identiques à index.html — */
+      --primary:        #3A5538;
+      --primary-subtle: rgba(58,85,56,0.06);
+      --text-secondary: #6B7060;
+      --bg-elevated:    #FFFFFF;
+      --border-light:   #F0EDE6;
+      --radius-xs:      6px;
+      --transition:     all 0.2s cubic-bezier(0.4,0,0.2,1);
+      --sidebar-width:  240px;
+      --surface:        #FFFFFF;
+      --accent:         #9E5D4C;
+      --warning:        #D4860A;
+      --warning-bg:     #FFF6E5;
+      --success:        #2D8B56;
+      --success-bg:     #E8F5EE;
+      --shadow-xs:      0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md:      0 4px 6px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.03);
     }
 
     html, body {
@@ -49,9 +66,8 @@
     /*  SIDEBAR                                                             */
     /* ------------------------------------------------------------------ */
     .sidebar {
-      width: 220px;
-      min-width: 220px;
-      background: var(--white);
+      width: var(--sidebar-width);
+      background: var(--bg-elevated);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
@@ -60,60 +76,68 @@
       height: 100vh;
       overflow-y: auto;
       z-index: 100;
+      flex-shrink: 0;
+      transition: var(--transition);
     }
 
     .logo-area {
-      padding: 20px 16px 16px;
-      border-bottom: 1px solid var(--border);
+      padding: 20px 18px;
+      border-bottom: 1px solid var(--border-light);
     }
     .logo-area h1 {
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--green-dark);
-      letter-spacing: .02em;
+      font-size: 18px;
+      color: var(--primary);
+      font-weight: 700;
+      line-height: 1.2;
     }
     .logo-area p {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: .08em;
+      margin: 2px 0 0;
+      font-size: 9px;
       text-transform: uppercase;
+      letter-spacing: 0.15em;
       color: var(--text-muted);
-      margin-top: 2px;
+      font-weight: 600;
     }
 
     .nav-list {
       list-style: none;
-      padding: 8px;
+      padding: 0 8px;
+      flex: 1;
+      overflow-y: auto;
     }
 
     .nav-section-title {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: .08em;
+      font-size: 9px;
       text-transform: uppercase;
-      color: #6B7280;
-      padding: 12px 8px 4px;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+      font-weight: 700;
+      padding: 20px 16px 6px;
     }
 
     .nav-item {
+      padding: 8px 12px;
+      margin-bottom: 2px;
+      border-radius: var(--radius-xs);
+      cursor: pointer;
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 12px;
-      border-radius: 8px;
       font-size: 13px;
       font-weight: 500;
-      color: #374151;
-      cursor: pointer;
-      transition: background .15s, color .15s;
+      color: var(--text-secondary);
+      transition: var(--transition);
+      position: relative;
       text-decoration: none;
-      margin-bottom: 2px;
     }
-    .nav-item:hover { background: #F3F4F6; color: #111827; }
+    .nav-item:hover {
+      background: var(--primary-subtle);
+      color: var(--primary);
+    }
     .nav-item.active {
-      background: #1B4332;
-      color: var(--white);
-      box-shadow: 0 2px 8px rgba(27,67,50,.25);
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 2px 8px rgba(58,85,56,0.25);
     }
 
     /* ------------------------------------------------------------------ */
@@ -468,56 +492,65 @@
     }
 
     /* ------------------------------------------------------------------ */
-    /*  SUMMARY FOOTER                                                      */
+    /*  KPI CARDS (copie exacte index.html)                                 */
     /* ------------------------------------------------------------------ */
-    .kpi-strip {
+    .kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
+      gap: 14px;
       padding: 16px 20px;
       background: var(--beige-light);
       border-bottom: 1px solid var(--border);
     }
 
     .kpi-card {
-      background: var(--white);
-      border-radius: 12px;
-      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: var(--radius);
       padding: 18px 20px;
-      min-height: 90px;
+      box-shadow: var(--shadow-xs);
+      border: 1px solid var(--border-light);
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition);
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 14px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-      transition: box-shadow .15s, transform .15s;
     }
-    .kpi-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); transform: translateY(-1px); }
+    .kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
 
     .kpi-icon {
-      width: 40px; height: 40px;
-      border-radius: 10px;
+      width: 42px; height: 42px;
+      border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px; flex-shrink: 0;
+      font-size: 16px; flex-shrink: 0;
     }
-    .kpi-card:nth-child(1) .kpi-icon { background: #eef4f0; }
-    .kpi-card:nth-child(2) .kpi-icon { background: #fef3f2; }
-    .kpi-card:nth-child(3) .kpi-icon { background: #fffbeb; }
-    .kpi-card:nth-child(4) .kpi-icon { background: #f0fdf4; }
+    .kpi-card:nth-child(1) .kpi-icon { background: var(--primary-subtle); color: var(--primary); }
+    .kpi-card:nth-child(2) .kpi-icon { background: linear-gradient(135deg, rgba(158,93,76,0.1), rgba(158,93,76,0.05)); color: var(--accent); }
+    .kpi-card:nth-child(3) .kpi-icon { background: var(--warning-bg); color: var(--warning); }
+    .kpi-card:nth-child(4) .kpi-icon { background: var(--success-bg); color: var(--success); }
 
-    .kpi-val {
+    .kpi-content { flex: 1; min-width: 0; }
+
+    .kpi-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .kpi-value {
       font-size: 28px;
       font-weight: 700;
-      color: var(--green-dark);
-      line-height: 1;
+      color: var(--text);
+      line-height: 1.1;
     }
 
-    .kpi-lbl {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .06em;
+    .kpi-sub {
+      font-size: 10px;
       color: var(--text-muted);
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
     /* ------------------------------------------------------------------ */
@@ -748,7 +781,7 @@
       .app { flex-direction: column; }
       .month-bar { top: 0; }
       #btn-new { display: none; }
-      .kpi-strip { display: none; }
+      .kpi-grid { display: none; }
       .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px 12px; }
       .cell { height: 32px; }
       tbody .col-logement { height: 32px; }
@@ -817,22 +850,38 @@
   <div class="legend" id="legend"></div>
 
   <!-- KPI CARDS -->
-  <div class="kpi-strip" id="summary">
+  <div class="kpi-grid" id="summary">
     <div class="kpi-card">
       <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-      <div><div class="kpi-val" id="sum-dispo">—</div><div class="kpi-lbl">Nuits disponibles</div></div>
+      <div class="kpi-content">
+        <div class="kpi-label">Nuits disponibles</div>
+        <div class="kpi-value" id="sum-dispo">—</div>
+        <div class="kpi-sub">Ce mois-ci</div>
+      </div>
     </div>
     <div class="kpi-card">
       <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-      <div><div class="kpi-val" id="sum-occ">—</div><div class="kpi-lbl">Nuits occupées</div></div>
+      <div class="kpi-content">
+        <div class="kpi-label">Nuits occupées</div>
+        <div class="kpi-value" id="sum-occ">—</div>
+        <div class="kpi-sub">Réservations actives</div>
+      </div>
     </div>
     <div class="kpi-card">
       <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
-      <div><div class="kpi-val" id="sum-taux">—</div><div class="kpi-lbl">Taux d'occupation</div></div>
+      <div class="kpi-content">
+        <div class="kpi-label">Taux d'occupation</div>
+        <div class="kpi-value" id="sum-taux">—</div>
+        <div class="kpi-sub">Sur le mois</div>
+      </div>
     </div>
     <div class="kpi-card">
       <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-      <div><div class="kpi-val" id="sum-ca">—</div><div class="kpi-lbl">CA du mois</div></div>
+      <div class="kpi-content">
+        <div class="kpi-label">CA du mois</div>
+        <div class="kpi-value" id="sum-ca">—</div>
+        <div class="kpi-sub">Confirmé</div>
+      </div>
     </div>
   </div>
 
