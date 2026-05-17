@@ -3153,9 +3153,12 @@
             }
             if (event.data.type === 'RECORD_UPDATED') {
                 console.log('🔄 Sync globale: Enregistrement mis à jour', event.data.id);
-                // 1. Mettre à jour le dashboard (liste)
-                if (typeof loadAllRecords === 'function') loadAllRecords();
-                syncToPlanning(event.data.id);
+                // 1. Mettre à jour le dashboard (liste) puis syncer le planning
+                if (typeof loadAllRecords === 'function') {
+                    loadAllRecords().then(() => syncToPlanning(event.data.id));
+                } else {
+                    syncToPlanning(event.data.id);
+                }
                 
                 // 2. Propager à tous les AUTRES iframes chargés
                 document.querySelectorAll('#iframe-layer iframe').forEach(frame => {
