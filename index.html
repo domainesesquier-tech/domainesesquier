@@ -2313,10 +2313,14 @@
         }
 
         async function openNewDossier(navEl) {
-            // Indiquer chargement
-            const originalIcon = navEl.querySelector('i').className;
-            navEl.querySelector('i').className = 'fa-solid fa-spinner fa-spin';
-            
+            if (navEl.disabled) return;
+
+            // Désactiver le bouton pendant la création pour éviter les doubles soumissions
+            navEl.disabled = true;
+            const iconEl = navEl.querySelector('i');
+            const originalIcon = iconEl ? iconEl.className : null;
+            if (iconEl) iconEl.className = 'fa-solid fa-spinner fa-spin';
+
             try {
                 const defaultFields = {
                     [SesquierRecords.FIELDS.NOM]: "Nouveau Dossier " + new Date().toLocaleDateString('fr-FR'),
@@ -2342,7 +2346,8 @@
             } catch (err) {
                 alert("Erreur lors de la création du dossier : " + err.message);
             } finally {
-                navEl.querySelector('i').className = originalIcon;
+                navEl.disabled = false;
+                if (iconEl && originalIcon) iconEl.className = originalIcon;
             }
         }
 
@@ -2448,7 +2453,9 @@
             const countLabel = document.getElementById('log-count');
             const logs = record.timeline || [];
 
-            countLabel.innerText = `${logs.length} entrée${logs.length > 1 ? 's' : ''}`;
+            if (countLabel) countLabel.innerText = `${logs.length} entrée${logs.length > 1 ? 's' : ''}`;
+
+            if (!container) return;
 
             if (logs.length === 0) {
                 container.innerHTML = `<div style="text-align:center; padding:30px; opacity:0.3; font-style:italic;">Aucun historique pour cet événement.</div>`;
@@ -2463,8 +2470,12 @@
             `).join('');
         }
 
+        let _timelineSubmitting = false; // verrou anti double-submit
+
         async function addTimelineEntry() {
             if (!activeRecordId) return;
+            if (_timelineSubmitting) return;
+
             const input = document.getElementById('timeline-new-entry');
             const text = input.value.trim();
             if (!text) return;
@@ -2480,15 +2491,14 @@
                 }
             } catch (e) { }
 
-            const newLog = {
-                date: new Date().toISOString(),
-                text: text
-            };
+            const newLog = { date: new Date().toISOString(), text };
             logs.push(newLog);
 
-            // Save to Airtable
+            _timelineSubmitting = true;
             try {
-                await fetch(SesquierUtils.API_RESERVATIONS_URL, {
+                // Bug fix: fetch() brut remplacé par SesquierUtils.fetchJson
+                // pour détecter les erreurs HTTP (400/500) et pas seulement réseau.
+                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2502,7 +2512,9 @@
                 renderTimeline(record);
                 showSyncBanner("Journal mis à jour !");
             } catch (e) {
-                alert("Erreur lors de l'enregistrement du journal.");
+                alert("Erreur lors de l'enregistrement du journal : " + e.message);
+            } finally {
+                _timelineSubmitting = false;
             }
         }
 
@@ -2571,7 +2583,8 @@
                 });
                 record.estArchive = newVal;
                 if (record._n) record._n.estArchive = newVal;
-                document.getElementById('archive-btn-label').innerText = newVal ? 'Désarchiver' : 'Archiver';
+                const archiveLabel = document.getElementById('archive-btn-label');
+                if (archiveLabel) archiveLabel.innerText = newVal ? 'Désarchiver' : 'Archiver';
                 if (btn) { btn.style.color = newVal ? '#ef4444' : '#94a3b8'; btn.style.borderColor = newVal ? '#fca5a5' : '#cbd5e1'; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
                 updateFilters();
                 renderTable();

@@ -490,7 +490,7 @@
 
         function render() {
             const container = document.getElementById('days-container');
-            if (state.days.length === 0) return;
+            if (!container || state.days.length === 0) return;
 
             container.innerHTML = state.days.map((day, dIdx) => {
                 const dateObj = new Date(day.date);
@@ -579,7 +579,7 @@
             </div>`;
             m.style.display = 'flex';
         }
-        function closeModal() { document.getElementById('quick-modal').style.display = 'none'; }
+        function closeModal() { const m = document.getElementById('quick-modal'); if (m) m.style.display = 'none'; }
 
         async function loadData() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -589,20 +589,30 @@
 
             try {
                 const r = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${id}`);
-                const record = r.records ? r.records[0] : r;
+                if (!r || !r.records || r.records.length === 0) {
+                    console.error('[CUISINE] Aucun enregistrement trouvé');
+                    return;
+                }
+                const record = r.records[0];
+                if (!record || !record.fields) {
+                    console.error('[CUISINE] Données invalides');
+                    return;
+                }
                 const fields = record.fields;
                 state.clientName = fields["Nom client"] || "Client";
-                document.getElementById('print-client-name').innerText = state.clientName;
+                const nameEl = document.getElementById('print-client-name');
+                if (nameEl) nameEl.innerText = state.clientName;
                 const dArr = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null;
                 const dDep = fields["Date départ"] ? new Date(fields["Date départ"]) : null;
                 if (dArr && dDep) {
                     state.stayDates = `Du ${dArr.toLocaleDateString('fr-FR')} au ${dDep.toLocaleDateString('fr-FR')}`;
-                    document.getElementById('print-stay-dates').innerText = state.stayDates;
+                    const datesEl = document.getElementById('print-stay-dates');
+                    if (datesEl) datesEl.innerText = state.stayDates;
                 }
 
                 if (fields["Cuisine JSON"]) {
                     const saved = JSON.parse(fields["Cuisine JSON"]);
-                    state.days = saved.days;
+                    state.days = Array.isArray(saved.days) ? saved.days : [];
                 } else {
                     const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
                     const counts = (details.meals && details.meals.counts) ? details.meals.counts : [];
@@ -637,10 +647,12 @@
             } catch (e) { console.error(e); }
         }
 
+        let _cuisineSaving = false;
         async function saveCuisine() {
-            if (!state.id) return;
+            if (!state.id || _cuisineSaving) return;
+            _cuisineSaving = true;
             const btn = document.querySelector('.btn-save');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            if (btn) { btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; btn.disabled = true; }
             try {
                 await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                     method: 'PATCH',
@@ -648,9 +660,12 @@
                     body: JSON.stringify({ id: state.id, fields: { "Cuisine JSON": JSON.stringify(state) } })
                 });
                 const t = document.getElementById('sync-toast');
-                t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
+                if (t) { t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); }
             } catch (e) { alert(e.message); }
-            btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Enregistrer Dossier';
+            finally {
+                _cuisineSaving = false;
+                if (btn) { btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Enregistrer Dossier'; btn.disabled = false; }
+            }
         }
 
         async function generatePDF() {

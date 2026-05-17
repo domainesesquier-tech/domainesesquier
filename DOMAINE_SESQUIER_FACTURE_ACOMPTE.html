@@ -226,7 +226,8 @@
                     }
                 } catch (e) {
                     console.error("Erreur init:", e);
-                    document.getElementById('client-info').innerHTML = `<span style="color:red;">Erreur: ${e.message}</span>`;
+                    const clientInfoEl = document.getElementById('client-info');
+                    if (clientInfoEl) clientInfoEl.innerHTML = `<span style="color:red;">Erreur: ${e.message}</span>`;
                 }
             }
         }
@@ -273,7 +274,7 @@
         function renderMeta(dossier, fields) {
             const now = new Date();
             const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-            const id = (dossier.meta.airtableId || fields["ID Airtable"] || "XXXX").toString().slice(-6).toUpperCase();
+            const id = ((dossier.meta && dossier.meta.airtableId) || fields["ID Airtable"] || "XXXX").toString().slice(-6).toUpperCase();
             const docNum = `FA${yearMonth}-${id}`;
 
             document.getElementById('doc-id').innerText = docNum;
@@ -286,7 +287,7 @@
         // CLIENT — Infos client
         // =====================================================================
         function renderClient(dossier) {
-            const c = dossier.client;
+            const c = dossier.client || {};
             document.getElementById('client-info').innerHTML =
                 `<strong>${c.organisation || '—'}</strong><br>${c.fullName || '—'}<br>${c.email || ''}`;
         }
@@ -295,10 +296,11 @@
         // SÉJOUR — Résumé
         // =====================================================================
         function renderSejour(dossier) {
-            const s = dossier.sejour;
-            document.getElementById('stay-type').innerText = dossier.meta.typeLabel;
-            document.getElementById('stay-dates').innerText = `${s.dateArriveeFormatted} → ${s.dateDepartFormatted}`;
-            document.getElementById('stay-participants').innerText = `${s.participants} personnes`;
+            const s = dossier.sejour || {};
+            const meta = dossier.meta || {};
+            document.getElementById('stay-type').innerText = meta.typeLabel || '—';
+            document.getElementById('stay-dates').innerText = `${s.dateArriveeFormatted || '?'} → ${s.dateDepartFormatted || '?'}`;
+            document.getElementById('stay-participants').innerText = `${s.participants || '?'} personnes`;
             document.getElementById('stay-synthesis').innerText = DossierModel.getSynthesis(dossier);
         }
 
@@ -306,8 +308,9 @@
         // LINES — Lignes de facturation depuis le dossier
         // =====================================================================
         function renderLines(dossier) {
-            const lines = dossier.financials.lines;
-            const activitesLines = dossier.financials.activitesLines || [];
+            const financials = dossier.financials || {};
+            const lines = financials.lines || [];
+            const activitesLines = financials.activitesLines || [];
 
             // Séparer les lignes par section
             const pricingLines = [];
@@ -360,23 +363,22 @@
         // TOTALS — Directement depuis le dossier (PAS de recalcul)
         // =====================================================================
         function renderTotals(dossier) {
-            const f = dossier.financials;
+            const f = dossier.financials || {};
             const fmt = DossierModel.formatEuro;
+            const setText = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
 
-            document.getElementById('display-total-ht').innerText = fmt(f.totalHT);
-            document.getElementById('display-total-tva').innerText = fmt(f.totalTVA);
-            document.getElementById('display-total-ttc').innerText = fmt(f.totalTTC);
-            document.getElementById('display-acompte').innerText = fmt(f.acompte30);
-            document.getElementById('display-net-to-pay').innerText = fmt(f.acompte30);
+            setText('display-total-ht',  fmt(f.totalHT  || 0));
+            setText('display-total-tva', fmt(f.totalTVA || 0));
+            setText('display-total-ttc', fmt(f.totalTTC || 0));
+            setText('display-acompte',   fmt(f.acompte30 || 0));
+            setText('display-net-to-pay', fmt(f.acompte30 || 0));
 
             // Mettre à jour les sous-totaux visuels
-            const setSubtotal = (id, val) => {
-                const el = document.getElementById(id);
-                if (el) el.innerText = val.toFixed(2);
-            };
-            setSubtotal('subtotal-hebergement', f.subtotals.hebergement || 0);
-            setSubtotal('subtotal-restauration', f.subtotals.restauration || 0);
-            setSubtotal('subtotal-salles', f.subtotals.options || 0);
+            const sub = f.subtotals || {};
+            const setSubtotal = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val.toFixed(2); };
+            setSubtotal('subtotal-hebergement', sub.hebergement || 0);
+            setSubtotal('subtotal-restauration', sub.restauration || 0);
+            setSubtotal('subtotal-salles', sub.options || 0);
         }
 
         window.onload = init;

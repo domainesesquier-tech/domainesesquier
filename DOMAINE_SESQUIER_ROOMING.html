@@ -493,6 +493,7 @@
 
         function render() {
             const grid = document.getElementById('gite-grid');
+            if (!grid) return;
             let grandTotal = 0;
 
             grid.innerHTML = INITIAL_GITES.map(g => {
@@ -543,7 +544,8 @@
                 `;
             }).join('');
 
-            document.getElementById('grand-total').innerHTML = `<i class="fa-solid fa-users"></i> <span>TOTAL GÉNÉRAL : ${grandTotal} PERSONNES</span>`;
+            const grandTotalEl = document.getElementById('grand-total');
+            if (grandTotalEl) grandTotalEl.innerHTML = `<i class="fa-solid fa-users"></i> <span>TOTAL GÉNÉRAL : ${grandTotal} PERSONNES</span>`;
         }
 
         function generatePDF() {
@@ -626,17 +628,20 @@
             printWindow.onload = () => { printWindow.focus(); printWindow.print(); };
         }
 
+        let _roomingSaving = false;
         async function saveRooming() {
-            if (!state.id) {
-                console.error("[ROOMING] Impossible de sauvegarder : Aucun ID de dossier trouvé dans l'URL.");
-                alert("Erreur : Aucun dossier chargé. Impossible d'enregistrer.");
+            if (!state.id || _roomingSaving) {
+                if (!state.id) {
+                    console.error("[ROOMING] Impossible de sauvegarder : Aucun ID de dossier trouvé dans l'URL.");
+                    alert("Erreur : Aucun dossier chargé. Impossible d'enregistrer.");
+                }
                 return;
             }
+            _roomingSaving = true;
 
             const btn = document.querySelector('.btn-save');
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            btn.disabled = true;
+            const originalHtml = btn ? btn.innerHTML : '';
+            if (btn) { btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; btn.disabled = true; }
 
             try {
                 console.log("[ROOMING] Tentative de sauvegarde pour l'ID:", state.id);
@@ -653,14 +658,13 @@
 
                 console.log("[ROOMING] Sauvegarde réussie !", result);
                 const t = document.getElementById('sync-toast');
-                t.style.display = 'block';
-                setTimeout(() => t.style.display = 'none', 3000);
+                if (t) { t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); }
             } catch (e) {
                 console.error("[ROOMING] Échec de la sauvegarde Airtable:", e);
                 alert("Erreur lors de l'enregistrement : " + (e.message || "Problème de connexion"));
             } finally {
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
+                _roomingSaving = false;
+                if (btn) { btn.innerHTML = originalHtml; btn.disabled = false; }
             }
         }
 
@@ -669,7 +673,7 @@
             if (id) {
                 state.id = id;
                 try {
-                    const r = await fetch(SesquierUtils.API_RESERVATIONS_URL + '?id=' + id).then(r => r.json());
+                    const r = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL + '?id=' + id);
                     const record = r.records ? r.records[0] : r;
                     if (record && record.fields) {
                         state.clientName = record.fields["Nom client"] || "Client";
@@ -683,7 +687,10 @@
                             state.configs = saved.configs || state.configs;
                         }
                     }
-                } catch (e) { }
+                } catch (e) {
+                    console.error('[ROOMING] Erreur de chargement:', e);
+                    alert('Erreur de chargement : ' + (e.message || 'Problème de connexion'));
+                }
             }
             render();
         }

@@ -375,58 +375,63 @@
             }
         }
 
+        let _clientSaving = false;
         async function saveData() {
+            if (_clientSaving) return;
+            _clientSaving = true;
+
             const btn = document.getElementById('btn-save');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Enregistrement...</span>';
-
-            // Combine name fields for Airtable "Nom client"
-            const entreprise = document.getElementById('Entreprise').value.trim();
-            const prenom = document.getElementById('Prénom').value.trim();
-            const nom = document.getElementById('Nom').value.trim();
-            const fullContactName = (prenom + " " + nom).trim();
-            const nomClient = entreprise && fullContactName ? `${entreprise} (${fullContactName})` : (entreprise || fullContactName || "Sans nom");
-
-            // Build payload — noms de champs exacts du FIELD_MAP worker, valeurs en string/number (jamais en tableau)
-            const typeVal   = (document.getElementById('Type')?.value   || '').trim();
-            const statutVal = (document.getElementById('Statut')?.value || '').trim();
-            const sourceVal = document.getElementById('Suivi_Source')?.value === 'Autre'
-                ? document.getElementById('Custom_Source')?.value
-                : document.getElementById('Suivi_Source')?.value;
-
-            const fields = {
-                "Nom client":          nomClient,
-                "Entreprise":          entreprise  || null,
-                "Prénom contact":      prenom      || null,
-                "Nom contact":         nom         || null,
-                "Email":               document.getElementById('Email')?.value?.trim()       || null,
-                "Téléphone":           document.getElementById('Téléphone')?.value?.trim()   || null,
-                "Type":                typeVal   || null,
-                "Statut":              statutVal || null,
-                "Date arrivée":        document.getElementById('Date arrivée')?.value         || null,
-                "Date départ":         document.getElementById('Date départ')?.value          || null,
-                "Nombre de personnes": parseInt(document.getElementById('Nb personnes')?.value,   10) || 0,
-                "Repas petit-déjeuner":parseInt(document.getElementById('Repas petit-déj')?.value, 10) || 0,
-                "Repas déjeuner":      parseInt(document.getElementById('Repas déjeuner')?.value,  10) || 0,
-                "Repas dîner":         parseInt(document.getElementById('Repas dîner')?.value,     10) || 0,
-                "Qté collation":       parseInt(document.getElementById('Qté Collation')?.value,   10) || 0,
-                "Message":             (
-                    (sourceVal ? `Source: ${sourceVal}\n` : '') +
-                    (document.getElementById('Message')?.value || '')
-                ).trim() || null,
-            };
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Enregistrement...</span>'; }
 
             try {
+                // Combine name fields for Airtable "Nom client"
+                const entreprise = (document.getElementById('Entreprise')?.value || '').trim();
+                const prenom     = (document.getElementById('Prénom')?.value     || '').trim();
+                const nom        = (document.getElementById('Nom')?.value        || '').trim();
+                const fullContactName = (prenom + " " + nom).trim();
+                const nomClient = entreprise && fullContactName ? `${entreprise} (${fullContactName})` : (entreprise || fullContactName || "Sans nom");
+
+                // Build payload — noms de champs exacts du FIELD_MAP worker, valeurs en string/number (jamais en tableau)
+                const typeVal   = (document.getElementById('Type')?.value   || '').trim();
+                const statutVal = (document.getElementById('Statut')?.value || '').trim();
+                const sourceVal = document.getElementById('Suivi_Source')?.value === 'Autre'
+                    ? document.getElementById('Custom_Source')?.value
+                    : document.getElementById('Suivi_Source')?.value;
+
+                const fields = {
+                    "Nom client":          nomClient,
+                    "Entreprise":          entreprise  || null,
+                    "Prénom contact":      prenom      || null,
+                    "Nom contact":         nom         || null,
+                    "Email":               document.getElementById('Email')?.value?.trim()       || null,
+                    "Téléphone":           document.getElementById('Téléphone')?.value?.trim()   || null,
+                    "Type":                typeVal   || null,
+                    "Statut":              statutVal || null,
+                    "Date arrivée":        document.getElementById('Date arrivée')?.value         || null,
+                    "Date départ":         document.getElementById('Date départ')?.value          || null,
+                    "Nombre de personnes": parseInt(document.getElementById('Nb personnes')?.value,   10) || 0,
+                    "Repas petit-déjeuner":parseInt(document.getElementById('Repas petit-déj')?.value, 10) || 0,
+                    "Repas déjeuner":      parseInt(document.getElementById('Repas déjeuner')?.value,  10) || 0,
+                    "Repas dîner":         parseInt(document.getElementById('Repas dîner')?.value,     10) || 0,
+                    "Qté collation":       parseInt(document.getElementById('Qté Collation')?.value,   10) || 0,
+                    "Message":             (
+                        (sourceVal ? `Source: ${sourceVal}\n` : '') +
+                        (document.getElementById('Message')?.value || '')
+                    ).trim() || null,
+                };
+
                 if (isCreating) {
                     const res = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ fields })
                     });
-                    
+
+                    if (!res || !res.id) throw new Error("Réponse invalide du serveur (id manquant).");
                     currentId = res.id;
                     isCreating = false;
-                    document.getElementById('new-badge').style.display = 'none';
+                    const newBadgeEl = document.getElementById('new-badge');
+                    if (newBadgeEl) newBadgeEl.style.display = 'none';
                     sessionStorage.setItem('currentDossierId', currentId);
                     SesquierUtils.broadcast('devis_created', { id: currentId });
                 } else {
@@ -437,29 +442,26 @@
                     });
                 }
 
-                btn.innerHTML = '<i class="fas fa-check"></i> <span>Mise à jour effectuée !</span>';
-                btn.style.background = '#059669';
+                if (btn) { btn.innerHTML = '<i class="fas fa-check"></i> <span>Mise à jour effectuée !</span>'; btn.style.background = '#059669'; }
                 setTimeout(() => {
-                    btn.innerHTML = '<i class="fas fa-save"></i> <span>Enregistrer</span>';
-                    btn.style.background = '';
-                    btn.disabled = false;
+                    if (btn) { btn.innerHTML = '<i class="fas fa-save"></i> <span>Enregistrer</span>'; btn.style.background = ''; btn.disabled = false; }
+                    _clientSaving = false;
                 }, 2500);
                 SesquierUtils.broadcast('RECORD_UPDATED', { id: currentId, fields });
             } catch (err) {
                 console.error("Save error:", err);
-                btn.innerHTML = '<i class="fas fa-circle-exclamation"></i> <span>Erreur</span>';
-                btn.className = 'btn-save error';
-                btn.disabled = false;
+                if (btn) { btn.innerHTML = '<i class="fas fa-circle-exclamation"></i> <span>Erreur</span>'; btn.className = 'btn-save error'; btn.disabled = false; }
+                _clientSaving = false;
                 showToast("Échec de sauvegarde : " + err.message, true);
                 setTimeout(() => {
-                    btn.innerHTML = '<i class="fas fa-save"></i> <span>Enregistrer</span>';
-                    btn.className = 'btn-save';
+                    if (btn) { btn.innerHTML = '<i class="fas fa-save"></i> <span>Enregistrer</span>'; btn.className = 'btn-save'; }
                 }, 3000);
             }
         }
 
         function toggleCustomSource(val) {
             const customInput = document.getElementById('Custom_Source');
+            if (!customInput) return;
             if (val === 'Autre') {
                 customInput.style.display = 'block';
                 customInput.focus();
@@ -471,6 +473,7 @@
 
         function showToast(msg, isError = false) {
             const t = document.getElementById('toast');
+            if (!t) return;
             t.innerHTML = `<i class="fas fa-${isError ? 'circle-xmark' : 'circle-check'}"></i> ${msg}`;
             t.className = 'toast show' + (isError ? ' error' : '');
             setTimeout(() => t.className = 'toast', 3000);

@@ -240,11 +240,22 @@
 
         async function loadReservationData(id) {
             try {
-                const response = await fetch(`${API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
-                const data = await response.json();
-                currentRecord = data.records ? data.records[0] : data;
+                const data = await SesquierUtils.fetchJson(`${API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
+                if (!data || !data.records || data.records.length === 0) {
+                    console.error("[FACTURE] Aucun enregistrement trouvé pour id =", id);
+                    return;
+                }
+                currentRecord = data.records[0];
+                if (!currentRecord || !currentRecord.fields) {
+                    console.error("[FACTURE] Données d'enregistrement invalides");
+                    return;
+                }
                 renderFromRecord(currentRecord.fields);
-            } catch (err) { console.error("Load error:", err); }
+            } catch (err) {
+                console.error("Load error:", err);
+                const clientInfoEl = document.querySelector('.client-info');
+                if (clientInfoEl) clientInfoEl.innerHTML = `<span style="color:red;">Erreur de chargement : ${err.message}</span>`;
+            }
         }
 
         // =====================================================================
@@ -293,10 +304,13 @@
         function renderDossier(dossier, fields) {
             const now = new Date();
             const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-            const num = (dossier.meta.airtableId || currentRequestId || "").toString().slice(-6).toUpperCase();
+            const meta = dossier.meta || {};
+            const num = (meta.airtableId || currentRequestId || "").toString().slice(-6).toUpperCase();
 
-            document.getElementById('devis-number').innerText = `${yearMonth}-${num}`;
-            document.getElementById('facture-number').innerText = `FAC${yearMonth}-${num}`;
+            const setText = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+
+            setText('devis-number', `${yearMonth}-${num}`);
+            setText('facture-number', `FAC${yearMonth}-${num}`);
             document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `FAC${yearMonth}-${num}`);
             document.querySelectorAll('.devis-date-footer').forEach(el => el.innerText = `Date : ${now.toLocaleDateString('fr-FR')}`);
 
@@ -304,7 +318,7 @@
             if (depositLabel) depositLabel.innerText = `Facture d'acompte (déduite) N° FA${yearMonth}-${num}`;
 
             // Client
-            const c = dossier.client;
+            const c = dossier.client || {};
             const clientInfoEl = document.querySelector('.client-info');
             if (clientInfoEl) {
                 clientInfoEl.innerHTML =
@@ -317,34 +331,32 @@
             }
 
             // Séjour snapshot
-            const s = dossier.sejour;
+            const s = dossier.sejour || {};
             const snapshot = document.querySelectorAll('.snapshot-val');
             if (snapshot.length >= 4) {
-                snapshot[0].innerText = dossier.meta.typeLabel;
-                snapshot[1].innerText = `${s.dateArriveeFormatted} → ${s.dateDepartFormatted}`;
-                snapshot[2].innerText = `${s.nights} ${s.nights > 1 ? 'nuits' : 'nuit'}`;
-                snapshot[3].innerText = `${s.participants} personnes`;
+                snapshot[0].innerText = meta.typeLabel || '—';
+                snapshot[1].innerText = `${s.dateArriveeFormatted || '?'} → ${s.dateDepartFormatted || '?'}`;
+                snapshot[2].innerText = `${s.nights || 0} ${(s.nights || 0) > 1 ? 'nuits' : 'nuit'}`;
+                snapshot[3].innerText = `${s.participants || 0} personnes`;
             }
 
             // Synthèse
-            document.getElementById('stay-synthesis').innerText = DossierModel.getSynthesis(dossier);
+            const synthesisEl = document.getElementById('stay-synthesis');
+            if (synthesisEl) synthesisEl.innerText = DossierModel.getSynthesis(dossier);
 
             // --- Lignes de facturation ---
-            renderLinesToTbody('pricing-body', dossier.financials.lines, 'pricing');
-            renderLinesToTbody('options-body', dossier.financials.lines, 'options');
-            renderLinesToTbody('activities-body', dossier.financials.activitesLines || []);
+            const f = dossier.financials || {};
+            const lines = f.lines || [];
+            renderLinesToTbody('pricing-body', lines, 'pricing');
+            renderLinesToTbody('options-body', lines, 'options');
+            renderLinesToTbody('activities-body', f.activitesLines || []);
 
             // --- Totaux ---
-            const f = dossier.financials;
-            document.getElementById('display-total-ht').innerText = formatEuro(f.totalHT);
-            document.getElementById('display-total-tva').innerText = formatEuro(f.totalTVA);
-            document.getElementById('display-total-ttc').innerText = formatEuro(f.totalTTC);
-
-            // Acompte déduit
-            document.getElementById('display-deposit').innerText = formatEuro(f.acompte30);
-
-            // Net à payer = TTC - Acompte
-            document.getElementById('display-net-to-pay').innerText = formatEuro(f.solde);
+            setText('display-total-ht',   formatEuro(f.totalHT   || 0));
+            setText('display-total-tva',  formatEuro(f.totalTVA  || 0));
+            setText('display-total-ttc',  formatEuro(f.totalTTC  || 0));
+            setText('display-deposit',    formatEuro(f.acompte30 || 0));
+            setText('display-net-to-pay', formatEuro(f.solde     || 0));
         }
 
         function renderLinesToTbody(tbodyId, lines, section) {
@@ -396,19 +408,22 @@
             if (document.getElementById('subtotal-restauration')) document.getElementById('subtotal-restauration').innerText = sRestau.toFixed(2);
             if (document.getElementById('subtotal-salles')) document.getElementById('subtotal-salles').innerText = sOpt.toFixed(2);
 
-            document.getElementById('display-total-ht').innerText = formatEuro(totalHT);
-            document.getElementById('display-total-tva').innerText = formatEuro(totalTVA);
-            document.getElementById('display-total-ttc').innerText = formatEuro(ttc);
+            const setText2 = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+            setText2('display-total-ht',  formatEuro(totalHT));
+            setText2('display-total-tva', formatEuro(totalTVA));
+            setText2('display-total-ttc', formatEuro(ttc));
 
             updateNetToPay();
         }
 
         function updateNetToPay() {
-            const ttcRaw = document.getElementById('display-total-ttc').innerText;
-            const ttc = parseFloat(ttcRaw.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
-            const depositRaw = document.getElementById('display-deposit').innerText;
-            const deposit = parseFloat(depositRaw.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
-            document.getElementById('display-net-to-pay').innerText = formatEuro(ttc - deposit);
+            const ttcEl    = document.getElementById('display-total-ttc');
+            const depositEl = document.getElementById('display-deposit');
+            const netEl    = document.getElementById('display-net-to-pay');
+            if (!ttcEl || !depositEl || !netEl) return;
+            const ttc     = parseFloat(ttcEl.innerText.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+            const deposit = parseFloat(depositEl.innerText.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+            netEl.innerText = formatEuro(ttc - deposit);
         }
 
         function removeDeposit() {
