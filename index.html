@@ -3107,8 +3107,8 @@
                 'Date départ':  depart,
                 'Statut':       statut,
                 'Logements':    PLANNING_LOGEMENTS_DEFAULT,
-                'Montant':      0,
-                'Nb personnes': parseInt(f['Nombre de personnes'] || f['Nb personnes'], 10) || 0,
+                'Montant':      parseFloat(f['Total TTC'] || f['Montant Hébergement HT']) || 0,
+                'Nb personnes': parseInt(f['Nb personnes'] || f['Nombre de personnes'], 10) || 0,
             };
 
             const API_PLANNING = SesquierUtils.API_BASE + '/api/planning';
