@@ -206,6 +206,21 @@
       pointer-events: none; z-index: 10;
     }
 
+    #gantt-tooltip {
+      position: fixed;
+      background: #222;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 9999;
+      display: none;
+      max-width: 250px;
+      line-height: 1.5;
+      white-space: pre-line;
+    }
+
     /* ------------------------------------------------------------------ */
     /*  CALENDAR WRAPPER                                                    */
     /* ------------------------------------------------------------------ */
@@ -1116,9 +1131,9 @@ function renderGrid() {
       const conflictList  = conflicts[td.dataset.logement]?.[parseInt(td.dataset.day)] || [];
       const conflictNames = conflictList.filter(r => r.id !== res.id).map(r => r.nom);
       const tip = buildTooltip(res, conflictNames);
-      td.title = tip;
-      const label = td.querySelector('.cell-label');
-      if (label) label.title = tip;
+      td.addEventListener('mouseenter', e => showGanttTooltip(tip, e));
+      td.addEventListener('mousemove',  e => moveGanttTooltip(e));
+      td.addEventListener('mouseleave', hideGanttTooltip);
     }
   });
 
@@ -1144,7 +1159,24 @@ function buildTooltip(res, conflictNames = []) {
     res.notes ? '📝 ' + res.notes.slice(0, 60) : '',
     conflictNames.length ? '⚠ Conflit avec : ' + conflictNames.join(', ') : '',
   ].filter(Boolean).join('\n');
-  return lines.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return lines;
+}
+
+const _ganttTip = () => document.getElementById('gantt-tooltip');
+
+function showGanttTooltip(text, e) {
+  const el = _ganttTip();
+  el.textContent = text;
+  el.style.display = 'block';
+  moveGanttTooltip(e);
+}
+function moveGanttTooltip(e) {
+  const el = _ganttTip();
+  el.style.left = (e.clientX + 12) + 'px';
+  el.style.top  = (e.clientY + 12) + 'px';
+}
+function hideGanttTooltip() {
+  _ganttTip().style.display = 'none';
 }
 
 /* ------------------------------------------------------------------ */
@@ -1628,5 +1660,6 @@ function init() {
 
 init();
 </script>
+<div id="gantt-tooltip"></div>
 </body>
 </html>
