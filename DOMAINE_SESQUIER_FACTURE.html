@@ -4,42 +4,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facture - Domaine Sesquier</title>
-    <!-- Fonts -->
+    <title>Facture Finale — Domaine Sesquier</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap"
-        rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/document.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="assets/utils.js"></script>
     <script src="assets/constants.js"></script>
     <script src="assets/dossier-model.js"></script>
     <style>
-        /* Align doc-type with DEVIS serif aesthetic */
-        .doc-type {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--primary);
-            letter-spacing: 0.04em;
+        .doc-type { color: var(--text-main); }
+
+        /* Encadré solde / net à payer */
+        .acompte-box {
+            margin-top: 14px;
+            border-top: 2px solid var(--primary);
+            padding-top: 12px;
         }
+        .total-row.deduction {
+            background: rgba(158,93,76,0.07);
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            color: var(--accent);
+        }
+        .total-row.deduction span { color: var(--accent) !important; }
+        .total-row.net {
+            background: var(--primary);
+            color: #fff;
+            border-radius: 4px;
+            padding: 10px 10px;
+        }
+        .total-row.net span { color: #fff !important; }
     </style>
 </head>
 
 <body>
 
+    <!-- Controls -->
     <div class="controls-bar no-print">
-        <button class="btn" onclick="saveToAirtable()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                <polyline points="7 3 7 8 15 8"></polyline>
-            </svg>
-            Enregistrer
-        </button>
         <button class="btn btn-primary" onclick="generatePDF()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -49,7 +54,13 @@
         </button>
     </div>
 
-    <div class="page" id="devis-content">
+    <!-- PDF Wrapper (les deux pages) -->
+    <div id="pdf-wrapper">
+
+    <!-- ═══════════════════════════════════════════ PAGE 1 ═══════════════════════════════════════════ -->
+    <div class="page" id="facture-content">
+
+        <!-- A. Header -->
         <header>
             <div class="brand-col">
                 <h1>Domaine Sesquier</h1>
@@ -62,438 +73,593 @@
                 </div>
             </div>
             <div class="meta-col">
-                <div class="doc-type" style="font-size: 26px;">FACTURE</div>
+                <div class="doc-type">FACTURE FINALE</div>
                 <div class="meta-grid">
                     <div class="meta-label">Numéro :</div>
-                    <div class="meta-value" contenteditable="true" id="facture-number">FAC2026-03-XXX</div>
+                    <div class="meta-value" id="doc-id">FF-XXXX-XX</div>
+
                     <div class="meta-label">Date :</div>
-                    <div class="meta-value" contenteditable="true" id="today-date">--/--/----</div>
+                    <div class="meta-value" id="doc-date">--/--/----</div>
+
                     <div class="meta-label">Réf. Devis :</div>
-                    <div class="meta-value" contenteditable="true" id="devis-number">2026-02-XXX</div>
+                    <div class="meta-value" id="ref-devis">--</div>
                 </div>
             </div>
         </header>
 
+        <!-- B. Client & Résumé du séjour -->
         <section class="info-section">
             <div class="info-box">
                 <div class="box-title">Client / Entreprise</div>
-                <div class="client-info" contenteditable="true">Chargement...</div>
+                <div class="client-info" id="client-info">Chargement…</div>
             </div>
+
             <div class="info-box">
                 <div class="box-title">Résumé du Séjour</div>
                 <table class="snapshot-table">
                     <tr>
                         <td class="snapshot-key">Type :</td>
-                        <td class="snapshot-val" contenteditable="true">...</td>
+                        <td class="snapshot-val" id="snap-type">—</td>
                     </tr>
                     <tr>
                         <td class="snapshot-key">Dates :</td>
-                        <td class="snapshot-val" contenteditable="true">...</td>
+                        <td class="snapshot-val" id="snap-dates">—</td>
                     </tr>
                     <tr>
                         <td class="snapshot-key">Durée :</td>
-                        <td class="snapshot-val" contenteditable="true">...</td>
+                        <td class="snapshot-val" id="snap-duration">—</td>
                     </tr>
                     <tr>
                         <td class="snapshot-key">Participants :</td>
-                        <td class="snapshot-val" contenteditable="true">...</td>
+                        <td class="snapshot-val" id="snap-people">—</td>
+                    </tr>
+                    <tr>
+                        <td class="snapshot-key">Prix HT / pers :</td>
+                        <td class="snapshot-val" id="snapshot-price-per-person" style="color:var(--primary);font-weight:700;">—</td>
                     </tr>
                 </table>
             </div>
         </section>
 
-        <div id="stay-synthesis" contenteditable="true"
-            style="font-size: 11pt; font-weight: 500; color: var(--text-main); margin-bottom: 20px; border-left: 4px solid var(--primary); padding-left: 15px; outline: none;">
+        <!-- Synthèse narrative -->
+        <div id="stay-synthesis"
+            style="font-size:10pt;font-weight:600;color:var(--primary);margin-bottom:15px;border-left:3px solid var(--primary);padding-left:12px;">
         </div>
 
+        <!-- C. Tableau des prestations -->
         <section class="pricing-section">
             <table class="pricing-table">
                 <thead>
                     <tr>
                         <th class="col-detail">Description des Prestations</th>
-                        <th class="col-qty">Qté</th>
-                        <th class="col-price">PU HT (€)</th>
-                        <th class="col-tva">TVA</th>
-                        <th class="col-total">Total HT</th>
-                        <th class="no-print" style="width: 40px;"></th>
+                        <th class="col-qty" style="text-align:center;width:60px;">Qté</th>
+                        <th class="col-price" style="text-align:right;width:80px;">PU HT</th>
+                        <th class="col-tva" style="text-align:right;width:60px;">TVA</th>
+                        <th class="col-total" style="text-align:right;width:100px;">Total HT</th>
                     </tr>
                 </thead>
-                <tbody id="pricing-body"></tbody>
+                <tbody id="pricing-body">
+                    <!-- Rempli par JS -->
+                </tbody>
             </table>
-            <div class="no-print" style="margin-top: 10px; text-align: left;">
-                <button onclick="addRowBefore(this)"
-                    style="padding: 5px 10px; background: none; border: 1px dashed var(--primary); color: var(--primary); cursor: pointer; border-radius: 4px; font-size: 8pt;">+
-                    Ligne</button>
-            </div>
         </section>
 
-        <div class="print-footer"
-            style="position: absolute; bottom: 15mm; width: calc(100% - 30mm); font-size: 8pt; color: #999;">
-            Domaine Sesquier — <span class="devis-num-footer">2026-02-XXX</span> — Page 1/2
-        </div>
-    </div>
-
-    <div class="page" id="page2">
-        <div class="print-header-p2">
-            <div>
-                <span class="serif" style="font-size: 14pt; font-weight: 700; color: var(--primary);">Domaine
-                    Sesquier</span>
-                <span
-                    style="font-size: 9pt; color: var(--accent); margin-left: 10px; text-transform: uppercase; letter-spacing: 0.1em;">Suite
-                    de la Facture</span>
-            </div>
-            <div style="font-size: 9pt; text-align: right;">
-                <div style="font-weight: 600;" class="devis-num-footer">N° FAC2026-03-XXX</div>
-                <div style="color: #666;" class="devis-date-footer">Date : --/--/----</div>
-            </div>
+        <div class="print-footer no-print">
+            <span>Domaine Sesquier — FACTURE FINALE <span class="fa-num-footer"></span></span>
+            <span>Page 1 / 2</span>
         </div>
 
-        <section class="pricing-section" id="options-section" style="margin-bottom: 25px;">
-            <div
-                style="background-color: rgba(158, 93, 76, 0.08); color: var(--accent); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 11pt; padding: 8px 15px; border-bottom: 1px solid var(--accent); margin-bottom: 10px;">
-                Options &amp; Salles</div>
-            <table class="pricing-table" style="width: 100%;">
-                <tbody id="options-body"></tbody>
+    </div><!-- /#facture-content -->
+
+    <!-- Séparateur visuel browser uniquement -->
+    <div class="page-separator no-print"></div>
+
+    <!-- ═══════════════════════════════════════════ PAGE 2 ═══════════════════════════════════════════ -->
+    <div class="page" id="page2-content">
+
+        <!-- Options & Salles -->
+        <section id="options-proposal" style="margin-bottom:20px;">
+            <table class="pricing-table">
+                <thead>
+                    <tr>
+                        <th class="col-detail">Options &amp; Salles</th>
+                        <th class="col-qty" style="text-align:center;width:60px;">Qté</th>
+                        <th class="col-price" style="text-align:right;width:80px;">PU HT</th>
+                        <th class="col-tva" style="text-align:center;width:60px;">TVA</th>
+                        <th class="col-total" style="text-align:right;width:90px;">Total HT</th>
+                    </tr>
+                </thead>
+                <tbody id="options-body">
+                    <!-- Rempli par JS -->
+                </tbody>
             </table>
-            <div class="no-print" style="margin-top: 10px; text-align: left;">
-                <button onclick="addRowBefore(this)"
-                    style="padding: 5px 10px; background: none; border: 1px dashed var(--primary); color: var(--primary); cursor: pointer; border-radius: 4px; font-size: 8pt;">+
-                    Ligne</button>
-            </div>
         </section>
 
-        <section id="activities-proposal" style="margin-bottom: 25px;">
-            <div
-                style="background-color: rgba(158, 93, 76, 0.08); color: var(--accent); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 11pt; padding: 8px 15px; border-bottom: 1px solid var(--accent); margin-bottom: 10px;">
-                Activités &amp; Loisirs</div>
-            <table class="pricing-table" style="width: 100%;">
-                <tbody id="activities-body"></tbody>
+        <!-- Activités & Services Annexes -->
+        <section id="activities-proposal" style="margin-bottom:20px;">
+            <table class="pricing-table">
+                <thead>
+                    <tr>
+                        <th class="col-detail">Activités &amp; Services Annexes</th>
+                        <th class="col-qty" style="text-align:center;width:60px;">Qté</th>
+                        <th class="col-price" style="text-align:right;width:80px;">PU HT</th>
+                        <th class="col-tva" style="text-align:center;width:60px;">TVA</th>
+                        <th class="col-total" style="text-align:right;width:90px;">Total HT</th>
+                    </tr>
+                </thead>
+                <tbody id="activities-body">
+                    <!-- Rempli par JS -->
+                </tbody>
             </table>
-            <div class="no-print" style="margin-top: 10px; text-align: left;">
-                <button onclick="addRowBefore(this)"
-                    style="padding: 5px 10px; background: none; border: 1px dashed var(--primary); color: var(--primary); cursor: pointer; border-radius: 4px; font-size: 8pt;">+
-                    Ligne</button>
-            </div>
         </section>
 
-        <section class="bottom-section no-break">
-            <div class="totals-col">
-                <div class="total-row"><span>Total HT</span><span id="display-total-ht">0,00 €</span></div>
-                <div class="total-row"><span>TVA</span><span id="display-total-tva">0,00 €</span></div>
+        <!-- Conditions + Totaux -->
+        <section class="bottom-section" style="margin-bottom:15px;">
 
-                <div class="total-row" style="margin-bottom: 20px;"><span>TOTAL TTC</span><span
-                        id="display-total-ttc">0,00 €</span></div>
-
-                <div class="total-row" id="row-deposit" style="color: var(--accent); position: relative;">
-                    <button class="no-print" onclick="removeDeposit()"
-                        style="position: absolute; left: -30px; background: none; border: none; color: #ff4d4d; cursor: pointer; font-size: 14pt;">&times;</button>
-                    <span id="deposit-label">Facture d'acompte (déduite)</span>
-                    <span id="display-deposit" contenteditable="true" oninput="updateNetToPay()">0,00 €</span>
-                </div>
-
-                <div class="total-row final"
-                    style="border-top: 2px solid var(--primary); margin-top: 15px; padding-top: 15px;">
-                    <span>NET À PAYER</span>
-                    <span id="display-net-to-pay">0,00 €</span>
-                </div>
-            </div>
-
+            <!-- Conditions à gauche -->
             <div class="conditions-col">
                 <h4>Conditions de Règlement</h4>
                 <ul class="cond-list">
-                    <li>Paiement à réception de facture.</li>
-                    <li>Règlement par virement bancaire uniquement.</li>
+                    <li>• <strong>Objet :</strong> Solde de la facture finale (70% restant dû).</li>
+                    <li>• <strong>Acompte :</strong> 30% déjà réglé lors de la confirmation de réservation.</li>
+                    <li>• <strong>Solde :</strong> Le solde (70%) est dû à l'arrivée, avant le début du séjour.</li>
+                    <li>• <strong>Mode de paiement :</strong> Virement bancaire uniquement.</li>
+                    <li>• <strong>Divers :</strong> Chambres disponibles à 15h (arrivée) / Libérées à 11h (départ).</li>
                 </ul>
-                <div style="font-size: 7.5pt; color: #999; margin-top: 15px;">
-                    <strong>BNP PARIBAS</strong> — IBAN : FR76 3000 4006 4000 0107 8926 886 — BIC : BNPAFRPPXXX
+                <div style="font-size:7.5pt;color:#999;margin-top:12px;line-height:1.5;">
+                    <strong>OZZA SASU</strong> — SIRET 903 246 478 00015 — BNP Paribas<br>
+                    <strong>IBAN : FR76 3000 4006 4000 0107 8926 886</strong><br>
+                    BIC : BNPAFRPPXXX
                 </div>
             </div>
-        </section>
 
-        <section class="signature-section no-break">
-            <div class="sig-grid">
-                <div>
-                    <div class="sig-box-title">Client</div>
+            <!-- Totaux à droite -->
+            <div class="totals-col">
+                <div class="total-row">
+                    <span>Total HT</span>
+                    <span id="display-total-ht" style="font-weight:600;">0,00 €</span>
                 </div>
-                <div>
-                    <div class="sig-box-title">Domaine Sesquier</div>
+                <div class="total-row">
+                    <span>TVA (estimée)</span>
+                    <span id="display-total-tva">0,00 €</span>
+                </div>
+                <div class="total-row final" style="margin-top:10px;border-top:2px solid var(--primary);padding-top:10px;">
+                    <span style="font-size:11pt;text-transform:uppercase;letter-spacing:1px;">Total TTC</span>
+                    <span id="display-total-ttc" style="font-size:16pt;">0,00 €</span>
+                </div>
+
+                <div class="acompte-box">
+                    <div class="total-row deduction">
+                        <span style="font-weight:600;">Acompte déjà réglé (30%)</span>
+                        <span id="display-acompte-deduction" style="font-weight:700;font-size:12pt;">- 0,00 €</span>
+                    </div>
+                    <div class="total-row net">
+                        <span style="font-size:11pt;text-transform:uppercase;letter-spacing:1px;font-weight:700;">SOLDE À PAYER (70%)</span>
+                        <span id="display-net-to-pay" style="font-size:15pt;font-weight:700;">0,00 €</span>
+                    </div>
                 </div>
             </div>
+
         </section>
 
-        <div class="print-footer"
-            style="position: absolute; bottom: 15mm; width: calc(100% - 30mm); font-size: 8pt; color: #999;">
-            Domaine Sesquier — <span class="devis-num-footer">2026-02-XXX</span> — Page 2/2
+        <div class="print-footer">
+            <span>Domaine Sesquier — FACTURE FINALE <span class="fa-num-footer"></span></span>
+            <span>Page 2 / 2</span>
         </div>
-    </div>
+
+    </div><!-- /#page2-content -->
+
+    </div><!-- /#pdf-wrapper -->
 
     <script>
-        const { API_RESERVATIONS_URL, formatEuro } = SesquierUtils;
+        const API_BASE            = SesquierUtils.API_BASE;
+        const API_RESERVATIONS_URL = SesquierUtils.API_RESERVATIONS_URL;
+        const formatEuro          = SesquierUtils.formatEuro.bind(SesquierUtils);
+
         let currentRecord = null;
-        let currentDossier = null;
-        const urlParams = new URLSearchParams(window.location.search);
-        let currentRequestId = urlParams.get('id');
 
-        document.getElementById('today-date').innerText = new Date().toLocaleDateString('fr-FR');
+        // =====================================================================
+        // INIT
+        // =====================================================================
+        async function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const recordId  = urlParams.get('id') || sessionStorage.getItem('currentDossierId');
 
-        if (currentRequestId) { loadReservationData(currentRequestId); }
+            if (!recordId) {
+                const el = document.getElementById('client-info');
+                if (el) el.innerHTML = `
+                    <div style="color:var(--accent);padding:15px;border:1px solid var(--border);border-radius:8px;background:var(--bg-elevated);text-align:center;">
+                        <strong>ID de réservation manquant</strong><br>
+                        Aucun paramètre <code>?id=</code> dans l'URL.
+                    </div>`;
+                return;
+            }
 
-        async function loadReservationData(id) {
             try {
-                const data = await SesquierUtils.fetchJson(`${API_RESERVATIONS_URL}?id=${id}&t=${Date.now()}`);
-                if (!data || !data.records || data.records.length === 0) {
-                    console.error("[FACTURE] Aucun enregistrement trouvé pour id =", id);
-                    return;
-                }
-                currentRecord = data.records[0];
+                const data = await SesquierUtils.fetchJson(
+                    `${API_RESERVATIONS_URL}?id=${recordId}&t=${Date.now()}`
+                );
+                currentRecord = data.records ? data.records[0] : data;
+
                 if (!currentRecord || !currentRecord.fields) {
-                    console.error("[FACTURE] Données d'enregistrement invalides");
-                    return;
+                    throw new Error('Aucune donnée trouvée pour cette réservation.');
                 }
+
                 renderFromRecord(currentRecord.fields);
-            } catch (err) {
-                console.error("Load error:", err);
-                const clientInfoEl = document.querySelector('.client-info');
-                if (clientInfoEl) clientInfoEl.innerHTML = `<span style="color:red;">Erreur de chargement : ${err.message}</span>`;
+
+            } catch (e) {
+                console.error('[FF] Erreur de chargement:', e);
+                const el = document.getElementById('client-info');
+                if (el) el.innerHTML = `
+                    <div style="color:#e74c3c;padding:10px;border:1px solid #e74c3c;border-radius:4px;background:rgba(231,76,60,.05);">
+                        <strong>❌ Erreur de connexion</strong><br>${e.message}
+                    </div>`;
             }
         }
 
         // =====================================================================
-        // RENDER — Source unique : le Dossier
+        // RENDER PRINCIPAL
         // =====================================================================
         function renderFromRecord(fields) {
-            // 🧠 PRIORITÉ 1 : Lire le "Dossier JSON"
             let dossier = null;
 
-            if (fields["Dossier JSON"]) {
+            // Priorité 1 : DOSSIER JSON sauvegardé par le devis (clé uppercase)
+            if (fields['DOSSIER JSON']) {
                 try {
-                    dossier = JSON.parse(fields["Dossier JSON"]);
-                    console.log('[FACTURE] Dossier JSON trouvé (v' + dossier.version + ')');
+                    dossier = JSON.parse(fields['DOSSIER JSON']);
+                    console.log('[FF] Dossier JSON chargé —', dossier.financials?.lines?.length || 0, 'lignes');
                 } catch (e) {
-                    console.warn('[FACTURE] Dossier JSON invalide, fallback...', e);
+                    console.warn('[FF] DOSSIER JSON invalide, fallback…', e);
                 }
             }
 
-            // 🔄 PRIORITÉ 2 : Snapshot legacy
-            if (!dossier && fields["JSON"]) {
-                try {
-                    const snap = JSON.parse(fields["JSON"]);
-                    const hasValidLabels = snap.pricing?.some(p => p.type === 'pricing' && p.label && p.label.trim().length > 0);
-                    if (hasValidLabels) {
-                        restoreSnapshot(snap, fields);
-                        updateCalculations();
-                        fillMetaAndClient(fields);
-                        return;
-                    }
-                } catch (e) { console.error("Erreur restauration JSON:", e); }
-            }
-
-            // 🔄 PRIORITÉ 3 : Reconstruire depuis les champs legacy
+            // Priorité 2 : reconstruction depuis les champs plats (anciens records)
             if (!dossier) {
-                console.log('[FACTURE] Pas de Dossier JSON, reconstruction...');
+                console.log('[FF] Reconstruction depuis champs legacy…');
                 dossier = DossierModel.buildFromAirtableFields(fields);
             }
 
-            currentDossier = dossier;
-            renderDossier(dossier, fields);
+            renderMeta(dossier, fields);
+            renderClient(dossier);
+            renderSejour(dossier);
+            renderLines(dossier);
+            renderTotals(dossier);
         }
 
         // =====================================================================
-        // RENDER DOSSIER — Peuple le document depuis le dossier
+        // META — Numéro FF, date, réf. devis
         // =====================================================================
-        function renderDossier(dossier, fields) {
-            const now = new Date();
-            const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-            const meta = dossier.meta || {};
-            const num = (meta.airtableId || currentRequestId || "").toString().slice(-6).toUpperCase();
+        function renderMeta(dossier, fields) {
+            const now       = new Date();
+            const yy        = now.getFullYear();
+            const mm        = String(now.getMonth() + 1).padStart(2, '0');
+            const meta      = dossier.meta || {};
+            const rawId     = meta.airtableId || fields['ID Airtable'] || fields['ID'] || 'XXXX';
+            const shortId   = String(rawId).slice(-6).toUpperCase();
+            const docNum    = `FF-${yy}-${mm}-${shortId}`;
+            const devisNum  = meta.devisNumber || `${yy}-${mm}-${shortId}`;
 
-            const setText = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
-
-            setText('devis-number', `${yearMonth}-${num}`);
-            setText('facture-number', `FAC${yearMonth}-${num}`);
-            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `FAC${yearMonth}-${num}`);
-            document.querySelectorAll('.devis-date-footer').forEach(el => el.innerText = `Date : ${now.toLocaleDateString('fr-FR')}`);
-
-            const depositLabel = document.getElementById('deposit-label');
-            if (depositLabel) depositLabel.innerText = `Facture d'acompte (déduite) N° FA${yearMonth}-${num}`;
-
-            // Client
-            const c = dossier.client || {};
-            const clientInfoEl = document.querySelector('.client-info');
-            if (clientInfoEl) {
-                clientInfoEl.innerHTML =
-                    `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; line-height:1.8;">
-                        <tr><td style="opacity:0.65; width:38%;">Organisation :</td><td><strong>${c.organisation || '—'}</strong></td></tr>
-                        <tr><td style="opacity:0.65;">Nom du référent :</td><td>${c.fullName || '—'}</td></tr>
-                        <tr><td style="opacity:0.65;">Mail :</td><td>${c.email || '—'}</td></tr>
-                        <tr><td style="opacity:0.65;">Téléphone :</td><td>${c.phone || '—'}</td></tr>
-                    </table>`;
-            }
-
-            // Séjour snapshot
-            const s = dossier.sejour || {};
-            const snapshot = document.querySelectorAll('.snapshot-val');
-            if (snapshot.length >= 4) {
-                snapshot[0].innerText = meta.typeLabel || '—';
-                snapshot[1].innerText = `${s.dateArriveeFormatted || '?'} → ${s.dateDepartFormatted || '?'}`;
-                snapshot[2].innerText = `${s.nights || 0} ${(s.nights || 0) > 1 ? 'nuits' : 'nuit'}`;
-                snapshot[3].innerText = `${s.participants || 0} personnes`;
-            }
-
-            // Synthèse
-            const synthesisEl = document.getElementById('stay-synthesis');
-            if (synthesisEl) synthesisEl.innerText = DossierModel.getSynthesis(dossier);
-
-            // --- Lignes de facturation ---
-            const f = dossier.financials || {};
-            const lines = f.lines || [];
-            renderLinesToTbody('pricing-body', lines, 'pricing');
-            renderLinesToTbody('options-body', lines, 'options');
-            renderLinesToTbody('activities-body', f.activitesLines || []);
-
-            // --- Totaux ---
-            setText('display-total-ht',   formatEuro(f.totalHT   || 0));
-            setText('display-total-tva',  formatEuro(f.totalTVA  || 0));
-            setText('display-total-ttc',  formatEuro(f.totalTTC  || 0));
-            setText('display-deposit',    formatEuro(f.acompte30 || 0));
-            setText('display-net-to-pay', formatEuro(f.solde     || 0));
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+            set('doc-id',   docNum);
+            set('doc-date', now.toLocaleDateString('fr-FR'));
+            set('ref-devis', devisNum);
+            document.querySelectorAll('.fa-num-footer').forEach(el => el.innerText = docNum);
         }
 
-        function renderLinesToTbody(tbodyId, lines, section) {
+        // =====================================================================
+        // CLIENT
+        // =====================================================================
+        function renderClient(dossier) {
+            const c  = dossier.client || {};
+            const el = document.getElementById('client-info');
+            if (!el) return;
+            el.innerHTML = `
+                <table style="width:100%;border-collapse:collapse;font-size:9.5pt;line-height:1.8;">
+                    <tr><td style="opacity:.65;width:45%;white-space:nowrap;">Organisation :</td><td><strong>${c.organisation || '—'}</strong></td></tr>
+                    <tr><td style="opacity:.65;white-space:nowrap;">Nom du référent :</td><td>${c.fullName || '—'}</td></tr>
+                    <tr><td style="opacity:.65;white-space:nowrap;">Mail :</td><td>${c.email || '—'}</td></tr>
+                    <tr><td style="opacity:.65;white-space:nowrap;">Téléphone :</td><td>${c.phone || '—'}</td></tr>
+                </table>`;
+        }
+
+        // =====================================================================
+        // SÉJOUR — Snapshot + synthèse
+        // =====================================================================
+        function renderSejour(dossier) {
+            const s    = dossier.sejour    || {};
+            const meta = dossier.meta      || {};
+            const f    = dossier.financials || {};
+            const set  = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+
+            // Recalcul nights depuis dates si valeur stockée = 0
+            let nights = s.nights || 0;
+            if (!nights && s.dateArrivee && s.dateDepart) {
+                nights = Math.max(0, Math.round(
+                    (new Date(s.dateDepart) - new Date(s.dateArrivee)) / 86400000
+                ));
+            }
+
+            set('snap-type',     meta.typeLabel || '—');
+            set('snap-dates',    s.dateArriveeFormatted
+                ? `${s.dateArriveeFormatted} → ${s.dateDepartFormatted}`
+                : '—');
+            set('snap-duration', `${nights} ${nights > 1 ? 'nuits' : 'nuit'}`);
+            set('snap-people',   s.participants ? `${s.participants} personnes` : '—');
+
+            // Prix HT / pers — calculé après renderTotals, mis à jour ici si dispo
+            const n = s.participants || 0;
+            if (n > 0 && f.totalHT) {
+                set('snapshot-price-per-person', formatEuro(f.totalHT / n));
+            }
+
+            const synthEl = document.getElementById('stay-synthesis');
+            if (synthEl) synthEl.innerText = DossierModel.getSynthesis(dossier);
+        }
+
+        // =====================================================================
+        // LIGNES — Prestations, options, activités
+        // =====================================================================
+        function renderLines(dossier) {
+            const f              = dossier.financials  || {};
+            const allLines       = f.lines             || [];
+            const activitesLines = f.activitesLines    || [];
+
+            const pricingLines = [];
+            const optionsLines = [];
+            let section = 'pricing';
+
+            allLines.forEach(line => {
+                if (line.type === 'category' && line.title &&
+                    (line.title.toLowerCase().includes('espaces') ||
+                     line.title.toLowerCase().includes('options') ||
+                     line.title.toLowerCase().includes('salles'))) {
+                    section = 'options';
+                }
+                if (section === 'pricing') pricingLines.push(line);
+                else                       optionsLines.push(line);
+            });
+
+            renderLinesToTbody('pricing-body',    pricingLines);
+            renderLinesToTbody('options-body',    optionsLines);
+            renderLinesToTbody('activities-body', activitesLines);
+
+            // Calculer et afficher le total de chaque ligne après rendu DOM
+            fillRowTotals('pricing-body');
+            fillRowTotals('options-body');
+            fillRowTotals('activities-body');
+        }
+
+        function renderLinesToTbody(tbodyId, lines) {
             const tbody = document.getElementById(tbodyId);
-            if (!tbody) return;
+            if (!tbody || !lines || lines.length === 0) return;
             tbody.innerHTML = '';
-
-            let filteredLines = lines;
-
-            // If section filter specified, split lines at "Options" category
-            if (section === 'pricing' || section === 'options') {
-                const pricingLines = [];
-                const optionsLines = [];
-                let currentSection = 'pricing';
-                lines.forEach(line => {
-                    if (line.type === 'category' && line.title && (line.title.includes('espaces') || line.title.includes('Options'))) {
-                        currentSection = 'options';
-                    }
-                    if (currentSection === 'pricing') pricingLines.push(line);
-                    else optionsLines.push(line);
-                });
-                filteredLines = section === 'pricing' ? pricingLines : optionsLines;
-            }
-
-            if (filteredLines.length === 0) return;
-
-            filteredLines.forEach(line => {
-                if (line.type === 'category') SesquierUtils.addCategoryRow(line.title, tbodyId);
+            lines.forEach(line => {
+                if      (line.type === 'category') SesquierUtils.addCategoryRow(line.title, tbodyId);
                 else if (line.type === 'subtotal') SesquierUtils.addSubtotalRow(line.label, line.id, tbodyId);
                 else if (line.type === 'pricing') {
-                    SesquierUtils.addPricingRow(line.label, line.qty, line.unitPriceHT, line.tvaRate + '%', line.mealKey, tbodyId);
+                    SesquierUtils.addPricingRow(
+                        line.label, line.qty, line.unitPriceHT,
+                        line.tvaRate + '%', line.mealKey, tbodyId
+                    );
+                    // Afficher le sous-titre (description) en italique gris si présent
+                    if (line.subtitle) {
+                        const tb    = document.getElementById(tbodyId);
+                        const subEl = tb?.lastElementChild?.querySelector('.row-subtitle');
+                        if (subEl) subEl.innerText = line.subtitle;
+                    }
                 }
             });
         }
 
-        // --- Édition manuelle & recalcul ---
-        function addCategoryRow(title, targetId) { return SesquierUtils.addCategoryRow(title, targetId); }
-        function addPricingRow(label, qty, price, tva, mealKey, targetId) { return SesquierUtils.addPricingRow(label, qty, price, tva, mealKey, targetId); }
-        function createPricingRow(label, qty, price, tva, mealKey) { return SesquierUtils.createPricingRow(label, qty, price, tva, mealKey); }
-        function removeRow(btn, event) { return SesquierUtils.removeRow(btn, event); }
-        function addSubtotalRow(label, id, targetId) { return SesquierUtils.addSubtotalRow(label, id, targetId); }
-        function addRowBefore(btn) { return SesquierUtils.addRowBefore(btn); }
-
-        function updateCalculations() {
-            const { totalHT, totalTVA, ttc, subtotals } = SesquierUtils.runCommonCalculations();
-            const { sHeberg, sRestau, sOpt, sActiv } = subtotals;
-
-            if (document.getElementById('subtotal-hebergement')) document.getElementById('subtotal-hebergement').innerText = sHeberg.toFixed(2);
-            if (document.getElementById('subtotal-restauration')) document.getElementById('subtotal-restauration').innerText = sRestau.toFixed(2);
-            if (document.getElementById('subtotal-salles')) document.getElementById('subtotal-salles').innerText = sOpt.toFixed(2);
-
-            const setText2 = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
-            setText2('display-total-ht',  formatEuro(totalHT));
-            setText2('display-total-tva', formatEuro(totalTVA));
-            setText2('display-total-ttc', formatEuro(ttc));
-
-            updateNetToPay();
+        // Boucle directe qty × price → .row-total pour chaque ligne du tbody
+        function fillRowTotals(tbodyId) {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+            tbody.querySelectorAll('tr').forEach(tr => {
+                if (tr.classList.contains('category-row') || tr.classList.contains('subtotal-row')) return;
+                const qEl   = tr.querySelector('.qty');
+                const pEl   = tr.querySelector('.price');
+                const totEl = tr.querySelector('.row-total');
+                if (!qEl || !pEl || !totEl) return;
+                const qty   = parseFloat(String(qEl.innerText).replace(',', '.'))                          || 0;
+                const price = parseFloat(String(pEl.innerText).replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+                totEl.innerText = (Math.round(qty * price * 100) / 100).toFixed(2);
+            });
         }
 
-        function updateNetToPay() {
-            const ttcEl    = document.getElementById('display-total-ttc');
-            const depositEl = document.getElementById('display-deposit');
-            const netEl    = document.getElementById('display-net-to-pay');
-            if (!ttcEl || !depositEl || !netEl) return;
-            const ttc     = parseFloat(ttcEl.innerText.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
-            const deposit = parseFloat(depositEl.innerText.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
-            netEl.innerText = formatEuro(ttc - deposit);
+        // =====================================================================
+        // TOTAUX
+        // =====================================================================
+        function renderTotals(dossier) {
+            const f   = dossier.financials || {};
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+
+            const { totalHT: domHT, totalTVA: domTVA, ttc: domTTC } =
+                SesquierUtils.runCommonCalculations();
+
+            const totalHT  = domHT  || f.totalHT  || 0;
+            const totalTVA = domTVA || f.totalTVA || 0;
+            const totalTTC = domTTC || f.totalTTC || 0;
+            const acompte  = Math.round(totalTTC * 0.30 * 100) / 100;
+            const solde    = Math.round(totalTTC * 0.70 * 100) / 100;
+
+            set('display-total-ht',          formatEuro(totalHT));
+            set('display-total-tva',         formatEuro(totalTVA));
+            set('display-total-ttc',         formatEuro(totalTTC));
+            set('display-acompte-deduction', '- ' + formatEuro(acompte));
+            set('display-net-to-pay',        formatEuro(solde));
+
+            // Mettre à jour prix/pers maintenant qu'on a le vrai totalHT
+            const n = dossier.sejour?.participants || 0;
+            if (n > 0 && totalHT > 0) {
+                const ppEl = document.getElementById('snapshot-price-per-person');
+                if (ppEl) ppEl.innerText = formatEuro(Math.round(totalHT / n * 100) / 100);
+            }
         }
 
-        function removeDeposit() {
-            document.getElementById('row-deposit').style.display = 'none';
-            document.getElementById('display-deposit').innerText = '0,00 €';
-            updateNetToPay();
-        }
+        // =====================================================================
+        // GENERATE PDF
+        // =====================================================================
+        async function generatePDF() {
+            const numEl = document.getElementById('doc-id');
+            if (!numEl) { alert('Erreur : impossible de trouver le numéro de facture.'); return; }
+            const num        = numEl.innerText.trim();
+            const client     = (currentRecord?.fields?.['Nom client'] || 'Client').trim();
+            const safeClient = client.replace(/[^a-z0-9]/gi, '_').substring(0, 30);
+            const safeNum    = num.replace(/[^a-z0-9]/gi, '_');
+            const fileName   = `FactureFinale_${safeClient}_${safeNum}.pdf`;
 
-        async function saveToAirtable() { alert("Facture enregistrée localement."); }
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,0.96);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;font-size:14px;color:#3A5538;';
+            overlay.innerHTML = '<div style="text-align:center"><div style="font-size:28px;margin-bottom:10px;">📄</div><strong>Génération du PDF en cours…</strong></div>';
+            document.body.appendChild(overlay);
 
-        function generatePDF() {
-            const num = document.getElementById('facture-number').innerText;
-            const client = currentRecord?.fields?.["Nom client"] || "Client";
-            SesquierUtils.generatePDF('devis-content', `Facture_${client}_${num}.pdf`, { margin: [5, 5, 5, 5] });
-        }
+            const origBodyDisplay    = document.body.style.display;
+            const origBodyAlign      = document.body.style.alignItems;
+            const origBodyPadding    = document.body.style.padding;
 
-        document.body.addEventListener('input', (e) => {
-            if (e.target.contentEditable === 'true') updateCalculations();
-        });
+            const wrapper            = document.getElementById('pdf-wrapper');
+            const origWrapperPadding = wrapper.style.padding;
+            const origWrapperMargin  = wrapper.style.margin;
+            const origWrapperGap     = wrapper.style.gap;
 
-        function restoreSnapshot(snap, fields) {
-            const restoreList = (tbodyId, list) => {
-                const tbody = document.getElementById(tbodyId);
-                if (!tbody || !list) return;
-                tbody.innerHTML = '';
-                list.forEach(row => {
-                    if (row.type === 'category') addCategoryRow(row.title, tbodyId);
-                    else if (row.type === 'subtotal') addSubtotalRow(row.label, row.id, tbodyId);
-                    else if (row.type === 'pricing') addPricingRow(row.label, row.qty, row.price, row.tva, row.mealKey, tbodyId);
+            const dc                 = document.getElementById('facture-content');
+            const origDcMinHeight    = dc.style.minHeight;
+            const origDcHeight       = dc.style.height;
+            const origDcPadding      = dc.style.padding;
+            const origDcMargin       = dc.style.margin;
+
+            const p2                 = document.getElementById('page2-content');
+            const origP2MinHeight    = p2.style.minHeight;
+            const origP2Height       = p2.style.height;
+            const origP2Padding      = p2.style.padding;
+            const origP2Margin       = p2.style.margin;
+
+            const breakEls   = wrapper.querySelectorAll('section, div');
+            const origBreaks = Array.from(breakEls).map(el => ({
+                el,
+                breakInside:     el.style.breakInside,
+                pageBreakInside: el.style.pageBreakInside,
+            }));
+
+            const hideEls     = Array.from(document.querySelectorAll('.no-print, .print-footer'));
+            const origDisplay = hideEls.map(el => el.style.display);
+
+            try {
+                hideEls.forEach(el => { el.style.display = 'none'; });
+
+                document.body.style.display    = 'block';
+                document.body.style.alignItems = 'unset';
+                document.body.style.padding    = '0';
+
+                wrapper.style.padding = '0';
+                wrapper.style.margin  = '0';
+                wrapper.style.gap     = '0';
+
+                dc.style.minHeight = '0'; dc.style.height = 'auto';
+                dc.style.padding   = '0'; dc.style.margin = '0';
+
+                p2.style.minHeight = '0'; p2.style.height = 'auto';
+                p2.style.padding   = '0'; p2.style.margin = '0';
+
+                breakEls.forEach(el => {
+                    el.style.breakInside     = 'auto';
+                    el.style.pageBreakInside = 'auto';
                 });
-            };
-            restoreList('pricing-body', snap.pricing);
-            restoreList('options-body', snap.options);
-            restoreList('activities-body', snap.activities);
+
+                window.scrollTo(0, 0);
+
+                const canvas = await html2canvas(wrapper, {
+                    scale:           2,
+                    useCORS:         true,
+                    backgroundColor: '#ffffff',
+                    scrollX:         0,
+                    scrollY:         0,
+                    x:               0,
+                    y:               0,
+                    windowWidth:     wrapper.offsetWidth,
+                });
+
+                const A4_W_PT      = 595.28;
+                const A4_H_PT      = 841.89;
+                const MARGIN_MM    = 15;
+                const MARGIN_PT    = MARGIN_MM * 72 / 25.4;
+                const CONTENT_W_PT = A4_W_PT - 2 * MARGIN_PT;
+                const CONTENT_H_PT = A4_H_PT - 2 * MARGIN_PT;
+                const ratio        = CONTENT_W_PT / canvas.width;
+                const pageH_px     = Math.floor(CONTENT_H_PT / ratio);
+
+                const wrapperTop  = wrapper.getBoundingClientRect().top;
+                const sectionEls  = Array.from(wrapper.querySelectorAll(
+                    '.pricing-section, #options-proposal, #activities-proposal, .bottom-section, .info-section'
+                ));
+                const sectionTops = sectionEls
+                    .map(el => Math.round((el.getBoundingClientRect().top - wrapperTop) * 2))
+                    .filter(y => y > 0)
+                    .sort((a, b) => a - b);
+
+                const pageCuts = [0];
+                let pageStart  = 0;
+
+                for (const sTop of sectionTops) {
+                    if (sTop - pageStart > pageH_px) {
+                        pageCuts.push(sTop);
+                        pageStart = sTop;
+                    }
+                }
+                let lastCut = pageCuts[pageCuts.length - 1];
+                while (canvas.height - lastCut > pageH_px) {
+                    lastCut += pageH_px;
+                    pageCuts.push(lastCut);
+                }
+                pageCuts.push(canvas.height);
+
+                // eslint-disable-next-line no-undef
+                const pdf = new jspdf.jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait', compress: true });
+
+                for (let i = 0; i < pageCuts.length - 1; i++) {
+                    if (i > 0) pdf.addPage();
+                    const yStart  = pageCuts[i];
+                    const yEnd    = pageCuts[i + 1];
+                    const sliceH  = yEnd - yStart;
+                    const tmp     = document.createElement('canvas');
+                    tmp.width     = canvas.width;
+                    tmp.height    = sliceH;
+                    tmp.getContext('2d').drawImage(canvas, 0, yStart, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+                    const imgData   = tmp.toDataURL('image/jpeg', 0.98);
+                    const sliceH_pt = sliceH * ratio;
+                    pdf.addImage(imgData, 'JPEG', MARGIN_PT, MARGIN_PT, CONTENT_W_PT, sliceH_pt);
+                }
+
+                pdf.save(fileName);
+
+            } finally {
+                document.body.style.display    = origBodyDisplay;
+                document.body.style.alignItems = origBodyAlign;
+                document.body.style.padding    = origBodyPadding;
+
+                wrapper.style.padding = origWrapperPadding;
+                wrapper.style.margin  = origWrapperMargin;
+                wrapper.style.gap     = origWrapperGap;
+
+                dc.style.minHeight = origDcMinHeight; dc.style.height = origDcHeight;
+                dc.style.padding   = origDcPadding;   dc.style.margin = origDcMargin;
+
+                p2.style.minHeight = origP2MinHeight; p2.style.height = origP2Height;
+                p2.style.padding   = origP2Padding;   p2.style.margin = origP2Margin;
+
+                origBreaks.forEach(({ el, breakInside, pageBreakInside }) => {
+                    el.style.breakInside     = breakInside;
+                    el.style.pageBreakInside = pageBreakInside;
+                });
+
+                hideEls.forEach((el, i) => { el.style.display = origDisplay[i]; });
+                document.body.removeChild(overlay);
+            }
         }
 
-        function fillMetaAndClient(fields) {
-            const now = new Date();
-            const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-            const num = (fields["Numéro Devis"] || fields["ID"] || "").toString().slice(-6).toUpperCase();
-            document.getElementById('devis-number').innerText = `${yearMonth}-${num}`;
-            document.getElementById('facture-number').innerText = `FAC${yearMonth}-${num}`;
-            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `FAC${yearMonth}-${num}`);
-
-            const clientInfoEl = document.querySelector('.client-info');
-            if (clientInfoEl) {
-                const org = fields["Entreprise"] || fields["Organisation"] || "";
-                const ref = fields["Nom client"] || "";
-                const mail = fields["Email"] || "";
-                const tel = fields["Téléphone"] || "";
-                clientInfoEl.innerHTML =
-                    `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; line-height:1.8;">
-                        <tr><td style="opacity:0.65; width:45%;">Organisation :</td><td><strong>${org || '—'}</strong></td></tr>
-                        <tr><td style="opacity:0.65;">Nom du référent :</td><td>${ref || '—'}</td></tr>
-                        <tr><td style="opacity:0.65;">Mail :</td><td>${mail || '—'}</td></tr>
-                        <tr><td style="opacity:0.65;">Téléphone :</td><td>${tel || '—'}</td></tr>
-                    </table>`;
-            }
-
-            const snapshot = document.querySelectorAll('.snapshot-val');
-            if (snapshot && snapshot.length >= 4) {
-                snapshot[0].innerText = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
-                const dArrFmt = fields["Date arrivée"] ? new Date(fields["Date arrivée"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : "?";
-                const dDepFmt = fields["Date départ"] ? new Date(fields["Date départ"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : "?";
-                snapshot[1].innerText = `${dArrFmt} → ${dDepFmt}`;
-                snapshot[2].innerText = `${fields["Nuits"] || 0} nuits`;
-                snapshot[3].innerText = `${fields["Nombre de personnes"] || 0} personnes`;
-            }
-        }
+        window.onload = init;
     </script>
-</body>
 
+</body>
 </html>
