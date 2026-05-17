@@ -148,7 +148,8 @@
       display: flex;
       flex-direction: column;
       min-width: 0;
-      overflow-x: auto;
+      height: 100vh;
+      overflow-y: auto;
     }
 
     /* ------------------------------------------------------------------ */
@@ -298,11 +299,14 @@
     /* ------------------------------------------------------------------ */
     .main {
       flex: 1;
+      display: flex;
+      flex-direction: column;
       padding: 0;
       overflow: hidden;
     }
 
     .calendar-wrapper {
+      flex: 1;
       overflow-x: auto;
       overflow-y: visible;
       -webkit-overflow-scrolling: touch;
