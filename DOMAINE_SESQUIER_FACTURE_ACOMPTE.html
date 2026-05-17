@@ -437,35 +437,23 @@
         }
 
         // =====================================================================
-        // TOTAUX — Recalcul depuis les lignes (source de vérité)
+        // TOTAUX — runCommonCalculations remplit les .row-total dans le DOM
+        //          ET retourne les agrégats HT/TVA/TTC
         // =====================================================================
         function renderTotals(dossier) {
             const f   = dossier.financials || {};
             const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
 
-            // Agréger toutes les lignes pricing (prestations + activités)
-            const allLines = [
-                ...(f.lines          || []),
-                ...(f.activitesLines || []),
-            ].filter(l => l.type === 'pricing');
+            // Remplit les cellules .row-total de chaque ligne (qty × price)
+            // et retourne les totaux agrégés depuis le DOM
+            const { totalHT: domHT, totalTVA: domTVA, ttc: domTTC } =
+                SesquierUtils.runCommonCalculations();
 
-            let calcHT = 0, calcTVA = 0;
-            allLines.forEach(l => {
-                const ht  = Math.round((l.qty || 0) * (l.unitPriceHT || 0) * 100) / 100;
-                const tva = Math.round(ht * ((l.tvaRate || 0) / 100) * 100) / 100;
-                calcHT  += ht;
-                calcTVA += tva;
-            });
-            calcHT  = Math.round(calcHT  * 100) / 100;
-            calcTVA = Math.round(calcTVA * 100) / 100;
-            const calcTTC = Math.round((calcHT + calcTVA) * 100) / 100;
-            const calcAco = Math.round(calcTTC * 0.30      * 100) / 100;
-
-            // Fallback sur les valeurs pré-stockées si aucune ligne (format legacy)
-            const totalHT  = calcHT  || f.totalHT  || 0;
-            const totalTVA = calcTVA || f.totalTVA || 0;
-            const totalTTC = calcTTC || f.totalTTC || 0;
-            const acompte  = calcAco || f.acompte30 || 0;
+            // Fallback sur les valeurs pré-stockées si aucune ligne dans le DOM (format legacy)
+            const totalHT  = domHT  || f.totalHT  || 0;
+            const totalTVA = domTVA || f.totalTVA || 0;
+            const totalTTC = domTTC || f.totalTTC || 0;
+            const acompte  = Math.round(totalTTC * 0.30 * 100) / 100;
 
             set('display-total-ht',   formatEuro(totalHT));
             set('display-total-tva',  formatEuro(totalTVA));
