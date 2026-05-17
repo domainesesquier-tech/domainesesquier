@@ -101,6 +101,8 @@ function rowToRecord(row) {
       'Suivi Prochaine action':   row.suivi_prochaine_action,
       'Suivi Log':                row.suivi_log,
       'est_archive':              row.est_archive,
+      'Acompte Payé':             row.acompte_paye,
+      'Acompte Montant':          row.acompte_montant,
       'Created':                  row.created_at,
       'Updated':                  row.updated_at,
     },
@@ -147,6 +149,8 @@ const FIELD_MAP = {
   'Suivi Prochaine action':   'suivi_prochaine_action',
   'Suivi Log':                'suivi_log',
   'est_archive':              'est_archive',
+  'Acompte Payé':             'acompte_paye',
+  'Acompte Montant':          'acompte_montant',
 };
 
 function fieldsToRow(fields) {
