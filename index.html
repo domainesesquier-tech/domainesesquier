@@ -53,6 +53,16 @@
                 // Logs auto
                 if (field === SesquierRecords.FIELDS.STATUT) {
                     await autoLogTimeline(id, `Statut changé : **${currentVal || 'Inconnu'}** → **${newVal}**`);
+                    if (newVal.toLowerCase() === 'annulé') {
+                        const planningId = record._raw?.fields?.['planning_id'];
+                        if (planningId) {
+                            await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/planning`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: planningId, fields: { 'Statut': 'Annulé' } }),
+                            });
+                        }
+                    }
                 }
 
                 // Mise à jour locale (on repasse par normalize pour être sûr)
@@ -2360,15 +2370,27 @@
         async function confirmDeleteActiveDossier() {
             if (!activeRecordId) return;
             if (!confirm("Êtes-vous sûr de vouloir supprimer définitivement ce dossier ?")) return;
-            
+
+            const record = allRecords.find(r => r.id === activeRecordId);
+            const planningId = record?._raw?.fields?.['planning_id'];
+
             try {
                 await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: activeRecordId })
                 });
+
+                if (planningId) {
+                    await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/planning`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: planningId, fields: { 'Statut': 'Archivé' } }),
+                    });
+                }
+
                 closeDossier();
-                loadAllRecords(); // Refresh list
+                loadAllRecords();
             } catch (err) {
                 alert("Erreur suppression : " + err.message);
             }
