@@ -3,55 +3,22 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facture d'acompte — Domaine Sesquier</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600&display=swap"
-        rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/document.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="assets/utils.js"></script>
     <script src="assets/constants.js"></script>
     <script src="assets/dossier-model.js"></script>
-    <style>
-        .controls-bar {
-            background: #fff;
-            padding: 10px 20px;
-            display: flex;
-            gap: 15px;
-            border-bottom: 1px solid #eee;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 9pt;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border: 1px solid #ddd;
-            background: #fff;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: #fff;
-            border-color: var(--primary);
-        }
-
-        @media print {
-            .no-print {
-                display: none !important;
-            }
-        }
-    </style>
 </head>
 
 <body>
+
+    <!-- Controls -->
     <div class="controls-bar no-print">
         <button class="btn btn-primary" onclick="generatePDF()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -62,59 +29,66 @@
         </button>
     </div>
 
-    <div class="page" id="facture-content">
-        <div class="print-header">
-            <div class="logo-area">
-                <div class="serif"
-                    style="font-size: 22pt; font-weight: 700; color: var(--primary); letter-spacing: -0.02em;">Domaine
-                    Sesquier</div>
-                <div
-                    style="font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.15em; color: var(--accent); font-weight: 600; margin-top: 3px;">
-                    L'esprit de famille &amp; l'art de vivre</div>
-                <div style="font-size: 8pt; color: #666; margin-top: 10px; line-height: 1.4;">
-                    4, plan du sesquier - 34140 Mèze<br>
-                    Tél : +33 7 88 37 02 86 — Email : contact@domainesesquier.com — OZZA SASU — SIRET : 903 246 478
-                    00015
-                </div>
-            </div>
-            <div class="doc-meta">
-                <h1 style="font-size: 24pt; margin: 0; color: var(--primary);">FACTURE D'ACOMPTE</h1>
-                <div style="margin-top: 10px;">
-                    <div>Numéro : <strong id="doc-id">FA-XXXX-XX</strong></div>
-                    <div>Date : <span id="doc-date">--/--/----</span></div>
-                    <div>Réf. Devis : <span id="ref-devis">--</span></div>
-                </div>
-            </div>
-        </div>
+    <!-- PDF Wrapper (les deux pages) -->
+    <div id="pdf-wrapper">
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 30px;">
-            <div class="info-box">
-                <div class="info-title">CLIENT / ENTREPRISE</div>
-                <div id="client-info">Chargement...</div>
-            </div>
-            <div class="info-box">
-                <div class="info-title">RÉSUMÉ DU SÉJOUR</div>
-                <div id="stay-info">
-                    <table style="width:100%; border-collapse:collapse; font-size:9pt; line-height:1.7;">
-                        <tr>
-                            <td style="opacity:0.65; width:40%;">Type :</td>
-                            <td id="stay-type" style="font-weight:600;">—</td>
-                        </tr>
-                        <tr>
-                            <td style="opacity:0.65;">Dates :</td>
-                            <td id="stay-dates">—</td>
-                        </tr>
-                        <tr>
-                            <td style="opacity:0.65;">Participants :</td>
-                            <td id="stay-participants">—</td>
-                        </tr>
-                    </table>
+    <!-- Page 1 -->
+    <div class="page" id="facture-content">
+
+        <header>
+            <div class="brand-col">
+                <h1>Domaine Sesquier</h1>
+                <div class="subtitle">Esprit de famille &amp; Art de vivre</div>
+                <div class="brand-details">
+                    4, plan du sesquier, 34140 Mèze<br>
+                    Tél : +33 7 68 77 85 27<br>
+                    Email : contact@domainesesquier.com<br>
+                    <strong>OZZA SASU</strong> — SIRET : 903 246 478 00015
                 </div>
             </div>
-        </div>
+            <div class="meta-col">
+                <div class="doc-type">FACTURE D'ACOMPTE</div>
+                <div class="meta-grid">
+                    <div class="meta-label">Numéro :</div>
+                    <div class="meta-value" id="doc-id">FA-XXXX-XX</div>
+                    <div class="meta-label">Date :</div>
+                    <div class="meta-value" id="doc-date">--/--/----</div>
+                    <div class="meta-label">Réf. Devis :</div>
+                    <div class="meta-value" id="ref-devis">--</div>
+                </div>
+            </div>
+        </header>
+
+        <section class="info-section">
+            <div class="info-box">
+                <div class="box-title">Client / Entreprise</div>
+                <div class="client-info" id="client-info">Chargement...</div>
+            </div>
+            <div class="info-box">
+                <div class="box-title">Résumé du Séjour</div>
+                <table class="snapshot-table">
+                    <tr>
+                        <td class="snapshot-key">Type :</td>
+                        <td class="snapshot-val" id="snap-type">—</td>
+                    </tr>
+                    <tr>
+                        <td class="snapshot-key">Dates :</td>
+                        <td class="snapshot-val" id="snap-dates">—</td>
+                    </tr>
+                    <tr>
+                        <td class="snapshot-key">Durée :</td>
+                        <td class="snapshot-val" id="snap-duration">—</td>
+                    </tr>
+                    <tr>
+                        <td class="snapshot-key">Participants :</td>
+                        <td class="snapshot-val" id="snap-people">—</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
 
         <div id="stay-synthesis"
-            style="font-size: 11pt; font-weight: 600; color: var(--text-main); margin-bottom: 20px; border-left: 4px solid var(--primary); padding-left: 15px;">
+            style="font-size: 10pt; font-weight: 600; color: var(--primary); margin-bottom: 15px; border-left: 3px solid var(--primary); padding-left: 12px;">
         </div>
 
         <section class="pricing-section">
@@ -122,10 +96,10 @@
                 <thead>
                     <tr>
                         <th class="col-detail">Description des Prestations</th>
-                        <th class="col-qty">Qté</th>
-                        <th class="col-price">PU HT (€)</th>
-                        <th class="col-tva">TVA</th>
-                        <th class="col-total">Total HT</th>
+                        <th class="col-qty" style="text-align:center; width:60px;">Qté</th>
+                        <th class="col-price" style="text-align:right; width:80px;">PU HT</th>
+                        <th class="col-tva" style="text-align:right; width:60px;">TVA</th>
+                        <th class="col-total" style="text-align:right; width:100px;">Total HT</th>
                     </tr>
                 </thead>
                 <tbody id="pricing-body"></tbody>
@@ -138,62 +112,69 @@
             </table>
         </section>
 
-        <div class="print-footer"
-            style="position: absolute; bottom: 15mm; width: calc(100% - 30mm); font-size: 8pt; color: #999;">
-            Domaine Sesquier — <span class="devis-num-footer">FA-XXXX</span> — Page 1/2
-        </div>
-    </div>
-
-    <div class="page" id="page2">
-        <div class="print-header-p2"
-            style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px;">
-            <div class="serif" style="font-size: 14pt; font-weight: 700; color: var(--primary);">Domaine Sesquier <span
-                    style="font-size: 10pt; color: var(--accent); margin-left:10px; text-transform:uppercase;">Suite de
-                    la Facture</span></div>
-            <div style="font-size: 9pt; text-align: right;" class="devis-num-footer">FA-XXXX</div>
+        <div class="print-footer">
+            <span>Domaine Sesquier — FACTURE D'ACOMPTE <span class="devis-num-footer">FA-XXXX</span></span>
+            <span>Page 1 / 2</span>
         </div>
 
-        <section id="activities-proposal" style="margin-bottom: 25px;">
-            <div
-                style="background-color: rgba(158, 93, 76, 0.08); color: var(--accent); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 11pt; padding: 8px 15px; border-bottom: 1px solid var(--accent); margin-bottom: 10px;">
-                Activités &amp; Loisirs</div>
+    </div><!-- /#facture-content -->
+
+    <!-- Séparateur visuel browser uniquement -->
+    <div class="page-separator no-print"></div>
+
+    <!-- Page 2 -->
+    <div class="page" id="page2-content">
+
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px;">
+            <div>
+                <span class="serif" style="font-size: 14pt; font-weight: 700; color: var(--primary);">Domaine Sesquier</span>
+                <span style="font-size: 9pt; color: var(--accent); margin-left: 10px; text-transform: uppercase; letter-spacing: 0.1em;">Suite de la Facture</span>
+            </div>
+            <div style="font-size: 9pt; text-align: right; font-weight: 600;" class="devis-num-footer">FA-XXXX</div>
+        </div>
+
+        <section id="activities-proposal" style="margin-bottom: 20px;">
             <table class="pricing-table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th class="col-detail">Activités &amp; Services Annexes</th>
+                        <th class="col-qty" style="text-align:center; width:60px;">Qté</th>
+                        <th class="col-price" style="text-align:right; width:80px;">PU HT</th>
+                        <th class="col-tva" style="text-align:right; width:60px;">TVA</th>
+                        <th class="col-total" style="text-align:right; width:100px;">Total HT</th>
+                    </tr>
+                </thead>
                 <tbody id="activities-body"></tbody>
             </table>
         </section>
 
-        <section class="bottom-section"
-            style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px;">
+        <section class="bottom-section">
             <div class="conditions-col">
-                <h4 style="color: var(--primary); margin-bottom: 10px; font-size: 10pt;">Conditions de Règlement</h4>
-                <ul style="padding-left: 15px; font-size: 8.5pt; color: #555; line-height: 1.6;">
-                    <li><strong>Acompte (30%) :</strong> À régler pour confirmation.</li>
-                    <li><strong>Solde :</strong> À régler au plus tard 15 jours avant l'arrivée.</li>
-                    <li>IBAN BNP PARIBAS : FR76 3000 4006 4000 0107 8926 886</li>
+                <h4>Conditions de Règlement</h4>
+                <ul class="cond-list">
+                    <li>• <strong>Acompte (30%) :</strong> À régler à réception pour confirmation du séjour.</li>
+                    <li>• <strong>Solde :</strong> À régler au plus tard 15 jours avant la date d'arrivée.</li>
+                    <li>• <strong>Annulation :</strong> Acompte conservé. J-29/J-15 : 50%. J-14/J-8 : 75%. &lt; J-7 : 100%.</li>
                 </ul>
+                <div style="font-size: 7.5pt; color: #999; margin-top: 10px; line-height: 1.2;">
+                    <strong>OZZA SASU</strong> — SIRET 903 246 478 00015 — BNP Paribas<br>
+                    <strong>IBAN : FR76 3000 4006 4000 0107 8926 886</strong>
+                </div>
             </div>
-            <div class="totals-col">
-                <style>
-                    .total-row {
-                        display: flex;
-                        justify-content: space-between;
-                        padding: 8px 0;
-                        border-bottom: 1px solid #eee;
-                        font-size: 10pt;
-                    }
 
-                    .total-row.final {
-                        font-weight: 700;
-                        font-size: 14pt;
-                        color: var(--primary);
-                        border-top: 2px solid var(--primary);
-                        border-bottom: none;
-                        margin-top: 10px;
-                    }
-                </style>
-                <div class="total-row"><span>Total Prestations HT</span><span id="display-total-ht">0,00 €</span></div>
-                <div class="total-row"><span>TVA (estimée)</span><span id="display-total-tva">0,00 €</span></div>
-                <div class="total-row"><span>TOTAL TTC</span><span id="display-total-ttc">0,00 €</span></div>
+            <div class="totals-col">
+                <div class="total-row">
+                    <span>Total Prestations HT</span>
+                    <span id="display-total-ht">0,00 €</span>
+                </div>
+                <div class="total-row">
+                    <span>TVA (estimée)</span>
+                    <span id="display-total-tva">0,00 €</span>
+                </div>
+                <div class="total-row" style="border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin-bottom: 8px;">
+                    <span>TOTAL TTC</span>
+                    <span id="display-total-ttc" style="font-weight: 700;">0,00 €</span>
+                </div>
                 <div class="total-row" style="color: var(--accent); font-weight: 600;">
                     <span>ACOMPTE À RÉGLER (30%)</span>
                     <span id="display-acompte">0,00 €</span>
@@ -204,19 +185,26 @@
                 </div>
             </div>
         </section>
-    </div>
+
+        <div class="print-footer">
+            <span>Domaine Sesquier — FACTURE D'ACOMPTE <span class="devis-num-footer">FA-XXXX</span></span>
+            <span>Page 2 / 2</span>
+        </div>
+
+    </div><!-- /#page2-content -->
+
+    </div><!-- /#pdf-wrapper -->
 
     <script>
         const API_BASE = SesquierUtils.API_BASE;
         let currentRecord = null;
 
         // =====================================================================
-        // INIT — Point d'entrée
+        // INIT
         // =====================================================================
         async function init() {
             const urlParams = new URLSearchParams(window.location.search);
             const devId = urlParams.get('id');
-
             if (devId) {
                 try {
                     const data = await SesquierUtils.fetchJson(`${API_BASE}/api/reservations?id=${devId}`);
@@ -236,7 +224,6 @@
         // RENDER — Source unique : le Dossier
         // =====================================================================
         function renderFromRecord(fields) {
-            // 🧠 PRIORITÉ 1 : Lire le "Dossier JSON" (nouveau système)
             let dossier = null;
 
             if (fields["Dossier JSON"]) {
@@ -248,24 +235,16 @@
                 }
             }
 
-            // 🔄 PRIORITÉ 2 : Reconstruire depuis les champs legacy
             if (!dossier) {
-                console.log('[FA] Pas de Dossier JSON, reconstruction depuis champs legacy...');
+                console.log('[FA] Reconstruction depuis champs legacy...');
                 dossier = DossierModel.buildFromAirtableFields(fields);
             }
 
-            // --- Render ---
             renderMeta(dossier, fields);
             renderClient(dossier);
             renderSejour(dossier);
             renderLines(dossier);
             renderTotals(dossier);
-        }
-
-        async function generatePDF() {
-            const num = document.getElementById('doc-id').innerText;
-            const client = currentRecord?.fields?.["Nom client"] || "Client";
-            await SesquierUtils.generatePDF('facture-content', `Acompte_${client}_${num}.pdf`, { margin: [10, 10, 10, 10] });
         }
 
         // =====================================================================
@@ -274,12 +253,14 @@
         function renderMeta(dossier, fields) {
             const now = new Date();
             const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-            const id = ((dossier.meta && dossier.meta.airtableId) || fields["ID Airtable"] || "XXXX").toString().slice(-6).toUpperCase();
+            const meta = dossier.meta || {};
+            const id = (meta.airtableId || fields["ID Airtable"] || "XXXX").toString().slice(-6).toUpperCase();
             const docNum = `FA${yearMonth}-${id}`;
 
-            document.getElementById('doc-id').innerText = docNum;
-            document.getElementById('doc-date').innerText = now.toLocaleDateString('fr-FR');
-            document.getElementById('ref-devis').innerText = `${yearMonth}-${id}`;
+            const setText = (elId, val) => { const el = document.getElementById(elId); if (el) el.innerText = val; };
+            setText('doc-id',    docNum);
+            setText('doc-date',  now.toLocaleDateString('fr-FR'));
+            setText('ref-devis', `${yearMonth}-${id}`);
             document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = docNum);
         }
 
@@ -288,51 +269,54 @@
         // =====================================================================
         function renderClient(dossier) {
             const c = dossier.client || {};
-            document.getElementById('client-info').innerHTML =
-                `<strong>${c.organisation || '—'}</strong><br>${c.fullName || '—'}<br>${c.email || ''}`;
+            const el = document.getElementById('client-info');
+            if (!el) return;
+            el.innerHTML =
+                `<table style="width:100%; border-collapse:collapse; font-size:9pt; line-height:1.6;">
+                    <tr><td class="snapshot-key">Organisation :</td><td><strong>${c.organisation || '—'}</strong></td></tr>
+                    <tr><td class="snapshot-key">Référent :</td><td>${c.fullName || '—'}</td></tr>
+                    <tr><td class="snapshot-key">Email :</td><td>${c.email || '—'}</td></tr>
+                </table>`;
         }
 
         // =====================================================================
         // SÉJOUR — Résumé
         // =====================================================================
         function renderSejour(dossier) {
-            const s = dossier.sejour || {};
-            const meta = dossier.meta || {};
-            document.getElementById('stay-type').innerText = meta.typeLabel || '—';
-            document.getElementById('stay-dates').innerText = `${s.dateArriveeFormatted || '?'} → ${s.dateDepartFormatted || '?'}`;
-            document.getElementById('stay-participants').innerText = `${s.participants || '?'} personnes`;
-            document.getElementById('stay-synthesis').innerText = DossierModel.getSynthesis(dossier);
+            const s    = dossier.sejour || {};
+            const meta = dossier.meta   || {};
+            const setText = (elId, val) => { const el = document.getElementById(elId); if (el) el.innerText = val; };
+            setText('snap-type',     meta.typeLabel || '—');
+            setText('snap-dates',    `${s.dateArriveeFormatted || '?'} → ${s.dateDepartFormatted || '?'}`);
+            setText('snap-duration', `${s.nights || 0} ${(s.nights || 0) > 1 ? 'nuits' : 'nuit'}`);
+            setText('snap-people',   `${s.participants || '?'} personnes`);
+            const synthEl = document.getElementById('stay-synthesis');
+            if (synthEl) synthEl.innerText = DossierModel.getSynthesis(dossier);
         }
 
         // =====================================================================
-        // LINES — Lignes de facturation depuis le dossier
+        // LINES — Lignes de facturation
         // =====================================================================
         function renderLines(dossier) {
-            const financials = dossier.financials || {};
-            const lines = financials.lines || [];
+            const financials    = dossier.financials || {};
+            const lines         = financials.lines || [];
             const activitesLines = financials.activitesLines || [];
 
-            // Séparer les lignes par section
             const pricingLines = [];
             const optionsLines = [];
             let currentSection = 'pricing';
 
             lines.forEach(line => {
-                if (line.type === 'category' && line.title && line.title.includes('espaces')) {
+                if (line.type === 'category' && line.title &&
+                    (line.title.includes('espaces') || line.title.includes('Options'))) {
                     currentSection = 'options';
                 }
-                if (currentSection === 'pricing') {
-                    pricingLines.push(line);
-                } else {
-                    optionsLines.push(line);
-                }
+                if (currentSection === 'pricing') pricingLines.push(line);
+                else optionsLines.push(line);
             });
 
-            // Render pricing body
-            renderLinesToTbody('pricing-body', pricingLines);
-            // Render options body
-            renderLinesToTbody('options-body', optionsLines);
-            // Render activities
+            renderLinesToTbody('pricing-body',    pricingLines);
+            renderLinesToTbody('options-body',    optionsLines);
             renderLinesToTbody('activities-body', activitesLines.map(l => ({ ...l })));
         }
 
@@ -340,22 +324,12 @@
             const tbody = document.getElementById(tbodyId);
             if (!tbody || !lines || lines.length === 0) return;
             tbody.innerHTML = '';
-
             lines.forEach(line => {
-                if (line.type === 'category') {
-                    SesquierUtils.addCategoryRow(line.title, tbodyId);
-                } else if (line.type === 'subtotal') {
-                    SesquierUtils.addSubtotalRow(line.label, line.id, tbodyId);
-                } else if (line.type === 'pricing') {
-                    SesquierUtils.addPricingRow(
-                        line.label,
-                        line.qty,
-                        line.unitPriceHT,
-                        line.tvaRate + '%',
-                        line.mealKey,
-                        tbodyId
-                    );
-                }
+                if      (line.type === 'category') SesquierUtils.addCategoryRow(line.title, tbodyId);
+                else if (line.type === 'subtotal') SesquierUtils.addSubtotalRow(line.label, line.id, tbodyId);
+                else if (line.type === 'pricing')  SesquierUtils.addPricingRow(
+                    line.label, line.qty, line.unitPriceHT, line.tvaRate + '%', line.mealKey, tbodyId
+                );
             });
         }
 
@@ -363,22 +337,166 @@
         // TOTALS — Directement depuis le dossier (PAS de recalcul)
         // =====================================================================
         function renderTotals(dossier) {
-            const f = dossier.financials || {};
+            const f   = dossier.financials || {};
             const fmt = DossierModel.formatEuro;
             const setText = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
-
-            setText('display-total-ht',  fmt(f.totalHT  || 0));
-            setText('display-total-tva', fmt(f.totalTVA || 0));
-            setText('display-total-ttc', fmt(f.totalTTC || 0));
-            setText('display-acompte',   fmt(f.acompte30 || 0));
+            setText('display-total-ht',   fmt(f.totalHT   || 0));
+            setText('display-total-tva',  fmt(f.totalTVA  || 0));
+            setText('display-total-ttc',  fmt(f.totalTTC  || 0));
+            setText('display-acompte',    fmt(f.acompte30 || 0));
             setText('display-net-to-pay', fmt(f.acompte30 || 0));
+        }
 
-            // Mettre à jour les sous-totaux visuels
-            const sub = f.subtotals || {};
-            const setSubtotal = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val.toFixed(2); };
-            setSubtotal('subtotal-hebergement', sub.hebergement || 0);
-            setSubtotal('subtotal-restauration', sub.restauration || 0);
-            setSubtotal('subtotal-salles', sub.options || 0);
+        // =====================================================================
+        // GENERATE PDF — même pipeline que le devis (html2canvas + jsPDF)
+        // =====================================================================
+        async function generatePDF() {
+            const numEl = document.getElementById('doc-id');
+            if (!numEl) { alert('Erreur : impossible de trouver le numéro de facture.'); return; }
+            const num       = numEl.innerText.trim();
+            const client    = (currentRecord?.fields?.["Nom client"] || "Client").trim();
+            const safeClient = client.replace(/[^a-z0-9]/gi, '_').substring(0, 30);
+            const safeNum   = num.replace(/[^a-z0-9]/gi, '_');
+            const fileName  = `Acompte_${safeClient}_${safeNum}.pdf`;
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,0.96);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;font-size:14px;color:#3A5538;';
+            overlay.innerHTML = '<div style="text-align:center"><div style="font-size:28px;margin-bottom:10px;">📄</div><strong>Génération du PDF en cours…</strong></div>';
+            document.body.appendChild(overlay);
+
+            const wrapper = document.getElementById('pdf-wrapper');
+            const dc      = document.getElementById('facture-content');
+            const p2      = document.getElementById('page2-content');
+
+            // ── Sauvegarder l'état DOM ────────────────────────────────────────
+            const origBodyDisplay    = document.body.style.display;
+            const origBodyAlign      = document.body.style.alignItems;
+            const origBodyPadding    = document.body.style.padding;
+            const origWrapperPadding = wrapper.style.padding;
+            const origWrapperMargin  = wrapper.style.margin;
+            const origWrapperGap     = wrapper.style.gap;
+            const origDcMinHeight    = dc.style.minHeight;
+            const origDcHeight       = dc.style.height;
+            const origDcPadding      = dc.style.padding;
+            const origDcMargin       = dc.style.margin;
+            const origP2MinHeight    = p2.style.minHeight;
+            const origP2Height       = p2.style.height;
+            const origP2Padding      = p2.style.padding;
+            const origP2Margin       = p2.style.margin;
+
+            const breakEls   = wrapper.querySelectorAll('section, div');
+            const origBreaks = Array.from(breakEls).map(el => ({
+                el,
+                breakInside:     el.style.breakInside,
+                pageBreakInside: el.style.pageBreakInside,
+            }));
+
+            const hideEls    = Array.from(document.querySelectorAll('.no-print, .print-footer'));
+            const origDisplay = hideEls.map(el => el.style.display);
+
+            try {
+                // ── Neutraliser le DOM réel ───────────────────────────────────
+                hideEls.forEach(el => { el.style.display = 'none'; });
+
+                document.body.style.display    = 'block';
+                document.body.style.alignItems = 'unset';
+                document.body.style.padding    = '0';
+
+                wrapper.style.padding = '0';
+                wrapper.style.margin  = '0';
+                wrapper.style.gap     = '0';
+
+                dc.style.minHeight = '0'; dc.style.height = 'auto';
+                dc.style.padding   = '0'; dc.style.margin = '0';
+                p2.style.minHeight = '0'; p2.style.height = 'auto';
+                p2.style.padding   = '0'; p2.style.margin = '0';
+
+                breakEls.forEach(el => {
+                    el.style.breakInside     = 'auto';
+                    el.style.pageBreakInside = 'auto';
+                });
+
+                window.scrollTo(0, 0);
+
+                // ── Capturer avec html2canvas ─────────────────────────────────
+                const canvas = await html2canvas(wrapper, {
+                    scale:           2,
+                    useCORS:         true,
+                    backgroundColor: '#ffffff',
+                    scrollX:         0,
+                    scrollY:         0,
+                    x:               0,
+                    y:               0,
+                    windowWidth:     wrapper.offsetWidth,
+                });
+
+                // ── Générer avec jsPDF (section-aware cutting) ────────────────
+                const A4_W_PT      = 595.28;
+                const A4_H_PT      = 841.89;
+                const MARGIN_MM    = 15;
+                const MARGIN_PT    = MARGIN_MM * 72 / 25.4;
+                const SCALE        = 2;
+                const CONTENT_W_PT = A4_W_PT - 2 * MARGIN_PT;
+                const CONTENT_H_PT = A4_H_PT - 2 * MARGIN_PT;
+                const ratio        = CONTENT_W_PT / canvas.width;
+                const pageH_px     = Math.floor(CONTENT_H_PT / ratio);
+
+                const wrapperTop  = wrapper.getBoundingClientRect().top;
+                const sectionEls  = Array.from(wrapper.querySelectorAll(
+                    '.pricing-section, #options-section, #activities-proposal, .bottom-section, .info-section'
+                ));
+                const sectionTops = sectionEls
+                    .map(el => Math.round((el.getBoundingClientRect().top - wrapperTop) * SCALE))
+                    .filter(y => y > 0)
+                    .sort((a, b) => a - b);
+
+                const pageCuts = [0];
+                let pageStart  = 0;
+                for (const sTop of sectionTops) {
+                    if (sTop - pageStart > pageH_px) { pageCuts.push(sTop); pageStart = sTop; }
+                }
+                let lastCut = pageCuts[pageCuts.length - 1];
+                while (canvas.height - lastCut > pageH_px) { lastCut += pageH_px; pageCuts.push(lastCut); }
+                pageCuts.push(canvas.height);
+
+                const pdf = new jspdf.jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait', compress: true });
+                for (let i = 0; i < pageCuts.length - 1; i++) {
+                    if (i > 0) pdf.addPage();
+                    const yStart    = pageCuts[i];
+                    const yEnd      = pageCuts[i + 1];
+                    const sliceH    = yEnd - yStart;
+                    const tmpCanvas = document.createElement('canvas');
+                    tmpCanvas.width  = canvas.width;
+                    tmpCanvas.height = sliceH;
+                    tmpCanvas.getContext('2d').drawImage(canvas, 0, yStart, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+                    const imgData = tmpCanvas.toDataURL('image/jpeg', 0.98);
+                    pdf.addImage(imgData, 'JPEG', MARGIN_PT, MARGIN_PT, CONTENT_W_PT, sliceH * ratio);
+                }
+                pdf.save(fileName);
+
+            } finally {
+                // ── Restaurer le DOM réel ─────────────────────────────────────
+                document.body.style.display    = origBodyDisplay;
+                document.body.style.alignItems = origBodyAlign;
+                document.body.style.padding    = origBodyPadding;
+
+                wrapper.style.padding = origWrapperPadding;
+                wrapper.style.margin  = origWrapperMargin;
+                wrapper.style.gap     = origWrapperGap;
+
+                dc.style.minHeight = origDcMinHeight; dc.style.height = origDcHeight;
+                dc.style.padding   = origDcPadding;   dc.style.margin  = origDcMargin;
+                p2.style.minHeight = origP2MinHeight; p2.style.height = origP2Height;
+                p2.style.padding   = origP2Padding;   p2.style.margin  = origP2Margin;
+
+                origBreaks.forEach(({ el, breakInside, pageBreakInside }) => {
+                    el.style.breakInside     = breakInside;
+                    el.style.pageBreakInside = pageBreakInside;
+                });
+
+                hideEls.forEach((el, i) => { el.style.display = origDisplay[i]; });
+                document.body.removeChild(overlay);
+            }
         }
 
         window.onload = init;

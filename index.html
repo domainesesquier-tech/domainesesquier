@@ -171,7 +171,7 @@
         }
 
         async function deleteRecord(id, name) {
-            if (!confirm(`Êtes-vous sûr de vouloir supprimer définitivement le séminaire de "${name}" ?\nCette action est irréversible sur Airtable.`)) {
+            if (!confirm(`Êtes-vous sûr de vouloir supprimer définitivement le séminaire de "${name}" ?\nCette action est irréversible.`)) {
                 return;
             }
 
@@ -2030,7 +2030,7 @@
                 </div>
                 <div class="dash-top-right">
                     <div class="dossier-loader">
-                        <input type="text" id="dev-id-input" placeholder="ID Airtable…">
+                        <input type="text" id="dev-id-input" placeholder="ID Dossier…">
                         <button onclick="loadAirtableDevis()"><i class="fa-solid fa-arrow-right-to-bracket"></i>
                             Ouvrir</button>
                     </div>
@@ -2929,7 +2929,7 @@
                     <div style="display:flex; align-items:center; gap:6px;">
                         <span class="row-client-org">${escapeHtml(r.entreprise || 'Particulier')}</span>
                         <a href="https://airtable.com/${SesquierUtils.AIRTABLE_BASE_ID}/${SesquierUtils.AIRTABLE_RESERVATIONS_TABLE}/${id}" 
-                           target="_blank" class="airtable-link" onclick="event.stopPropagation()" title="Ouvrir dans Airtable">
+                           target="_blank" class="airtable-link" onclick="event.stopPropagation()" title="Ouvrir le dossier">
                            <i class="fa-solid fa-up-right-from-square" style="font-size:8px; opacity:0.5;"></i>
                         </a>
                     </div>
@@ -3056,7 +3056,7 @@
 
         function loadAirtableDevis() {
             const val = document.getElementById('dev-id-input').value.trim();
-            if (!val) return alert("Veuillez saisir un ID Airtable.");
+            if (!val) return alert("Veuillez saisir un ID de dossier.");
 
             if (activeIframeId) {
                 switchTab(activeIframeId, document.querySelector('.nav-item.active'), val);
