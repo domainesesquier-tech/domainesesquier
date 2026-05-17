@@ -434,10 +434,18 @@
             lines.forEach(line => {
                 if      (line.type === 'category') SesquierUtils.addCategoryRow(line.title, tbodyId);
                 else if (line.type === 'subtotal') SesquierUtils.addSubtotalRow(line.label, line.id, tbodyId);
-                else if (line.type === 'pricing')  SesquierUtils.addPricingRow(
-                    line.label, line.qty, line.unitPriceHT,
-                    line.tvaRate + '%', line.mealKey, tbodyId
-                );
+                else if (line.type === 'pricing') {
+                    SesquierUtils.addPricingRow(
+                        line.label, line.qty, line.unitPriceHT,
+                        line.tvaRate + '%', line.mealKey, tbodyId
+                    );
+                    // Afficher le sous-titre (description) en italique gris si présent
+                    if (line.subtitle) {
+                        const tb    = document.getElementById(tbodyId);
+                        const subEl = tb?.lastElementChild?.querySelector('.row-subtitle');
+                        if (subEl) subEl.innerText = line.subtitle;
+                    }
+                }
             });
         }
 
