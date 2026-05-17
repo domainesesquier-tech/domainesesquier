@@ -192,6 +192,20 @@
       );
     }
 
+    .cell.has-conflict {
+      outline: 2px solid #DC2626;
+      outline-offset: -2px;
+    }
+    .conflict-badge {
+      position: absolute;
+      top: 1px; right: 1px;
+      background: #DC2626;
+      color: #fff;
+      font-size: 8px; font-weight: 800;
+      padding: 0 3px; border-radius: 3px; line-height: 14px;
+      pointer-events: none; z-index: 10;
+    }
+
     /* ------------------------------------------------------------------ */
     /*  CALENDAR WRAPPER                                                    */
     /* ------------------------------------------------------------------ */
@@ -963,6 +977,35 @@ function buildGrid() {
   return grid;
 }
 
+function buildConflicts() {
+  const dim = daysInMonth(currentYear, currentMonth);
+  const map = {};
+  LOGEMENTS.forEach(l => { map[l.name] = {}; });
+  reservations.forEach(res => {
+    if (res.statut !== 'Option' || !res.arrivee || !res.depart) return;
+    const arr = parseYMD(res.arrivee), dep = parseYMD(res.depart);
+    (res.logements || []).forEach(logName => {
+      if (!map[logName]) return;
+      for (let cur = new Date(arr); cur < dep; cur.setDate(cur.getDate() + 1)) {
+        if (cur.getFullYear() !== currentYear || cur.getMonth() + 1 !== currentMonth) continue;
+        const d = cur.getDate();
+        if (!map[logName][d]) map[logName][d] = [];
+        if (!map[logName][d].find(r => r.id === res.id)) map[logName][d].push(res);
+      }
+    });
+  });
+  const conflicts = {};
+  Object.entries(map).forEach(([log, days]) => {
+    Object.entries(days).forEach(([d, arr]) => {
+      if (arr.length >= 2) {
+        if (!conflicts[log]) conflicts[log] = {};
+        conflicts[log][parseInt(d)] = arr;
+      }
+    });
+  });
+  return conflicts;
+}
+
 /* ------------------------------------------------------------------ */
 /*  RENDER CALENDAR GRID                                                */
 /* ------------------------------------------------------------------ */
@@ -985,6 +1028,7 @@ function renderGrid() {
   const todayDay = today.getDate();
 
   const grid = buildGrid();
+  const conflicts = buildConflicts();
 
   let html = '<table class="calendar-table" role="grid"><thead><tr>';
   html += '<th class="col-logement" scope="col">Logement</th>';
@@ -1036,16 +1080,20 @@ function renderGrid() {
         const label = cell.isFirst
           ? esc(res.nom.length > 10 ? res.nom.slice(0, 10) + '…' : res.nom)
           : '';
-        const optionCls = res.statut === 'Option' ? ' reservation-option' : '';
+        const optionCls     = res.statut === 'Option' ? ' reservation-option' : '';
+        const conflictList  = conflicts[logement.name]?.[d] || [];
+        const conflictCls   = conflictList.length >= 2 ? ' has-conflict' : '';
+        const conflictBadge = conflictList.length >= 2
+          ? `<span class="conflict-badge">⚠ ${conflictList.length}</span>` : '';
         html += `<td
-          class="cell occupied${todayCls}${optionCls}"
+          class="cell occupied${todayCls}${optionCls}${conflictCls}"
           style="background-color:${color.bg};color:${color.text};"
           data-res-id="${esc(res.id)}"
           data-logement="${esc(logement.name)}"
           data-day="${d}"
           role="gridcell"
           tabindex="0"
-        ><span class="cell-label">${label}</span></td>`;
+        ><span class="cell-label">${label}</span>${conflictBadge}</td>`;
       } else {
         html += `<td
           class="cell free${todayCls}"
@@ -1065,9 +1113,12 @@ function renderGrid() {
   container.querySelectorAll('td.cell.occupied').forEach(td => {
     const res = reservations.find(r => r.id === td.dataset.resId);
     if (res) {
-      td.title = buildTooltip(res);
+      const conflictList  = conflicts[td.dataset.logement]?.[parseInt(td.dataset.day)] || [];
+      const conflictNames = conflictList.filter(r => r.id !== res.id).map(r => r.nom);
+      const tip = buildTooltip(res, conflictNames);
+      td.title = tip;
       const label = td.querySelector('.cell-label');
-      if (label) label.title = buildTooltip(res);
+      if (label) label.title = tip;
     }
   });
 
@@ -1084,13 +1135,14 @@ function formatDateFr(str) {
   return `${parseInt(d, 10)} ${mois[parseInt(m, 10) - 1]}`;
 }
 
-function buildTooltip(res) {
+function buildTooltip(res, conflictNames = []) {
   const lines = [
     `${res.nom} — ${formatDateFr(res.arrivee)} au ${formatDateFr(res.depart)}`,
     `${res.personnes} pers.`,
     res.montant ? `${Number(res.montant).toLocaleString('fr-FR')} €` : '',
     res.statut,
     res.notes ? '📝 ' + res.notes.slice(0, 60) : '',
+    conflictNames.length ? '⚠ Conflit avec : ' + conflictNames.join(', ') : '',
   ].filter(Boolean).join('\n');
   return lines.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
