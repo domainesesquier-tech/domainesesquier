@@ -927,7 +927,11 @@
             const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
             const dArr = fields["Date arrivée"] ? new Date(fields["Date arrivée"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : "?";
             const dDep = fields["Date départ"] ? new Date(fields["Date départ"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : "?";
-            const nNights = fields["Nuits"] || 0;
+            let nNights = fields["Nuits"] || 0;
+            // Recalculer depuis les dates si "Nuits" est absent/zéro mais que les deux dates sont présentes
+            if (!nNights && fields["Date arrivée"] && fields["Date départ"]) {
+                nNights = Math.max(0, Math.round((new Date(fields["Date départ"]) - new Date(fields["Date arrivée"])) / 86400000));
+            }
             const nbPers = fields["Nombre de personnes"] || 0;
 
             if (document.getElementById('snap-type')) document.getElementById('snap-type').innerText = typeLabel;
@@ -1099,7 +1103,10 @@
             if (snapshot.length >= 4) {
                 snapshot[0].innerText = dossier.meta?.typeLabel || '';
                 snapshot[1].innerText = s.dateArriveeFormatted ? `${s.dateArriveeFormatted} → ${s.dateDepartFormatted}` : '—';
-                snapshot[2].innerText = s.nights != null ? `${s.nights} ${s.nights > 1 ? 'nuits' : 'nuit'}` : '—';
+                // nights depuis le dossier JSON ; si 0 mais dates valides → recalculer
+                const _sN = (s.nights > 0) ? s.nights
+                    : (s.dateArrivee && s.dateDepart ? Math.max(0, Math.round((new Date(s.dateDepart) - new Date(s.dateArrivee)) / 86400000)) : 0);
+                snapshot[2].innerText = `${_sN} ${_sN > 1 ? 'nuits' : 'nuit'}`;
                 snapshot[3].innerText = s.participants != null ? `${s.participants} personnes` : '—';
             }
 
@@ -1296,7 +1303,10 @@
             const typeLabel = Array.isArray(fields["Type"]) ? fields["Type"][0] : (fields["Type"] || "Séjour");
             const dArr = fields["Date arrivée"] ? new Date(fields["Date arrivée"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : "?";
             const dDep = fields["Date départ"] ? new Date(fields["Date départ"]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : "?";
-            const nNights = (fields["Nuits"] !== undefined) ? fields["Nuits"] : 0;
+            let nNights = (fields["Nuits"] !== undefined && fields["Nuits"] > 0) ? fields["Nuits"] : 0;
+            if (!nNights && fields["Date arrivée"] && fields["Date départ"]) {
+                nNights = Math.max(0, Math.round((new Date(fields["Date départ"]) - new Date(fields["Date arrivée"])) / 86400000));
+            }
             const nbPers = (fields["Nombre de personnes"] !== undefined) ? fields["Nombre de personnes"] : 0;
 
             if (document.getElementById('snap-type')) document.getElementById('snap-type').innerText = typeLabel;
@@ -1654,13 +1664,17 @@
                 // 6. Construire le dossier complet (on part de currentDossier pour garder sejour/sleeping/options)
                 // Si currentDossier est null (nouveau record), reconstruire sejour depuis les champs du record
                 const baseFields = currentRecord?.fields || {};
+                // Calculer les nuits depuis les dates Airtable (source de vérité) pour le fallback
+                const _fbA = baseFields['Date arrivée'] ? new Date(baseFields['Date arrivée']) : null;
+                const _fbD = baseFields['Date départ']  ? new Date(baseFields['Date départ'])  : null;
+                const _fbNights = (_fbA && _fbD) ? Math.max(0, Math.round((_fbD - _fbA) / 86400000)) : 1;
                 const fallbackSejour = currentDossier?.sejour || {
                     dateArrivee: baseFields['Date arrivée'] || null,
                     dateDepart:  baseFields['Date départ']  || null,
                     dateArriveeFormatted: baseFields['Date arrivée'] ? new Date(baseFields['Date arrivée']).toLocaleDateString('fr-FR', {day:'numeric', month:'long'}) : '—',
                     dateDepartFormatted:  baseFields['Date départ']  ? new Date(baseFields['Date départ']).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'}) : '—',
-                    nights: 1,
-                    days: 2,
+                    nights: _fbNights,
+                    days: _fbNights + 1,
                     participants: parseInt(baseFields['Nombre de personnes'] || baseFields['Nb personnes'] || 0, 10),
                     adultes: parseInt(baseFields['Nombre de personnes'] || 0, 10),
                     enfants: 0,
