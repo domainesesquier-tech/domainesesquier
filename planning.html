@@ -740,6 +740,7 @@
     <nav>
       <a href="index.html">Accueil</a>
       <a href="reservations.html">Réservations</a>
+      <a href="archives.html">Archives</a>
     </nav>
   </header>
 
@@ -841,7 +842,7 @@ const COLORS = {
 };
 
 const TYPES   = Object.keys(COLORS);
-const STATUTS = ['Confirmé', 'Option', 'Bloqué'];
+const STATUTS = ['Confirmé', 'Option', 'Bloqué', 'Archivé'];
 
 const MONTHS_FR = [
   'Janvier','Février','Mars','Avril','Mai','Juin',
@@ -910,6 +911,7 @@ function recordToRes(record) {
     notes:       f['Notes']        || '',
     contact_tel: f['Contact tél']  || '',
     draps:       f['Draps']        || false,
+    archived_at: f['Archived at']  || null,
   };
 }
 
@@ -1004,6 +1006,7 @@ function buildGrid() {
   LOGEMENTS.forEach(l => { grid[l.name] = {}; });
 
   reservations.forEach(res => {
+    if (res.statut === 'Archivé') return;
     if (!res.arrivee || !res.depart) return;
     const arrDate = parseYMD(res.arrivee);
     const depDate = parseYMD(res.depart);
@@ -1421,6 +1424,7 @@ function openDetailModal(res) {
 
     <div class="modal-actions">
       <button class="btn btn-danger" onclick="confirmDelete('${res.id}')">Supprimer</button>
+      <button class="btn" style="color:#666;" onclick="confirmArchive('${res.id}')">Archiver</button>
       <button class="btn" onclick="closeModal()">Fermer</button>
       <button class="btn btn-primary" onclick="openEditModal('${esc(res.id)}')">Modifier</button>
     </div>`;
@@ -1642,6 +1646,20 @@ async function confirmDelete(id) {
     showFlash('Réservation supprimée.', 'success');
   } catch (err) {
     showFlash('Erreur suppression : ' + err.message, 'error');
+  }
+}
+
+async function confirmArchive(id) {
+  if (!confirm('Archiver cette réservation ?')) return;
+  try {
+    await updateReservation(id, { 'Statut': 'Archivé', 'Archived at': new Date().toISOString() });
+    reservations = reservations.filter(r => r.id !== id);
+    closeModal();
+    renderGrid();
+    renderSummary();
+    showFlash('Réservation archivée.', 'success');
+  } catch (err) {
+    showFlash('Erreur : ' + err.message, 'error');
   }
 }
 

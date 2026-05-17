@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Archives — Domaine Sesquier</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:       #2D6A4F;
+      --green-dark:  #1B4332;
+      --beige:       #F5F0E8;
+      --beige-light: #FAF8F4;
+      --beige-dark:  #E8E0D0;
+      --border:      #DDD6C8;
+      --white:       #FFFFFF;
+      --text:        #1A1A1A;
+      --text-muted:  #888;
+      --red:         #DC2626;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--beige-light);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      background: var(--green-dark);
+      color: #fff;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 10px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-logo  { font-weight: 800; font-size: 15px; letter-spacing: .04em; }
+    .header-title { font-size: 14px; opacity: .85; }
+    nav { margin-left: auto; display: flex; gap: 4px; }
+    nav a {
+      color: rgba(255,255,255,.8);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: background .15s;
+    }
+    nav a:hover { background: rgba(255,255,255,.12); color: #fff; }
+    nav a.active { background: rgba(255,255,255,.18); color: #fff; }
+
+    /* MAIN */
+    .main { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 20px; color: var(--green-dark); }
+
+    /* FILTERS */
+    .filters {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      background: var(--white);
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .filter-input {
+      flex: 1;
+      min-width: 140px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      background: var(--beige-light);
+      outline: none;
+    }
+    .filter-input:focus { border-color: var(--green); }
+
+    /* TABLE */
+    .table-wrap {
+      background: var(--white);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      background: var(--beige);
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--beige);
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--beige-light); }
+
+    .no-data {
+      text-align: center;
+      padding: 48px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* BADGES */
+    .statut-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .statut-badge.confirme { background: #D1FAE5; color: #065F46; }
+    .statut-badge.option   { background: #FEF3C7; color: #92400E; }
+    .statut-badge.annule   { background: #FEE2E2; color: #991B1B; }
+
+    .logement-tag {
+      display: inline-block;
+      background: var(--beige);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 11px;
+      margin: 1px;
+    }
+
+    /* BUTTONS */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--white);
+      cursor: pointer;
+      transition: background .12s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--beige); }
+    .btn-green { background: var(--green); color: #fff; border-color: var(--green); }
+    .btn-green:hover { background: var(--green-dark); border-color: var(--green-dark); }
+    .btn-danger { background: var(--red); color: #fff; border-color: var(--red); }
+    .btn-danger:hover { background: #B91C1C; border-color: #B91C1C; }
+
+    .actions-cell { display: flex; gap: 6px; }
+
+    /* STATS BAR */
+    .stats-bar {
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .stats-bar strong { color: var(--text); }
+
+    /* FLASH */
+    #flash {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 12px 20px; border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      z-index: 500; display: none;
+      transition: opacity .3s;
+    }
+    #flash.success { background: #D1FAE5; color: #065F46; border: 1px solid #6EE7B7; }
+    #flash.error   { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+
+    /* SPINNER */
+    .spinner {
+      width: 24px; height: 24px;
+      border: 3px solid var(--beige-dark);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 768px) {
+      .filters { flex-direction: column; }
+      .filter-input { min-width: unset; }
+      h1 { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="header-logo">Domaine Sesquier</span>
+  <span style="opacity:.3;font-size:18px;">|</span>
+  <span class="header-title">Archives</span>
+  <nav>
+    <a href="index.html">Accueil</a>
+    <a href="planning.html">Planning</a>
+    <a href="reservations.html">Réservations</a>
+    <a href="archives.html" class="active">Archives</a>
+  </nav>
+</header>
+
+<div class="main">
+  <h1>Réservations archivées</h1>
+
+  <div class="filters">
+    <input class="filter-input" id="f-nom"      type="text"  placeholder="🔍 Nom client…">
+    <input class="filter-input" id="f-mois"     type="month" placeholder="Mois">
+    <select class="filter-input" id="f-logement">
+      <option value="">Tous les logements</option>
+    </select>
+    <button class="btn" onclick="applyFilters()">Filtrer</button>
+    <button class="btn" onclick="resetFilters()">Réinitialiser</button>
+  </div>
+
+  <div class="stats-bar" id="stats-bar"></div>
+
+  <div class="table-wrap">
+    <table id="archives-table">
+      <thead>
+        <tr>
+          <th>Client</th>
+          <th>Logement(s)</th>
+          <th>Arrivée</th>
+          <th>Départ</th>
+          <th>Type</th>
+          <th>Montant</th>
+          <th>Statut original</th>
+          <th>Archivé le</th>
+          <th>Notes</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="archives-body">
+        <tr><td colspan="10" class="no-data">
+          <div class="spinner"></div>Chargement…
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="flash"></div>
+
+<script>
+const API_BASE = 'https://domainesesquier-api.domainesesquier.workers.dev/api';
+
+const LOGEMENTS_LIST = [
+  'Acacia','Hibiscus','Pivoine','Belle de nuit','Iris',
+  'Rose','Figuier','Jasmin','Clos Josette','Sous les toits',
+  'Champs d\'Olivier','Archipel'
+];
+
+let allArchives = [];
+let filtered    = [];
+
+/* ---- Populate logement filter ---- */
+const sel = document.getElementById('f-logement');
+LOGEMENTS_LIST.forEach(l => {
+  const o = document.createElement('option');
+  o.value = l; o.textContent = l;
+  sel.appendChild(o);
+});
+
+/* ---- API ---- */
+async function loadArchives() {
+  try {
+    const res  = await fetch(`${API_BASE}/archives`);
+    const data = await res.json();
+    allArchives = (data.records || []).map(recordToRes);
+    filtered    = [...allArchives];
+    render();
+  } catch (e) {
+    document.getElementById('archives-body').innerHTML =
+      `<tr><td colspan="10" class="no-data">Erreur : ${e.message}</td></tr>`;
+  }
+}
+
+function recordToRes(record) {
+  const f = record.fields || {};
+  return {
+    id:          record.id,
+    nom:         f['Nom']          || '',
+    type:        f['Type']         || '',
+    logements:   f['Logements']    || [],
+    arrivee:     f['Date arrivée'] || '',
+    depart:      f['Date départ']  || '',
+    personnes:   f['Nb personnes'] || 0,
+    montant:     f['Montant']      || 0,
+    statut:      f['Statut']       || '',
+    notes:       f['Notes']        || '',
+    archived_at: f['Archived at']  || null,
+  };
+}
+
+/* ---- Filters ---- */
+function applyFilters() {
+  const nom     = document.getElementById('f-nom').value.trim().toLowerCase();
+  const mois    = document.getElementById('f-mois').value;
+  const logement= document.getElementById('f-logement').value;
+
+  filtered = allArchives.filter(r => {
+    if (nom && !r.nom.toLowerCase().includes(nom)) return false;
+    if (mois && !r.arrivee.startsWith(mois)) return false;
+    if (logement && !(r.logements || []).includes(logement)) return false;
+    return true;
+  });
+  render();
+}
+
+function resetFilters() {
+  document.getElementById('f-nom').value      = '';
+  document.getElementById('f-mois').value     = '';
+  document.getElementById('f-logement').value = '';
+  filtered = [...allArchives];
+  render();
+}
+
+/* ---- Render ---- */
+function formatDate(str) {
+  if (!str) return '—';
+  const [y, m, d] = str.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function formatDateTime(str) {
+  if (!str) return '—';
+  const d = new Date(str);
+  return d.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' })
+    + ' ' + d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+}
+
+function statutBadgeClass(s) {
+  if (s === 'Confirmé') return 'confirme';
+  if (s === 'Option')   return 'option';
+  if (s === 'Bloqué')   return 'annule';
+  return '';
+}
+
+function esc(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function render() {
+  const tbody = document.getElementById('archives-body');
+  document.getElementById('stats-bar').innerHTML =
+    `<strong>${filtered.length}</strong> réservation${filtered.length !== 1 ? 's' : ''} archivée${filtered.length !== 1 ? 's' : ''}`;
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" class="no-data">Aucune archive trouvée.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => `
+    <tr>
+      <td><strong>${esc(r.nom)}</strong></td>
+      <td>${(r.logements || []).map(l => `<span class="logement-tag">${esc(l)}</span>`).join('')}</td>
+      <td>${formatDate(r.arrivee)}</td>
+      <td>${formatDate(r.depart)}</td>
+      <td>${esc(r.type)}</td>
+      <td>${r.montant ? Number(r.montant).toLocaleString('fr-FR', {style:'currency',currency:'EUR',maximumFractionDigits:0}) : '—'}</td>
+      <td><span class="statut-badge ${statutBadgeClass(r.statut)}">${esc(r.statut)}</span></td>
+      <td style="white-space:nowrap;">${formatDateTime(r.archived_at)}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.notes)}">${esc(r.notes) || '—'}</td>
+      <td>
+        <div class="actions-cell">
+          <button class="btn btn-green" onclick="restoreReservation('${r.id}')">Restaurer</button>
+          <button class="btn btn-danger" onclick="deleteArchive('${r.id}')">Supprimer</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+/* ---- Actions ---- */
+async function restoreReservation(id) {
+  if (!confirm('Restaurer cette réservation sur le planning ?')) return;
+  try {
+    await fetch(`${API_BASE}/planning`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, fields: { 'Statut': 'Option', 'Archived at': null } }),
+    });
+    allArchives = allArchives.filter(r => r.id !== id);
+    filtered    = filtered.filter(r => r.id !== id);
+    render();
+    showFlash('Réservation restaurée en "Option".', 'success');
+  } catch (e) {
+    showFlash('Erreur : ' + e.message, 'error');
+  }
+}
+
+async function deleteArchive(id) {
+  if (!confirm('Supprimer définitivement cette réservation ? Cette action est irréversible.')) return;
+  try {
+    await fetch(`${API_BASE}/planning?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    allArchives = allArchives.filter(r => r.id !== id);
+    filtered    = filtered.filter(r => r.id !== id);
+    render();
+    showFlash('Réservation supprimée définitivement.', 'success');
+  } catch (e) {
+    showFlash('Erreur : ' + e.message, 'error');
+  }
+}
+
+/* ---- Flash ---- */
+let flashTimer;
+function showFlash(msg, type) {
+  const el = document.getElementById('flash');
+  el.textContent  = msg;
+  el.className    = type;
+  el.style.display   = 'block';
+  el.style.opacity   = '1';
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.style.display = 'none', 300); }, 3500);
+}
+
+/* ---- Init ---- */
+loadArchives();
+</script>
+</body>
+</html>

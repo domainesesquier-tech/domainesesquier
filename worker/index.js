@@ -203,6 +203,7 @@ function planningRowToRecord(row) {
       'Notes':        row.notes,
       'Contact tél':  row.contact_tel,
       'Draps':        row.draps,
+      'Archived at':  row.archived_at,
       'Created':      row.created_at,
     },
   };
@@ -316,6 +317,12 @@ export default {
         return json({ records: rows.map(pricingRowToRecord) }, 200, env, requestOrigin);
       }
 
+      // ── ARCHIVES ──────────────────────────────────────────
+      if (url.pathname === "/api/archives" && method === "GET") {
+        const rows = await sbFetch(env, `/planning?statut=eq.Archivé&order=archived_at.desc`);
+        return json({ records: rows.map(planningRowToRecord) }, 200, env, requestOrigin);
+      }
+
       // ── PLANNING (table dédiée) ────────────────────────────
       if (url.pathname === "/api/planning" && method === "GET") {
         const id   = url.searchParams.get("id");
@@ -377,6 +384,7 @@ export default {
         if (f['Notes']        !== undefined) row.notes        = f['Notes'];
         if (f['Contact tél']  !== undefined) row.contact_tel  = f['Contact tél'];
         if (f['Draps']        !== undefined) row.draps        = Boolean(f['Draps']);
+        if (f['Archived at']  !== undefined) row.archived_at  = f['Archived at'];
         if (Object.keys(row).length === 0) return json({ error: { message: "Aucun champ valide à mettre à jour" } }, 400, env, requestOrigin);
         const result = await sbFetch(env, `/planning?id=eq.${encodeURIComponent(body.id)}`, {
           method: "PATCH", body: JSON.stringify(row),
