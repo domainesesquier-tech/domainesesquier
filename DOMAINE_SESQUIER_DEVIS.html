@@ -1225,14 +1225,8 @@
             if (document.getElementById('total-tva')) document.getElementById('total-tva').innerText = formatEuro(totalTVA);
             if (document.getElementById('total-ttc')) document.getElementById('total-ttc').innerText = formatEuro(totalTTC);
 
-            // Lancer le moteur de calcul pour remplir les totaux ligne par ligne + grand total
+            // Lancer le moteur de calcul pour remplir les totaux ligne par ligne + sous-totaux
             updateCalculations();
-
-            // Forcer les sous-totaux depuis le dossier (plus fiables que la recalculation DOM)
-            if (document.getElementById('subtotal-hebergement')) document.getElementById('subtotal-hebergement').innerText = formatEuro(financials.subtotals.hebergement || 0);
-            if (document.getElementById('subtotal-restauration')) document.getElementById('subtotal-restauration').innerText = formatEuro(financials.subtotals.restauration || 0);
-            if (document.getElementById('subtotal-salles')) document.getElementById('subtotal-salles').innerText = formatEuro(financials.subtotals.options || 0);
-            if (document.getElementById('subtotal-activities')) document.getElementById('subtotal-activities').innerText = formatEuro(financials.subtotals.activities || 0);
 
             // Grand total depuis le dossier (source de vérité)
             if (document.getElementById('display-total-ht'))  document.getElementById('display-total-ht').innerText  = formatEuro(totalHT);
