@@ -1209,9 +1209,9 @@ function openDetailModal(res) {
     </div>
 
     <div class="modal-actions">
-      <button class="btn btn-danger" onclick="confirmDelete(${JSON.stringify(res.id)})">Supprimer</button>
+      <button class="btn btn-danger" onclick="confirmDelete('${res.id}')">Supprimer</button>
       <button class="btn" onclick="closeModal()">Fermer</button>
-      <button class="btn btn-primary" onclick="openEditModal(${JSON.stringify(res.id)})">Modifier</button>
+      <button class="btn btn-primary" onclick="openEditModal('${res.id}')">Modifier</button>
     </div>`;
 
   openModal(html);
