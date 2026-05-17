@@ -1949,6 +1949,95 @@
             color: #2ecc71;
             font-size: 13px;
         }
+
+        /* ── Documents panel ───────────────────────────────────── */
+        .docs-panel {
+            display: none;
+            margin-top: 32px;
+            border: 1px solid #E8E5DE;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .docs-panel.visible { display: block; }
+        .docs-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            background: var(--primary-subtle, rgba(58,85,56,0.06));
+            border-bottom: 1px solid #E8E5DE;
+        }
+        .docs-panel-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary, #3A5538);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-upload {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: var(--primary, #3A5538);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .btn-upload:hover { opacity: 0.85; }
+        .btn-upload:disabled { opacity: 0.5; cursor: not-allowed; }
+        .docs-list { padding: 8px 0; }
+        .docs-empty {
+            padding: 32px;
+            text-align: center;
+            color: #9CA3AF;
+            font-size: 13px;
+        }
+        .doc-file-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            border-bottom: 1px solid #F3F0EA;
+            transition: background 0.1s;
+        }
+        .doc-file-row:last-child { border-bottom: none; }
+        .doc-file-row:hover { background: #FAFAF8; }
+        .doc-file-icon { font-size: 18px; color: #9CA3AF; width: 22px; flex-shrink: 0; }
+        .doc-file-icon.pdf { color: #EF4444; }
+        .doc-file-icon.img { color: #3B82F6; }
+        .doc-file-info { flex: 1; min-width: 0; }
+        .doc-file-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: #111827;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .doc-file-date { font-size: 11px; color: #9CA3AF; margin-top: 2px; }
+        .doc-file-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .doc-action-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            border: 1px solid #E5E7EB;
+            background: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #6B7280;
+            transition: all 0.15s;
+        }
+        .doc-action-btn:hover { background: #F3F4F6; color: #111827; }
+        .doc-action-btn.delete:hover { background: #FEE2E2; color: #DC2626; border-color: #FCA5A5; }
     </style>
 </head>
 
@@ -2191,6 +2280,23 @@
                     </div>
                 </div>
 
+                <!-- Documents panel -->
+                <div class="docs-panel" id="docs-panel">
+                    <div class="docs-panel-header">
+                        <div class="docs-panel-title">
+                            <i class="fa-solid fa-folder-open"></i> Documents
+                        </div>
+                        <button class="btn-upload" id="btn-upload-doc" onclick="triggerFileUpload()">
+                            <i class="fa-solid fa-arrow-up-from-bracket"></i> Uploader
+                        </button>
+                        <input type="file" id="doc-file-input" accept=".pdf,.jpg,.jpeg,.png"
+                            style="display:none" onchange="handleFileUpload(this)">
+                    </div>
+                    <div class="docs-list" id="docs-list">
+                        <div class="docs-empty">Chargement…</div>
+                    </div>
+                </div>
+
                 <div class="dossier-section" style="margin-top: 40px;">
                     <div class="dossier-section-title">
                         <span>Journal de Bord (Timeline)</span>
@@ -2225,6 +2331,136 @@
     </div>
 
     <script>
+        // =====================================================================
+        // SUPABASE STORAGE
+        // =====================================================================
+        const SB_URL      = 'https://ymwebdihbmzrcaivldxu.supabase.co';
+        const SB_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inltd2ViZGloYm16cmNhaXZsZHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0ODkxMjMsImV4cCI6MjA5NDA2NTEyM30.htAc4nHjbv-yFHW-59i_1eBPUsNcfd8-DMq9D1igVPw';
+        const SB_HEADERS  = { 'apikey': SB_ANON_KEY, 'Authorization': `Bearer ${SB_ANON_KEY}` };
+        const SB_BUCKET   = 'documents';
+
+        async function loadDocuments(recordId) {
+            const res = await fetch(`${SB_URL}/storage/v1/object/list/${SB_BUCKET}`, {
+                method: 'POST',
+                headers: { ...SB_HEADERS, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prefix: `${recordId}/`, limit: 100, sortBy: { column: 'created_at', order: 'desc' } })
+            });
+            if (!res.ok) throw new Error(`Storage list: ${res.status}`);
+            return await res.json(); // array of { name, metadata: { size, mimetype, lastModified } }
+        }
+
+        async function uploadDocument(recordId, file) {
+            const path = `${recordId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+            const res = await fetch(`${SB_URL}/storage/v1/object/${SB_BUCKET}/${path}`, {
+                method: 'POST',
+                headers: { ...SB_HEADERS, 'Content-Type': file.type, 'x-upsert': 'true' },
+                body: file
+            });
+            if (!res.ok) { const e = await res.json(); throw new Error(e.message || res.status); }
+            return path;
+        }
+
+        async function deleteDocument(path) {
+            const res = await fetch(`${SB_URL}/storage/v1/object/${SB_BUCKET}/${path}`, {
+                method: 'DELETE',
+                headers: SB_HEADERS
+            });
+            if (!res.ok) throw new Error(`Delete: ${res.status}`);
+        }
+
+        function getPublicUrl(path) {
+            return `${SB_URL}/storage/v1/object/public/${SB_BUCKET}/${path}`;
+        }
+
+        async function openDocsPanel(recordId) {
+            const panel = document.getElementById('docs-panel');
+            const list  = document.getElementById('docs-list');
+            panel.classList.add('visible');
+            panel._recordId = recordId;
+            list.innerHTML = '<div class="docs-empty">Chargement…</div>';
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            await refreshDocsList(recordId);
+        }
+
+        async function refreshDocsList(recordId) {
+            const list = document.getElementById('docs-list');
+            try {
+                const files = await loadDocuments(recordId);
+                if (!files || files.length === 0) {
+                    list.innerHTML = '<div class="docs-empty">Aucun fichier pour ce dossier.</div>';
+                    return;
+                }
+                list.innerHTML = files.map(f => {
+                    const path     = `${recordId}/${f.name}`;
+                    const pubUrl   = getPublicUrl(path);
+                    const ext      = f.name.split('.').pop().toLowerCase();
+                    const iconCls  = ext === 'pdf' ? 'pdf' : ['jpg','jpeg','png'].includes(ext) ? 'img' : '';
+                    const iconName = ext === 'pdf' ? 'fa-file-pdf' : ['jpg','jpeg','png'].includes(ext) ? 'fa-file-image' : 'fa-file';
+                    const date     = f.metadata?.lastModified
+                        ? new Date(f.metadata.lastModified).toLocaleDateString('fr-FR')
+                        : '—';
+                    const displayName = f.name.replace(/^\d+_/, ''); // retire le timestamp préfixe
+                    return `
+                        <div class="doc-file-row">
+                            <div class="doc-file-icon ${iconCls}"><i class="fa-solid ${iconName}"></i></div>
+                            <div class="doc-file-info">
+                                <div class="doc-file-name" title="${f.name}">${displayName}</div>
+                                <div class="doc-file-date">${date}</div>
+                            </div>
+                            <div class="doc-file-actions">
+                                <a href="${pubUrl}" target="_blank" download class="doc-action-btn" title="Télécharger">
+                                    <i class="fa-solid fa-download"></i>
+                                </a>
+                                <button class="doc-action-btn delete" title="Supprimer"
+                                    onclick="confirmDeleteDoc('${path}', '${recordId}')">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>`;
+                }).join('');
+            } catch (e) {
+                list.innerHTML = `<div class="docs-empty" style="color:#EF4444">Erreur : ${e.message}</div>`;
+            }
+        }
+
+        function triggerFileUpload() {
+            document.getElementById('doc-file-input').value = '';
+            document.getElementById('doc-file-input').click();
+        }
+
+        async function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            if (file.size > 10 * 1024 * 1024) { alert('Fichier trop lourd (max 10 Mo)'); return; }
+            const allowed = ['application/pdf','image/jpeg','image/png'];
+            if (!allowed.includes(file.type)) { alert('Format non supporté (PDF, JPG, PNG uniquement)'); return; }
+            const btn = document.getElementById('btn-upload-doc');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Upload…';
+            const panel = document.getElementById('docs-panel');
+            try {
+                await uploadDocument(panel._recordId, file);
+                await refreshDocsList(panel._recordId);
+                showSyncBanner('Fichier uploadé !');
+            } catch (e) {
+                alert('Erreur upload : ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-arrow-up-from-bracket"></i> Uploader';
+            }
+        }
+
+        async function confirmDeleteDoc(path, recordId) {
+            if (!confirm('Supprimer ce fichier définitivement ?')) return;
+            try {
+                await deleteDocument(path);
+                await refreshDocsList(recordId);
+                showSyncBanner('Fichier supprimé.');
+            } catch (e) {
+                alert('Erreur suppression : ' + e.message);
+            }
+        }
+
         // =====================================================================
         // STATE
         // =====================================================================
@@ -2443,7 +2679,8 @@
                 { type: 'facture-finale', label: 'Facture Finale', sub: 'Solde et clôture', icon: 'fa-receipt', done: false },
                 { type: 'rooming', label: "Hébergement", sub: "Plan d'occupation", icon: 'fa-hotel', done: !!f["Rooming JSON"] },
                 { type: 'cuisine', label: 'Fiche Cuisine', sub: 'Logistique chef', icon: 'fa-utensils', done: !!f["Cuisine JSON"] },
-                { type: 'menu-client', label: 'Menus', sub: 'Carte élégante', icon: 'fa-wine-glass', done: !!f["Cuisine JSON"] }
+                { type: 'menu-client', label: 'Menus', sub: 'Carte élégante', icon: 'fa-wine-glass', done: !!f["Cuisine JSON"] },
+                { type: 'documents', label: 'Documents', sub: 'Fichiers & PDF', icon: 'fa-folder-open', done: false }
             ];
 
             grid.innerHTML = docs.map(d => `
@@ -2472,6 +2709,10 @@
                 archiveBtn.style.color = isArchived ? '#ef4444' : '#94a3b8';
                 archiveBtn.style.borderColor = isArchived ? '#fca5a5' : '#cbd5e1';
             }
+
+            // Reset docs panel
+            const docsPanel = document.getElementById('docs-panel');
+            if (docsPanel) docsPanel.classList.remove('visible');
 
             document.getElementById('dossier-overlay').classList.add('show');
         }
@@ -2624,6 +2865,10 @@
         }
 
         function openDocFromDossier(type, id) {
+            if (type === 'documents') {
+                openDocsPanel(id);
+                return;
+            }
             document.getElementById('dossier-overlay').classList.remove('show');
             openDocForRecord(type, id);
         }
