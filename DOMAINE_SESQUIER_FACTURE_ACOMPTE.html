@@ -334,17 +334,42 @@
         }
 
         // =====================================================================
-        // TOTALS — Directement depuis le dossier (PAS de recalcul)
+        // TOTALS — Recalcul depuis les lignes (source de vérité, pas les totaux pré-stockés)
         // =====================================================================
         function renderTotals(dossier) {
             const f   = dossier.financials || {};
             const fmt = DossierModel.formatEuro;
             const setText = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
-            setText('display-total-ht',   fmt(f.totalHT   || 0));
-            setText('display-total-tva',  fmt(f.totalTVA  || 0));
-            setText('display-total-ttc',  fmt(f.totalTTC  || 0));
-            setText('display-acompte',    fmt(f.acompte30 || 0));
-            setText('display-net-to-pay', fmt(f.acompte30 || 0));
+
+            // Agréger toutes les lignes de facturation (prestations + activités)
+            const allLines = [
+                ...(f.lines         || []),
+                ...(f.activitesLines || []),
+            ].filter(l => l.type === 'pricing');
+
+            let calcHT = 0, calcTVA = 0;
+            allLines.forEach(l => {
+                const ht  = Math.round((l.qty || 0) * (l.unitPriceHT || 0) * 100) / 100;
+                const tva = Math.round(ht * ((l.tvaRate || 0) / 100) * 100) / 100;
+                calcHT  += ht;
+                calcTVA += tva;
+            });
+            calcHT  = Math.round(calcHT  * 100) / 100;
+            calcTVA = Math.round(calcTVA * 100) / 100;
+            const calcTTC = Math.round((calcHT + calcTVA) * 100) / 100;
+            const calcAco = Math.round(calcTTC * 0.30      * 100) / 100;
+
+            // Fallback sur les totaux stockés si aucune ligne présente (format legacy)
+            const totalHT  = calcHT  || f.totalHT  || 0;
+            const totalTVA = calcTVA || f.totalTVA || 0;
+            const totalTTC = calcTTC || f.totalTTC || 0;
+            const acompte  = calcAco || f.acompte30 || 0;
+
+            setText('display-total-ht',   fmt(totalHT));
+            setText('display-total-tva',  fmt(totalTVA));
+            setText('display-total-ttc',  fmt(totalTTC));
+            setText('display-acompte',    fmt(acompte));
+            setText('display-net-to-pay', fmt(acompte));
         }
 
         // =====================================================================
