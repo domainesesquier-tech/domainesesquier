@@ -68,6 +68,8 @@
                     element.style.pointerEvents = 'auto';
                 }
                 showSyncBanner(`${field} mis à jour !`);
+                const syncFields = ['Date arrivée', 'Date départ', 'Statut', 'Montant Hébergement HT'];
+                if (syncFields.includes(field)) syncToPlanning(id);
                 
                 updateKPIs();
                 updateFilters();
@@ -3076,6 +3078,60 @@
         }
 
         // =====================================================================
+        // PLANNING SYNC
+        // =====================================================================
+        async function syncToPlanning(recordId) {
+            const record = allRecords.find(r => r.id === recordId);
+            if (!record) return;
+            const f = record._raw.fields;
+            const arrivee = f['Date arrivée'];
+            const depart  = f['Date départ'];
+            if (!arrivee || !depart) return;
+
+            const planningFields = {
+                'Nom':          f['Nom client'] || '',
+                'Type':         'Séminaire',
+                'Date arrivée': arrivee,
+                'Date départ':  depart,
+                'Statut':       Array.isArray(f['Statut']) ? f['Statut'][0] : (f['Statut'] || 'Confirmé'),
+                'Montant':      (parseFloat(f['Montant Hébergement HT']) || 0)
+                              + (parseFloat(f['Montant Repas HT'])      || 0)
+                              + (parseFloat(f['Montant Options HT'])    || 0),
+                'Nb personnes': parseInt(f['Nombre de personnes'] || f['Nb personnes']) || 0,
+            };
+
+            const API_PLANNING = SesquierUtils.API_BASE + '/api/planning';
+            const planningId   = f['planning_id'];
+
+            try {
+                if (planningId) {
+                    await SesquierUtils.fetchJson(API_PLANNING, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: planningId, fields: planningFields }),
+                    });
+                } else {
+                    const res = await SesquierUtils.fetchJson(API_PLANNING, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fields: planningFields }),
+                    });
+                    const newId = res.record?.id || res.id;
+                    if (newId) {
+                        await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: recordId, fields: { 'planning_id': newId } }),
+                        });
+                        if (record._raw) record._raw.fields['planning_id'] = newId;
+                    }
+                }
+            } catch (e) {
+                console.warn('[syncToPlanning]', e.message);
+            }
+        }
+
+        // =====================================================================
         // IFRAME COMMUNICATION
         // =====================================================================
         window.addEventListener('message', (event) => {
@@ -3099,6 +3155,7 @@
                 console.log('🔄 Sync globale: Enregistrement mis à jour', event.data.id);
                 // 1. Mettre à jour le dashboard (liste)
                 if (typeof loadAllRecords === 'function') loadAllRecords();
+                syncToPlanning(event.data.id);
                 
                 // 2. Propager à tous les AUTRES iframes chargés
                 document.querySelectorAll('#iframe-layer iframe').forEach(frame => {
