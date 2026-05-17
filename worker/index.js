@@ -4,7 +4,8 @@
 
 function corsHeaders(env = {}, requestOrigin = "") {
   const allowed = (env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
-  const origin = allowed.includes(requestOrigin) ? requestOrigin : (allowed[0] || "*");
+  const isLocalhost = /^https?:\/\/localhost(:\d+)?$/.test(requestOrigin);
+  const origin = (allowed.includes(requestOrigin) || isLocalhost) ? requestOrigin : (allowed[0] || "*");
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
