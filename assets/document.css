@@ -282,13 +282,24 @@ header {
 .pricing-table th {
     background: #fdfdfd;
     text-align: left;
-    padding: 7px 5px;
+    padding: 8px 6px;
     border-bottom: 2px solid var(--primary);
-    color: var(--primary);
-    font-size: 8pt;
+    color: var(--text-light);
+    font-family: 'Inter', sans-serif;
+    font-size: 7pt;
     text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+}
+
+/* Titre de section dans le premier <th> — style distinct des labels colonnes */
+.pricing-table thead th.col-detail {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 11pt;
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
+    color: var(--primary);
+    padding-left: 2px;
 }
 
 .pricing-table td {

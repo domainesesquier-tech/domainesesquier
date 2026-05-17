@@ -139,15 +139,15 @@ const SesquierUtils = {
         tr.innerHTML = `
             <td class="col-detail">
                 <div contenteditable="true" class="row-label">${label}</div>
-                <div contenteditable="true" class="row-subtitle" data-placeholder="Ajouter une description..." style="font-size:8pt; color:#888; font-style:italic; margin-top:2px; outline:none; min-height:0;"></div>
+                <div contenteditable="true" class="row-subtitle" data-placeholder="Ajouter une description..." style="font-size:7.5pt; color:#aaa; font-style:italic; margin-top:2px; outline:none; min-height:0;"></div>
             </td>
-            <td contenteditable="true" class="qty" style="text-align: center;">${qty}</td>
-            <td contenteditable="true" class="price" style="text-align: right;">${parseFloat(price).toFixed(2)}</td>
-            <td class="tva-rate" contenteditable="true" style="text-align: right;">${tva}</td>
-            <td class="row-total" style="text-align: right; font-weight: 600;">0.00</td>
-            <td class="no-print" style="text-align: center; vertical-align: middle; white-space:nowrap;">
-                <span class="drag-handle no-print" title="Déplacer" style="cursor:grab; color:#ccc; font-size:11pt; padding:0 4px; user-select:none;"><i class="fa-solid fa-grip-vertical"></i></span>
-                <button onclick="SesquierUtils.removeRow(this, event)" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-size:16pt; padding:0 5px;">&times;</button>
+            <td contenteditable="true" class="qty" style="text-align:center; font-size:9pt;">${qty}</td>
+            <td contenteditable="true" class="price" style="text-align:right; font-size:9pt;">${parseFloat(price).toFixed(2)}</td>
+            <td class="tva-rate" contenteditable="true" style="text-align:center; font-size:9pt; color:#6b7280;">${tva}</td>
+            <td class="row-total" style="text-align:right; font-weight:600; font-size:9pt;">0.00</td>
+            <td class="no-print" style="text-align:center; vertical-align:middle; white-space:nowrap; padding:0 4px;">
+                <span class="drag-handle no-print" title="Déplacer" style="cursor:grab; color:#d1d5db; font-size:10pt; padding:0 3px; user-select:none;"><i class="fa-solid fa-grip-vertical"></i></span>
+                <button onclick="SesquierUtils.removeRow(this, event)" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:14pt; padding:0 3px; line-height:1;">&times;</button>
             </td>
         `;
         this._bindDragRow(tr);
