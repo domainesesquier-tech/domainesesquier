@@ -1022,12 +1022,9 @@ function renderGrid() {
         const label = cell.isFirst
           ? esc(res.nom.length > 10 ? res.nom.slice(0, 10) + '…' : res.nom)
           : '';
-        const tip = buildTooltip(res);
-
         html += `<td
           class="cell occupied${todayCls}"
           style="background:${color.bg};color:${color.text};"
-          title="${tip}"
           data-res-id="${esc(res.id)}"
           data-logement="${esc(logement.name)}"
           data-day="${d}"
@@ -1049,6 +1046,11 @@ function renderGrid() {
 
   html += '</tbody></table>';
   container.innerHTML = html;
+
+  container.querySelectorAll('td.cell.occupied').forEach(td => {
+    const res = reservations.find(r => r.id === td.dataset.resId);
+    if (res) td.title = buildTooltip(res);
+  });
 
   container.addEventListener('click', onCellClick);
   container.addEventListener('keydown', e => {
