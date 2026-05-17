@@ -695,36 +695,36 @@
     /*  RESPONSIVE                                                          */
     /* ------------------------------------------------------------------ */
     @media (max-width: 768px) {
-      /* Variables */
-      :root { --col-left: 110px; --cell-w: 28px; }
-
-      /* Header */
+      :root { --col-left: 110px; --cell-w: 36px; }
       header { height: 48px; }
       .month-bar { top: 48px; }
-
-      /* Masquer bouton nouvelle réservation et stats */
       #btn-new { display: none; }
       .summary { display: none; }
-
-      /* Légende en 2 colonnes */
-      .legend {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 6px;
-        padding: 8px 12px;
-      }
-
-      /* Densité verticale cellules */
-      .cell { height: 30px; }
-      tbody .col-logement { height: 30px; }
-      .cell-label { line-height: 30px; font-size: 9px; }
+      .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px 12px; }
+      .cell { height: 32px; }
+      tbody .col-logement { height: 32px; }
+      .cell-label { line-height: 32px; font-size: 9px; }
       .day-name { font-size: 8px; }
       .day-num  { font-size: 11px; }
       thead .col-day { height: 36px; }
-
-      /* Modal */
-      .modal { padding: 18px; }
+      .modal { padding: 18px; max-height: 90vh; overflow-y: auto; }
       .detail-grid { grid-template-columns: 1fr; }
+      .fab-mobile { display: flex; }
+    }
+
+    .fab-mobile {
+      display: none;
+      position: fixed;
+      bottom: 20px; right: 20px;
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--green);
+      color: #fff;
+      font-size: 28px; font-weight: 300;
+      border: none; cursor: pointer;
+      align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,.25);
+      z-index: 1000;
     }
   </style>
 </head>
@@ -1177,6 +1177,13 @@ function renderGrid() {
         showGanttTooltip(tip, { clientX: t.clientX, clientY: t.clientY });
         setTimeout(hideGanttTooltip, 3000);
       }, { passive: false });
+      td.addEventListener('touchend', e => {
+        e.preventDefault();
+        hideGanttTooltip();
+        const conflictIds = (td.dataset.conflictIds || '').split(',').filter(Boolean);
+        if (conflictIds.length >= 2) openConflictModal(conflictIds);
+        else openDetailModal(res);
+      }, { passive: false });
     }
   });
 
@@ -1273,8 +1280,10 @@ function onCellClick(e) {
       if (res) openDetailModal(res);
     }
   } else {
-    const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    openCreateModal(logement, dateStr);
+    if (window.innerWidth > 768) {
+      const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      openCreateModal(logement, dateStr);
+    }
   }
 }
 
@@ -1733,6 +1742,9 @@ function init() {
   document.getElementById('btn-new').addEventListener('click', () => {
     openCreateModal(LOGEMENTS[0].name, toYMD(new Date()));
   });
+  document.getElementById('fab-mobile').addEventListener('click', () => {
+    openCreateModal(LOGEMENTS[0].name, toYMD(new Date()));
+  });
 
   loadPlanning();
 }
@@ -1740,5 +1752,6 @@ function init() {
 init();
 </script>
 <div id="gantt-tooltip"></div>
+<button class="fab-mobile" id="fab-mobile" aria-label="Nouvelle réservation">＋</button>
 </body>
 </html>
