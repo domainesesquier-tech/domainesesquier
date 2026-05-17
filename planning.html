@@ -1056,10 +1056,16 @@ function renderGrid() {
   });
 }
 
+function formatDateFr(str) {
+  if (!str) return '—';
+  const mois = ['jan.','fév.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+  const [, m, d] = str.split('-');
+  return `${parseInt(d, 10)} ${mois[parseInt(m, 10) - 1]}`;
+}
+
 function buildTooltip(res) {
   const lines = [
-    res.nom,
-    `${res.arrivee} → ${res.depart}`,
+    `${res.nom} — ${formatDateFr(res.arrivee)} au ${formatDateFr(res.depart)}`,
     `${res.personnes} pers.`,
     res.montant ? `${Number(res.montant).toLocaleString('fr-FR')} €` : '',
     res.statut,
