@@ -229,12 +229,25 @@
                 </div>
 
                 <div class="acompte-box">
-                    <div class="total-row deduction">
+                    <!-- Toggle "Acompte payé" — masqué à l'impression -->
+                    <div class="no-print" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:7px 10px;background:#f7f6f3;border-radius:6px;border:1px solid var(--border);">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:9pt;font-weight:600;color:var(--text);">
+                            <input type="checkbox" id="chk-acompte-paye"
+                                onchange="toggleAcomptePaye(this.checked)"
+                                style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;">
+                            Acompte 30% réglé
+                        </label>
+                        <span id="acompte-paye-badge" style="font-size:8pt;padding:2px 8px;border-radius:10px;font-weight:700;"></span>
+                        <span id="acompte-paye-saving" style="font-size:8pt;color:var(--text-muted);display:none;">Enregistrement…</span>
+                    </div>
+
+                    <!-- Ligne déduction — visible uniquement si acompte payé -->
+                    <div id="row-deduction" class="total-row deduction" style="display:none;">
                         <span style="font-weight:600;">Acompte déjà réglé (30%)</span>
                         <span id="display-acompte-deduction" style="font-weight:700;font-size:12pt;">- 0,00 €</span>
                     </div>
                     <div class="total-row net">
-                        <span style="font-size:11pt;text-transform:uppercase;letter-spacing:1px;font-weight:700;">SOLDE À PAYER (70%)</span>
+                        <span id="label-net-to-pay" style="font-size:11pt;text-transform:uppercase;letter-spacing:1px;font-weight:700;">SOLDE À PAYER (70%)</span>
                         <span id="display-net-to-pay" style="font-size:15pt;font-weight:700;">0,00 €</span>
                     </div>
                 </div>
@@ -323,7 +336,7 @@
             renderClient(dossier);
             renderSejour(dossier);
             renderLines(dossier);
-            renderTotals(dossier);
+            renderTotals(dossier, fields);
         }
 
         // =====================================================================
@@ -470,9 +483,13 @@
         // =====================================================================
         // TOTAUX
         // =====================================================================
-        function renderTotals(dossier) {
-            const f   = dossier.financials || {};
-            const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+        // Stocke le TTC calculé pour que toggleAcomptePaye() puisse recalculer sans rechargement
+        let _lastTotalTTC = 0;
+
+        function renderTotals(dossier, fields) {
+            const f            = dossier.financials || {};
+            const set          = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+            const acomptePaye  = !!(fields?.['Acompte Payé']);
 
             const { totalHT: domHT, totalTVA: domTVA, ttc: domTTC } =
                 SesquierUtils.runCommonCalculations();
@@ -480,20 +497,80 @@
             const totalHT  = domHT  || f.totalHT  || 0;
             const totalTVA = domTVA || f.totalTVA || 0;
             const totalTTC = domTTC || f.totalTTC || 0;
-            const acompte  = Math.round(totalTTC * 0.30 * 100) / 100;
-            const solde    = Math.round(totalTTC * 0.70 * 100) / 100;
+            _lastTotalTTC  = totalTTC;
 
-            set('display-total-ht',          formatEuro(totalHT));
-            set('display-total-tva',         formatEuro(totalTVA));
-            set('display-total-ttc',         formatEuro(totalTTC));
-            set('display-acompte-deduction', '- ' + formatEuro(acompte));
-            set('display-net-to-pay',        formatEuro(solde));
+            set('display-total-ht',  formatEuro(totalHT));
+            set('display-total-tva', formatEuro(totalTVA));
+            set('display-total-ttc', formatEuro(totalTTC));
+
+            applyAcompteDisplay(acomptePaye, totalTTC);
 
             // Mettre à jour prix/pers maintenant qu'on a le vrai totalHT
             const n = dossier.sejour?.participants || 0;
             if (n > 0 && totalHT > 0) {
                 const ppEl = document.getElementById('snapshot-price-per-person');
                 if (ppEl) ppEl.innerText = formatEuro(Math.round(totalHT / n * 100) / 100);
+            }
+        }
+
+        /**
+         * Met à jour l'affichage acompte/solde selon le statut de paiement.
+         * Appelée par renderTotals() ET par toggleAcomptePaye().
+         */
+        function applyAcompteDisplay(paid, totalTTC) {
+            const acompte     = Math.round(totalTTC * 0.30 * 100) / 100;
+            const solde       = Math.round(totalTTC * 0.70 * 100) / 100;
+
+            const chk         = document.getElementById('chk-acompte-paye');
+            const badge       = document.getElementById('acompte-paye-badge');
+            const rowDeduct   = document.getElementById('row-deduction');
+            const labelNet    = document.getElementById('label-net-to-pay');
+            const dispDeduct  = document.getElementById('display-acompte-deduction');
+            const dispNet     = document.getElementById('display-net-to-pay');
+
+            if (chk)   chk.checked = paid;
+
+            if (badge) {
+                badge.innerText        = paid ? '✓ Payé' : '✗ Non payé';
+                badge.style.background = paid ? '#d1fae5' : '#fee2e2';
+                badge.style.color      = paid ? '#065f46' : '#991b1b';
+            }
+
+            if (rowDeduct) rowDeduct.style.display = paid ? '' : 'none';
+
+            if (dispDeduct) dispDeduct.innerText = '- ' + formatEuro(acompte);
+
+            if (labelNet) labelNet.innerText = paid ? 'SOLDE À PAYER (70%)' : 'TOTAL À PAYER';
+            if (dispNet)  dispNet.innerText  = paid ? formatEuro(solde) : formatEuro(totalTTC);
+        }
+
+        /**
+         * Appelée par la checkbox — PATCH Airtable puis met à jour l'affichage.
+         */
+        async function toggleAcomptePaye(checked) {
+            const recordId = currentRecord?.id;
+            if (!recordId) return;
+
+            const saving = document.getElementById('acompte-paye-saving');
+            if (saving) saving.style.display = 'inline';
+
+            try {
+                await SesquierUtils.fetchJson(API_RESERVATIONS_URL, {
+                    method:  'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ id: recordId, fields: { 'Acompte Payé': checked } })
+                });
+                // Mettre à jour le cache local
+                if (currentRecord?.fields) currentRecord.fields['Acompte Payé'] = checked;
+                applyAcompteDisplay(checked, _lastTotalTTC);
+            } catch (e) {
+                console.error('[FF] Erreur mise à jour Acompte Payé:', e);
+                alert('Erreur : ' + e.message);
+                // Remettre la checkbox dans l'état précédent
+                const chk = document.getElementById('chk-acompte-paye');
+                if (chk) chk.checked = !checked;
+            } finally {
+                if (saving) saving.style.display = 'none';
             }
         }
 
