@@ -420,6 +420,11 @@
             renderLinesToTbody('pricing-body',    pricingLines);
             renderLinesToTbody('options-body',    optionsLines);
             renderLinesToTbody('activities-body', activitesLines);
+
+            // Calculer et afficher le total de chaque ligne après rendu DOM
+            fillRowTotals('pricing-body');
+            fillRowTotals('options-body');
+            fillRowTotals('activities-body');
         }
 
         function renderLinesToTbody(tbodyId, lines) {
@@ -433,6 +438,22 @@
                     line.label, line.qty, line.unitPriceHT,
                     line.tvaRate + '%', line.mealKey, tbodyId
                 );
+            });
+        }
+
+        // Boucle directe qty × price → .row-total pour chaque ligne du tbody
+        function fillRowTotals(tbodyId) {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+            tbody.querySelectorAll('tr').forEach(tr => {
+                if (tr.classList.contains('category-row') || tr.classList.contains('subtotal-row')) return;
+                const qEl   = tr.querySelector('.qty');
+                const pEl   = tr.querySelector('.price');
+                const totEl = tr.querySelector('.row-total');
+                if (!qEl || !pEl || !totEl) return;
+                const qty   = parseFloat(String(qEl.innerText).replace(',', '.'))                          || 0;
+                const price = parseFloat(String(pEl.innerText).replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+                totEl.innerText = (Math.round(qty * price * 100) / 100).toFixed(2);
             });
         }
 
