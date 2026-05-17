@@ -54,22 +54,6 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
-    .btn-contact {
-      background: var(--green-dark);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius);
-      padding: 8px 16px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: background 0.15s;
-    }
-    .btn-contact:hover { background: var(--green-light); }
 
     /* ── Main ──────────────────────────────────────────────────── */
     main {
@@ -223,10 +207,6 @@
     Domaine Sesquier
     <span>Disponibilités</span>
   </div>
-  <a id="btn-contact" class="btn-contact" href="#" target="_blank">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.35 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-    <span>Nous contacter</span>
-  </a>
 </header>
 
 <main>
@@ -270,11 +250,7 @@
 <script>
   /* ── Config ──────────────────────────────────────────────────── */
   const API_BASE    = 'https://domainesesquier-api.domainesesquier.workers.dev';
-  let   CONTACT_URL = '';
 
-  const _params = new URLSearchParams(window.location.search);
-  if (_params.get('contact')) CONTACT_URL = _params.get('contact');
-  document.getElementById('btn-contact').href = CONTACT_URL || '#';
 
   /* ── État ────────────────────────────────────────────────────── */
   const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin',
