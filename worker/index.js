@@ -200,6 +200,8 @@ function planningRowToRecord(row) {
       'Nb personnes': row.nb_personnes,
       'Montant':      row.montant,
       'Notes':        row.notes,
+      'Contact tél':  row.contact_tel,
+      'Draps':        row.draps,
       'Created':      row.created_at,
     },
   };
@@ -349,6 +351,8 @@ export default {
           nb_personnes: parseInt(f['Nb personnes'] || f.nb_personnes || 0, 10) || null,
           montant:      parseFloat(f['Montant'] || f.montant || 0) || null,
           notes:        f['Notes']        || f.notes        || null,
+          contact_tel:  f['Contact tél']  || f.contact_tel  || null,
+          draps:        f['Draps']        !== undefined ? Boolean(f['Draps'])  : (f.draps !== undefined ? Boolean(f.draps) : false),
         };
         const result = await sbFetch(env, `/planning`, { method: "POST", body: JSON.stringify(row) });
         const saved = Array.isArray(result) ? result[0] : result;
@@ -370,6 +374,8 @@ export default {
         if (f['Nb personnes'] !== undefined) row.nb_personnes = parseInt(f['Nb personnes'], 10) || null;
         if (f['Montant']      !== undefined) row.montant      = parseFloat(f['Montant']) || null;
         if (f['Notes']        !== undefined) row.notes        = f['Notes'];
+        if (f['Contact tél']  !== undefined) row.contact_tel  = f['Contact tél'];
+        if (f['Draps']        !== undefined) row.draps        = Boolean(f['Draps']);
         if (Object.keys(row).length === 0) return json({ error: { message: "Aucun champ valide à mettre à jour" } }, 400, env, requestOrigin);
         const result = await sbFetch(env, `/planning?id=eq.${encodeURIComponent(body.id)}`, {
           method: "PATCH", body: JSON.stringify(row),

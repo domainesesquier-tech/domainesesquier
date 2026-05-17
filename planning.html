@@ -831,7 +831,9 @@ function recordToRes(record) {
     personnes: f['Nb personnes'] || 0,
     montant:   f['Montant']      || 0,
     statut:    f['Statut']       || 'Confirmé',
-    notes:     f['Notes']        || '',
+    notes:       f['Notes']        || '',
+    contact_tel: f['Contact tél']  || '',
+    draps:       f['Draps']        || false,
   };
 }
 
@@ -1201,6 +1203,15 @@ function openDetailModal(res) {
           </div>
         </div>
       </div>
+      ${res.contact_tel ? `
+      <div class="detail-item">
+        <div class="label">Contact tél</div>
+        <div class="value">${esc(res.contact_tel)}</div>
+      </div>` : ''}
+      <div class="detail-item">
+        <div class="label">Draps</div>
+        <div class="value">${res.draps ? '✓ Oui' : '—'}</div>
+      </div>
       ${res.notes ? `
       <div class="detail-item full">
         <div class="label">Notes</div>
@@ -1328,6 +1339,18 @@ function openFormModal(res, isEdit) {
         </div>
       </div>
 
+      <div class="form-row-2" style="margin-top:14px;">
+        <div class="form-row" style="margin-bottom:0">
+          <label class="form-label" for="f-contact-tel">Contact tél</label>
+          <input class="form-input" id="f-contact-tel" name="contact_tel" type="tel"
+            placeholder="Ex : 06 12 34 56 78" value="${esc(res.contact_tel || '')}">
+        </div>
+        <div class="form-row" style="margin-bottom:0;display:flex;align-items:center;gap:8px;padding-top:22px;">
+          <input type="checkbox" id="f-draps" name="draps" ${res.draps ? 'checked' : ''} style="width:18px;height:18px;cursor:pointer;">
+          <label for="f-draps" class="form-label" style="margin-bottom:0;cursor:pointer;">Draps fournis</label>
+        </div>
+      </div>
+
       <div class="form-row" style="margin-top:14px;">
         <label class="form-label" for="f-notes">Notes</label>
         <textarea class="form-textarea" id="f-notes" name="notes"
@@ -1379,7 +1402,9 @@ async function submitForm(e, id) {
   };
   if (form.personnes.value) fields['Nb personnes'] = parseInt(form.personnes.value, 10);
   if (form.montant.value)   fields['Montant']      = parseFloat(form.montant.value);
-  if (form.notes.value)     fields['Notes']        = form.notes.value.trim();
+  if (form.notes.value)       fields['Notes']       = form.notes.value.trim();
+  if (form.contact_tel.value) fields['Contact tél'] = form.contact_tel.value.trim();
+  fields['Draps'] = form.draps.checked;
 
   btn.disabled    = true;
   btn.textContent = 'Enregistrement…';
