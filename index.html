@@ -2341,7 +2341,6 @@
                 });
 
                 if (res.id) {
-                    console.log('[openNewDossier] record créé — id:', res.id, '(pas de dates → syncToPlanning NON appelée)');
                     // Normalisation immédiate du nouveau record
                     const newRecord = normalizeRecord(res);
                     allRecords.unshift(newRecord);
@@ -3090,21 +3089,16 @@
         ];
 
         async function syncToPlanning(recordId) {
-            console.log('[syncToPlanning] ENTRÉE — recordId:', recordId);
-
             const record = allRecords.find(r => r.id === recordId);
-            console.log('[syncToPlanning] record trouvé:', !!record, record ? record.nomClient : 'N/A');
-            if (!record) { console.warn('[syncToPlanning] ❌ record introuvable, early return'); return; }
+            if (!record) return;
 
             const f = record._raw?.fields || {};
             const arrivee = f['Date arrivée'];
             const depart  = f['Date départ'];
-            console.log('[syncToPlanning] dates:', arrivee, '→', depart);
-            if (!arrivee || !depart) { console.warn('[syncToPlanning] ❌ dates manquantes, early return'); return; }
+            if (!arrivee || !depart) return;
 
-            const statut = Array.isArray(f['Statut']) ? f['Statut'][0] : (f['Statut'] || 'confirmé');
+            const statut    = Array.isArray(f['Statut']) ? f['Statut'][0] : (f['Statut'] || 'confirmé');
             const planningId = f['planning_id'];
-            console.log('[syncToPlanning] planning_id:', planningId || 'AUCUN → POST', '| statut:', statut);
 
             const planningFields = {
                 'Nom':          f['Nom client'] || '',
@@ -3116,43 +3110,34 @@
                 'Montant':      0,
                 'Nb personnes': parseInt(f['Nombre de personnes'] || f['Nb personnes'], 10) || 0,
             };
-            console.log('[syncToPlanning] payload planning:', planningFields);
 
             const API_PLANNING = SesquierUtils.API_BASE + '/api/planning';
 
             try {
                 if (planningId) {
-                    console.log('[syncToPlanning] PATCH planning id:', planningId);
                     await SesquierUtils.fetchJson(API_PLANNING, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ id: planningId, fields: planningFields }),
                     });
-                    console.log('[syncToPlanning] ✅ PATCH planning OK');
                 } else {
-                    console.log('[syncToPlanning] POST nouveau planning...');
                     const res = await SesquierUtils.fetchJson(API_PLANNING, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ fields: planningFields }),
                     });
-                    console.log('[syncToPlanning] réponse POST planning:', res);
                     const newId = res?.record?.id || res?.id;
                     if (newId) {
-                        console.log('[syncToPlanning] nouveau planning_id:', newId, '→ PATCH réservation');
                         await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ id: recordId, fields: { 'planning_id': newId } }),
                         });
                         if (record._raw) record._raw.fields['planning_id'] = newId;
-                        console.log('[syncToPlanning] ✅ planning_id sauvegardé dans réservation');
-                    } else {
-                        console.warn('[syncToPlanning] ❌ POST planning OK mais pas de newId dans la réponse');
                     }
                 }
             } catch (e) {
-                console.error('[syncToPlanning] ❌ ERREUR:', e.message, e);
+                console.error('[syncToPlanning]', e.message);
             }
         }
 
@@ -3161,7 +3146,6 @@
         // =====================================================================
         window.addEventListener('message', (event) => {
             if (event.data.type === 'devis_created') {
-                console.log('[devis_created] reçu — id:', event.data.id, '(syncToPlanning NON appelée ici)');
                 const newId = event.data.id;
                 document.getElementById('dev-id-input').value = newId;
                 const newUrl = window.location.pathname + '?id=' + newId;
@@ -3178,13 +3162,9 @@
                 }
             }
             if (event.data.type === 'RECORD_UPDATED') {
-                console.log('[RECORD_UPDATED] reçu — id:', event.data.id, 'fields:', JSON.stringify(event.data.fields));
                 // 1. Mettre à jour le dashboard (liste) puis syncer le planning
                 if (typeof loadAllRecords === 'function') {
-                    loadAllRecords().then(() => {
-                        console.log('[RECORD_UPDATED] loadAllRecords terminé, appel syncToPlanning');
-                        syncToPlanning(event.data.id);
-                    });
+                    loadAllRecords().then(() => syncToPlanning(event.data.id));
                 } else {
                     syncToPlanning(event.data.id);
                 }
