@@ -3081,58 +3081,78 @@
         // =====================================================================
         // PLANNING SYNC
         // =====================================================================
+        // PLANNING SYNC
+        // =====================================================================
+        const PLANNING_LOGEMENTS_DEFAULT = [
+            'Acacia', 'Hibiscus', 'Pivoine', 'Belle de nuit',
+            'Iris', 'Rose', 'Figuier', 'Jasmin',
+            'Clos Josette', 'Sous les toits', "Champs d'Olivier", 'Archipel'
+        ];
+
         async function syncToPlanning(recordId) {
             console.log('[syncToPlanning] ENTRÉE — recordId:', recordId);
+
             const record = allRecords.find(r => r.id === recordId);
-            console.log('[syncToPlanning] record trouvé dans allRecords:', !!record, record ? record.nomClient : 'N/A');
+            console.log('[syncToPlanning] record trouvé:', !!record, record ? record.nomClient : 'N/A');
             if (!record) { console.warn('[syncToPlanning] ❌ record introuvable, early return'); return; }
-            const f = record._raw.fields;
+
+            const f = record._raw?.fields || {};
             const arrivee = f['Date arrivée'];
             const depart  = f['Date départ'];
             console.log('[syncToPlanning] dates:', arrivee, '→', depart);
             if (!arrivee || !depart) { console.warn('[syncToPlanning] ❌ dates manquantes, early return'); return; }
-            console.log('[syncToPlanning] planning_id existant:', f['planning_id'] || 'AUCUN → POST');
+
+            const statut = Array.isArray(f['Statut']) ? f['Statut'][0] : (f['Statut'] || 'confirmé');
+            const planningId = f['planning_id'];
+            console.log('[syncToPlanning] planning_id:', planningId || 'AUCUN → POST', '| statut:', statut);
 
             const planningFields = {
                 'Nom':          f['Nom client'] || '',
                 'Type':         'Séminaire',
                 'Date arrivée': arrivee,
                 'Date départ':  depart,
-                'Statut':       Array.isArray(f['Statut']) ? f['Statut'][0] : (f['Statut'] || 'Confirmé'),
-                'Montant':      (parseFloat(f['Montant Hébergement HT']) || 0)
-                              + (parseFloat(f['Montant Repas HT'])      || 0)
-                              + (parseFloat(f['Montant Options HT'])    || 0),
-                'Nb personnes': parseInt(f['Nombre de personnes'] || f['Nb personnes']) || 0,
+                'Statut':       statut,
+                'Logements':    PLANNING_LOGEMENTS_DEFAULT,
+                'Montant':      0,
+                'Nb personnes': parseInt(f['Nombre de personnes'] || f['Nb personnes'], 10) || 0,
             };
+            console.log('[syncToPlanning] payload planning:', planningFields);
 
             const API_PLANNING = SesquierUtils.API_BASE + '/api/planning';
-            const planningId   = f['planning_id'];
 
             try {
                 if (planningId) {
+                    console.log('[syncToPlanning] PATCH planning id:', planningId);
                     await SesquierUtils.fetchJson(API_PLANNING, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ id: planningId, fields: planningFields }),
                     });
+                    console.log('[syncToPlanning] ✅ PATCH planning OK');
                 } else {
+                    console.log('[syncToPlanning] POST nouveau planning...');
                     const res = await SesquierUtils.fetchJson(API_PLANNING, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ fields: planningFields }),
                     });
-                    const newId = res.record?.id || res.id;
+                    console.log('[syncToPlanning] réponse POST planning:', res);
+                    const newId = res?.record?.id || res?.id;
                     if (newId) {
+                        console.log('[syncToPlanning] nouveau planning_id:', newId, '→ PATCH réservation');
                         await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ id: recordId, fields: { 'planning_id': newId } }),
                         });
                         if (record._raw) record._raw.fields['planning_id'] = newId;
+                        console.log('[syncToPlanning] ✅ planning_id sauvegardé dans réservation');
+                    } else {
+                        console.warn('[syncToPlanning] ❌ POST planning OK mais pas de newId dans la réponse');
                     }
                 }
             } catch (e) {
-                console.warn('[syncToPlanning]', e.message);
+                console.error('[syncToPlanning] ❌ ERREUR:', e.message, e);
             }
         }
 
