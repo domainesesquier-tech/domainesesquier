@@ -185,6 +185,26 @@ function pricingRowToRecord(row) {
   };
 }
 
+// ── Planning : row → record ────────────────────────────────
+
+function planningRowToRecord(row) {
+  return {
+    id: row.id,
+    fields: {
+      'Nom':          row.nom,
+      'Type':         row.type,
+      'Logements':    row.logements || [],
+      'Date arrivée': row.date_arrivee,
+      'Date départ':  row.date_depart,
+      'Statut':       row.statut,
+      'Nb personnes': row.nb_personnes,
+      'Montant':      row.montant,
+      'Notes':        row.notes,
+      'Created':      row.created_at,
+    },
+  };
+}
+
 // ── Library : row → Airtable record ────────────────────────
 
 function libraryRowToRecord(row) {
@@ -293,32 +313,26 @@ export default {
         return json({ records: rows.map(pricingRowToRecord) }, 200, env, requestOrigin);
       }
 
-      // ── PLANNING (utilise la table reservations) ───────────
+      // ── PLANNING (table dédiée) ────────────────────────────
       if (url.pathname === "/api/planning" && method === "GET") {
+        const id   = url.searchParams.get("id");
         const mois = url.searchParams.get("mois");
-        let path = `/reservations?order=date_arrivee.asc`;
+
+        if (id) {
+          const rows = await sbFetch(env, `/planning?id=eq.${encodeURIComponent(id)}`);
+          if (!rows.length) return json({ error: { message: "Not found" } }, 404, env, requestOrigin);
+          return json({ record: planningRowToRecord(rows[0]) }, 200, env, requestOrigin);
+        }
+
+        let path = `/planning?order=date_arrivee.asc`;
         if (mois && /^\d{4}-\d{2}$/.test(mois)) {
           const [year, month] = mois.split("-").map(Number);
           const firstDay  = `${year}-${String(month).padStart(2,"0")}-01`;
           const nextFirst = new Date(Date.UTC(year, month, 1)).toISOString().split("T")[0];
-          path = `/reservations?date_arrivee=lt.${nextFirst}&date_depart=gt.${firstDay}&order=date_arrivee.asc`;
+          path = `/planning?date_arrivee=lt.${nextFirst}&date_depart=gt.${firstDay}&order=date_arrivee.asc`;
         }
         const rows = await sbFetch(env, path);
-        const reservations = rows.map(r => ({
-          id:        r.id,
-          nom:       r.nom_client     || "",
-          type:      r.type           || "",
-          logements: [],
-          arrivee:   r.date_arrivee   || "",
-          depart:    r.date_depart    || "",
-          personnes: r.nombre_de_personnes || 0,
-          montant:   (parseFloat(r.montant_hebergement_ht) || 0)
-                   + (parseFloat(r.montant_repas_ht)       || 0)
-                   + (parseFloat(r.montant_options_ht)     || 0),
-          statut:    r.statut         || "",
-          notes:     r.notes          || "",
-        }));
-        return json({ reservations }, 200, env, requestOrigin);
+        return json({ records: rows.map(planningRowToRecord) }, 200, env, requestOrigin);
       }
 
       if (url.pathname === "/api/planning" && method === "POST") {
@@ -326,49 +340,49 @@ export default {
         if (!body.fields) return json({ error: { message: "{ fields } requis" } }, 400, env, requestOrigin);
         const f = body.fields;
         const row = {
-          id:               newRecId(),
-          nom_client:       f.Nom_Client       || f['Nom client'] || "",
-          type:             f.Type_Reservation || f.Type || "",
-          date_arrivee:     f.Date_Arrivee     || f['Date arrivée'] || null,
-          date_depart:      f.Date_Depart      || f['Date départ']  || null,
-          nombre_de_personnes: parseInt(f.Nb_Personnes || f['Nombre de personnes'] || 0, 10),
-          statut:           f.Statut           || "à traiter",
-          notes:            f.Notes            || "",
+          nom:          f['Nom']          || f.nom          || "",
+          type:         f['Type']         || f.type         || "",
+          logements:    f['Logements']    || f.logements    || [],
+          date_arrivee: f['Date arrivée'] || f.date_arrivee || null,
+          date_depart:  f['Date départ']  || f.date_depart  || null,
+          statut:       f['Statut']       || f.statut       || "Confirmé",
+          nb_personnes: parseInt(f['Nb personnes'] || f.nb_personnes || 0, 10) || null,
+          montant:      parseFloat(f['Montant'] || f.montant || 0) || null,
+          notes:        f['Notes']        || f.notes        || null,
         };
-        const result = await sbFetch(env, `/reservations`, { method: "POST", body: JSON.stringify(row) });
+        const result = await sbFetch(env, `/planning`, { method: "POST", body: JSON.stringify(row) });
         const saved = Array.isArray(result) ? result[0] : result;
         if (!saved) return json({ error: { message: "Échec création planning" } }, 500, env, requestOrigin);
-        return json({ id: saved.id, nom: saved.nom_client, type: saved.type,
-          logements: [], arrivee: saved.date_arrivee, depart: saved.date_depart,
-          personnes: saved.nombre_de_personnes, montant: 0, statut: saved.statut, notes: saved.notes }, 201, env, requestOrigin);
+        return json({ record: planningRowToRecord(saved) }, 201, env, requestOrigin);
       }
 
       if (url.pathname === "/api/planning" && method === "PATCH") {
         const body = await request.json().catch(() => ({}));
         if (!body.id || !body.fields) return json({ error: { message: "{ id, fields } requis" } }, 400, env, requestOrigin);
-        const f = body.fields;
+        const f   = body.fields;
         const row = {};
-        if (f.Nom_Client       !== undefined) row.nom_client          = f.Nom_Client;
-        if (f.Type_Reservation !== undefined) row.type                = f.Type_Reservation;
-        if (f.Date_Arrivee     !== undefined) row.date_arrivee        = f.Date_Arrivee;
-        if (f.Date_Depart      !== undefined) row.date_depart         = f.Date_Depart;
-        if (f.Nb_Personnes     !== undefined) row.nombre_de_personnes = parseInt(f.Nb_Personnes, 10);
-        if (f.Statut           !== undefined) row.statut              = f.Statut;
-        if (f.Notes            !== undefined) row.notes               = f.Notes;
-        const result = await sbFetch(env, `/reservations?id=eq.${encodeURIComponent(body.id)}`, {
+        if (f['Nom']          !== undefined) row.nom          = f['Nom'];
+        if (f['Type']         !== undefined) row.type         = f['Type'];
+        if (f['Logements']    !== undefined) row.logements    = f['Logements'];
+        if (f['Date arrivée'] !== undefined) row.date_arrivee = f['Date arrivée'];
+        if (f['Date départ']  !== undefined) row.date_depart  = f['Date départ'];
+        if (f['Statut']       !== undefined) row.statut       = f['Statut'];
+        if (f['Nb personnes'] !== undefined) row.nb_personnes = parseInt(f['Nb personnes'], 10) || null;
+        if (f['Montant']      !== undefined) row.montant      = parseFloat(f['Montant']) || null;
+        if (f['Notes']        !== undefined) row.notes        = f['Notes'];
+        if (Object.keys(row).length === 0) return json({ error: { message: "Aucun champ valide à mettre à jour" } }, 400, env, requestOrigin);
+        const result = await sbFetch(env, `/planning?id=eq.${encodeURIComponent(body.id)}`, {
           method: "PATCH", body: JSON.stringify(row),
         });
         const saved = Array.isArray(result) ? result[0] : result;
-        if (!saved) return json({ error: { message: `Record '${body.id}' introuvable` } }, 404, env, requestOrigin);
-        return json({ id: saved.id, nom: saved.nom_client, type: saved.type,
-          logements: [], arrivee: saved.date_arrivee, depart: saved.date_depart,
-          personnes: saved.nombre_de_personnes, montant: 0, statut: saved.statut, notes: saved.notes }, 200, env, requestOrigin);
+        if (!saved) return json({ error: { message: `Planning '${body.id}' introuvable` } }, 404, env, requestOrigin);
+        return json({ record: planningRowToRecord(saved) }, 200, env, requestOrigin);
       }
 
       if (url.pathname === "/api/planning" && method === "DELETE") {
         const id = url.searchParams.get("id");
         if (!id) return json({ error: { message: "?id= requis" } }, 400, env, requestOrigin);
-        await sbFetch(env, `/reservations?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
+        await sbFetch(env, `/planning?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
         return json({ deleted: true, id }, 200, env, requestOrigin);
       }
 
