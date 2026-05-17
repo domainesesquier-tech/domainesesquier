@@ -182,6 +182,16 @@
       flex-shrink: 0;
     }
 
+    .reservation-option {
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 4px,
+        rgba(255,255,255,0.45) 4px,
+        rgba(255,255,255,0.45) 8px
+      );
+    }
+
     /* ------------------------------------------------------------------ */
     /*  CALENDAR WRAPPER                                                    */
     /* ------------------------------------------------------------------ */
@@ -906,6 +916,10 @@ function renderLegend() {
       <span>${type}</span>
     </div>`;
   }).join('');
+  el.innerHTML += `<div class="legend-item">
+    <span class="legend-dot reservation-option" style="background:#999;"></span>
+    <span>Option (non confirmée)</span>
+  </div>`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1022,8 +1036,9 @@ function renderGrid() {
         const label = cell.isFirst
           ? esc(res.nom.length > 10 ? res.nom.slice(0, 10) + '…' : res.nom)
           : '';
+        const optionCls = res.statut === 'Option' ? ' reservation-option' : '';
         html += `<td
-          class="cell occupied${todayCls}"
+          class="cell occupied${todayCls}${optionCls}"
           style="background:${color.bg};color:${color.text};"
           data-res-id="${esc(res.id)}"
           data-logement="${esc(logement.name)}"
