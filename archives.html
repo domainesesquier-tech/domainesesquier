@@ -299,9 +299,10 @@ function recordToRes(record) {
     depart:      f['Date départ']  || '',
     personnes:   f['Nb personnes'] || 0,
     montant:     f['Montant']      || 0,
-    statut:      f['Statut']       || '',
-    notes:       f['Notes']        || '',
-    archived_at: f['Archived at']  || null,
+    statut:          f['Statut']          || '',
+    statut_original: f['Statut original'] || f['Statut'] || '',
+    notes:           f['Notes']           || '',
+    archived_at:     f['Archived at']     || null,
   };
 }
 
@@ -372,7 +373,7 @@ function render() {
       <td>${formatDate(r.depart)}</td>
       <td>${esc(r.type)}</td>
       <td>${r.montant ? Number(r.montant).toLocaleString('fr-FR', {style:'currency',currency:'EUR',maximumFractionDigits:0}) : '—'}</td>
-      <td><span class="statut-badge ${statutBadgeClass(r.statut)}">${esc(r.statut)}</span></td>
+      <td><span class="statut-badge ${statutBadgeClass(r.statut_original)}">${esc(r.statut_original || '—')}</span></td>
       <td style="white-space:nowrap;">${formatDateTime(r.archived_at)}</td>
       <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.notes)}">${esc(r.notes) || '—'}</td>
       <td>

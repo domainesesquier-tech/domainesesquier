@@ -203,7 +203,8 @@ function planningRowToRecord(row) {
       'Notes':        row.notes,
       'Contact tél':  row.contact_tel,
       'Draps':        row.draps,
-      'Archived at':  row.archived_at,
+      'Archived at':     row.archived_at,
+      'Statut original': row.statut_original,
       'Created':      row.created_at,
     },
   };
@@ -384,7 +385,8 @@ export default {
         if (f['Notes']        !== undefined) row.notes        = f['Notes'];
         if (f['Contact tél']  !== undefined) row.contact_tel  = f['Contact tél'];
         if (f['Draps']        !== undefined) row.draps        = Boolean(f['Draps']);
-        if (f['Archived at']  !== undefined) row.archived_at  = f['Archived at'];
+        if (f['Archived at']     !== undefined) row.archived_at     = f['Archived at'];
+        if (f['Statut original'] !== undefined) row.statut_original = f['Statut original'];
         if (Object.keys(row).length === 0) return json({ error: { message: "Aucun champ valide à mettre à jour" } }, 400, env, requestOrigin);
         const result = await sbFetch(env, `/planning?id=eq.${encodeURIComponent(body.id)}`, {
           method: "PATCH", body: JSON.stringify(row),

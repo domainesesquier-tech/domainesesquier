@@ -911,7 +911,8 @@ function recordToRes(record) {
     notes:       f['Notes']        || '',
     contact_tel: f['Contact tél']  || '',
     draps:       f['Draps']        || false,
-    archived_at: f['Archived at']  || null,
+    archived_at:     f['Archived at']     || null,
+    statut_original: f['Statut original'] || null,
   };
 }
 
@@ -1652,7 +1653,13 @@ async function confirmDelete(id) {
 async function confirmArchive(id) {
   if (!confirm('Archiver cette réservation ?')) return;
   try {
-    await updateReservation(id, { 'Statut': 'Archivé', 'Archived at': new Date().toISOString() });
+    const res = reservations.find(r => r.id === id);
+    const statutOriginal = res ? res.statut : null;
+    await updateReservation(id, {
+      'Statut':          'Archivé',
+      'Archived at':     new Date().toISOString(),
+      'Statut original': statutOriginal,
+    });
     reservations = reservations.filter(r => r.id !== id);
     closeModal();
     renderGrid();
