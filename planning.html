@@ -1162,7 +1162,7 @@ function buildConflicts() {
   const map = {};
   LOGEMENTS.forEach(l => { map[l.name] = {}; });
   reservations.forEach(res => {
-    if (res.statut !== 'Option' || !res.arrivee || !res.depart) return;
+    if (res.statut === 'Archivé' || !res.arrivee || !res.depart) return;
     const arr = parseYMD(res.arrivee), dep = parseYMD(res.depart);
     (res.logements || []).forEach(logName => {
       if (!map[logName]) return;
