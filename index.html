@@ -1884,48 +1884,81 @@
             /* --- Layout --- */
             .sidebar { display: none; }
             .main-content { width: 100%; }
-            .dossiers-panel { padding: 12px; }
-            .dash-top { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .dossiers-panel { padding: 10px; }
+            .dash-top { flex-direction: column; align-items: flex-start; gap: 8px; }
 
             /* --- Padding bottom pour la bottom nav --- */
             body { padding-bottom: 56px; }
 
-            /* --- KPI : ligne horizontale scrollable --- */
+            /* --- KPI : chips compactes horizontales scrollables --- */
             .kpi-grid {
                 display: flex;
                 flex-wrap: nowrap;
                 overflow-x: auto;
-                gap: 10px;
-                padding-bottom: 6px;
+                gap: 8px;
+                padding: 0 0 4px;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
+                margin-bottom: 8px;
             }
             .kpi-grid::-webkit-scrollbar { display: none; }
             .kpi-card {
-                flex: 0 0 140px;
-                min-width: 140px;
+                flex: 0 0 auto;
+                min-width: 0;
+                width: auto;
+                padding: 8px 12px;
+                gap: 8px;
+                flex-direction: row;
+                align-items: center;
+                border-radius: 10px;
             }
+            .kpi-icon {
+                width: 30px;
+                height: 30px;
+                border-radius: 8px;
+                font-size: 13px;
+                flex-shrink: 0;
+            }
+            .kpi-label {
+                font-size: 9px;
+                margin-bottom: 1px;
+                white-space: nowrap;
+            }
+            .kpi-value {
+                font-size: 17px;
+                line-height: 1;
+                white-space: nowrap;
+            }
+            .kpi-sub { display: none; }
 
-            /* --- Tableau liste : masquer Dates (col 3) et Montant HT (col 6) --- */
-            /* Override inline grid-template-columns (50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr) */
+            /* --- Tableau : grille compacte, masquer Dates + Montant --- */
             .table-header,
             .table-row {
-                grid-template-columns: 50px 2fr 0.8fr 1.2fr !important;
+                grid-template-columns: 36px 1fr auto auto !important;
+                padding: 8px 12px !important;
             }
             /* Masquer Dates */
             .table-header span:nth-child(3),
-            .table-row > div.row-dates { display: none; }
+            .table-row > div.row-dates { display: none !important; }
             /* Re-afficher Statut (masqué par la règle 1200px) */
             .table-header span:nth-child(5),
-            .table-row > div:nth-child(5) { display: block; }
-            /* Masquer Montant HT */
+            .table-row > div:nth-child(5) { display: block !important; }
+            /* Masquer Montant HT — !important pour écraser l'inline display:flex */
             .table-header span:nth-child(6),
-            .table-row > div.row-amount { display: none; }
+            .table-row > div.row-amount { display: none !important; }
+
+            /* Compacter les lignes */
+            .row-client-name { font-size: 13px; }
+            .row-client-org  { font-size: 11px; }
+            .row-persons     { font-size: 13px; font-weight: 600; text-align: center; }
+            .table-row { min-height: 0; }
+
+            /* Réduire la hauteur du header de section */
+            .dash-top { margin-bottom: 8px; }
+            .view-controls { gap: 6px; }
 
             /* --- Bottom nav --- */
-            .mobile-bottom-nav-index {
-                display: flex !important;
-            }
+            .mobile-bottom-nav-index { display: flex !important; }
         }
 
         /* Bottom nav (masquée sur desktop) */
