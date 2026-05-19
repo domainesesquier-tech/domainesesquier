@@ -1079,7 +1079,15 @@ async function loadPlanning() {
   renderGrid();
   try {
     const data = await apiFetch(`${API_BASE}/planning?mois=${moisParam()}`);
-    reservations = (data.records || []).map(recordToRes);
+    // Déduplication : si des records identiques (même nom+arrivée+départ) existent
+    // en base (créés avant le fix du planning_id), on ne garde que le premier.
+    const seen = new Set();
+    reservations = (data.records || []).map(recordToRes).filter(r => {
+      const key = `${r.nom}|${r.arrivee}|${r.depart}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   } catch (e) {
     showFlash('Erreur chargement : ' + e.message, 'error');
     reservations = [];
