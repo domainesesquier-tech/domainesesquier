@@ -1881,29 +1881,79 @@
         }
 
         @media (max-width: 768px) {
-            .sidebar {
-                display: none;
-            }
+            /* --- Layout --- */
+            .sidebar { display: none; }
+            .main-content { width: 100%; }
+            .dossiers-panel { padding: 12px; }
+            .dash-top { flex-direction: column; align-items: flex-start; gap: 10px; }
 
-            .main-content {
-                width: 100%;
-            }
+            /* --- Padding bottom pour la bottom nav --- */
+            body { padding-bottom: 56px; }
 
-            .dossiers-panel {
-                padding: 16px;
-            }
-
+            /* --- KPI : ligne horizontale scrollable --- */
             .kpi-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 8px;
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                gap: 10px;
+                padding-bottom: 6px;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            .kpi-grid::-webkit-scrollbar { display: none; }
+            .kpi-card {
+                flex: 0 0 140px;
+                min-width: 140px;
             }
 
-            .dash-top {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 12px;
+            /* --- Tableau liste : masquer Dates (col 3) et Montant HT (col 6) --- */
+            /* Override inline grid-template-columns (50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr) */
+            .table-header,
+            .table-row {
+                grid-template-columns: 50px 2fr 0.8fr 1.2fr !important;
+            }
+            /* Masquer Dates */
+            .table-header span:nth-child(3),
+            .table-row > div.row-dates { display: none; }
+            /* Re-afficher Statut (masqué par la règle 1200px) */
+            .table-header span:nth-child(5),
+            .table-row > div:nth-child(5) { display: block; }
+            /* Masquer Montant HT */
+            .table-header span:nth-child(6),
+            .table-row > div.row-amount { display: none; }
+
+            /* --- Bottom nav --- */
+            .mobile-bottom-nav-index {
+                display: flex !important;
             }
         }
+
+        /* Bottom nav (masquée sur desktop) */
+        .mobile-bottom-nav-index {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 56px;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            background: #fff;
+            border-top: 1px solid #E5E7EB;
+            z-index: 500;
+            align-items: stretch;
+        }
+        .mobile-bottom-nav-index a {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 500;
+            color: #999;
+            gap: 2px;
+        }
+        .mobile-bottom-nav-index a.active { color: #1B4332; }
+        .mobile-bottom-nav-index a span.nav-icon { font-size: 18px; }
 
         /* ========== ANIMATIONS ========== */
         .kpi-card {
@@ -3484,6 +3534,18 @@
         // =====================================================================
         function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
     </script>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-bottom-nav-index">
+    <a href="planning.html">
+        <span class="nav-icon">📋</span>
+        Planning
+    </a>
+    <a href="index.html" class="active">
+        <span class="nav-icon">📁</span>
+        Séminaires
+    </a>
+</nav>
 </body>
 
 </html>
