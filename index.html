@@ -54,14 +54,19 @@
                 if (field === SesquierRecords.FIELDS.STATUT) {
                     await autoLogTimeline(id, `Statut changé : **${currentVal || 'Inconnu'}** → **${newVal}**`);
                     if (newVal.toLowerCase() === 'annulé') {
+                        // Annulé → supprimer du planning
                         const planningId = record._raw?.fields?.['planning_id'];
                         if (planningId) {
-                            await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/planning`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ id: planningId, fields: { 'Statut': 'Annulé' } }),
-                            });
+                            try {
+                                await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/planning`, {
+                                    method: 'DELETE',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ id: planningId }),
+                                });
+                                if (record._raw) record._raw.fields['planning_id'] = null;
+                            } catch(e) { console.warn('[annulé] planning delete failed', e.message); }
                         }
+                        return; // pas de syncToPlanning sur annulé
                     }
                 }
 
@@ -3387,7 +3392,11 @@
             const depart  = f['Date départ'];
             if (!arrivee || !depart) return;
 
-            const statut    = Array.isArray(f['Statut']) ? f['Statut'][0] : (f['Statut'] || 'confirmé');
+            const statutRaw = Array.isArray(f['Statut']) ? f['Statut'][0] : (f['Statut'] || '');
+            // Annulé → ne pas sync (ne doit pas apparaître dans le planning)
+            if (statutRaw.toLowerCase() === 'annulé') return;
+            // Confirmé → "confirmé", tout le reste (à traiter, devis envoyé, effectué…) → "Option"
+            const statut = statutRaw.toLowerCase() === 'confirmé' ? 'confirmé' : 'Option';
             const planningId = f['planning_id'];
 
             const planningFields = {
