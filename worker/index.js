@@ -106,6 +106,7 @@ function rowToRecord(row) {
       'Acompte Montant':          row.acompte_montant,
       'Created':                  row.created_at,
       'Updated':                  row.updated_at,
+      'planning_id':              row.planning_id,
     },
   };
 }
