@@ -398,8 +398,11 @@ export default {
       }
 
       if (url.pathname === "/api/planning" && method === "DELETE") {
-        const id = url.searchParams.get("id");
-        if (!id) return json({ error: { message: "?id= requis" } }, 400, env, requestOrigin);
+        let id = url.searchParams.get("id");
+        if (!id) {
+          try { const b = await request.json(); id = b?.id; } catch (_) {}
+        }
+        if (!id) return json({ error: { message: "id requis (query param ou body)" } }, 400, env, requestOrigin);
         await sbFetch(env, `/planning?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
         return json({ deleted: true, id }, 200, env, requestOrigin);
       }

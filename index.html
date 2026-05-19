@@ -188,14 +188,32 @@
             }
 
             try {
+                // Récupérer le planning_id avant suppression
+                const record = allRecords.find(r => r.id === id);
+                const planningId = record?._raw?.fields?.['planning_id'];
+
+                // 1. Supprimer d'Airtable
                 await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}/${id}`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' }
                 });
 
+                // 2. Supprimer de Supabase planning si lié
+                if (planningId) {
+                    try {
+                        await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/planning`, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: planningId }),
+                        });
+                    } catch (supaErr) {
+                        console.warn('[deleteRecord] Supabase planning delete failed:', supaErr.message);
+                    }
+                }
+
                 // Retirer localement
                 allRecords = allRecords.filter(r => r.id !== id);
-                
+
                 showSyncBanner(`Séminaire "${name}" supprimé.`);
                 updateKPIs();
                 updateFilters();
@@ -2619,11 +2637,15 @@
                 });
 
                 if (planningId) {
-                    await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/planning`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: planningId, fields: { 'Statut': 'Archivé' } }),
-                    });
+                    try {
+                        await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/planning`, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: planningId }),
+                        });
+                    } catch (supaErr) {
+                        console.warn('[confirmDeleteActiveDossier] Supabase planning delete failed:', supaErr.message);
+                    }
                 }
 
                 closeDossier();
