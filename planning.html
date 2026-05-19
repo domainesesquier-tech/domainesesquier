@@ -780,25 +780,175 @@
     /* ------------------------------------------------------------------ */
     /*  RESPONSIVE                                                          */
     /* ------------------------------------------------------------------ */
+    /* ------------------------------------------------------------------ */
+    /*  MOBILE ELEMENTS (hidden on desktop)                               */
+    /* ------------------------------------------------------------------ */
+    .mobile-kpi-strip {
+      display: none;
+    }
+    .mobile-week-nav {
+      display: none;
+    }
+    .mobile-bottom-nav {
+      display: none;
+    }
+    .legend-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: rgba(0,0,0,.4);
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 60px;
+    }
+    .legend-overlay.open {
+      display: flex;
+    }
+    .legend-overlay-box {
+      background: var(--white);
+      border-radius: 14px;
+      padding: 16px 20px;
+      width: calc(100vw - 40px);
+      max-width: 360px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.18);
+    }
+    .legend-overlay-box .legend-overlay-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--green-dark);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .legend-overlay-box .legend {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 0;
+      border: none;
+      background: none;
+    }
+    .fab-mobile {
+      display: none;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  MEDIA QUERY MOBILE                                                 */
+    /* ------------------------------------------------------------------ */
     @media (max-width: 768px) {
-      :root { --col-left: 60px; --cell-w: 24px; }
+      :root {
+        --col-left: 50px;
+        --cell-w: calc((100vw - 50px) / 7);
+      }
+
       .sidebar { display: none; }
       .app { flex-direction: column; }
-      .month-bar { top: 0; }
-      #btn-new { display: none; }
+      .content { padding-bottom: 60px; }
 
-      /* KPI : grille 2×2 au lieu de 4 colonnes */
-      .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      /* --- Month bar compact --- */
+      .month-bar {
+        height: 44px;
+        padding: 0 10px;
+        gap: 6px;
+        top: 0;
+      }
+      .month-label {
+        font-size: 16px;
+        min-width: 0;
+        flex: 1;
+        text-align: center;
+      }
+      .btn-icon {
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        min-width: 36px;
+        font-size: 18px;
+      }
+      /* "+" seulement sur mobile */
+      #btn-new {
+        padding: 0;
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        font-size: 0;
+        justify-content: center;
+      }
+      #btn-new::after {
+        content: "+";
+        font-size: 22px;
+        font-weight: 300;
+        line-height: 1;
+      }
+      /* Masquer Archives & fullscreen sur mobile */
+      #btn-fullscreen,
+      .month-bar a[href="archives.html"] { display: none; }
 
-      .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px 12px; }
+      /* --- KPI strip --- */
+      .kpi-grid { display: none; }
+      .mobile-kpi-strip {
+        display: block;
+        padding: 5px 12px;
+        font-size: 12px;
+        color: #888;
+        background: var(--beige-light);
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* --- Legend hidden, "?" button shown --- */
+      .legend { display: none; }
+      #btn-legend {
+        display: inline-flex !important;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        min-width: 30px;
+        font-size: 14px;
+        font-weight: 700;
+        justify-content: center;
+        border-radius: 50%;
+        border-color: var(--green);
+        color: var(--green-dark);
+      }
+
+      /* --- Week navigation bar --- */
+      .mobile-week-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 5px 10px;
+        background: var(--white);
+        border-bottom: 1px solid var(--border);
+        gap: 8px;
+      }
+      .mobile-week-nav .week-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-light);
+        text-align: center;
+        flex: 1;
+      }
+      .mobile-week-nav button {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 3px 10px;
+        font-size: 14px;
+        cursor: pointer;
+        color: var(--green-dark);
+      }
+
+      /* --- Table cells --- */
       .cell { height: 32px; font-size: 9px; }
-      tbody .col-logement { height: 32px; }
+      tbody .col-logement { height: 32px; width: var(--col-left); max-width: var(--col-left); }
       .cell-label { line-height: 32px; font-size: 9px; }
       .day-name { font-size: 8px; }
       .day-num  { font-size: 11px; }
       thead .col-day { height: 36px; }
-
-      /* Nom du gîte : 3 premières lettres uniquement */
       .logement-name {
         display: inline-block;
         max-width: 3ch;
@@ -806,28 +956,47 @@
         white-space: nowrap;
         text-overflow: clip;
       }
-
-      /* Masquer la colonne capacité */
       .logement-cap { display: none; }
 
+      /* --- Separator salles --- */
+      tr.separator-row td { height: 18px; padding: 2px 8px; font-size: 9px; }
+
+      /* --- Modal --- */
       .modal { padding: 18px; max-height: 90vh; overflow-y: auto; }
       .detail-grid { grid-template-columns: 1fr; }
-      .fab-mobile { display: flex; }
-    }
 
-    .fab-mobile {
-      display: none;
-      position: fixed;
-      bottom: 20px; right: 20px;
-      width: 56px; height: 56px;
-      border-radius: 50%;
-      background: var(--green);
-      color: #fff;
-      font-size: 28px; font-weight: 300;
-      border: none; cursor: pointer;
-      align-items: center; justify-content: center;
-      box-shadow: 0 4px 16px rgba(0,0,0,.25);
-      z-index: 1000;
+      /* --- Bottom nav --- */
+      .mobile-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 52px;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        background: var(--white);
+        border-top: 1px solid var(--border);
+        z-index: 200;
+        align-items: stretch;
+      }
+      .mobile-bottom-nav a {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 500;
+        color: #999;
+        gap: 2px;
+        border: none;
+        background: none;
+      }
+      .mobile-bottom-nav a.active {
+        color: var(--green-dark);
+      }
+      .mobile-bottom-nav a span.nav-icon { font-size: 18px; }
     }
 
     /* Plein écran : masque la sidebar, contenu prend toute la largeur */
@@ -875,7 +1044,18 @@
     <button class="btn" id="btn-today">Aujourd'hui</button>
     <a href="archives.html" class="btn" style="margin-left:auto;">Archives</a>
     <button class="btn btn-primary" id="btn-new">+ Nouvelle réservation</button>
+    <button class="btn" id="btn-legend" style="display:none;" title="Légende">?</button>
     <button class="btn btn-icon" id="btn-fullscreen" title="Plein écran" onclick="toggleFullscreen()">⛶</button>
+  </div>
+
+  <!-- MOBILE KPI STRIP -->
+  <div class="mobile-kpi-strip" id="mobile-kpi-strip">—</div>
+
+  <!-- MOBILE WEEK NAV -->
+  <div class="mobile-week-nav" id="mobile-week-nav">
+    <button id="btn-week-prev">&#8249;</button>
+    <span class="week-label" id="week-label">—</span>
+    <button id="btn-week-next">&#8250;</button>
   </div>
 
   <!-- LEGEND -->
@@ -997,6 +1177,53 @@ const DAYS_SHORT = ['Di','Lu','Ma','Me','Je','Ve','Sa'];
 /*  STATE                                                               */
 /* ------------------------------------------------------------------ */
 let currentYear, currentMonth; // month = 1-indexed
+let currentWeekStart = 1;     // mobile week view: first day of visible week
+
+function isMobile() { return window.innerWidth <= 768; }
+
+function getWeekEnd() {
+  return Math.min(currentWeekStart + 6, daysInMonth(currentYear, currentMonth));
+}
+
+function renderWeekLabel() {
+  const el = document.getElementById('week-label');
+  if (!el) return;
+  const end = getWeekEnd();
+  const monthName = MONTHS_FR[currentMonth - 1];
+  el.textContent = end === currentWeekStart
+    ? `${currentWeekStart} ${monthName}`
+    : `${currentWeekStart}–${end} ${monthName}`;
+}
+
+function goToPrevWeek() {
+  if (currentWeekStart > 1) {
+    currentWeekStart = Math.max(1, currentWeekStart - 7);
+  } else {
+    currentMonth--;
+    if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+    const dim = daysInMonth(currentYear, currentMonth);
+    currentWeekStart = Math.max(1, dim - 6);
+    renderMonthLabel();
+    loadPlanning(); return;
+  }
+  renderWeekLabel();
+  renderCalendar();
+}
+
+function goToNextWeek() {
+  const dim = daysInMonth(currentYear, currentMonth);
+  if (currentWeekStart + 7 <= dim) {
+    currentWeekStart += 7;
+  } else {
+    currentMonth++;
+    if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+    currentWeekStart = 1;
+    renderMonthLabel();
+    loadPlanning(); return;
+  }
+  renderWeekLabel();
+  renderCalendar();
+}
 let reservations = [];
 let isLoading    = false;
 
@@ -1231,13 +1458,20 @@ function renderGrid() {
     today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth;
   const todayDay = today.getDate();
 
+  // Mobile : vue semaine (7 jours) — desktop : vue mois entier
+  const startDay = isMobile() ? currentWeekStart : 1;
+  const endDay   = isMobile() ? getWeekEnd() : dim;
+  const numCols  = endDay - startDay + 1;
+
+  renderWeekLabel();
+
   const grid = buildGrid();
   const conflicts = buildConflicts();
 
   let html = '<table class="calendar-table" role="grid"><thead><tr>';
   html += '<th class="col-logement" scope="col">Logement</th>';
 
-  for (let d = 1; d <= dim; d++) {
+  for (let d = startDay; d <= endDay; d++) {
     const date    = new Date(currentYear, currentMonth - 1, d);
     const dayIdx  = date.getDay();
     const weekend = dayIdx === 0 || dayIdx === 6;
@@ -1255,7 +1489,7 @@ function renderGrid() {
   LOGEMENTS.forEach(logement => {
     if (prevType === 'gite' && logement.type === 'salle') {
       html += `<tr class="separator-row">
-        <td colspan="${dim + 1}" style="background:var(--green-dark);color:rgba(255,255,255,.7);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;height:24px;border:none;">
+        <td colspan="${numCols + 1}" style="background:var(--green-dark);color:rgba(255,255,255,.7);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;height:24px;border:none;">
           🏛 Salles de réception
         </td>
       </tr>`;
@@ -1273,7 +1507,7 @@ function renderGrid() {
         <span class="${capCls}">${logement.capacity}</span>
       </td>`;
 
-    for (let d = 1; d <= dim; d++) {
+    for (let d = startDay; d <= endDay; d++) {
       const isToday  = isThisMonth && d === todayDay;
       const cell     = grid[logement.name][d];
       const todayCls = isToday ? ' today-border' : '';
@@ -1475,8 +1709,15 @@ function renderSummary() {
   document.getElementById('sum-dispo').textContent = total;
   document.getElementById('sum-occ').textContent   = occupied;
   document.getElementById('sum-taux').textContent  = taux + ' %';
-  document.getElementById('sum-ca').textContent    =
-    ca.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+  const caFormatted = ca.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+  document.getElementById('sum-ca').textContent = caFormatted;
+
+  // Mobile KPI strip
+  const strip = document.getElementById('mobile-kpi-strip');
+  if (strip) {
+    const monthLabel = `${MONTHS_FR[currentMonth - 1]} ${currentYear}`;
+    strip.textContent = `${monthLabel} — ${taux}% occupation • ${caFormatted}`;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -1878,6 +2119,7 @@ function statutBadgeClass(statut) {
 function goToPrev() {
   currentMonth--;
   if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+  currentWeekStart = 1;
   renderMonthLabel();
   loadPlanning();
 }
@@ -1885,6 +2127,7 @@ function goToPrev() {
 function goToNext() {
   currentMonth++;
   if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+  currentWeekStart = 1;
   renderMonthLabel();
   loadPlanning();
 }
@@ -1893,6 +2136,11 @@ function goToToday() {
   const now = new Date();
   currentYear  = now.getFullYear();
   currentMonth = now.getMonth() + 1;
+  // Semaine mobile : commencer au lundi de la semaine courante
+  const d = now.getDate();
+  const dow = now.getDay(); // 0=dim
+  const mondayOffset = (dow === 0) ? -6 : 1 - dow;
+  currentWeekStart = Math.max(1, d + mondayOffset);
   renderMonthLabel();
   loadPlanning();
 }
@@ -1921,7 +2169,21 @@ function init() {
     openCreateModal(LOGEMENTS[0].name, toYMD(new Date()));
   });
 
-  loadPlanning();
+  // Mobile week navigation
+  document.getElementById('btn-week-prev').addEventListener('click', goToPrevWeek);
+  document.getElementById('btn-week-next').addEventListener('click', goToNextWeek);
+
+  // Legend overlay toggle
+  document.getElementById('btn-legend').addEventListener('click', () => {
+    const overlay = document.getElementById('legend-overlay');
+    // Copy legend items into overlay
+    const inner = document.getElementById('legend-overlay-inner');
+    inner.innerHTML = document.getElementById('legend').innerHTML;
+    overlay.classList.add('open');
+  });
+
+  // Init week start at today's Monday — goToToday() appelle déjà loadPlanning()
+  goToToday();
 }
 
 function toggleFullscreen() {
@@ -1945,6 +2207,31 @@ document.addEventListener('fullscreenchange', () => {
 </script>
 <div id="gantt-tooltip"></div>
 <button class="fab-mobile" id="fab-mobile" aria-label="Nouvelle réservation">＋</button>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-bottom-nav">
+  <a href="planning.html" class="active">
+    <span class="nav-icon">📋</span>
+    Planning
+  </a>
+  <a href="index.html">
+    <span class="nav-icon">📁</span>
+    Séminaires
+  </a>
+</nav>
+
+<!-- LEGEND OVERLAY (mobile) -->
+<div class="legend-overlay" id="legend-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="legend-overlay-box">
+    <div class="legend-overlay-title">Légende</div>
+    <div id="legend-overlay-inner"></div>
+    <button onclick="document.getElementById('legend-overlay').classList.remove('open')"
+      style="margin-top:14px;width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--beige-light);font-size:13px;cursor:pointer;font-weight:600;">
+      Fermer
+    </button>
+  </div>
+</div>
+
 <script>init();</script>
 </body>
 </html>
