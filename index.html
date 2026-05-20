@@ -644,7 +644,7 @@
         /* ========== KPI CARDS ========== */
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 14px;
             margin-bottom: 24px;
         }
@@ -689,12 +689,12 @@
             color: var(--accent);
         }
 
-        .kpi-card:nth-child(3) .kpi-icon {
+        .kpi-card:nth-child(2) .kpi-icon {
             background: rgba(212, 134, 10, 0.1);
             color: #D4860A;
         }
 
-        .kpi-card:nth-child(4) .kpi-icon {
+        .kpi-card:nth-child(3) .kpi-icon {
             background: rgba(45, 139, 86, 0.1);
             color: #2D8B56;
         }
@@ -2005,9 +2005,6 @@
             animation-delay: 0.15s;
         }
 
-        .kpi-card:nth-child(4) {
-            animation-delay: 0.2s;
-        }
 
         @keyframes fadeSlideUp {
             from {
@@ -2268,15 +2265,7 @@
                         <div class="kpi-sub">Total des événements</div>
                     </div>
                 </div>
-                <div class="kpi-card">
-                    <div class="kpi-icon"><i class="fa-solid fa-euro-sign"></i></div>
-                    <div class="kpi-content">
-                        <div class="kpi-label">CA Estimé HT</div>
-                        <div class="kpi-value" id="kpi-ca">—</div>
-                        <div class="kpi-sub">Hébergement + Repas + Options</div>
-                    </div>
-                </div>
-                <div class="kpi-card">
+<div class="kpi-card">
                     <div class="kpi-icon"><i class="fa-regular fa-hourglass-half"></i></div>
                     <div class="kpi-content">
                         <div class="kpi-label">CA en attente</div>
