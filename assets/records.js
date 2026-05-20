@@ -134,6 +134,18 @@ const SesquierRecords = {
         const mR = parseFloat(f[F.MONTANT_REPAS]) || 0;
         const mO = parseFloat(f[F.MONTANT_OPTIONS]) || 0;
 
+        // Lire le DOSSIER JSON pour récupérer les financials les plus précis
+        let _dossier = null;
+        try { _dossier = f[F.DOSSIER_JSON] ? JSON.parse(f[F.DOSSIER_JSON]) : null; } catch (_) {}
+        const _fin = _dossier?.financials;
+        // Source de vérité : DOSSIER JSON si disponible, sinon champs plats
+        const _totalHT   = (typeof _fin?.totalHT   === 'number' && _fin.totalHT   > 0) ? _fin.totalHT   : (mH + mR + mO);
+        const _totalTVA  = (typeof _fin?.totalTVA  === 'number') ? _fin.totalTVA  : 0;
+        const _totalTTC  = (typeof _fin?.totalTTC  === 'number') ? _fin.totalTTC  : _totalHT;
+        const _sHeberg   = _fin?.subtotals?.hebergement   ?? mH;
+        const _sRepas    = _fin?.subtotals?.restauration   ?? mR;
+        const _sOptions  = (_fin?.subtotals?.options ?? 0) + (_fin?.subtotals?.activites ?? 0) || mO;
+
         // Mapping pour les classes CSS legacy (utilisées par le calendrier)
         const classMap = {
             'à traiter': 'traiter',
@@ -171,9 +183,11 @@ const SesquierRecords = {
             dossier: f[F.DOSSIER_JSON] ? this._safeParse(f[F.DOSSIER_JSON]) : null,
             timeline: f[F.TIMELINE_JSON] ? this._safeParse(f[F.TIMELINE_JSON]) : [],
 
-            // Financiers calculés (Source unique : DossierModel si présent, sinon flat fields)
-            totalHT: mH + mR + mO,
-            detailsHT: { hebergement: mH, repas: mR, options: mO },
+            // Financiers calculés (Source unique : DOSSIER JSON si présent, sinon champs plats)
+            totalHT:  _totalHT,
+            totalTVA: _totalTVA,
+            totalTTC: _totalTTC,
+            detailsHT: { hebergement: _sHeberg, repas: _sRepas, options: _sOptions },
 
             _raw: raw // Garder le brut au cas où
         };
@@ -233,6 +247,8 @@ window.normalizeRecord = function(raw) {
             'Montant Hébergement HT':  n.detailsHT.hebergement,
             'Montant Repas HT':        n.detailsHT.repas,
             'Montant Options HT':      n.detailsHT.options,
+            'Total HT':                n.totalHT,
+            'Total TTC':               n.totalTTC,
             'DOSSIER JSON':            f['DOSSIER JSON'] || null,
             _total:                    n.totalHT,
         }
