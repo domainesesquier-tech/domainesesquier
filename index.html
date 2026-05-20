@@ -690,13 +690,13 @@
         }
 
         .kpi-card:nth-child(3) .kpi-icon {
-            background: var(--warning-bg);
-            color: var(--warning);
+            background: rgba(212, 134, 10, 0.1);
+            color: #D4860A;
         }
 
         .kpi-card:nth-child(4) .kpi-icon {
-            background: var(--success-bg);
-            color: var(--success);
+            background: rgba(45, 139, 86, 0.1);
+            color: #2D8B56;
         }
 
         .kpi-content {
@@ -2277,19 +2277,19 @@
                     </div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-icon"><i class="fa-regular fa-clock"></i></div>
+                    <div class="kpi-icon"><i class="fa-regular fa-hourglass-half"></i></div>
                     <div class="kpi-content">
-                        <div class="kpi-label">À traiter</div>
-                        <div class="kpi-value" id="kpi-pending">—</div>
-                        <div class="kpi-sub">En attente</div>
+                        <div class="kpi-label">CA en attente</div>
+                        <div class="kpi-value" id="kpi-ca-pending">—</div>
+                        <div class="kpi-sub">À traiter + Devis envoyé</div>
                     </div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-icon"><i class="fa-regular fa-circle-check"></i></div>
+                    <div class="kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
                     <div class="kpi-content">
-                        <div class="kpi-label">Confirmés</div>
-                        <div class="kpi-value" id="kpi-confirmed">—</div>
-                        <div class="kpi-sub">Réservations validées</div>
+                        <div class="kpi-label">CA confirmé</div>
+                        <div class="kpi-value" id="kpi-ca-confirmed">—</div>
+                        <div class="kpi-sub">Confirmés + Effectués</div>
                     </div>
                 </div>
             </div>
@@ -3080,17 +3080,22 @@
         // KPIs
         // =====================================================================
         function updateKPIs() {
-            let caTotal = 0, pending = 0, confirmed = 0;
+            let caTotal = 0, caPending = 0, caConfirmed = 0;
+            const STATUTS_PENDING   = new Set(['à traiter', 'devis envoyé']);
+            const STATUTS_CONFIRMED = new Set(['confirmé', 'effectué']);
+
             allRecords.forEach(r => {
+                if (r.estArchive) return; // Exclure les archives
+                const s = (r.statut || '').toLowerCase();
                 caTotal += r.totalHT;
-                if (r.statut === 'à traiter') pending++;
-                if (r.statut === 'confirmé') confirmed++;
+                if (STATUTS_PENDING.has(s))   caPending   += r.totalHT;
+                if (STATUTS_CONFIRMED.has(s)) caConfirmed += r.totalHT;
             });
 
-            animateValue('kpi-total', allRecords.length);
-            document.getElementById('kpi-ca').innerText = SesquierUtils.formatEuro(caTotal);
-            animateValue('kpi-pending', pending);
-            animateValue('kpi-confirmed', confirmed);
+            animateValue('kpi-total', allRecords.filter(r => !r.estArchive).length);
+            document.getElementById('kpi-ca').innerText            = SesquierUtils.formatEuro(caTotal);
+            document.getElementById('kpi-ca-pending').innerText    = SesquierUtils.formatEuro(caPending);
+            document.getElementById('kpi-ca-confirmed').innerText  = SesquierUtils.formatEuro(caConfirmed);
         }
 
         function animateValue(id, value) {
