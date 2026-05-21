@@ -1886,12 +1886,27 @@
                 const pageH_px = Math.floor(CONTENT_H_PT / ratio); // hauteur max d'une page en px canvas
 
                 // ── Coupures inter-sections ────────────────────────────────────
-                // Récupère le Y canvas (px) du début de chaque section majeure.
-                // Les coupures se font entre sections, jamais à l'intérieur.
+                // Collecte les points de coupure naturels à DEUX niveaux de granularité :
+                //   1. Sections majeures (header, info, proposals, totaux)
+                //   2. Sous-sections à l'intérieur des tableaux (category-row, meal-grid-row, subtotal-row)
+                // Ainsi la coupure se fait toujours entre deux blocs logiques,
+                // jamais en plein milieu du planning ou d'un groupe de lignes.
                 const wrapperTop = wrapper.getBoundingClientRect().top;
-                const sectionEls = Array.from(wrapper.querySelectorAll(
-                    '.pricing-section, #options-proposal, #activities-proposal, .bottom-section, .info-section'
-                ));
+                const sectionEls = Array.from(wrapper.querySelectorAll([
+                    // Sections majeures
+                    'header',
+                    '.info-section',
+                    '#stay-synthesis',
+                    '.pricing-section',
+                    '#options-proposal',
+                    '#activities-proposal',
+                    '.bottom-section',
+                    '.signature-section',
+                    // Sous-sections internes aux tableaux de prix
+                    '.category-row',      // titres HÉBERGEMENT / RESTAURATION / etc.
+                    '.meal-grid-row',     // planning prévisionnel des repas
+                    '.subtotal-row',      // lignes de sous-total
+                ].join(', ')));
                 const sectionTops = sectionEls
                     .map(el => Math.round((el.getBoundingClientRect().top - wrapperTop) * SCALE))
                     .filter(y => y > 0)
