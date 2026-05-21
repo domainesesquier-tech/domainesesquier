@@ -1869,6 +1869,7 @@
                     x:               0,
                     y:               0,
                     windowWidth:     wrapper.offsetWidth,
+                    windowHeight:    wrapper.scrollHeight, // Fix : hauteur complète, pas juste la viewport
                 });
 
                 // ── ÉTAPE 3 : Générer le PDF avec jsPDF ───────────────────────
@@ -1896,23 +1897,33 @@
                     .filter(y => y > 0)
                     .sort((a, b) => a - b);
 
-                // Construit la liste des coupures de page :
-                // on accumule les sections sur la page courante ;
-                // dès qu'une section ferait déborder la page, on coupe avant elle.
-                // Fallback : si une section seule dépasse pageH_px, coupure fixe.
+                // Construit la liste des coupures de page.
+                // Règle : une tranche ne peut jamais dépasser pageH_px.
+                // Si le contenu entre deux sections dépasse une page,
+                // on insère des coupures fixes intermédiaires pour éviter
+                // tout clippage jsPDF (bug : contenu perdu en bas de page).
                 const pageCuts = [0];
                 let pageStart  = 0;
 
                 for (const sTop of sectionTops) {
                     if (sTop - pageStart > pageH_px) {
-                        // La section dépasse la page courante → couper juste avant
-                        pageCuts.push(sTop);
-                        pageStart = sTop;
+                        // Le contenu avant cette section ne tient pas sur la page courante.
+                        // Ajouter des coupures fixes jusqu'à rejoindre sTop.
+                        let cut = pageStart + pageH_px;
+                        while (cut < sTop) {
+                            pageCuts.push(cut);
+                            cut += pageH_px;
+                        }
+                        pageStart = pageCuts[pageCuts.length - 1];
+                        // Couper aligné sur le début de section (évite couper en milieu de tableau)
+                        if (sTop > pageStart) {
+                            pageCuts.push(sTop);
+                            pageStart = sTop;
+                        }
                     }
                     // Si la section tient dans la page courante, on continue d'accumuler
                 }
-                // Fallback : si le reste du contenu après la dernière coupure
-                // dépasse encore pageH_px, ajouter des coupures fixes supplémentaires
+                // Coupures fixes pour le reste du contenu après la dernière coupure
                 let lastCut = pageCuts[pageCuts.length - 1];
                 while (canvas.height - lastCut > pageH_px) {
                     lastCut += pageH_px;
