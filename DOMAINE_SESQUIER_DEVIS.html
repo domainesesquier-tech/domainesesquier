@@ -1830,27 +1830,33 @@
             const origDisplay = hideEls.map(el => el.style.display);
 
             try {
-                // Masquer les éléments non imprimables
-                hideEls.forEach(el => { el.style.display = 'none'; });
+                // ── Activer le mode export compact ────────────────────────────────
+                document.body.classList.add('is-exporting-pdf');
 
-                // Appliquer les neutralisations
+                // Forcer inline les overrides critiques — plus fiable que CSS seul
+                // car html2canvas capture parfois avant le relayout CSS complet.
                 document.body.style.display    = 'block';
                 document.body.style.alignItems = 'unset';
                 document.body.style.padding    = '0';
-
-                wrapper.style.padding = '0';
-                wrapper.style.margin  = '0';
-                wrapper.style.gap     = '0';
-
+                wrapper.style.padding          = '0';
+                wrapper.style.margin           = '0';
+                wrapper.style.gap              = '0';
+                // Les deux .page divs : supprimer min-height et padding
+                // pour qu'ils se collapsent à leur contenu réel.
                 dc.style.minHeight = '0';
                 dc.style.height    = 'auto';
                 dc.style.padding   = '0';
                 dc.style.margin    = '0';
-
                 p2.style.minHeight = '0';
                 p2.style.height    = 'auto';
                 p2.style.padding   = '0';
                 p2.style.margin    = '0';
+
+                // Masquer les éléments non imprimables
+                hideEls.forEach(el => { el.style.display = 'none'; });
+
+                // Forcer un relayout complet avant mesure et capture
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
                 breakEls.forEach(el => {
                     el.style.breakInside     = 'auto';
@@ -1885,72 +1891,16 @@
                 const ratio    = CONTENT_W_PT / canvas.width;
                 const pageH_px = Math.floor(CONTENT_H_PT / ratio); // hauteur max d'une page en px canvas
 
-                // ── Coupures inter-sections ────────────────────────────────────
-                // Collecte les points de coupure naturels à DEUX niveaux de granularité :
-                //   1. Sections majeures (header, info, proposals, totaux)
-                //   2. Sous-sections à l'intérieur des tableaux (category-row, meal-grid-row, subtotal-row)
-                // Ainsi la coupure se fait toujours entre deux blocs logiques,
-                // jamais en plein milieu du planning ou d'un groupe de lignes.
-                const wrapperTop = wrapper.getBoundingClientRect().top;
-                const sectionEls = Array.from(wrapper.querySelectorAll([
-                    // Sections majeures — points de coupure naturels entre blocs
-                    'header',
-                    '.info-section',
-                    '#stay-synthesis',
-                    '.pricing-section',
-                    '#options-proposal',
-                    '#activities-proposal',
-                    '.bottom-section',
-                    '.signature-section',
-                    // Le planning repas : bloc compact, préférable en début de page
-                    // si la section pricing déborde, il passe en entier sur la page suivante
-                    '.meal-grid-row',
-                ].join(', ')));
-                const sectionTops = sectionEls
-                    .map(el => Math.round((el.getBoundingClientRect().top - wrapperTop) * SCALE))
-                    .filter(y => y > 0)
-                    .sort((a, b) => a - b);
-
-                // Construit la liste des coupures de page.
-                // Règle : une tranche ne peut jamais dépasser pageH_px.
-                // Si le contenu entre deux sections dépasse une page,
-                // on insère des coupures fixes intermédiaires pour éviter
-                // tout clippage jsPDF (bug : contenu perdu en bas de page).
+                // ── Coupures de page : intervalles fixes ──────────────────────
+                // Approche simple et fiable : couper tous les pageH_px pixels.
+                // Les deux .page divs (#devis-content + #page2-content) sont
+                // continus dans le canvas — aucune logique de section nécessaire.
+                // Le contenu coule naturellement d'une page à l'autre.
                 const pageCuts = [0];
-                let pageStart  = 0;
-
-                // Seuil en dessous duquel on ne crée pas une page quasi-vide :
-                // si le gap entre le dernier cut fixe et sTop est < 8% d'une page,
-                // on "absorbe" sTop dans le cut précédent (le contenu déborde de quelques px
-                // tolérables plutôt que de créer une page fantôme vide).
-                const MIN_SLICE = Math.floor(pageH_px * 0.08);
-
-                for (const sTop of sectionTops) {
-                    if (sTop - pageStart > pageH_px) {
-                        // Le contenu avant cette section ne tient pas sur la page courante.
-                        // Ajouter des coupures fixes jusqu'à rejoindre sTop.
-                        let cut = pageStart + pageH_px;
-                        while (cut < sTop) {
-                            pageCuts.push(cut);
-                            cut += pageH_px;
-                        }
-                        pageStart = pageCuts[pageCuts.length - 1];
-                        // Couper aligné sur le début de section seulement si
-                        // le gap est significatif (évite les pages vides ~46px).
-                        if (sTop - pageStart > MIN_SLICE) {
-                            pageCuts.push(sTop);
-                            pageStart = sTop;
-                        }
-                        // Sinon : on laisse cette maigre tranche sur la page suivante
-                        // — elle sera absorbée par le contenu suivant.
-                    }
-                    // Si la section tient dans la page courante, on continue d'accumuler
-                }
-                // Coupures fixes pour le reste du contenu après la dernière coupure
-                let lastCut = pageCuts[pageCuts.length - 1];
-                while (canvas.height - lastCut > pageH_px) {
-                    lastCut += pageH_px;
-                    pageCuts.push(lastCut);
+                let pos = pageH_px;
+                while (pos < canvas.height) {
+                    pageCuts.push(Math.round(pos));
+                    pos += pageH_px;
                 }
                 pageCuts.push(canvas.height);
 
@@ -1997,6 +1947,7 @@
 
             } finally {
                 // ── ÉTAPE 4 : Restaurer le DOM réel ───────────────────────────
+                document.body.classList.remove('is-exporting-pdf');
                 document.body.style.display    = origBodyDisplay;
                 document.body.style.alignItems = origBodyAlign;
                 document.body.style.padding    = origBodyPadding;

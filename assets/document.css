@@ -96,9 +96,33 @@ body.is-exporting-pdf #pdf-wrapper {
     page-break-inside: auto;
 }
 
-.is-exporting-pdf #options-proposal {
-    page-break-before: always;
-    break-before: page;
+
+/* Réduire les espacements internes pour compacter le contenu en PDF */
+.is-exporting-pdf .category-row:not(:first-child) td {
+    border-top: 6px solid #fff !important; /* était 24px → économise ~18px par catégorie */
+}
+
+.is-exporting-pdf .pricing-table td,
+.is-exporting-pdf .pricing-table th {
+    padding: 3px 4px !important;
+}
+
+.is-exporting-pdf .meal-grid-row td {
+    border-top: 8px solid #fff !important;
+}
+
+.is-exporting-pdf header {
+    padding-bottom: 6px !important;
+    margin-bottom: 8px !important;
+}
+
+.is-exporting-pdf .info-section {
+    margin-bottom: 8px !important;
+    gap: 10px !important;
+}
+
+.is-exporting-pdf .pricing-section {
+    margin-bottom: 0 !important;
 }
 
 /* Remet le footer dans le flux pour qu'il contribue à la hauteur capturée */
