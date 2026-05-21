@@ -3082,7 +3082,6 @@
             });
 
             animateValue('kpi-total', allRecords.filter(r => !r.estArchive).length);
-            document.getElementById('kpi-ca').innerText            = SesquierUtils.formatEuro(caTotal);
             document.getElementById('kpi-ca-pending').innerText    = SesquierUtils.formatEuro(caPending);
             document.getElementById('kpi-ca-confirmed').innerText  = SesquierUtils.formatEuro(caConfirmed);
         }
