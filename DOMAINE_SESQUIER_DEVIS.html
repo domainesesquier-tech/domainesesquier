@@ -1893,7 +1893,7 @@
                 // jamais en plein milieu du planning ou d'un groupe de lignes.
                 const wrapperTop = wrapper.getBoundingClientRect().top;
                 const sectionEls = Array.from(wrapper.querySelectorAll([
-                    // Sections majeures
+                    // Sections majeures — points de coupure naturels entre blocs
                     'header',
                     '.info-section',
                     '#stay-synthesis',
@@ -1902,10 +1902,9 @@
                     '#activities-proposal',
                     '.bottom-section',
                     '.signature-section',
-                    // Sous-sections internes aux tableaux de prix
-                    '.category-row',      // titres HÉBERGEMENT / RESTAURATION / etc.
-                    '.meal-grid-row',     // planning prévisionnel des repas
-                    '.subtotal-row',      // lignes de sous-total
+                    // Le planning repas : bloc compact, préférable en début de page
+                    // si la section pricing déborde, il passe en entier sur la page suivante
+                    '.meal-grid-row',
                 ].join(', ')));
                 const sectionTops = sectionEls
                     .map(el => Math.round((el.getBoundingClientRect().top - wrapperTop) * SCALE))
@@ -1920,6 +1919,12 @@
                 const pageCuts = [0];
                 let pageStart  = 0;
 
+                // Seuil en dessous duquel on ne crée pas une page quasi-vide :
+                // si le gap entre le dernier cut fixe et sTop est < 8% d'une page,
+                // on "absorbe" sTop dans le cut précédent (le contenu déborde de quelques px
+                // tolérables plutôt que de créer une page fantôme vide).
+                const MIN_SLICE = Math.floor(pageH_px * 0.08);
+
                 for (const sTop of sectionTops) {
                     if (sTop - pageStart > pageH_px) {
                         // Le contenu avant cette section ne tient pas sur la page courante.
@@ -1930,11 +1935,14 @@
                             cut += pageH_px;
                         }
                         pageStart = pageCuts[pageCuts.length - 1];
-                        // Couper aligné sur le début de section (évite couper en milieu de tableau)
-                        if (sTop > pageStart) {
+                        // Couper aligné sur le début de section seulement si
+                        // le gap est significatif (évite les pages vides ~46px).
+                        if (sTop - pageStart > MIN_SLICE) {
                             pageCuts.push(sTop);
                             pageStart = sTop;
                         }
+                        // Sinon : on laisse cette maigre tranche sur la page suivante
+                        // — elle sera absorbée par le contenu suivant.
                     }
                     // Si la section tient dans la page courante, on continue d'accumuler
                 }
