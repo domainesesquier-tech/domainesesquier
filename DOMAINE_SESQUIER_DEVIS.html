@@ -19,6 +19,32 @@
     <script src="assets/constants.js"></script>
     <script src="assets/dossier-model.js"></script>
     <style>
+        /* ── Séparateur de section dans les tableaux de prix ── */
+        .separator-row td {
+            background: #f5f7f5;
+            border-top: 1.5px solid #c8d5c7 !important;
+            border-bottom: none !important;
+            padding: 5px 10px !important;
+        }
+        .separator-label {
+            font-style: italic;
+            color: var(--primary, #3A5538);
+            font-weight: 600;
+            font-size: 9pt;
+            outline: none;
+            min-width: 80px;
+        }
+        .separator-label:empty::before {
+            content: attr(data-placeholder);
+            color: #aaa;
+            font-weight: 400;
+        }
+        /* PDF : conserver le style visuel */
+        .is-exporting-pdf .separator-row td {
+            background: #f5f7f5 !important;
+            border-top: 1.5px solid #c8d5c7 !important;
+            padding: 4px 10px !important;
+        }
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.65; }
@@ -1188,6 +1214,7 @@
                 pricingBody.innerHTML = '';
                 pricingLines.forEach(line => {
                     if (line.type === 'category') addCategoryRow(line.title);
+                    else if (line.type === 'separator') { const tr = createSeparatorRow(line.label); document.getElementById('pricing-body').appendChild(tr); }
                     else if (line.type === 'subtotal') addSubtotalRow(line.label, line.id || resolveSubtotalId(line.label));
                     else if (line.type === 'pricing') addPricingRowWithSubtitle(line, 'pricing-body');
                 });
@@ -1205,6 +1232,7 @@
                 optBody.innerHTML = '';
                 optionsLines.forEach(line => {
                     if (line.type === 'category') SesquierUtils.addCategoryRow(line.title, 'options-body');
+                    else if (line.type === 'separator') { const tr = createSeparatorRow(line.label); document.getElementById('options-body').appendChild(tr); }
                     else if (line.type === 'subtotal') SesquierUtils.addSubtotalRow(line.label, line.id || resolveSubtotalId(line.label), 'options-body');
                     else if (line.type === 'pricing') addPricingRowWithSubtitle(line, 'options-body');
                 });
@@ -1216,6 +1244,7 @@
                 actBody.innerHTML = '';
                 activitesLines.forEach(line => {
                     if (line.type === 'category') SesquierUtils.addCategoryRow(line.title, 'activities-body');
+                    else if (line.type === 'separator') { const tr = createSeparatorRow(line.label); document.getElementById('activities-body').appendChild(tr); }
                     else if (line.type === 'subtotal') SesquierUtils.addSubtotalRow(line.label, line.id || resolveSubtotalId(line.label), 'activities-body');
                     else if (line.type === 'pricing') addPricingRowWithSubtitle(line, 'activities-body');
                 });
@@ -1346,6 +1375,7 @@
                 tbody.innerHTML = '';
                 list.forEach(row => {
                     if (row.type === 'category') addCategoryRow(row.title, tbodyId);
+                    else if (row.type === 'separator') { const t = createSeparatorRow(row.label); document.getElementById(tbodyId).appendChild(t); }
                     else if (row.type === 'subtotal') addSubtotalRow(row.label, row.id, tbodyId);
                     else if (row.type === 'pricing') addPricingRow(row.label, row.qty, row.price, row.tva, row.mealKey, tbodyId);
                 });
@@ -1422,6 +1452,9 @@
                 if (tr.tagName !== 'TR') return;
                 if (tr.classList.contains('category-row')) {
                     rows.push({ type: 'category', title: tr.querySelector('td')?.innerText.trim() });
+                } else if (tr.classList.contains('separator-row')) {
+                    const label = tr.querySelector('.separator-label')?.innerText.trim() || '';
+                    rows.push({ type: 'separator', label });
                 } else if (tr.classList.contains('subtotal-row')) {
                     const label = tr.querySelector('span')?.innerText.replace('Sous-total ', '').replace(' HT', '') || '';
                     const id = tr.querySelector('.subtotal-val')?.id;
@@ -1495,7 +1528,54 @@
 
         function createPricingRow(label, qty, price, tva, mealKey) { return SesquierUtils.createPricingRow(label, qty, price, tva, mealKey); }
         function removeRow(btn, event) { return SesquierUtils.removeRow(btn, event); }
-        function addSubtotalRow(label, id, targetId) { return SesquierUtils.addSubtotalRow(label, id, targetId); }
+
+        // ── Séparateur de section ────────────────────────────────────────────
+        function createSeparatorRow(label = '') {
+            const tr = document.createElement('tr');
+            tr.className = 'separator-row';
+            tr.draggable = true;
+            tr.innerHTML = `
+                <td colspan="5">
+                    <div contenteditable="true" class="separator-label" data-placeholder="Jour 1 — Matin">${label}</div>
+                </td>
+                <td class="no-print" style="text-align:center; vertical-align:middle; white-space:nowrap; padding:0 4px;">
+                    <span class="drag-handle no-print" title="Déplacer" style="cursor:grab; color:#d1d5db; font-size:10pt; padding:0 3px; user-select:none;"><i class="fa-solid fa-grip-vertical"></i></span>
+                    <button onclick="SesquierUtils.removeRow(this, event)" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:14pt; padding:0 3px; line-height:1;">&times;</button>
+                </td>
+            `;
+            SesquierUtils._bindDragRow(tr);
+            return tr;
+        }
+
+        function addSeparatorBefore(btn) {
+            const subRow = btn.closest('tr');
+            const newRow = createSeparatorRow('');
+            subRow.parentNode.insertBefore(newRow, subRow);
+        }
+
+        // Override local : ajoute le bouton "+ Séparateur" dans le sous-total
+        // pour les sections Restauration et Activités uniquement.
+        function addSubtotalRow(label, id, targetId = 'pricing-body') {
+            SesquierUtils.addSubtotalRow(label, id, targetId);
+            // Ajouter le bouton "+ Séparateur" uniquement sur Restauration et Activités
+            const SEPARATOR_SECTIONS = ['restauration', 'activités', 'activites', 'activités & services annexes'];
+            const norm = (label || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+            const showSep = SEPARATOR_SECTIONS.some(s => norm.includes(s.normalize('NFD').replace(/[̀-ͯ]/g, '')));
+            if (!showSep) return;
+            // Injecter le bouton dans la cellule du sous-total qu'on vient d'ajouter
+            const tbody = document.getElementById(targetId);
+            if (!tbody) return;
+            const subtotalTr = tbody.querySelector(`tr.subtotal-row:last-child`);
+            if (!subtotalTr) return;
+            const btnContainer = subtotalTr.querySelector('td:first-child div');
+            if (!btnContainer) return;
+            const sepBtn = document.createElement('button');
+            sepBtn.className = 'no-print';
+            sepBtn.textContent = '+ Séparateur';
+            sepBtn.style.cssText = 'background:white; border:1.5px solid var(--primary); color:var(--primary); border-radius:4px; padding:4px 10px; cursor:pointer; font-size:8pt; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-left:6px;';
+            sepBtn.onclick = function() { addSeparatorBefore(this); };
+            btnContainer.appendChild(sepBtn);
+        }
 
         function addMealGrid(fields, savedState = null) {
             const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
