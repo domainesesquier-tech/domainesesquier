@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Déroulé — Domaine Sesquier</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+    <script src="assets/utils.js"></script>
+    <style>
+        :root {
+            --primary: #3A5538;
+            --primary-light: #e8f0e0;
+            --accent: #854f0b;
+            --accent-light: #faeeda;
+            --bg: #f4f6f4;
+            --bg-card: #ffffff;
+            --border: #e2e8e2;
+            --text: #1a1a1a;
+            --text-muted: #6b7280;
+            --shadow: 0 1px 4px rgba(0,0,0,0.08);
+            --preview-bg: #f5f0e8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Toolbar ── */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            gap: 12px;
+        }
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+        .record-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 260px;
+        }
+        .save-status {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: opacity 0.3s;
+        }
+        .save-status.saving { color: #d97706; }
+        .save-status.saved  { color: #16a34a; }
+        .save-status.error  { color: #dc2626; }
+        .toolbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .btn-toolbar {
+            display: flex; align-items: center; gap: 6px;
+            padding: 7px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 500;
+            cursor: pointer; border: 1px solid var(--border); background: white;
+            color: var(--text); transition: all 0.15s;
+        }
+        .btn-toolbar:hover { background: var(--bg); }
+        .btn-toolbar.primary { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-toolbar.primary:hover { background: #2e4330; }
+
+        /* ── Layout ── */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ── Editor panel ── */
+        .editor-panel {
+            width: 55%;
+            min-width: 340px;
+            overflow-y: auto;
+            padding: 20px;
+            border-right: 1px solid var(--border);
+            background: var(--bg);
+        }
+        .editor-header {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .field-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+        .field-group input[type="text"] {
+            width: 100%;
+            padding: 8px 11px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            background: var(--bg);
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .field-group input[type="text"]:focus { border-color: var(--primary); }
+
+        .formule-toggle {
+            display: flex;
+            gap: 6px;
+        }
+        .formule-btn {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1.5px solid var(--border);
+            background: white;
+            color: var(--text-muted);
+            transition: all 0.15s;
+        }
+        .formule-btn.active.essentiel {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .formule-btn.active.immersion {
+            background: var(--accent-light);
+            border-color: #c87a30;
+            color: var(--accent);
+        }
+
+        /* ── Day block ── */
+        .jour-block {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .jour-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            background: var(--primary);
+            color: white;
+        }
+        .jour-num {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            opacity: 0.7;
+            white-space: nowrap;
+        }
+        .jour-fields {
+            display: flex;
+            flex: 1;
+            gap: 8px;
+        }
+        .jour-fields input {
+            flex: 1;
+            padding: 5px 9px;
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 5px;
+            background: rgba(255,255,255,0.12);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            outline: none;
+        }
+        .jour-fields input::placeholder { color: rgba(255,255,255,0.5); }
+        .jour-fields input:focus { border-color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.18); }
+        .btn-jour-delete {
+            background: none; border: none; color: rgba(255,255,255,0.5);
+            cursor: pointer; padding: 4px 6px; border-radius: 4px;
+            font-size: 13px; transition: color 0.15s, background 0.15s; flex-shrink: 0;
+        }
+        .btn-jour-delete:hover { color: #fca5a5; background: rgba(255,255,255,0.1); }
+
+        /* ── Etapes ── */
+        .etapes-list { padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+        .etape-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            background: #fafbfa;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 8px 10px;
+        }
+        .etape-row:hover { border-color: #c8d5c7; }
+        .etape-drag {
+            cursor: grab; color: #d1d5db; font-size: 11px;
+            padding: 4px 2px; margin-top: 2px; flex-shrink: 0;
+        }
+        .etape-drag:active { cursor: grabbing; }
+        .etape-drag.dragging { opacity: 0.4; }
+        .etape-row.drag-over { border-top: 2px solid var(--primary); }
+        .etape-inputs { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+        .etape-row-top { display: flex; gap: 6px; }
+        .inp-heure {
+            width: 68px; flex-shrink: 0;
+            padding: 5px 7px;
+            border: 1px solid var(--border); border-radius: 5px;
+            font-family: 'Inter', sans-serif; font-size: 12px; outline: none;
+            background: white; color: var(--text);
+        }
+        .inp-heure:focus { border-color: var(--primary); }
+        .inp-titre {
+            flex: 1;
+            padding: 5px 8px;
+            border: 1px solid var(--border); border-radius: 5px;
+            font-family: 'Inter', sans-serif; font-size: 12px; outline: none;
+            background: white; color: var(--text); font-weight: 500;
+        }
+        .inp-titre:focus { border-color: var(--primary); }
+        .inp-desc {
+            width: 100%;
+            padding: 5px 8px;
+            border: 1px solid var(--border); border-radius: 5px;
+            font-family: 'Inter', sans-serif; font-size: 11.5px; outline: none;
+            background: white; color: var(--text-muted); resize: none; min-height: 0;
+        }
+        .inp-desc:focus { border-color: var(--primary); }
+        .etape-row-bottom { display: flex; align-items: center; gap: 6px; }
+        .tag-btns { display: flex; gap: 4px; }
+        .tag-btn {
+            font-size: 10.5px; padding: 3px 9px; border-radius: 12px;
+            cursor: pointer; border: 1px solid var(--border); background: white;
+            color: var(--text-muted); font-weight: 500; transition: all 0.12s;
+            font-family: 'Inter', sans-serif;
+        }
+        .tag-btn:hover { border-color: #aaa; }
+        .tag-btn.active-essentiel { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+        .tag-btn.active-immersion { background: var(--accent-light); border-color: #c87a30; color: var(--accent); }
+        .btn-etape-delete {
+            background: none; border: none; color: #d1d5db;
+            cursor: pointer; padding: 3px 5px; border-radius: 4px;
+            font-size: 13px; transition: color 0.15s; flex-shrink: 0; margin-top: 1px;
+        }
+        .btn-etape-delete:hover { color: #ef4444; }
+        .btn-add-etape {
+            display: flex; align-items: center; gap: 6px;
+            margin: 6px 10px 10px;
+            padding: 6px 12px; border-radius: 6px;
+            font-size: 11.5px; font-weight: 500; color: var(--primary);
+            background: var(--primary-light); border: 1px dashed var(--primary);
+            cursor: pointer; transition: all 0.15s; width: fit-content;
+        }
+        .btn-add-etape:hover { background: #d4e6cb; }
+        .btn-add-jour {
+            display: flex; align-items: center; gap: 8px;
+            width: 100%; padding: 11px 16px;
+            background: var(--bg-card); border: 1.5px dashed var(--border);
+            border-radius: 10px; color: var(--text-muted);
+            font-size: 13px; font-weight: 500; cursor: pointer;
+            transition: all 0.15s; justify-content: center;
+            font-family: 'Inter', sans-serif; margin-top: 4px;
+        }
+        .btn-add-jour:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+
+        /* ── Preview panel ── */
+        .preview-panel {
+            width: 45%;
+            overflow-y: auto;
+            background: #e8e4dd;
+            padding: 20px 16px;
+        }
+        .preview-doc {
+            background: var(--preview-bg);
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 36px 40px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+            font-family: 'Inter', sans-serif;
+            min-height: 600px;
+        }
+
+        /* ── Preview content ── */
+        .prev-header {
+            text-align: center;
+            margin-bottom: 28px;
+            padding-bottom: 20px;
+            border-bottom: 1.5px solid #c8bfae;
+        }
+        .prev-domaine {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        .prev-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+        .prev-entreprise {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 17px; font-weight: 600;
+            color: var(--text); margin-bottom: 4px;
+        }
+        .prev-fil {
+            font-style: italic; font-size: 13px;
+            color: var(--text-muted); margin-top: 4px;
+        }
+        .prev-formule {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 11px; font-weight: 600;
+            padding: 3px 12px; border-radius: 12px;
+            letter-spacing: 0.4px;
+        }
+        .prev-formule.essentiel {
+            background: var(--primary-light); color: var(--primary); border: 1px solid var(--primary);
+        }
+        .prev-formule.immersion {
+            background: var(--accent-light); color: var(--accent); border: 1px solid #c87a30;
+        }
+        .prev-jour {
+            margin-bottom: 22px;
+        }
+        .prev-jour-header {
+            background: #1a1a1a; color: white;
+            padding: 8px 14px; margin-bottom: 10px;
+            display: flex; align-items: baseline; gap: 10px;
+        }
+        .prev-jour-titre {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 15px; font-weight: 600;
+        }
+        .prev-jour-date {
+            font-size: 11px; color: rgba(255,255,255,0.6); font-style: italic;
+        }
+        .prev-etape {
+            display: flex; gap: 10px; align-items: flex-start;
+            padding: 8px 0; border-bottom: 1px solid #e0d8cc;
+        }
+        .prev-etape:last-child { border-bottom: none; }
+        .prev-etape-num {
+            width: 20px; height: 20px; border-radius: 50%;
+            background: #1a1a1a; color: white;
+            font-size: 9.5px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-top: 2px;
+        }
+        .prev-etape-content { flex: 1; min-width: 0; }
+        .prev-etape-line1 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .prev-etape-heure { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+        .prev-etape-titre { font-size: 12.5px; font-weight: 600; color: var(--text); }
+        .prev-etape-desc { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+        .prev-badge {
+            display: inline-block;
+            font-size: 10px; font-weight: 600;
+            padding: 2px 8px; border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .prev-badge.essentiel { background: var(--primary-light); color: var(--primary); }
+        .prev-badge.immersion { background: var(--accent-light); color: var(--accent); }
+        .prev-empty {
+            text-align: center; color: #b0a898;
+            font-style: italic; font-size: 13px; padding: 40px 0;
+        }
+
+        /* ── Loading state ── */
+        .loading-state {
+            display: flex; align-items: center; justify-content: center;
+            height: 200px; color: var(--text-muted); gap: 10px;
+            font-size: 13px;
+        }
+
+        /* ── Mobile ── */
+        @media (max-width: 900px) {
+            body { overflow: auto; }
+            .main-layout { flex-direction: column; overflow: visible; }
+            .editor-panel { width: 100%; border-right: none; border-bottom: 1px solid var(--border); overflow-y: visible; }
+            .preview-panel { width: 100%; overflow-y: visible; }
+        }
+
+        /* ── PDF export ── */
+        .is-exporting-pdf .preview-doc {
+            box-shadow: none;
+            max-width: none;
+        }
+        .is-exporting-pdf .prev-header { padding-bottom: 16px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<!-- ── Toolbar ── -->
+<div class="toolbar">
+    <div class="toolbar-left">
+        <span class="record-name" id="record-name">Chargement…</span>
+        <span class="save-status saved" id="save-status">
+            <i class="fa-solid fa-check-circle"></i> Enregistré
+        </span>
+    </div>
+    <div class="toolbar-right">
+        <button class="btn-toolbar" onclick="saveDeroule()">
+            <i class="fa-solid fa-floppy-disk"></i> Enregistrer
+        </button>
+        <button class="btn-toolbar primary" onclick="exportPDF()">
+            <i class="fa-solid fa-file-pdf"></i> Exporter PDF
+        </button>
+    </div>
+</div>
+
+<!-- ── Main layout ── -->
+<div class="main-layout">
+
+    <!-- Left: editor -->
+    <div class="editor-panel" id="editor-panel">
+        <div class="editor-header">
+            <div class="field-group">
+                <label>Fil conducteur du séjour</label>
+                <input type="text" id="fil-conducteur" placeholder="Ex : S'ancrer pour mieux coopérer"
+                    oninput="state.filConducteur = this.value; scheduleUpdate();">
+            </div>
+            <div class="field-group">
+                <label>Formule</label>
+                <div class="formule-toggle">
+                    <button class="formule-btn essentiel" id="btn-essentiel" onclick="setFormule('essentiel')">Essentiel</button>
+                    <button class="formule-btn immersion" id="btn-immersion" onclick="setFormule('immersion_complete')">Immersion complète</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="jours-container"></div>
+
+        <button class="btn-add-jour" onclick="addJour()">
+            <i class="fa-solid fa-plus"></i> Ajouter un jour
+        </button>
+    </div>
+
+    <!-- Right: preview -->
+    <div class="preview-panel">
+        <div class="preview-doc" id="preview-doc">
+            <div class="prev-empty">Le programme apparaîtra ici…</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// =====================================================================
+// STATE
+// =====================================================================
+const API_URL = SesquierUtils.API_RESERVATIONS_URL;
+const urlParams = new URLSearchParams(window.location.search);
+let currentId = urlParams.get('id') || sessionStorage.getItem('currentDossierId');
+let currentRecord = null;
+
+let state = {
+    filConducteur: '',
+    formule: 'essentiel',
+    jours: []
+};
+
+// =====================================================================
+// LOAD
+// =====================================================================
+window.addEventListener('DOMContentLoaded', async () => {
+    if (!currentId) {
+        document.getElementById('record-name').textContent = 'Aucun dossier sélectionné';
+        return;
+    }
+    try {
+        const data = await SesquierUtils.fetchJson(`${API_URL}?id=${currentId}`);
+        const rec = data.records?.[0] || data;
+        currentRecord = rec;
+        const f = rec.fields || {};
+
+        const nom = f['Nom client'] || f['Entreprise'] || 'Dossier';
+        document.getElementById('record-name').textContent = nom;
+        document.title = `Déroulé — ${nom}`;
+
+        if (f['DEROULE JSON']) {
+            try { state = JSON.parse(f['DEROULE JSON']); } catch(e) {}
+        }
+
+        // Seed depuis DOSSIER JSON si pas de déroulé existant
+        if (!state.jours || state.jours.length === 0) {
+            state = { filConducteur: '', formule: 'essentiel', jours: [] };
+            if (f['DOSSIER JSON']) {
+                try {
+                    const dossier = JSON.parse(f['DOSSIER JSON']);
+                    if (dossier.sejour?.dateArrivee) {
+                        const nights = dossier.sejour.nights || 1;
+                        const start = new Date(dossier.sejour.dateArrivee);
+                        for (let i = 0; i <= nights; i++) {
+                            const d = new Date(start);
+                            d.setDate(d.getDate() + i);
+                            state.jours.push({
+                                id: uid(),
+                                titre: i === 0 ? 'Arrivée & mise en route' : i === nights ? 'Clôture & départ' : 'Journée complète',
+                                labelDate: d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
+                                etapes: []
+                            });
+                        }
+                    }
+                } catch(e) {}
+            }
+        }
+
+        renderEditor();
+        renderPreview();
+    } catch(e) {
+        document.getElementById('record-name').textContent = 'Erreur de chargement';
+        console.error('[DEROULE]', e);
+    }
+});
+
+// =====================================================================
+// UTILS
+// =====================================================================
+function uid() {
+    return 'id_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function getRecordName() {
+    const f = currentRecord?.fields || {};
+    return f['Nom client'] || f['Entreprise'] || 'deroule';
+}
+
+// =====================================================================
+// FORMULE
+// =====================================================================
+function setFormule(val) {
+    state.formule = val;
+    document.getElementById('btn-essentiel').classList.toggle('active', val === 'essentiel');
+    document.getElementById('btn-immersion').classList.toggle('active', val === 'immersion_complete');
+    renderPreview();
+    scheduleSave();
+}
+
+function refreshFormuleButtons() {
+    document.getElementById('btn-essentiel').classList.toggle('active', state.formule === 'essentiel');
+    document.getElementById('btn-immersion').classList.toggle('active', state.formule === 'immersion_complete');
+}
+
+// =====================================================================
+// RENDER EDITOR
+// =====================================================================
+function renderEditor() {
+    refreshFormuleButtons();
+    document.getElementById('fil-conducteur').value = state.filConducteur || '';
+    const container = document.getElementById('jours-container');
+    container.innerHTML = '';
+    state.jours.forEach((jour, jIdx) => {
+        container.appendChild(buildJourBlock(jour, jIdx));
+    });
+}
+
+function buildJourBlock(jour, jIdx) {
+    const div = document.createElement('div');
+    div.className = 'jour-block';
+    div.dataset.id = jour.id;
+
+    div.innerHTML = `
+        <div class="jour-header">
+            <span class="jour-num">Jour ${jIdx + 1}</span>
+            <div class="jour-fields">
+                <input type="text" placeholder="Titre du jour" value="${esc(jour.titre)}"
+                    data-field="titre" data-jour="${jour.id}" oninput="updateJour(this)">
+                <input type="text" placeholder="Label date (ex : Lundi 15 sept.)" value="${esc(jour.labelDate)}"
+                    data-field="labelDate" data-jour="${jour.id}" oninput="updateJour(this)">
+            </div>
+            <button class="btn-jour-delete" onclick="removeJour('${jour.id}')" title="Supprimer ce jour">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+        </div>
+        <div class="etapes-list" id="etapes-${jour.id}"></div>
+        <button class="btn-add-etape" onclick="addEtape('${jour.id}')">
+            <i class="fa-solid fa-plus"></i> Ajouter une étape
+        </button>
+    `;
+
+    const etapesList = div.querySelector(`#etapes-${jour.id}`);
+    jour.etapes.forEach((etape, eIdx) => {
+        etapesList.appendChild(buildEtapeRow(etape, jour.id, eIdx));
+    });
+
+    return div;
+}
+
+function buildEtapeRow(etape, jourId, eIdx) {
+    const row = document.createElement('div');
+    row.className = 'etape-row';
+    row.dataset.id = etape.id;
+    row.dataset.jourId = jourId;
+    row.draggable = true;
+
+    const tagButtons = [
+        { val: null,                 label: 'Aucun' },
+        { val: 'essentiel',          label: '✦ Essentiel' },
+        { val: 'immersion_complete', label: '✦ Immersion complète' }
+    ].map(t => {
+        let cls = 'tag-btn';
+        if (etape.tag === t.val && t.val === 'essentiel')          cls += ' active-essentiel';
+        if (etape.tag === t.val && t.val === 'immersion_complete') cls += ' active-immersion';
+        if (etape.tag === t.val && t.val === null)                  cls += ' active-none';
+        return `<button class="${cls}" onclick="setEtapeTag('${jourId}','${etape.id}','${t.val === null ? '__none__' : t.val}',this)">${t.label}</button>`;
+    }).join('');
+
+    row.innerHTML = `
+        <span class="etape-drag" title="Réordonner"><i class="fa-solid fa-grip-vertical"></i></span>
+        <div class="etape-inputs">
+            <div class="etape-row-top">
+                <input class="inp-heure" type="text" placeholder="00h00" value="${esc(etape.heure)}"
+                    data-field="heure" data-jour="${jourId}" data-etape="${etape.id}" oninput="updateEtape(this)">
+                <input class="inp-titre" type="text" placeholder="Titre de l'étape" value="${esc(etape.titre)}"
+                    data-field="titre" data-jour="${jourId}" data-etape="${etape.id}" oninput="updateEtape(this)">
+            </div>
+            <textarea class="inp-desc" rows="1" placeholder="Description facultative…"
+                data-field="description" data-jour="${jourId}" data-etape="${etape.id}"
+                oninput="updateEtape(this); autoResizeTextarea(this);">${esc(etape.description || '')}</textarea>
+            <div class="etape-row-bottom">
+                <div class="tag-btns">${tagButtons}</div>
+            </div>
+        </div>
+        <button class="btn-etape-delete" onclick="removeEtape('${jourId}','${etape.id}')" title="Supprimer">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    `;
+
+    bindDragEtape(row, jourId);
+    return row;
+}
+
+function autoResizeTextarea(el) {
+    el.style.height = 'auto';
+    el.style.height = (el.scrollHeight) + 'px';
+}
+
+function esc(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// =====================================================================
+// STATE MUTATIONS (partial re-renders to avoid cursor loss)
+// =====================================================================
+function updateJour(input) {
+    const jourId = input.dataset.jour;
+    const field  = input.dataset.field;
+    const jour = state.jours.find(j => j.id === jourId);
+    if (jour) jour[field] = input.value;
+    renderPreview();
+    scheduleSave();
+}
+
+function updateEtape(input) {
+    const jourId  = input.dataset.jour;
+    const etapeId = input.dataset.etape;
+    const field   = input.dataset.field;
+    const jour = state.jours.find(j => j.id === jourId);
+    if (!jour) return;
+    const etape = jour.etapes.find(e => e.id === etapeId);
+    if (etape) etape[field] = input.value;
+    renderPreview();
+    scheduleSave();
+}
+
+function addJour() {
+    state.jours.push({ id: uid(), titre: '', labelDate: '', etapes: [] });
+    renderEditor();
+    renderPreview();
+    scheduleSave();
+    // Scroll to bottom of editor
+    const ep = document.getElementById('editor-panel');
+    ep.scrollTop = ep.scrollHeight;
+}
+
+function removeJour(jourId) {
+    if (!confirm('Supprimer ce jour et toutes ses étapes ?')) return;
+    state.jours = state.jours.filter(j => j.id !== jourId);
+    renderEditor();
+    renderPreview();
+    scheduleSave();
+}
+
+function addEtape(jourId) {
+    const jour = state.jours.find(j => j.id === jourId);
+    if (!jour) return;
+    jour.etapes.push({ id: uid(), heure: '', titre: '', description: '', tag: null });
+    // Only re-render this jour's etapes list
+    const list = document.getElementById(`etapes-${jourId}`);
+    if (list) {
+        list.innerHTML = '';
+        jour.etapes.forEach((e, i) => list.appendChild(buildEtapeRow(e, jourId, i)));
+    }
+    renderPreview();
+    scheduleSave();
+    // Focus new etape's titre
+    setTimeout(() => {
+        const inputs = list?.querySelectorAll('.inp-titre');
+        if (inputs?.length) inputs[inputs.length - 1].focus();
+    }, 50);
+}
+
+function removeEtape(jourId, etapeId) {
+    const jour = state.jours.find(j => j.id === jourId);
+    if (!jour) return;
+    jour.etapes = jour.etapes.filter(e => e.id !== etapeId);
+    const list = document.getElementById(`etapes-${jourId}`);
+    if (list) {
+        list.innerHTML = '';
+        jour.etapes.forEach((e, i) => list.appendChild(buildEtapeRow(e, jourId, i)));
+    }
+    renderPreview();
+    scheduleSave();
+}
+
+function setEtapeTag(jourId, etapeId, val, btn) {
+    const jour = state.jours.find(j => j.id === jourId);
+    if (!jour) return;
+    const etape = jour.etapes.find(e => e.id === etapeId);
+    if (!etape) return;
+    etape.tag = (val === '__none__') ? null : val;
+
+    // Re-render only this etape row's tag buttons to avoid focus loss
+    const row = btn.closest('.etape-row');
+    const tagBtns = row?.querySelector('.tag-btns');
+    if (tagBtns) {
+        tagBtns.innerHTML = [
+            { val: null,                 label: 'Aucun' },
+            { val: 'essentiel',          label: '✦ Essentiel' },
+            { val: 'immersion_complete', label: '✦ Immersion complète' }
+        ].map(t => {
+            let cls = 'tag-btn';
+            if (etape.tag === t.val && t.val === 'essentiel')          cls += ' active-essentiel';
+            if (etape.tag === t.val && t.val === 'immersion_complete') cls += ' active-immersion';
+            return `<button class="${cls}" onclick="setEtapeTag('${jourId}','${etape.id}','${t.val === null ? '__none__' : t.val}',this)">${t.label}</button>`;
+        }).join('');
+    }
+    renderPreview();
+    scheduleSave();
+}
+
+// =====================================================================
+// DRAG & DROP ÉTAPES
+// =====================================================================
+function bindDragEtape(row, jourId) {
+    row.addEventListener('dragstart', e => {
+        e.dataTransfer.effectAllowed = 'move';
+        row.classList.add('dragging');
+        window._dragSrcEtape = row;
+    });
+    row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        document.querySelectorAll('.etape-row.drag-over').forEach(r => r.classList.remove('drag-over'));
+        window._dragSrcEtape = null;
+        syncEtapeOrder(jourId);
+    });
+    row.addEventListener('dragover', e => {
+        e.preventDefault();
+        if (window._dragSrcEtape && window._dragSrcEtape !== row && row.dataset.jourId === jourId) {
+            row.classList.add('drag-over');
+        }
+    });
+    row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+    row.addEventListener('drop', e => {
+        e.preventDefault();
+        row.classList.remove('drag-over');
+        const src = window._dragSrcEtape;
+        if (!src || src === row || src.dataset.jourId !== jourId) return;
+        const list = row.parentNode;
+        const rows = [...list.querySelectorAll('.etape-row')];
+        const srcIdx = rows.indexOf(src);
+        const tgtIdx = rows.indexOf(row);
+        if (srcIdx < tgtIdx) list.insertBefore(src, row.nextSibling);
+        else list.insertBefore(src, row);
+    });
+}
+
+function syncEtapeOrder(jourId) {
+    const jour = state.jours.find(j => j.id === jourId);
+    if (!jour) return;
+    const list = document.getElementById(`etapes-${jourId}`);
+    if (!list) return;
+    const rows = [...list.querySelectorAll('.etape-row')];
+    const newOrder = rows.map(r => jour.etapes.find(e => e.id === r.dataset.id)).filter(Boolean);
+    jour.etapes = newOrder;
+    renderPreview();
+    scheduleSave();
+}
+
+// =====================================================================
+// RENDER PREVIEW
+// =====================================================================
+function renderPreview() {
+    const doc = document.getElementById('preview-doc');
+    if (!doc) return;
+
+    const rec = currentRecord?.fields || {};
+    const nomClient = rec['Nom client'] || rec['Entreprise'] || '—';
+    const dates = buildDateRange(rec);
+
+    const formuleLabel = state.formule === 'immersion_complete' ? 'Immersion complète' : 'Essentiel';
+    const formuleClass = state.formule === 'immersion_complete' ? 'immersion' : 'essentiel';
+
+    let html = `
+        <div class="prev-header">
+            <div class="prev-domaine">Domaine Sesquier</div>
+            <div class="prev-subtitle">Déroulé de séjour</div>
+            <div class="prev-entreprise">${esc(nomClient)}</div>
+            ${dates ? `<div class="prev-subtitle">${dates}</div>` : ''}
+            ${state.filConducteur ? `<div class="prev-fil">« ${esc(state.filConducteur)} »</div>` : ''}
+            <span class="prev-formule ${formuleClass}">Formule ${esc(formuleLabel)}</span>
+        </div>
+    `;
+
+    if (!state.jours || state.jours.length === 0) {
+        html += `<div class="prev-empty">Aucun jour défini — ajoutez un jour dans l'éditeur.</div>`;
+    } else {
+        state.jours.forEach((jour, jIdx) => {
+            html += `<div class="prev-jour">
+                <div class="prev-jour-header">
+                    <span class="prev-jour-titre">Jour ${jIdx + 1}${jour.titre ? ' — ' + esc(jour.titre) : ''}</span>
+                    ${jour.labelDate ? `<span class="prev-jour-date">${esc(jour.labelDate)}</span>` : ''}
+                </div>`;
+            if (jour.etapes.length === 0) {
+                html += `<div style="padding:8px 0; color:#b0a898; font-style:italic; font-size:12px; text-align:center;">Aucune étape</div>`;
+            } else {
+                jour.etapes.forEach((etape, eIdx) => {
+                    const badgeHtml = etape.tag
+                        ? `<span class="prev-badge ${etape.tag === 'essentiel' ? 'essentiel' : 'immersion'}">✦ ${etape.tag === 'essentiel' ? 'Essentiel' : 'Immersion complète'}</span>`
+                        : '';
+                    html += `
+                        <div class="prev-etape">
+                            <div class="prev-etape-num">${eIdx + 1}</div>
+                            <div class="prev-etape-content">
+                                <div class="prev-etape-line1">
+                                    ${etape.heure ? `<span class="prev-etape-heure">${esc(etape.heure)}</span>` : ''}
+                                    <span class="prev-etape-titre">${esc(etape.titre) || '<em style="opacity:0.4">Sans titre</em>'}</span>
+                                    ${badgeHtml}
+                                </div>
+                                ${etape.description ? `<div class="prev-etape-desc">${esc(etape.description)}</div>` : ''}
+                            </div>
+                        </div>`;
+                });
+            }
+            html += `</div>`;
+        });
+    }
+
+    doc.innerHTML = html;
+}
+
+function buildDateRange(f) {
+    const a = f['Date arrivée'] || f['date_arrivee'];
+    const d = f['Date départ']  || f['date_depart'];
+    if (!a && !d) return '';
+    const fmt = s => new Date(s).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    if (a && d) return `${fmt(a)} → ${fmt(d)}`;
+    if (a) return `À partir du ${fmt(a)}`;
+    return '';
+}
+
+// =====================================================================
+// SAVE
+// =====================================================================
+let _saveTimer = null;
+
+function scheduleSave() {
+    clearTimeout(_saveTimer);
+    setSaveStatus('saving');
+    _saveTimer = setTimeout(saveDeroule, 800);
+}
+
+function scheduleUpdate() {
+    state.filConducteur = document.getElementById('fil-conducteur').value;
+    renderPreview();
+    scheduleSave();
+}
+
+function setSaveStatus(status) {
+    const el = document.getElementById('save-status');
+    if (!el) return;
+    el.className = 'save-status ' + status;
+    if (status === 'saving') {
+        el.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enregistrement…';
+    } else if (status === 'error') {
+        el.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Échec sauvegarde';
+    } else {
+        el.innerHTML = '<i class="fa-solid fa-check-circle"></i> Enregistré';
+    }
+}
+
+async function saveDeroule() {
+    if (!currentId) return;
+    clearTimeout(_saveTimer);
+    setSaveStatus('saving');
+    try {
+        await SesquierUtils.fetchJson(API_URL, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: currentId,
+                fields: { 'DEROULE JSON': JSON.stringify(state) }
+            })
+        });
+        setSaveStatus('saved');
+        SesquierUtils.broadcast('RECORD_UPDATED', { id: currentId });
+    } catch(e) {
+        setSaveStatus('error');
+        console.error('[DEROULE] Save failed:', e);
+    }
+}
+
+// =====================================================================
+// PDF EXPORT
+// =====================================================================
+async function exportPDF() {
+    const btn = document.querySelector('.btn-toolbar.primary');
+    const prevText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Génération…';
+    btn.disabled = true;
+
+    try {
+        const element = document.getElementById('preview-doc');
+        document.body.classList.add('is-exporting-pdf');
+
+        const nomClient = (currentRecord?.fields?.['Nom client'] || currentRecord?.fields?.['Entreprise'] || 'deroule')
+            .replace(/[^a-zA-Z0-9À-ÿ\s-]/g, '').replace(/\s+/g, '-').toLowerCase();
+        const dateStr = new Date().toISOString().slice(0, 10);
+        const filename = `deroule-${nomClient}-${dateStr}.pdf`;
+
+        await SesquierUtils.generatePDF(element, filename, {
+            margin: [15, 15, 15, 15],
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#f5f0e8' }
+        });
+    } finally {
+        document.body.classList.remove('is-exporting-pdf');
+        btn.innerHTML = prevText;
+        btn.disabled = false;
+    }
+}
+
+// Resize existing textareas on load
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        document.querySelectorAll('.inp-desc').forEach(autoResizeTextarea);
+    }, 300);
+});
+</script>
+</body>
+</html>

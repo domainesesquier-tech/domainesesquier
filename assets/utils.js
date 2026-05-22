@@ -5,7 +5,7 @@
 const SesquierUtils = {
     // API Configuration — pointe sur le worker local en dev, prod sinon
     API_BASE: (typeof location !== 'undefined' && location.hostname === 'localhost')
-        ? 'http://localhost:8787'
+        ? 'http://localhost:8788'
         : 'https://domainesesquier-api.domainesesquier.workers.dev',
 
     get API_RESERVATIONS_URL() {
