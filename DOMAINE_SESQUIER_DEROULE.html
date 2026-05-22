@@ -412,6 +412,118 @@
             .preview-panel { width: 100%; overflow-y: visible; }
         }
 
+        /* ── Bibliothèque ── */
+        #lib-toggle {
+            display: flex; align-items: center; gap: 6px;
+            padding: 7px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 500;
+            cursor: pointer; border: 1px solid var(--border); background: white;
+            color: var(--text); transition: all 0.15s; font-family: 'Inter', sans-serif;
+        }
+        #lib-toggle:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+        #lib-panel {
+            position: fixed; top: 0; right: -340px; width: 320px; height: 100vh;
+            background: white; border-left: 1px solid var(--border);
+            box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; z-index: 200;
+            transition: right 0.25s ease; font-family: 'Inter', sans-serif;
+        }
+        #lib-panel.open { right: 0; }
+        .lib-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 16px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+        }
+        .lib-header h3 { font-size: 14px; font-weight: 600; color: var(--text); }
+        .lib-header-actions { display: flex; gap: 6px; align-items: center; }
+        .lib-add-btn {
+            padding: 5px 12px; border-radius: 5px; font-size: 12px; font-weight: 600;
+            background: var(--primary); color: white; border: none; cursor: pointer;
+        }
+        .lib-add-btn:hover { background: #2e4330; }
+        .lib-close {
+            background: none; border: none; font-size: 16px; cursor: pointer;
+            color: var(--text-muted); padding: 2px 6px;
+        }
+        .lib-jour-bar {
+            padding: 8px 12px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 8px; flex-shrink: 0; background: #fafafa;
+        }
+        .lib-jour-bar label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+        .lib-jour-select {
+            flex: 1; font-size: 12px; padding: 4px 8px; border: 1px solid var(--border);
+            border-radius: 5px; background: white; font-family: 'Inter', sans-serif; outline: none;
+        }
+        .lib-search { padding: 10px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+        .lib-search input {
+            width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px;
+            font-size: 12.5px; font-family: 'Inter', sans-serif; outline: none; background: #fafafa;
+        }
+        .lib-search input:focus { border-color: var(--primary); background: white; }
+        .lib-body { flex: 1; overflow-y: auto; padding: 8px; }
+        .lib-category {
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+            color: var(--primary); padding: 10px 6px 4px;
+        }
+        .lib-item {
+            border: 1px solid var(--border); border-radius: 7px; margin-bottom: 6px;
+            background: #fafafa; transition: border-color 0.15s;
+        }
+        .lib-item:hover { border-color: var(--primary); background: white; }
+        .lib-item-row { display: flex; align-items: flex-start; gap: 6px; padding: 8px 10px; }
+        .lib-item-main { flex: 1; min-width: 0; cursor: pointer; }
+        .lib-item-name { font-size: 12px; font-weight: 600; color: var(--text); }
+        .lib-item-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+        .lib-item-meta { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+        .lib-item-heure {
+            font-size: 10px; background: #f0f0f0; color: #555;
+            padding: 1px 7px; border-radius: 10px;
+        }
+        .lib-item-tag {
+            font-size: 10px; background: #E8F0E8; color: #2D4A2D;
+            padding: 1px 7px; border-radius: 10px;
+        }
+        .lib-item-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        .lib-item-add {
+            width: 24px; height: 24px; border-radius: 5px; border: 1.5px solid var(--primary);
+            background: var(--primary-light); color: var(--primary);
+            font-size: 16px; font-weight: 700; cursor: pointer; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .lib-item-add:hover { background: var(--primary); color: white; }
+        .lib-item-edit, .lib-item-del {
+            background: none; border: none; cursor: pointer; font-size: 13px;
+            padding: 2px 3px; opacity: 0.5; transition: opacity 0.15s;
+        }
+        .lib-item-edit:hover, .lib-item-del:hover { opacity: 1; }
+        .lib-empty { text-align: center; padding: 30px 16px; font-size: 12.5px; color: var(--text-muted); font-style: italic; }
+
+        /* Modal bibliothèque */
+        #lib-modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.4); z-index: 300;
+            align-items: center; justify-content: center;
+        }
+        #lib-modal-overlay.open { display: flex; }
+        #lib-modal {
+            background: white; border-radius: 12px; padding: 24px;
+            width: 360px; max-width: 90vw;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        }
+        .lib-modal-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+        .lib-form-row { margin-bottom: 12px; }
+        .lib-form-label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 5px; }
+        .lib-form-input, .lib-form-select, .lib-form-textarea {
+            width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+            font-family: 'Inter', sans-serif; font-size: 13px; outline: none; box-sizing: border-box;
+        }
+        .lib-form-input:focus, .lib-form-select:focus, .lib-form-textarea:focus { border-color: var(--primary); }
+        .lib-form-textarea { resize: vertical; min-height: 60px; }
+        .lib-form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .lib-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .lib-btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: white; font-family: 'Inter', sans-serif; }
+        .lib-btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+        .lib-btn-primary:hover { background: #2e4330; }
+        .lib-btn-danger { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+
         /* ── PDF export ── */
         .is-exporting-pdf .preview-doc {
             box-shadow: none;
@@ -441,6 +553,77 @@
         <button class="btn-toolbar primary" onclick="exportPDF()">
             <i class="fa-solid fa-file-pdf"></i> Exporter PDF
         </button>
+        <button id="lib-toggle" onclick="toggleLibrary()">
+            <i class="fa-solid fa-book-open"></i> Bibliothèque
+        </button>
+    </div>
+</div>
+
+<!-- ── Bibliothèque panel ── -->
+<div id="lib-panel">
+    <div class="lib-header">
+        <h3>Bibliothèque d'étapes</h3>
+        <div class="lib-header-actions">
+            <button class="lib-add-btn" onclick="openLibModal(null)">+ Ajouter</button>
+            <button class="lib-close" onclick="toggleLibrary()">✕</button>
+        </div>
+    </div>
+    <div class="lib-jour-bar">
+        <label>Ajouter dans :</label>
+        <select class="lib-jour-select" id="lib-jour-target"></select>
+    </div>
+    <div class="lib-search">
+        <input type="text" placeholder="Rechercher…" oninput="renderLib(this.value)">
+    </div>
+    <div class="lib-body" id="lib-body">
+        <div class="lib-empty">Chargement…</div>
+    </div>
+</div>
+
+<!-- ── Modal bibliothèque ── -->
+<div id="lib-modal-overlay" onclick="if(event.target===this)closeLibModal()">
+    <div id="lib-modal">
+        <div class="lib-modal-title" id="lib-modal-title">Nouvelle étape</div>
+        <input type="hidden" id="lib-f-id">
+        <div class="lib-form-row">
+            <label class="lib-form-label">Titre *</label>
+            <input class="lib-form-input" id="lib-f-nom" type="text" placeholder="Ex : Accueil café & visite du lieu">
+        </div>
+        <div class="lib-form-row">
+            <label class="lib-form-label">Description</label>
+            <textarea class="lib-form-textarea" id="lib-f-desc" placeholder="Détails optionnels…"></textarea>
+        </div>
+        <div class="lib-form-row-2">
+            <div class="lib-form-row" style="margin-bottom:0">
+                <label class="lib-form-label">Heure</label>
+                <input class="lib-form-input" id="lib-f-heure" type="text" placeholder="15h00">
+            </div>
+            <div class="lib-form-row" style="margin-bottom:0">
+                <label class="lib-form-label">Tag</label>
+                <select class="lib-form-select" id="lib-f-tag">
+                    <option value="">Aucun</option>
+                    <option value="essentiel">✦ Essentiel</option>
+                    <option value="immersion_complete">✦ Immersion complète</option>
+                </select>
+            </div>
+        </div>
+        <div class="lib-form-row" style="margin-top:12px">
+            <label class="lib-form-label">Catégorie</label>
+            <select class="lib-form-select" id="lib-f-cat">
+                <option value="">— Choisir —</option>
+                <option>Accueil & Arrivée</option>
+                <option>Repas & Restauration</option>
+                <option>Activités & Cohésion</option>
+                <option>Travail & Ateliers</option>
+                <option>Soirées & Animations</option>
+                <option>Clôture & Départ</option>
+            </select>
+        </div>
+        <div class="lib-modal-actions">
+            <button class="lib-btn lib-btn-danger" id="lib-del-btn" style="display:none;margin-right:auto" onclick="confirmDeleteLibItem()">Supprimer</button>
+            <button class="lib-btn" onclick="closeLibModal()">Annuler</button>
+            <button class="lib-btn lib-btn-primary" onclick="saveLibItem()">Enregistrer</button>
+        </div>
     </div>
 </div>
 
@@ -982,6 +1165,186 @@ window.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.inp-desc').forEach(autoResizeTextarea);
     }, 300);
 });
+
+// =====================================================================
+// BIBLIOTHÈQUE D'ÉTAPES
+// =====================================================================
+let libData = [];
+let libLoaded = false;
+
+function toggleLibrary() {
+    const panel = document.getElementById('lib-panel');
+    const isOpen = panel.classList.toggle('open');
+    if (isOpen && !libLoaded) loadLib();
+    if (isOpen) refreshLibJourSelect();
+}
+
+function refreshLibJourSelect() {
+    const sel = document.getElementById('lib-jour-target');
+    if (!sel) return;
+    sel.innerHTML = state.jours.length === 0
+        ? '<option value="">— Aucun jour —</option>'
+        : state.jours.map((j, i) => `<option value="${j.id}">Jour ${i + 1}${j.titre ? ' — ' + j.titre : ''}</option>`).join('');
+    // Sélectionner le dernier jour par défaut
+    if (state.jours.length) sel.value = state.jours[state.jours.length - 1].id;
+}
+
+async function loadLib() {
+    try {
+        const data = await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/library?type=deroule`);
+        libData = (data.records || []).map(r => ({
+            id: r.id,
+            nom: r.fields['Nom'] || '',
+            description: r.fields['Description'] || '',
+            categorie: r.fields['Catégorie'] || '',
+            heure: r.fields['Heure'] || '',
+            tag: r.fields['Tag'] || null,
+        }));
+        libLoaded = true;
+        renderLib();
+    } catch(e) {
+        document.getElementById('lib-body').innerHTML =
+            `<div class="lib-empty">Erreur : ${e.message}</div>`;
+    }
+}
+
+function renderLib(search = '') {
+    const body = document.getElementById('lib-body');
+    if (!body) return;
+    const q = (search || '').toLowerCase().trim();
+    const items = q
+        ? libData.filter(i => (i.nom + i.description + i.categorie).toLowerCase().includes(q))
+        : libData;
+
+    if (items.length === 0) {
+        body.innerHTML = `<div class="lib-empty">${libLoaded ? 'Aucune étape. Cliquez "+ Ajouter" pour commencer.' : 'Chargement…'}</div>`;
+        return;
+    }
+
+    const CAT_ORDER = ['Accueil & Arrivée','Repas & Restauration','Activités & Cohésion','Travail & Ateliers','Soirées & Animations','Clôture & Départ'];
+    const groups = {};
+    items.forEach(i => {
+        const cat = i.categorie || 'Autres';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(i);
+    });
+    const cats = [...CAT_ORDER.filter(c => groups[c]), ...Object.keys(groups).filter(c => !CAT_ORDER.includes(c))];
+
+    body.innerHTML = cats.map(cat => `
+        <div class="lib-category">${cat}</div>
+        ${groups[cat].map(item => {
+            const iJ = JSON.stringify(item).replace(/"/g, '&quot;');
+            const tagLabel = item.tag === 'essentiel' ? '✦ Essentiel' : item.tag === 'immersion_complete' ? '✦ Immersion' : '';
+            return `<div class="lib-item">
+                <div class="lib-item-row">
+                    <div class="lib-item-main" onclick="addLibItem(${iJ})">
+                        <div class="lib-item-name">${item.nom || '(sans titre)'}</div>
+                        ${item.description ? `<div class="lib-item-desc">${item.description}</div>` : ''}
+                        <div class="lib-item-meta">
+                            ${item.heure ? `<span class="lib-item-heure">${item.heure}</span>` : ''}
+                            ${tagLabel ? `<span class="lib-item-tag">${tagLabel}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="lib-item-actions">
+                        <button class="lib-item-add" title="Ajouter" onclick="addLibItem(${iJ})">+</button>
+                        <button class="lib-item-edit" title="Modifier" onclick='openLibModal(${iJ})'>✏️</button>
+                        <button class="lib-item-del" title="Supprimer" onclick="confirmDeleteLibItem('${item.id}')">🗑</button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('')}
+    `).join('');
+}
+
+function addLibItem(item) {
+    const sel = document.getElementById('lib-jour-target');
+    const jourId = sel?.value;
+    if (!jourId) { alert('Ajoutez d\'abord un jour dans l\'éditeur.'); return; }
+    const jour = state.jours.find(j => j.id === jourId);
+    if (!jour) return;
+    jour.etapes.push({
+        id: uid(),
+        heure: item.heure || '',
+        titre: item.nom || '',
+        description: item.description || '',
+        tag: item.tag || null,
+    });
+    const list = document.getElementById(`etapes-${jourId}`);
+    if (list) {
+        list.innerHTML = '';
+        jour.etapes.forEach((e, i) => list.appendChild(buildEtapeRow(e, jourId, i)));
+    }
+    renderPreview();
+    scheduleSave();
+}
+
+function openLibModal(item) {
+    document.getElementById('lib-modal-title').textContent = item ? 'Modifier l\'étape' : 'Nouvelle étape';
+    document.getElementById('lib-f-id').value = item?.id || '';
+    document.getElementById('lib-f-nom').value = item?.nom || '';
+    document.getElementById('lib-f-desc').value = item?.description || '';
+    document.getElementById('lib-f-heure').value = item?.heure || '';
+    document.getElementById('lib-f-tag').value = item?.tag || '';
+    document.getElementById('lib-f-cat').value = item?.categorie || '';
+    document.getElementById('lib-del-btn').style.display = item ? 'inline-flex' : 'none';
+    document.getElementById('lib-modal-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('lib-f-nom').focus(), 50);
+}
+
+function closeLibModal() {
+    document.getElementById('lib-modal-overlay').classList.remove('open');
+}
+
+async function saveLibItem() {
+    const nom = document.getElementById('lib-f-nom').value.trim();
+    if (!nom) { alert('Le titre est obligatoire.'); return; }
+    const id = document.getElementById('lib-f-id').value;
+    const fields = {
+        Nom: nom,
+        Description: document.getElementById('lib-f-desc').value.trim(),
+        Heure: document.getElementById('lib-f-heure').value.trim(),
+        Tag: document.getElementById('lib-f-tag').value || null,
+        Catégorie: document.getElementById('lib-f-cat').value,
+        Type: 'deroule',
+    };
+    const btn = document.querySelector('#lib-modal .lib-btn-primary');
+    btn.textContent = '…'; btn.disabled = true;
+    try {
+        if (id) {
+            const updated = await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/library`, {
+                method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, fields })
+            });
+            const idx = libData.findIndex(i => i.id === id);
+            if (idx !== -1) libData[idx] = { id, nom: fields.Nom, description: fields.Description, heure: fields.Heure, tag: fields.Tag, categorie: fields.Catégorie };
+        } else {
+            const created = await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/library`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fields })
+            });
+            libData.push({ id: created.id, nom: fields.Nom, description: fields.Description, heure: fields.Heure, tag: fields.Tag, categorie: fields.Catégorie });
+        }
+        closeLibModal();
+        renderLib();
+    } catch(e) {
+        alert('Erreur : ' + e.message);
+    } finally {
+        btn.textContent = 'Enregistrer'; btn.disabled = false;
+    }
+}
+
+async function confirmDeleteLibItem(id) {
+    if (!confirm('Supprimer cette étape de la bibliothèque ?')) return;
+    try {
+        await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/library`, {
+            method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        libData = libData.filter(i => i.id !== id);
+        closeLibModal();
+        renderLib();
+    } catch(e) { alert('Erreur : ' + e.message); }
+}
 </script>
 </body>
 </html>

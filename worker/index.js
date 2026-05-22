@@ -226,6 +226,9 @@ function libraryRowToRecord(row) {
       'Prix HT':     row.prix_ht,
       'TVA':         row.tva,
       'Actif':       row.actif,
+      'Type':        row.type || 'devis',
+      'Heure':       row.heure,
+      'Tag':         row.tag,
     },
   };
 }
@@ -412,7 +415,9 @@ export default {
 
       // ── LIBRARY ────────────────────────────────────────────
       if (url.pathname === "/api/library" && method === "GET") {
-        const rows = await sbFetch(env, `/bibliotheque_prestations?order=id.asc`);
+        const typeFilter = url.searchParams.get("type");
+        const filter = typeFilter ? `type=eq.${typeFilter}&` : '';
+        const rows = await sbFetch(env, `/bibliotheque_prestations?${filter}order=id.asc`);
         return json({ records: rows.map(libraryRowToRecord) }, 200, env, requestOrigin);
       }
 
@@ -427,6 +432,9 @@ export default {
           prix_ht:     f['Prix HT']  || f.prix_ht     || 0,
           tva:         f.TVA         || f.tva         || "10%",
           actif:       f.Actif !== undefined ? f.Actif : true,
+          type:        f.Type        || f.type        || "devis",
+          heure:       f.Heure       || f.heure       || null,
+          tag:         f.Tag         || f.tag         || null,
         };
         const result = await sbFetch(env, `/bibliotheque_prestations`, { method: "POST", body: JSON.stringify(row) });
         const saved = Array.isArray(result) ? result[0] : result;
@@ -446,6 +454,8 @@ export default {
         if (f['Prix HT']  !== undefined) row.prix_ht     = f['Prix HT'];
         if (f.TVA         !== undefined) row.tva         = f.TVA;
         if (f.Actif       !== undefined) row.actif       = f.Actif;
+        if (f.Heure       !== undefined) row.heure       = f.Heure;
+        if (f.Tag         !== undefined) row.tag         = f.Tag;
         const result = await sbFetch(env, `/bibliotheque_prestations?id=eq.${numId}`, {
           method: "PATCH", body: JSON.stringify(row),
         });
