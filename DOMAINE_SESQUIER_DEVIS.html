@@ -2098,7 +2098,7 @@
             if (libraryLoaded) return;
             try {
                 const data = await SesquierUtils.fetchJson(
-                    `${SesquierUtils.API_BASE}/api/library`
+                    `${SesquierUtils.API_BASE}/api/library?type=devis`
                 );
                 libraryData = (data.records || []).map(r => ({
                     id: r.id,
@@ -2382,7 +2382,7 @@
             if (!nom) { alert('Le nom est obligatoire.'); return; }
             if (!cat) { alert('Sélectionnez une catégorie.'); return; }
 
-            const fields = { Nom: nom, Description: desc, 'Catégorie': cat, 'Prix HT': prix, TVA: tva };
+            const fields = { Nom: nom, Description: desc, 'Catégorie': cat, 'Prix HT': prix, TVA: tva, Type: 'devis' };
 
             const btn = document.querySelector('#lib-modal-overlay button[onclick="saveLibraryItem()"]');
             if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
