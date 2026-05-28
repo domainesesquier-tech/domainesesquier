@@ -285,6 +285,45 @@
         }
         .lib-add-btn:hover { background: #4a4e40; }
 
+        /* --- Chips de filtre catégorie --- */
+        .lib-chips {
+            padding: 8px 12px 10px;
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #f0f0f0;
+            flex-shrink: 0;
+        }
+        .lib-chip {
+            padding: 3px 11px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            border: 1.5px solid #e5e7eb;
+            background: #fff;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+            letter-spacing: .03em;
+        }
+        .lib-chip:hover { border-color: #6B7060; color: #6B7060; }
+        .lib-chip.active { background: #6B7060; color: #fff; border-color: #6B7060; }
+
+        /* --- Items compacts --- */
+        .lib-item-desc {
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.2s ease, opacity 0.2s ease, margin-top 0.2s ease;
+            margin-top: 0;
+        }
+        .lib-item:hover .lib-item-desc {
+            max-height: 60px;
+            opacity: 1;
+            margin-top: 2px;
+        }
+
         /* --- Modal bibliothèque --- */
         #lib-modal-overlay {
             display: none;
@@ -372,6 +411,7 @@
         <div class="lib-search">
             <input type="text" id="lib-search-input" placeholder="Rechercher une prestation..." oninput="renderLibrary(this.value)">
         </div>
+        <div class="lib-chips" id="lib-chips"></div>
         <div class="lib-body" id="lib-body">
             <div class="lib-empty">Chargement...</div>
         </div>
@@ -2082,6 +2122,7 @@
         // =====================================================================
         let libraryData = [];
         let libraryLoaded = false;
+        let activeLibCategory = 'Tous';
 
         const CATEGORY_MAP = {
             'Hébergement':          { tbody: 'pricing-body',     color: '#3b82f6' },
@@ -2109,6 +2150,7 @@
                     tva: r.fields['TVA'] || '10%',
                 }));
                 libraryLoaded = true;
+                renderChips();
                 renderLibrary();
             } catch(e) {
                 const libBody = document.getElementById('lib-body');
@@ -2120,26 +2162,61 @@
             }
         }
 
+        function renderChips() {
+            const container = document.getElementById('lib-chips');
+            if (!container) return;
+            const catOrder = [
+                'Hébergement', 'Restauration', 'Options & Salles',
+                'Activités & Services Annexes', 'Team Building', 'Sport & Plein Air',
+                'Culture & Découverte', 'Bien-être & Spa'
+            ];
+            const presentCats = catOrder.filter(c => libraryData.some(i => i.categorie === c));
+            const others = [...new Set(libraryData.map(i => i.categorie).filter(c => c && !catOrder.includes(c)))];
+            const allCats = [...presentCats, ...others];
+
+            if (allCats.length <= 1) { container.style.display = 'none'; return; }
+            container.style.display = 'flex';
+
+            const chips = ['Tous', ...allCats];
+            container.innerHTML = chips.map(cat => {
+                const isActive = activeLibCategory === cat;
+                return `<button class="lib-chip${isActive ? ' active' : ''}" onclick="setLibCategory('${cat.replace(/'/g, "\\'")}')">${cat}</button>`;
+            }).join('');
+        }
+
+        function setLibCategory(cat) {
+            activeLibCategory = cat;
+            renderChips();
+            renderLibrary(document.getElementById('lib-search-input')?.value || '');
+        }
+
         function renderLibrary(search = '') {
             const body = document.getElementById('lib-body');
             if (!body) return;
             const q = search.toLowerCase().trim();
-            const items = q
-                ? libraryData.filter(i => (i.nom + i.description + i.categorie).toLowerCase().includes(q))
-                : libraryData;
+
+            let items = libraryData;
+            if (activeLibCategory !== 'Tous') {
+                items = items.filter(i => i.categorie === activeLibCategory);
+            }
+            if (q) {
+                items = items.filter(i => (i.nom + i.description + i.categorie).toLowerCase().includes(q));
+            }
 
             if (items.length === 0) {
                 body.innerHTML = `<div class="lib-empty">${libraryLoaded ? 'Aucune prestation trouvée.' : 'Chargement...'}</div>`;
                 return;
             }
 
-            // Grouper par catégorie
-            const groups = {};
             const catOrder = [
                 'Hébergement', 'Restauration', 'Options & Salles',
                 'Activités & Services Annexes', 'Team Building', 'Sport & Plein Air',
                 'Culture & Découverte', 'Bien-être & Spa'
             ];
+            const showHeaders = activeLibCategory === 'Tous';
+
+            // Grouper par catégorie
+            const groups = {};
             items.forEach(i => {
                 const cat = i.categorie || 'Autres';
                 if (!groups[cat]) groups[cat] = [];
@@ -2150,7 +2227,9 @@
             const orderedCats = [...catOrder.filter(c => groups[c]), ...Object.keys(groups).filter(c => !catOrder.includes(c))];
             orderedCats.forEach(cat => {
                 const color = CATEGORY_MAP[cat]?.color || '#6b7280';
-                html += `<div class="lib-category" style="color:${color};">${cat}</div>`;
+                if (showHeaders) {
+                    html += `<div class="lib-category" style="color:${color};">${cat}</div>`;
+                }
                 groups[cat].forEach(item => {
                     const itemJson = JSON.stringify(item).replace(/"/g, '&quot;');
                     const displayName = item.nom || item.description || '(sans nom)';
