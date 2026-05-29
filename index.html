@@ -3413,6 +3413,22 @@
                 let inputVal = (explicitId != null && explicitId.trim() !== '') ? explicitId.trim() : document.getElementById('dev-id-input').value.trim();
                 let baseSrc = iframeSrcMap[frameId];
 
+                // Vérifier l'ID déjà chargé dans l'iframe avant de construire la nouvelle URL
+                const currentFullSrc = targetFrame.src || '';
+                let currentId = null;
+                try {
+                    currentId = new URL(currentFullSrc.includes('://') ? currentFullSrc : window.location.origin + '/' + currentFullSrc).searchParams.get('id');
+                } catch (_) {}
+
+                // Pour iframe-pro (configurateur) : si le même recordId est déjà chargé,
+                // on affiche juste l'iframe sans la recharger — évite de perdre l'état du formulaire.
+                if (frameId === 'iframe-pro' && inputVal && currentId === inputVal && !currentFullSrc.includes('about:blank')) {
+                    console.log(`[NAV] iframe-pro déjà sur ${inputVal} — conservation de l'état`);
+                    activeIframeId = frameId;
+                    showBanner();
+                    return;
+                }
+
                 if (inputVal) {
                     const separator = baseSrc.includes('?') ? '&' : '?';
                     baseSrc += `${separator}id=${inputVal}&t=${Date.now()}`;
@@ -3421,10 +3437,7 @@
                     baseSrc += `${separator}live=true&t=${Date.now()}`;
                 }
 
-                const currentFullSrc = targetFrame.src || '';
-                const currentId = new URL(currentFullSrc.includes('://') ? currentFullSrc : window.location.origin + '/' + currentFullSrc).searchParams.get('id');
-                
-                // On ne recharge l'iframe QUE si l'ID a changé ou si elle est vide
+                // On ne recharge les autres iframes QUE si l'ID a changé ou si elles sont vides
                 if (currentId !== inputVal || currentFullSrc.includes('about:blank') || !targetFrame.src) {
                     console.log(`[NAV] Rechargement de ${frameId} pour l'ID ${inputVal}`);
                     targetFrame.src = baseSrc;

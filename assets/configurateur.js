@@ -101,6 +101,11 @@ function checkDraftBanner() {
 
 async function loadFromAirtable(recordId) {
     console.log(`[EDIT] Chargement du devis ${recordId} depuis Airtable...`);
+    // Positionné AVANT le try : même si le fetch échoue en cours de route,
+    // on sait qu'on est en mode édition d'un ID existant.
+    // Le catch remet à false uniquement si le record est vraiment introuvable.
+    isEditingMode = true;
+    bookingDraft.id = recordId;
     try {
         // On utilise un cache-buster pour être sûr d'avoir la donnée fraîche
         const response = await fetch(`${API_RESERVATIONS_URL}?id=${recordId}&t=${Date.now()}`);
@@ -111,8 +116,6 @@ async function loadFromAirtable(recordId) {
         if (!record || !record.fields) throw new Error("Devis introuvable");
 
         const fields = record.fields;
-        isEditingMode = true;
-        bookingDraft.id = recordId;
 
         // --- 1. Basic Fields Mapping ---
         if (fields["Date arrivée"]) {
@@ -267,8 +270,15 @@ async function loadFromAirtable(recordId) {
         console.log(`[EDIT] Devis ${recordId} chargé avec succès.`);
     } catch (err) {
         console.error("Erreur loadFromAirtable:", err);
-        alert("Erreur lors du chargement du devis depuis Airtable. Nous chargeons votre dernier brouillon local.");
-        restoreDraft();
+        // Si le record est vraiment introuvable (404, parsing échoué),
+        // on repasse en mode création pour éviter un PATCH sur un ID mort.
+        if (err.message === "Devis introuvable") {
+            isEditingMode = false;
+            bookingDraft.id = null;
+        }
+        // Pas de restoreDraft() : on ne veut pas écraser l'état en cours
+        // avec un brouillon local potentiellement obsolète.
+        console.warn(`[EDIT] Chargement échoué pour ${recordId} :`, err.message);
     }
 }
 
