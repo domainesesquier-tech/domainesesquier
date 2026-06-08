@@ -1028,14 +1028,6 @@
 
             // --- A. Accommodation ---
             addCategoryRow("Hébergement");
-            const nbPersStay = fields["Nombre de personnes"] || 1;
-            const totalHeberg = fields["Montant Hébergement HT"] || 0;
-
-            // Ligne unique hébergement : Logique "Par Personne" demandée par le client
-            const hebergDesc = `Hébergement en gîte tout confort<br><small style='color:#666; font-weight:400;'>Draps, serviettes et ménage de fin de séjour inclus</small>`;
-            const unitPrice = nbPersStay > 0 ? (totalHeberg / nbPersStay) : 0;
-
-            addPricingRow(hebergDesc, nbPersStay, unitPrice, "10%");
             addSubtotalRow("Hébergement", "subtotal-hebergement");
 
             // --- B. Catering (5 lignes consolidées) ---
