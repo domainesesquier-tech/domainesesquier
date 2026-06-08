@@ -270,6 +270,17 @@
         }
         .lib-item-edit:hover { background: #eff6ff; color: #3b82f6; border-color: #93c5fd; }
         .lib-item-del:hover  { background: #fef2f2; color: #ef4444; border-color: #fca5a5; }
+        .lib-item-move {
+            background: none;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            padding: 2px 5px;
+            line-height: 1;
+            color: #9ca3af;
+        }
+        .lib-item-move:hover { background: #f3f4f6; color: #374151; border-color: #d1d5db; }
 
         /* --- Bouton + Ajouter dans le header --- */
         .lib-add-btn {
@@ -2122,6 +2133,23 @@
             'Bien-être & Spa':      { tbody: 'activities-body',  color: '#ec4899' },
         };
 
+        function getLibOrder() {
+            try { return JSON.parse(localStorage.getItem('ds_lib_order') || '{}'); } catch { return {}; }
+        }
+        function saveLibOrder(o) { localStorage.setItem('ds_lib_order', JSON.stringify(o)); }
+
+        function moveLibItem(id, cat, dir) {
+            const order = getLibOrder();
+            let ids = order[cat] || libraryData.filter(i => i.categorie === cat).map(i => i.id);
+            const idx = ids.indexOf(id);
+            const ni = idx + dir;
+            if (idx === -1 || ni < 0 || ni >= ids.length) return;
+            [ids[idx], ids[ni]] = [ids[ni], ids[idx]];
+            order[cat] = ids;
+            saveLibOrder(order);
+            renderLibrary(document.getElementById('lib-search-input')?.value || '');
+        }
+
         async function loadLibrary() {
             if (libraryLoaded) return;
             try {
@@ -2217,7 +2245,16 @@
                 if (showHeaders) {
                     html += `<div class="lib-category" style="color:${color};">${cat}</div>`;
                 }
-                groups[cat].forEach(item => {
+                const libOrd = getLibOrder();
+                const sortedItems = [...groups[cat]].sort((a, b) => {
+                    const o = libOrd[cat] || [];
+                    const ai = o.indexOf(a.id), bi = o.indexOf(b.id);
+                    if (ai === -1 && bi === -1) return 0;
+                    if (ai === -1) return 1;
+                    if (bi === -1) return -1;
+                    return ai - bi;
+                });
+                sortedItems.forEach(item => {
                     const itemJson = JSON.stringify(item).replace(/"/g, '&quot;');
                     const displayName = item.nom || item.description || '(sans nom)';
                     const displaySubLabel = item.nom && item.description ? item.description : '';
@@ -2238,6 +2275,8 @@
                                 <div style="display:flex;align-items:center;gap:4px;">
                                     <button class="lib-item-add" title="Ajouter au devis" onclick="addLibraryItem(${itemJson})">+</button>
                                     <div class="lib-item-actions">
+                                        <button class="lib-item-move" title="Monter"    onclick="moveLibItem('${item.id}','${item.categorie.replace(/'/g,"\\'")}', -1)">↑</button>
+                                        <button class="lib-item-move" title="Descendre" onclick="moveLibItem('${item.id}','${item.categorie.replace(/'/g,"\\'")}',  1)">↓</button>
                                         <button class="lib-item-edit" title="Modifier" onclick="openLibraryModal(${itemJson})">✏️</button>
                                         <button class="lib-item-del"  title="Supprimer" onclick="confirmDeleteLibraryItem('${item.id}')">🗑</button>
                                     </div>
