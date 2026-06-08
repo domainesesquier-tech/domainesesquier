@@ -2340,7 +2340,6 @@
                 <iframe id="iframe-rooming" src="about:blank" style="display:none;"></iframe>
                 <iframe id="iframe-cuisine" src="about:blank" style="display:none;"></iframe>
                 <iframe id="iframe-menu-client" src="about:blank" style="display:none;"></iframe>
-                <iframe id="iframe-commercial" src="about:blank" style="display:none;"></iframe>
                 <iframe id="iframe-deroule" src="about:blank" style="display:none;"></iframe>
             </div>
         </div>
@@ -2771,7 +2770,6 @@
             // Vignettes grid (Premium Version with Config)
             const docs = [
                 { type: 'client', label: 'Infos client', sub: 'Contact & Entreprise', icon: 'fa-address-card', done: !!f["Email"] },
-                { type: 'commercial', label: 'Suivi commercial', sub: 'Statut & relances', icon: 'fa-bullseye', done: !!f["Suivi_Log"] },
 
                 { type: 'devis', label: 'Devis', sub: 'Visualiser ou éditer', icon: 'fa-file-lines', done: (f["Total TTC"] > 0) },
                 { type: 'facture', label: 'Facture Acompte', sub: 'Générer (30%)', icon: 'fa-file-invoice-dollar', done: !!f["Acompte Payé"] },
@@ -3346,7 +3344,6 @@
                 'rooming': 'nav-rooming',
                 'cuisine': 'nav-restauration',
                 'menu-client': 'nav-menu',
-                'commercial': 'nav-commercial',
             'deroule': 'nav-deroule'
             }[type] || 'nav-devis';
 
@@ -3356,7 +3353,6 @@
             const tabsContainer = document.getElementById('iframe-nav-tabs');
             const docTypes = [
                 { type: 'client', label: 'Infos', icon: 'fa-address-card' },
-                { type: 'commercial', label: 'Suivi', icon: 'fa-bullseye' },
                 { type: 'devis', label: 'Devis', icon: 'fa-file-lines' },
                 { type: 'facture', label: 'Acompte', icon: 'fa-file-invoice-dollar' },
                 { type: 'facture-finale', label: 'Facture', icon: 'fa-receipt' },
@@ -3381,7 +3377,6 @@
         // =====================================================================
         const iframeSrcMap = {
             'iframe-client': 'CLIENT.html',
-            'iframe-commercial': 'COMMERCIAL.html',
             'iframe-devis': 'DOMAINE_SESQUIER_DEVIS.html',
             'iframe-facture': 'DOMAINE_SESQUIER_FACTURE_ACOMPTE.html',
             'iframe-facture-finale': 'DOMAINE_SESQUIER_FACTURE.html',
