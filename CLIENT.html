@@ -151,6 +151,10 @@
             z-index: 1000;
         }
 
+        .log-container { border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+            background: #f8fafc; max-height: 150px; overflow-y: auto; white-space: pre-wrap;
+            font-size: 12px; font-family: monospace; line-height: 1.5; color: var(--text-muted); }
+
         /* RESPONSIVE */
         @media (max-width: 640px) {
             .form-grid { grid-template-columns: 1fr; }
@@ -175,6 +179,8 @@
                 <span>Enregistrer</span>
             </button>
         </header>
+
+        <div id="relance-alert" style="display:none; background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; padding:8px 14px; border-radius:8px; font-weight:600; text-align:center; margin-bottom:16px; font-size:13px;">⚠ À relancer — date dépassée</div>
 
         <div class="sections-grid">
             <!-- SECTION 1: INFOS CLIENT -->
@@ -260,6 +266,18 @@
                             </select>
                             <input type="text" id="Custom_Source" class="input-field" placeholder="Précisez la source..." style="margin-top: 8px; display: none;">
                         </div>
+                        <div class="form-group">
+                            <label>Date envoi devis</label>
+                            <input type="date" id="Suivi_Date_devis" class="input-field">
+                        </div>
+                        <div class="form-group">
+                            <label>Date de relance</label>
+                            <input type="date" id="Suivi_Date_relance" class="input-field" onchange="checkRelance()">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Prochaine action</label>
+                            <input type="text" id="Suivi_Action" class="input-field" placeholder="Ex: Appeler pour faire le point...">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -274,6 +292,28 @@
                     <div class="form-group">
                         <textarea id="Message" class="input-field" placeholder="Notes internes, régimes alimentaires, demandes spécifiques..." data-field="Message"></textarea>
                     </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: JOURNAL DE SUIVI -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="fas fa-history"></i>
+                    <h2>Journal de suivi</h2>
+                </div>
+                <div class="section-body">
+                    <div class="log-container" id="f-log-display"></div>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <input type="text" id="new-log-input" class="input-field"
+                            placeholder="Ajouter une note de suivi..."
+                            onkeypress="if(event.key==='Enter') addLog()" style="flex:1;">
+                        <button onclick="addLog()" style="background:var(--primary);color:white;
+                            border:none;padding:0 18px;border-radius:10px;font-size:13px;
+                            font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;">
+                            Ajouter
+                        </button>
+                    </div>
+                    <textarea id="f-log" style="display:none;"></textarea>
                 </div>
             </div>
         </div>
@@ -366,7 +406,16 @@
 
                 // Message propre (sans les lignes "Source:")
                 document.getElementById('Message').value = msg.replace(/Tél: .*\n?/, '').replace(/Source: .*\n?/, '').trim();
-                
+
+                // Champs suivi commercial
+                document.getElementById('Suivi_Date_devis').value    = f["Suivi Date devis"]       || "";
+                document.getElementById('Suivi_Date_relance').value   = f["Suivi Date relance"]      || "";
+                document.getElementById('Suivi_Action').value         = f["Suivi Prochaine action"]  || "";
+                const logVal = f["Suivi Log"] || "";
+                document.getElementById('f-log').value             = logVal;
+                document.getElementById('f-log-display').innerText = logVal;
+                checkRelance();
+
             } catch (err) {
                 showToast("Erreur : " + err.message, true);
             } finally {
@@ -417,6 +466,10 @@
                         (sourceVal ? `Source: ${sourceVal}\n` : '') +
                         (document.getElementById('Message')?.value || '')
                     ).trim() || null,
+                    "Suivi Date devis":       document.getElementById('Suivi_Date_devis')?.value   || null,
+                    "Suivi Date relance":     document.getElementById('Suivi_Date_relance')?.value  || null,
+                    "Suivi Prochaine action": document.getElementById('Suivi_Action')?.value        || null,
+                    "Suivi Log":              document.getElementById('f-log')?.value               || null,
                 };
 
                 if (isCreating) {
@@ -456,6 +509,33 @@
                     if (btn) { btn.innerHTML = '<i class="fas fa-save"></i> <span>Enregistrer</span>'; btn.className = 'btn-save'; }
                 }, 3000);
             }
+        }
+
+        function checkRelance() {
+            const val = document.getElementById('Suivi_Date_relance')?.value;
+            const banner = document.getElementById('relance-alert');
+            if (!val) { banner.style.display = 'none'; return; }
+            const dateRelance = new Date(val);
+            const today = new Date(); today.setHours(0,0,0,0);
+            banner.style.display = dateRelance < today ? 'block' : 'none';
+        }
+
+        function addLog() {
+            const input = document.getElementById('new-log-input');
+            const text = input.value.trim();
+            if (!text) return;
+            const now = new Date();
+            const dd  = String(now.getDate()).padStart(2,'0');
+            const mm  = String(now.getMonth()+1).padStart(2,'0');
+            const hh  = String(now.getHours()).padStart(2,'0');
+            const min = String(now.getMinutes()).padStart(2,'0');
+            const entry = `[${dd}/${mm}/${now.getFullYear()} ${hh}:${min}] ${text}`;
+            const logArea = document.getElementById('f-log');
+            const display = document.getElementById('f-log-display');
+            const updated = logArea.value ? (entry + "\n" + logArea.value) : entry;
+            logArea.value   = updated;
+            display.innerText = updated;
+            input.value = "";
         }
 
         function toggleCustomSource(val) {
