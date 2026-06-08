@@ -1772,10 +1772,7 @@
             color: #2e7d32;
         }
 
-        .doc-card[data-type="pro"] .doc-icon-box {
-            background: #f3e5f5;
-            color: #7b1fa2;
-        }
+
 
         .doc-card[data-type="facture"] .doc-icon-box {
             background: #fff8e1;
@@ -2337,7 +2334,6 @@
             </div>
             <div class="iframe-container">
                 <iframe id="iframe-client" src="about:blank" style="display:none;"></iframe>
-                <iframe id="iframe-pro" src="about:blank"></iframe>
                 <iframe id="iframe-devis" src="about:blank" style="display:none;"></iframe>
                 <iframe id="iframe-facture" src="about:blank" style="display:none;"></iframe>
                 <iframe id="iframe-facture-finale" src="about:blank" style="display:none;"></iframe>
@@ -2776,7 +2772,7 @@
             const docs = [
                 { type: 'client', label: 'Infos client', sub: 'Contact & Entreprise', icon: 'fa-address-card', done: !!f["Email"] },
                 { type: 'commercial', label: 'Suivi commercial', sub: 'Statut & relances', icon: 'fa-bullseye', done: !!f["Suivi_Log"] },
-                { type: 'pro', label: 'Configuration', sub: 'Dates, groupe & options', icon: 'fa-sliders', done: !!f["Détails JSON"] },
+
                 { type: 'devis', label: 'Devis', sub: 'Visualiser ou éditer', icon: 'fa-file-lines', done: (f["Total TTC"] > 0) },
                 { type: 'facture', label: 'Facture Acompte', sub: 'Générer (30%)', icon: 'fa-file-invoice-dollar', done: !!f["Acompte Payé"] },
                 { type: 'facture-finale', label: 'Facture Finale', sub: 'Solde et clôture', icon: 'fa-receipt', done: false },
@@ -3344,7 +3340,6 @@
             // Map type to its specific nav/tab
             const navId = {
                 'client': 'nav-client',
-                'pro': 'nav-pro',
                 'devis': 'nav-devis',
                 'facture': 'nav-facture',
                 'facture-finale': 'nav-facture-finale',
@@ -3362,7 +3357,6 @@
             const docTypes = [
                 { type: 'client', label: 'Infos', icon: 'fa-address-card' },
                 { type: 'commercial', label: 'Suivi', icon: 'fa-bullseye' },
-                { type: 'pro', label: 'Config', icon: 'fa-sliders' },
                 { type: 'devis', label: 'Devis', icon: 'fa-file-lines' },
                 { type: 'facture', label: 'Acompte', icon: 'fa-file-invoice-dollar' },
                 { type: 'facture-finale', label: 'Facture', icon: 'fa-receipt' },
@@ -3387,7 +3381,6 @@
         // =====================================================================
         const iframeSrcMap = {
             'iframe-client': 'CLIENT.html',
-            'iframe-pro': 'CONFIGURATEUR.html?mode=pro',
             'iframe-commercial': 'COMMERCIAL.html',
             'iframe-devis': 'DOMAINE_SESQUIER_DEVIS.html',
             'iframe-facture': 'DOMAINE_SESQUIER_FACTURE_ACOMPTE.html',
@@ -3419,15 +3412,6 @@
                 try {
                     currentId = new URL(currentFullSrc.includes('://') ? currentFullSrc : window.location.origin + '/' + currentFullSrc).searchParams.get('id');
                 } catch (_) {}
-
-                // Pour iframe-pro (configurateur) : si le même recordId est déjà chargé,
-                // on affiche juste l'iframe sans la recharger — évite de perdre l'état du formulaire.
-                if (frameId === 'iframe-pro' && inputVal && currentId === inputVal && !currentFullSrc.includes('about:blank')) {
-                    console.log(`[NAV] iframe-pro déjà sur ${inputVal} — conservation de l'état`);
-                    activeIframeId = frameId;
-                    showBanner();
-                    return;
-                }
 
                 if (inputVal) {
                     const separator = baseSrc.includes('?') ? '&' : '?';
