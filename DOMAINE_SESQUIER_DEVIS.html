@@ -1069,12 +1069,7 @@
             // Remise = écart entre somme individuelle et plafond pension (par pers/jour complet)
             const pensionDiscountUnit = (pPDJ + pCollation + pDEJ + pCollation + pDIN) - pensionCap;
 
-            // 5 lignes standard toujours présentes pour permettre la saisie manuelle si besoin
-            addPricingRow("Petits-déjeuners", totalPDJ, pPDJ, "10%", "petitDej");
-            addPricingRow("Collations matin", totalColM, pCollation, "10%", "collationMatin");
-            addPricingRow("Déjeuners", totalDEJ, pDEJ, "10%", "dejeuner");
-            addPricingRow("Collations après-midi", totalColA, pCollation, "10%", "collationAprem");
-            addPricingRow("Dîners", totalDIN, pDIN, "10%", "diner");
+            // Lignes repas non pré-remplies — à ajouter manuellement via la bibliothèque
 
             // La ligne de remise automatique a été supprimée à la demande de l'utilisateur.
             // Utilisez le bouton "+ Ligne" pour ajouter une remise manuelle.
