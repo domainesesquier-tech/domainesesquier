@@ -1022,102 +1022,18 @@
                 if (synthEl) synthEl.innerText = `${typeLabelSyn} de ${nbPers} personnes — ${daysSyn} ${jourTxt} / ${nNights} ${nuitTxt} — ${mealLabel}`;
             } catch (e) { console.error("Synthesis error:", e); }
 
-            // 5. Build Main Pricing Table
-            const tbody = document.getElementById('pricing-body');
-            tbody.innerHTML = '';
-
-            // --- A. Accommodation ---
-            addCategoryRow("Hébergement");
-            const nbPersStay = fields["Nombre de personnes"] || 1;
-            const totalHeberg = fields["Montant Hébergement HT"] || 0;
-
-            // Ligne unique hébergement : Logique "Par Personne" demandée par le client
-            const hebergDesc = `Hébergement en gîte tout confort<br><small style='color:#666; font-weight:400;'>Draps, serviettes et ménage de fin de séjour inclus</small>`;
-            const unitPrice = nbPersStay > 0 ? (totalHeberg / nbPersStay) : 0;
-
-            addPricingRow(hebergDesc, nbPersStay, unitPrice, "10%");
+            // 5. Build Main Pricing Table — vide par défaut, lignes ajoutées manuellement
+            const tbody = document.getElementById(‘pricing-body’);
+            tbody.innerHTML = ‘’;
             addSubtotalRow("Hébergement", "subtotal-hebergement");
 
-            // --- B. Catering (5 lignes consolidées) ---
-            addCategoryRow("Restauration");
-            let isPension = (details.meals?.mode === 'pension');
-
-            // Totaux cumulés sur tous les jours
-            let totalPDJ = 0, totalColM = 0, totalDEJ = 0, totalColA = 0, totalDIN = 0;
-
-            if (details.meals && details.meals.counts && details.meals.counts.length > 0) {
-                details.meals.counts.forEach(c => {
-                    totalPDJ += (c.petitDej || 0);
-                    totalColM += (c.collationMatin || Math.floor((c.collation || 0) / 2));
-                    totalDEJ += (c.dejeuner || 0);
-                    totalColA += (c.collationAprem || Math.ceil((c.collation || 0) / 2));
-                    totalDIN += (c.diner || 0);
-                });
-            } else {
-                // Fallback champs directs Airtable
-                totalPDJ = fields["Repas petit-déj"] || 0;
-                totalDEJ = fields["Repas déjeuner"] || 0;
-                totalDIN = fields["Repas dîner"] || 0;
-            }
-
-            // Prix réels depuis Airtable (avec fallbacks cohérents)
-            const pPDJ = pricingMap['REPAS_SEMINAIRE_PDJ']?.pu ?? 13;
-            const pCollation = pricingMap['REPAS_SEMINAIRE_COLLATION']?.pu ?? 4;
-            const pDEJ = pricingMap['REPAS_SEMINAIRE_DEJEUNER']?.pu ?? 25;
-            const pDIN = pricingMap['REPAS_SEMINAIRE_DINER']?.pu ?? 29;
-            const pensionCap = pricingMap['REPAS_SEMINAIRE_PENSION_70']?.pu ?? 70;
-            // Remise = écart entre somme individuelle et plafond pension (par pers/jour complet)
-            const pensionDiscountUnit = (pPDJ + pCollation + pDEJ + pCollation + pDIN) - pensionCap;
-
-            // 5 lignes standard toujours présentes pour permettre la saisie manuelle si besoin
-            addPricingRow("Petits-déjeuners", totalPDJ, pPDJ, "10%", "petitDej");
-            addPricingRow("Collations matin", totalColM, pCollation, "10%", "collationMatin");
-            addPricingRow("Déjeuners", totalDEJ, pDEJ, "10%", "dejeuner");
-            addPricingRow("Collations après-midi", totalColA, pCollation, "10%", "collationAprem");
-            addPricingRow("Dîners", totalDIN, pDIN, "10%", "diner");
-
-            // La ligne de remise automatique a été supprimée à la demande de l'utilisateur.
-            // Utilisez le bouton "+ Ligne" pour ajouter une remise manuelle.
             addSubtotalRow("Restauration", "subtotal-restauration");
-            addMealGrid(fields);
-            // Initialiser la remise selon l'état initial des cases
-            // recalcPensionDiscount(fields["Nombre de personnes"] || 1);
 
-            // --- C. Options & Salles (Page 2) ---
-            addCategoryRow("Mise à disposition des espaces", "options-body");
-            const salleLabel = `Location Salles & Coordination logistique<br><small style='color:#666; font-weight:400;'>Coordination on-site, Salle équipée, Support technique</small>`;
-            const qS = fields["Nuits"] || 1;
-            let salleAmountHT = fields["Montant Options HT"] || 0;
-
-            // If amount is 0, we only show the section headers/subtotal for manual adding
-            if (salleAmountHT > 0) {
-                addPricingRow(salleLabel, qS, salleAmountHT / qS, "20%", null, "options-body");
-            }
             addSubtotalRow("Options", "subtotal-salles", "options-body");
 
-            // --- D. Activities (Page 2) ---
-            const actBody = document.getElementById('activities-body');
+            const actBody = document.getElementById(‘activities-body’);
             if (actBody) {
-                actBody.innerHTML = '';
-                const activeKeys = Object.keys(activities).filter(k => activities[k] === true);
-                if (activeKeys.length > 0) {
-                    const map = {
-                        'huitres': 'Dégustation d’huîtres & vin blanc',
-                        'bateau': 'Sortie en bateau sur l’Étang',
-                        'velo': 'Location de vélos & Balade',
-                        'rallye': 'Rallye en 2CV',
-                        'yoga': 'Séance de Yoga',
-                        'culturel': 'Visite culturelle dédiée'
-                    };
-                    activeKeys.forEach(k => {
-                        const tr = createPricingRow(map[k] || k, 1, 0, "20%");
-                        actBody.appendChild(tr);
-                    });
-                } else if (activities.requested) {
-                    const label = `Activité prévue : ${activities.type || 'Sur mesure'}<br><small style='color:#666;'>${activities.message || ''}</small>`;
-                    actBody.appendChild(createPricingRow(label, 1, 0, "20%"));
-                }
-                // Pas de placeholder "Aucune activité", on laisse le tableau prêt pour ajout manuel
+                actBody.innerHTML = ‘’;
                 addSubtotalRow("Activités & Services Annexes", "subtotal-activities", "activities-body");
             }
 
