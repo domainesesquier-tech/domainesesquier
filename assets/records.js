@@ -30,6 +30,9 @@ const SesquierRecords = {
         MONTANT_HEBERG: "Montant Hébergement HT",
         MONTANT_REPAS: "Montant Repas HT",
         MONTANT_OPTIONS: "Montant Options HT",
+
+        // Commercial
+        TEMPERATURE: "Température",
     },
 
     // 2. SYSTÈME DE STATUTS CENTRALISÉ
@@ -189,6 +192,8 @@ const SesquierRecords = {
             totalTTC: _totalTTC,
             detailsHT: { hebergement: _sHeberg, repas: _sRepas, options: _sOptions },
 
+            temperature: Math.min(5, Math.max(1, parseInt(f['Température'] ?? f['temperature']) || 1)),
+
             _raw: raw // Garder le brut au cas où
         };
     },
@@ -208,6 +213,10 @@ const SesquierRecords = {
 
         if (field === F.NB_PERSONNES) {
             finalVal = parseInt(value, 10) || null;
+        }
+
+        if (field === F.TEMPERATURE) {
+            finalVal = Math.min(5, Math.max(1, parseInt(value, 10) || 1));
         }
 
         return { [field]: finalVal };

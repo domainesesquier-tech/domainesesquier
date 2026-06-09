@@ -108,6 +108,7 @@ function rowToRecord(row) {
       'Created':                  row.created_at,
       'Updated':                  row.updated_at,
       'planning_id':              row.planning_id,
+      'Température':              row.temperature,
     },
   };
 }
@@ -156,6 +157,7 @@ const FIELD_MAP = {
   'Acompte Payé':             'acompte_paye',
   'Acompte Montant':          'acompte_montant',
   'planning_id':              'planning_id',
+  'Température':              'temperature',
 };
 
 function fieldsToRow(fields) {
@@ -454,6 +456,7 @@ export default {
         if (f['Prix HT']  !== undefined) row.prix_ht     = f['Prix HT'];
         if (f.TVA         !== undefined) row.tva         = f.TVA;
         if (f.Actif       !== undefined) row.actif       = f.Actif;
+        if (f.Type        !== undefined) row.type        = f.Type;
         if (f.Heure       !== undefined) row.heure       = f.Heure;
         if (f.Tag         !== undefined) row.tag         = f.Tag;
         const result = await sbFetch(env, `/bibliotheque_prestations?id=eq.${numId}`, {

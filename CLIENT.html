@@ -155,6 +155,20 @@
             background: #f8fafc; max-height: 150px; overflow-y: auto; white-space: pre-wrap;
             font-size: 12px; font-family: monospace; line-height: 1.5; color: var(--text-muted); }
 
+        /* Température commerciale */
+        .temp-selector { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+        .temp-pill {
+            display: flex; align-items: center; gap: 6px;
+            padding: 5px 12px; border-radius: 20px;
+            cursor: pointer; font-size: 12px; font-weight: 600;
+            border: 2px solid transparent;
+            transition: transform 0.1s, opacity 0.1s, border-color 0.15s;
+            opacity: 0.45; color: white;
+        }
+        .temp-pill:hover { opacity: 0.8; transform: scale(1.04); }
+        .temp-pill.active { opacity: 1; border-color: rgba(0,0,0,0.35); transform: scale(1.05); }
+        .temp-pill .temp-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.6); flex-shrink: 0; }
+
         /* RESPONSIVE */
         @media (max-width: 640px) {
             .form-grid { grid-template-columns: 1fr; }
@@ -240,6 +254,27 @@
                                 <option value="effectué">Effectué</option>
                                 <option value="annulé">Annulé</option>
                             </select>
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Température commerciale</label>
+                            <div class="temp-selector" id="temp-selector">
+                                <div class="temp-pill" data-val="1" style="background:#e74c3c;" onclick="setTemperature(1)">
+                                    <span class="temp-dot"></span>Froid
+                                </div>
+                                <div class="temp-pill" data-val="2" style="background:#e67e22;" onclick="setTemperature(2)">
+                                    <span class="temp-dot"></span>En réflexion
+                                </div>
+                                <div class="temp-pill" data-val="3" style="background:#f1c40f;" onclick="setTemperature(3)">
+                                    <span class="temp-dot"></span>Intéressé
+                                </div>
+                                <div class="temp-pill" data-val="4" style="background:#92c47a;" onclick="setTemperature(4)">
+                                    <span class="temp-dot"></span>Chaud
+                                </div>
+                                <div class="temp-pill" data-val="5" style="background:#2d4a30;" onclick="setTemperature(5)">
+                                    <span class="temp-dot"></span>OUI de principe
+                                </div>
+                            </div>
+                            <input type="hidden" id="Température" value="1">
                         </div>
                         <div class="form-group">
                             <label>Date d'arrivée</label>
@@ -415,6 +450,7 @@
                 document.getElementById('f-log').value             = logVal;
                 document.getElementById('f-log-display').innerText = logVal;
                 checkRelance();
+                setTemperature(Math.min(5, Math.max(1, parseInt(f["Température"]) || 1)), false);
 
             } catch (err) {
                 showToast("Erreur : " + err.message, true);
@@ -470,6 +506,7 @@
                     "Suivi Date relance":     document.getElementById('Suivi_Date_relance')?.value  || null,
                     "Suivi Prochaine action": document.getElementById('Suivi_Action')?.value        || null,
                     "Suivi Log":              document.getElementById('f-log')?.value               || null,
+                    "Température":            parseInt(document.getElementById('Température')?.value) || 1,
                 };
 
                 if (isCreating) {
@@ -508,6 +545,20 @@
                 setTimeout(() => {
                     if (btn) { btn.innerHTML = '<i class="fas fa-save"></i> <span>Enregistrer</span>'; btn.className = 'btn-save'; }
                 }, 3000);
+            }
+        }
+
+        function setTemperature(val, autoSave = true) {
+            document.getElementById('Température').value = val;
+            document.querySelectorAll('#temp-selector .temp-pill').forEach(p => {
+                p.classList.toggle('active', parseInt(p.dataset.val) === val);
+            });
+            if (autoSave && currentId && !isCreating) {
+                SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: currentId, fields: { 'Température': val } })
+                }).then(() => showToast('Température mise à jour')).catch(e => showToast(e.message, true));
             }
         }
 
