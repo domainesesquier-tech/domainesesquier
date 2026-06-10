@@ -109,6 +109,7 @@ function rowToRecord(row) {
       'Updated':                  row.updated_at,
       'planning_id':              row.planning_id,
       'Température':              row.temperature,
+      'Menage JSON':              row.menage_json,
     },
   };
 }
@@ -158,6 +159,7 @@ const FIELD_MAP = {
   'Acompte Montant':          'acompte_montant',
   'planning_id':              'planning_id',
   'Température':              'temperature',
+  'Menage JSON':              'menage_json',
 };
 
 function fieldsToRow(fields) {
@@ -474,6 +476,30 @@ export default {
         const numId = String(rawId).replace(/^lib_/, '');
         await sbFetch(env, `/bibliotheque_prestations?id=eq.${numId}`, { method: "DELETE" });
         return json({ success: true, id: rawId }, 200, env, requestOrigin);
+      }
+
+      // ── MENAGE ─────────────────────────────────────────────
+      if (url.pathname === "/api/menage" && method === "GET") {
+        const rows = await sbFetch(env, `/menage_logements?order=logement_id.asc`);
+        return json({ records: rows }, 200, env, requestOrigin);
+      }
+
+      if (url.pathname === "/api/menage" && method === "PATCH") {
+        const body = await request.json().catch(() => ({}));
+        if (!body.logement_id) return json({ error: { message: "logement_id requis" } }, 400, env, requestOrigin);
+        const { logement_id, ...fields } = body;
+        const allowed = ['note_permanente', 'protocole', 'signalements'];
+        const row = {};
+        for (const k of allowed) {
+          if (fields[k] !== undefined) row[k] = fields[k];
+        }
+        if (Object.keys(row).length === 0) return json({ error: { message: "Aucun champ valide" } }, 400, env, requestOrigin);
+        row.updated_at = new Date().toISOString();
+        const result = await sbFetch(env, `/menage_logements?logement_id=eq.${encodeURIComponent(logement_id)}`, {
+          method: "PATCH",
+          body: JSON.stringify(row),
+        });
+        return json({ ok: true, record: Array.isArray(result) ? result[0] : result }, 200, env, requestOrigin);
       }
 
       return json({ error: { message: "Not found" } }, 404, env, requestOrigin);

@@ -2413,6 +2413,7 @@
                 <iframe id="iframe-cuisine" src="about:blank" style="display:none;"></iframe>
                 <iframe id="iframe-menu-client" src="about:blank" style="display:none;"></iframe>
                 <iframe id="iframe-deroule" src="about:blank" style="display:none;"></iframe>
+                <iframe id="iframe-menage" src="about:blank" style="display:none;"></iframe>
             </div>
         </div>
 
@@ -2850,6 +2851,7 @@
                 { type: 'cuisine', label: 'Fiche Cuisine', sub: 'Logistique chef', icon: 'fa-utensils', done: !!f["Cuisine JSON"] },
                 { type: 'menu-client', label: 'Menus', sub: 'Carte élégante', icon: 'fa-wine-glass', done: !!f["Cuisine JSON"] },
                 { type: 'deroule', label: 'Déroulé', sub: 'Programme jour par jour', icon: 'fa-route', done: !!f["DEROULE JSON"] },
+                { type: 'menage',  label: 'Ménage',   sub: 'Remise en état & signalements', icon: 'fa-broom', done: !!f["Menage JSON"] },
                 { type: 'documents', label: 'Documents', sub: 'Fichiers & PDF', icon: 'fa-folder-open', done: false }
             ];
 
@@ -3437,7 +3439,8 @@
                 'rooming': 'nav-rooming',
                 'cuisine': 'nav-restauration',
                 'menu-client': 'nav-menu',
-            'deroule': 'nav-deroule'
+                'deroule': 'nav-deroule',
+                'menage': 'nav-rooming'
             }[type] || 'nav-devis';
 
             const frameId = 'iframe-' + type;
@@ -3452,7 +3455,8 @@
                 { type: 'rooming', label: 'Hébergement', icon: 'fa-hotel' },
                 { type: 'cuisine', label: 'Cuisine', icon: 'fa-utensils' },
                 { type: 'menu-client', label: 'Menus', icon: 'fa-wine-glass' },
-                { type: 'deroule', label: 'Déroulé', icon: 'fa-route' }
+                { type: 'deroule', label: 'Déroulé', icon: 'fa-route' },
+                { type: 'menage',  label: 'Ménage',   icon: 'fa-broom' }
             ];
 
             tabsContainer.innerHTML = docTypes.map(d => `
@@ -3476,7 +3480,8 @@
             'iframe-rooming': 'DOMAINE_SESQUIER_ROOMING.html',
             'iframe-cuisine': 'DOMAINE_SESQUIER_CUISINE.html',
             'iframe-menu-client': 'DOMAINE_SESQUIER_MENU_CLIENT.html',
-            'iframe-deroule': 'DOMAINE_SESQUIER_DEROULE.html'
+            'iframe-deroule': 'DOMAINE_SESQUIER_DEROULE.html',
+            'iframe-menage':  'DOMAINE_SESQUIER_MENAGE.html'
         };
 
         function switchTab(frameId, navEl, explicitId = null) {
