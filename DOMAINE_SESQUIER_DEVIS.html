@@ -1320,9 +1320,12 @@
             // Source de vérité : nuits depuis le séjour (dérivées des dates),
             // PAS depuis la longueur de planning sauvegardée.
             const planning = dossier.mealsPlanning || [];
-            const nights = (typeof dossier.sejour.nights === 'number')
-                ? dossier.sejour.nights
-                : Math.max(0, planning.length - 1);
+            const s = dossier.sejour;
+            const nights = (s.nights > 0)
+                ? s.nights
+                : (s.dateArrivee && s.dateDepart)
+                    ? Math.max(0, Math.round((new Date(s.dateDepart) - new Date(s.dateArrivee)) / 86400000))
+                    : Math.max(0, planning.length - 1);
             const days = nights + 1;
             if (days <= 0) return;
 
