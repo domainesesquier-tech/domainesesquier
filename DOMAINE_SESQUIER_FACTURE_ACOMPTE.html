@@ -279,25 +279,42 @@
             }
             const pen = document.getElementById('legal-penalites');
             if (pen) pen.style.display = p.tva ? 'list-item' : 'none';
-            const numEl = document.getElementById('doc-id');
-            if (numEl) {
-                let n = numEl.innerText.trim();
-                if (n && !n.includes('XXX')) {
-                    if (n.startsWith('FS-')) n = n.slice(3);
-                    if (key === 'foudre') n = 'FS-' + n;
-                    numEl.innerText = n;
-                    document.querySelectorAll('.fa-num-footer').forEach(el => el.innerText = n);
-                }
-            }
+            // Profil mémorisé AVANT de recalculer le numéro (qui en dépend)
+            localStorage.setItem('ds_company_profile', key);
+            if (typeof applyDocNumber === 'function') applyDocNumber();
             ['ozza','foudre'].forEach(k => {
                 const btn = document.getElementById(`prof-btn-${k}`);
                 if (!btn) return;
                 btn.style.background = k === key ? '#3a5538' : 'transparent';
                 btn.style.color      = k === key ? 'white'   : '#3a5538';
             });
-            localStorage.setItem('ds_company_profile', key);
         }
         document.addEventListener('DOMContentLoaded', () => setCompanyProfile(localStorage.getItem('ds_company_profile') || 'ozza'));
+
+        // Numérotation facture d'acompte : séquentielle FOUDRE (FS-FA-2026-001)
+        // ou format historique OZZA. Le numéro FOUDRE est figé à la génération.
+        let _legacyFA = '';
+        let _devisRefLegacy = '';
+        function _foudreNumeros() {
+            try { return JSON.parse(currentRecord?.fields?.['Numeros JSON'] || '{}'); } catch (e) { return {}; }
+        }
+        function applyDocNumber() {
+            const profile = localStorage.getItem('ds_company_profile') || 'ozza';
+            const numeros = _foudreNumeros();
+            let fa, ref;
+            if (profile === 'foudre') {
+                fa  = numeros.fa || 'FS-FA-(n° à la génération)';
+                ref = numeros.devis || _devisRefLegacy;
+            } else {
+                if (!_legacyFA) return; // pas encore calculé : renderMeta s'en chargera
+                fa  = _legacyFA;
+                ref = _devisRefLegacy;
+            }
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+            set('doc-id', fa);
+            set('ref-devis', ref);
+            document.querySelectorAll('.fa-num-footer').forEach(el => el.innerText = fa);
+        }
         // ────────────────────────────────────────────────────────────────────
 
         let currentRecord = null;
@@ -411,15 +428,12 @@
             const meta      = dossier.meta || {};
             const rawId     = meta.airtableId || fields['ID Airtable'] || fields['ID'] || 'XXXX';
             const shortId   = String(rawId).slice(-6).toUpperCase();
-            const _pfx = (localStorage.getItem('ds_company_profile') === 'foudre') ? 'FS-' : '';
-            const docNum    = `${_pfx}FA-${yy}-${mm}-${shortId}`;
-            const devisNum  = meta.devisNumber || `${yy}-${mm}-${shortId}`;
+            _legacyFA       = `FA-${yy}-${mm}-${shortId}`;
+            _devisRefLegacy = meta.devisNumber || `${yy}-${mm}-${shortId}`;
 
             const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
-            set('doc-id',   docNum);
             set('doc-date', now.toLocaleDateString('fr-FR'));
-            set('ref-devis', devisNum);
-            document.querySelectorAll('.fa-num-footer').forEach(el => el.innerText = docNum);
+            applyDocNumber(); // numéro + réf devis selon le profil
         }
 
         // =====================================================================
@@ -583,6 +597,13 @@
         async function generatePDF() {
             const numEl = document.getElementById('doc-id');
             if (!numEl) { alert('Erreur : impossible de trouver le numéro de facture.'); return; }
+
+            // FOUDRE : figer un numéro de facture séquentiel avant impression
+            if ((localStorage.getItem('ds_company_profile') || 'ozza') === 'foudre' && currentRecord?.id) {
+                await SesquierUtils.ensureFoudreNumber(currentRecord.id, currentRecord.fields, 'fa');
+                applyDocNumber();
+            }
+
             const num        = numEl.innerText.trim();
             const client     = (currentRecord?.fields?.['Nom client'] || 'Client').trim();
             const safeClient = client.replace(/[^a-z0-9]/gi, '_').substring(0, 30);

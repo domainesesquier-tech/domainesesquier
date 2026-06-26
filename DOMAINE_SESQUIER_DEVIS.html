@@ -797,17 +797,11 @@
             const gerant = document.getElementById('gerant-name');
             if (gerant) gerant.textContent = key === 'foudre' ? 'Waël Smali' : 'Najat Smali';
 
-            // Numéro de document : basculer préfixe FS-
-            const numEl = document.getElementById('devis-number');
-            if (numEl) {
-                let n = numEl.innerText.trim();
-                if (n && !n.includes('XXX')) {
-                    if (n.startsWith('FS-')) n = n.slice(3);
-                    if (key === 'foudre') n = 'FS-' + n;
-                    numEl.innerText = n;
-                    document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = n);
-                }
-            }
+            // Profil mémorisé AVANT de recalculer le numéro (qui en dépend)
+            localStorage.setItem('ds_company_profile', key);
+
+            // Numéro de document : recalculé selon le profil (séquentiel FOUDRE)
+            if (typeof applyDevisNumber === 'function') applyDevisNumber();
 
             // Boutons toggle
             ['ozza', 'foudre'].forEach(k => {
@@ -816,7 +810,33 @@
                 btn.style.background = k === key ? '#3a5538' : 'transparent';
                 btn.style.color      = k === key ? 'white'   : '#3a5538';
             });
-            localStorage.setItem('ds_company_profile', key);
+        }
+
+        // Numéro de devis à afficher selon le profil société.
+        // FOUDRE : numéro séquentiel figé (FS-2026-001) si déjà attribué,
+        // sinon un libellé provisoire jusqu'à l'enregistrement.
+        // OZZA : format historique (année-mois + fin d'ID).
+        function getDevisNumberForDisplay() {
+            const profile = localStorage.getItem('ds_company_profile') || 'ozza';
+            const fields  = (typeof currentRecord !== 'undefined' && currentRecord?.fields) ? currentRecord.fields : {};
+            if (profile === 'foudre') {
+                let numeros = {};
+                try { numeros = JSON.parse(fields['Numeros JSON'] || '{}'); } catch (e) { numeros = {}; }
+                if (numeros.devis) return numeros.devis;
+                return 'FS-(n° à l’enregistrement)';
+            }
+            const now = new Date();
+            const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+            const rid = (typeof currentRequestId !== 'undefined' ? currentRequestId : '') || fields['ID'] || '';
+            const num = rid.toString().slice(-6).toUpperCase();
+            return `${yearMonth}-${num}`;
+        }
+
+        function applyDevisNumber() {
+            const n = getDevisNumberForDisplay();
+            const el = document.getElementById('devis-number');
+            if (el) el.innerText = n;
+            document.querySelectorAll('.devis-num-footer').forEach(e => e.innerText = n);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -1267,15 +1287,9 @@
 
             // Restaurer le profil société si sauvegardé dans le dossier
             if (dossier.companyProfile) setCompanyProfile(dossier.companyProfile);
-            const now = new Date();
-            const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-            const num = (currentRequestId || dossier.meta?.airtableId || "").toString().slice(-6).toUpperCase();
-            const _pfx = (localStorage.getItem('ds_company_profile') === 'foudre') ? 'FS-' : '';
 
-            // 1. META
-            const devNumEl = document.getElementById('devis-number');
-            if (devNumEl) devNumEl.innerText = `${_pfx}${yearMonth}-${num}`;
-            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `${_pfx}${yearMonth}-${num}`);
+            // 1. META — numéro selon le profil (séquentiel FOUDRE / historique OZZA)
+            applyDevisNumber();
 
             // 2. CLIENT
             const c = dossier.client;
@@ -1487,13 +1501,8 @@
 
         // --- NOUVEAUTÉ : Fonctions de Snapshot ---
         function fillMetaAndClient(fields) {
-            const now = new Date();
-            const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-            const num = (fields["Numéro Devis"] || fields["ID"] || currentRequestId || "").toString().slice(-6).toUpperCase();
-            const _pfx2 = (localStorage.getItem('ds_company_profile') === 'foudre') ? 'FS-' : '';
-            const devNumEl = document.getElementById('devis-number');
-            if (devNumEl) devNumEl.innerText = `${_pfx2}${yearMonth}-${num}`;
-            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `${_pfx2}${yearMonth}-${num}`);
+            // Numéro selon le profil (séquentiel FOUDRE / historique OZZA)
+            applyDevisNumber();
 
             const clientInfoEl = document.querySelector('.client-info');
             if (clientInfoEl) {
@@ -1887,6 +1896,12 @@
             try {
                 if (btn) { btn.innerText = "Sauvegarde..."; btn.disabled = true; }
 
+                // 0. FOUDRE : attribuer (une seule fois) un numéro de devis séquentiel et le figer
+                if ((localStorage.getItem('ds_company_profile') || 'ozza') === 'foudre' && currentRecord?.fields) {
+                    await SesquierUtils.ensureFoudreNumber(currentRequestId, currentRecord.fields, 'devis');
+                    applyDevisNumber();
+                }
+
                 // 1. Recalculer les totaux depuis le DOM
                 SesquierUtils.runCommonCalculations();
 
@@ -2023,6 +2038,13 @@
         async function generatePDF() {
             const numEl = document.getElementById('devis-number');
             if (!numEl) { alert('Erreur : impossible de trouver le numéro de devis.'); return; }
+
+            // FOUDRE : garantir un numéro séquentiel figé avant d'imprimer le PDF
+            if ((localStorage.getItem('ds_company_profile') || 'ozza') === 'foudre' && currentRecord?.fields) {
+                await SesquierUtils.ensureFoudreNumber(currentRequestId, currentRecord.fields, 'devis');
+                applyDevisNumber();
+            }
+
             const num = numEl.innerText.trim();
             const client = (currentRecord?.fields?.["Nom client"] || "Client").trim();
             const safeClient = client.replace(/[^a-z0-9]/gi, '_').substring(0, 30);

@@ -52,9 +52,63 @@ const SesquierUtils = {
     },
 
     /**
+     * Numérotation séquentielle FOUDRE.
+     * Attribue (ou réutilise) un numéro continu pour un document donné et le
+     * fige dans le champ "Numeros JSON" du dossier. Idempotent : si le numéro
+     * existe déjà pour ce type de doc, il est renvoyé sans incrémenter.
+     *
+     * @param {string} recordId  - id du dossier (réservation)
+     * @param {object} fields    - fields du record courant (lus pour Numeros JSON)
+     * @param {string} docType   - 'devis' | 'fa' | 'ff'
+     * @returns {Promise<string|null>} le numéro formaté, ou null si échec
+     */
+    async ensureFoudreNumber(recordId, fields, docType) {
+        if (!recordId) return null;
+
+        // Numéros déjà figés sur le dossier ?
+        let numeros = {};
+        try { numeros = JSON.parse(fields?.['Numeros JSON'] || '{}'); } catch (e) { numeros = {}; }
+        if (numeros[docType]) return numeros[docType];
+
+        const year = new Date().getFullYear();
+        const SERIES = {
+            devis: { series: `foudre-devis-${year}`, fmt: n => `FS-${year}-${String(n).padStart(3, '0')}` },
+            fa:    { series: `foudre-fa-${year}`,    fmt: n => `FS-FA-${year}-${String(n).padStart(3, '0')}` },
+            ff:    { series: `foudre-ff-${year}`,    fmt: n => `FS-FF-${year}-${String(n).padStart(3, '0')}` },
+        };
+        const cfg = SERIES[docType];
+        if (!cfg) return null;
+
+        try {
+            // 1) Incrément atomique côté serveur
+            const res = await this.fetchJson(`${this.API_BASE}/api/next-number`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ series: cfg.series }),
+            });
+            const numero = cfg.fmt(res.number);
+
+            // 2) Figer sur le dossier
+            numeros[docType] = numero;
+            await this.fetchJson(this.API_RESERVATIONS_URL, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: recordId, fields: { 'Numeros JSON': JSON.stringify(numeros) } }),
+            });
+            // Refléter localement pour les rendus suivants
+            if (fields) fields['Numeros JSON'] = JSON.stringify(numeros);
+
+            return numero;
+        } catch (e) {
+            console.error('[ensureFoudreNumber] échec attribution numéro:', e);
+            return null;
+        }
+    },
+
+    /**
      * Sync state between iframes via message
-     * @param {string} type 
-     * @param {object} data 
+     * @param {string} type
+     * @param {object} data
      */
     broadcast(type, data = {}) {
         if (window.parent && window.parent !== window) {

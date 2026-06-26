@@ -110,6 +110,7 @@ function rowToRecord(row) {
       'planning_id':              row.planning_id,
       'Température':              row.temperature,
       'Menage JSON':              row.menage_json,
+      'Numeros JSON':             row.numeros_json,
     },
   };
 }
@@ -160,6 +161,7 @@ const FIELD_MAP = {
   'planning_id':              'planning_id',
   'Température':              'temperature',
   'Menage JSON':              'menage_json',
+  'Numeros JSON':             'numeros_json',
 };
 
 function fieldsToRow(fields) {
@@ -500,6 +502,22 @@ export default {
           body: JSON.stringify(row),
         });
         return json({ ok: true, record: Array.isArray(result) ? result[0] : result }, 200, env, requestOrigin);
+      }
+
+      // ── NUMÉROTATION SÉQUENTIELLE ──────────────────────────
+      // Incrémente atomiquement un compteur par série et renvoie le prochain
+      // numéro. Garantit une suite continue sans trou ni doublon.
+      if (url.pathname === "/api/next-number" && method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const series = (body.series || "").toString().trim();
+        if (!series) return json({ error: { message: "series requis" } }, 400, env, requestOrigin);
+        // RPC Postgres atomique (UPSERT + increment)
+        const result = await sbFetch(env, `/rpc/next_doc_number`, {
+          method: "POST",
+          body: JSON.stringify({ p_series: series }),
+        });
+        const number = Array.isArray(result) ? result[0] : result;
+        return json({ series, number }, 200, env, requestOrigin);
       }
 
       return json({ error: { message: "Not found" } }, 404, env, requestOrigin);
