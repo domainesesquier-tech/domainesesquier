@@ -86,6 +86,7 @@
                     Tél : +33 7 68 77 85 27<br>
                     Email : contact@domainesesquier.com<br>
                     <span id="company-header-line"><strong>OZZA SASU</strong> — SIRET : 903 246 478 00015</span>
+                    <span id="company-tva-line" style="display:none;"></span>
                 </div>
             </div>
             <div class="meta-col">
@@ -221,6 +222,7 @@
                     <li>• <strong>Solde :</strong> Le solde (70%) est dû à l'arrivée, avant le début du séjour.</li>
                     <li>• <strong>Mode de paiement :</strong> Virement bancaire uniquement.</li>
                     <li>• <strong>Divers :</strong> Chambres disponibles à 15h (arrivée) / Libérées à 11h (départ).</li>
+                    <li id="legal-penalites" style="display:none;color:#777;">• <strong>Pénalités de retard :</strong> Taux directeur BCE majoré de 10 points. <strong>Indemnité forfaitaire de recouvrement : 40 €</strong> (art. L441-10 C. com.).</li>
                 </ul>
                 <div id="company-rib" style="font-size:7.5pt;color:#999;margin-top:12px;line-height:1.5;">
                     <strong>OZZA SASU</strong> — SIRET 903 246 478 00015 — BNP Paribas<br>
@@ -297,17 +299,31 @@
 
         // ── Profils société ──────────────────────────────────────────────────
         const COMPANY_PROFILES = {
-            ozza: { name:'OZZA SASU', siret:'903 246 478 00015', banque:'BNP Paribas', iban:'FR76 3000 4006 4000 0107 8926 886', bic:'BNPAFRPPXXX', swift:null },
-            foudre: { name:'FOUDRE SOCIETY SASU', siret:'10651345000010', banque:'QONTO', iban:'FR76 1695 8000 0151 7488 5807 771', bic:'QNTOFRP1XXX', swift:'TRWIBEB3XXX' },
+            ozza:   { name:'OZZA SASU',           siret:'903 246 478 00015', tva: null,             banque:'BNP Paribas', iban:'FR76 3000 4006 4000 0107 8926 886', bic:'BNPAFRPPXXX',  swift:null },
+            foudre: { name:'FOUDRE SOCIETY SASU', siret:'10651345000010',    tva:'FR52106513450',   banque:'QONTO',       iban:'FR76 1695 8000 0151 7488 5807 771', bic:'QNTOFRP1XXX', swift:'TRWIBEB3XXX' },
         };
         function setCompanyProfile(key) {
             const p = COMPANY_PROFILES[key]; if (!p) return;
             const hdr = document.getElementById('company-header-line');
             if (hdr) hdr.innerHTML = `<strong>${p.name}</strong> — SIRET : ${p.siret}`;
+            const tvaEl = document.getElementById('company-tva-line');
+            if (tvaEl) { tvaEl.innerHTML = p.tva ? `N° TVA : ${p.tva}` : ''; tvaEl.style.display = p.tva ? 'block' : 'none'; }
             const rib = document.getElementById('company-rib');
             if (rib) {
                 const swift = p.swift ? `<br>SWIFT : ${p.swift}` : '';
                 rib.innerHTML = `<strong>${p.name}</strong> — SIRET ${p.siret} — ${p.banque}<br><strong>IBAN : ${p.iban}</strong><br>BIC : ${p.bic}${swift}`;
+            }
+            const pen = document.getElementById('legal-penalites');
+            if (pen) pen.style.display = p.tva ? 'list-item' : 'none';
+            const numEl = document.getElementById('doc-id');
+            if (numEl) {
+                let n = numEl.innerText.trim();
+                if (n && !n.includes('XXX')) {
+                    if (n.startsWith('FS-')) n = n.slice(3);
+                    if (key === 'foudre') n = 'FS-' + n;
+                    numEl.innerText = n;
+                    document.querySelectorAll('.fa-num-footer').forEach(el => el.innerText = n);
+                }
             }
             ['ozza','foudre'].forEach(k => {
                 const btn = document.getElementById(`prof-btn-${k}`);
@@ -400,7 +416,8 @@
             const meta      = dossier.meta || {};
             const rawId     = meta.airtableId || fields['ID Airtable'] || fields['ID'] || 'XXXX';
             const shortId   = String(rawId).slice(-6).toUpperCase();
-            const docNum    = `FF-${yy}-${mm}-${shortId}`;
+            const _pfx = (localStorage.getItem('ds_company_profile') === 'foudre') ? 'FS-' : '';
+            const docNum    = `${_pfx}FF-${yy}-${mm}-${shortId}`;
             const devisNum  = meta.devisNumber || `${yy}-${mm}-${shortId}`;
 
             const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };

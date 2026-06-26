@@ -531,6 +531,7 @@
                     Tél : +33 7 68 77 85 27<br>
                     Email : contact@domainesesquier.com<br>
                     <span id="company-header-line"><strong>OZZA SASU</strong> — SIRET : 903 246 478 00015</span>
+                    <span id="company-tva-line" style="display:none;"></span>
                 </div>
             </div>
             <div class="meta-col">
@@ -670,6 +671,7 @@
                     <li contenteditable="true">• <strong>Règlement :</strong> Acompte de 30% à la réservation, solde à l'arrivée.</li>
                     <li contenteditable="true">• <strong>Annulation :</strong> Acompte conservé. J-29/J-15 : 50%. J-14/J-8 : 75%. Moins de J-7 : 100%.</li>
                     <li contenteditable="true">• <strong>Divers :</strong> Chambres disponibles à 15h ou avant selon demandes (arrivée). Libérées à 11h, flexible selon déroulé du séjour (départ).</li>
+                    <li id="legal-penalites" style="display:none;color:#777;">• <strong>Pénalités de retard :</strong> Taux directeur BCE majoré de 10 points. <strong>Indemnité forfaitaire de recouvrement : 40 €</strong> (art. L441-10 C. com.).</li>
                 </ul>
                 <div id="company-rib" style="font-size: 7.5pt; color: #999; margin-top: 10px; line-height: 1.2;">
                     <strong>OZZA SASU</strong> — SIRET 903 246 478 00015 — BNP Paribas<br>
@@ -753,6 +755,7 @@
             foudre: {
                 name: 'FOUDRE SOCIETY SASU',
                 siret: '10651345000010',
+                tva: 'FR52106513450',
                 banque: 'QONTO',
                 iban: 'FR76 1695 8000 0151 7488 5807 771',
                 bic: 'QNTOFRP1XXX',
@@ -763,13 +766,46 @@
         function setCompanyProfile(key) {
             const p = COMPANY_PROFILES[key];
             if (!p) return;
+
+            // Header : nom + SIRET
             const hdr = document.getElementById('company-header-line');
             if (hdr) hdr.innerHTML = `<strong>${p.name}</strong> — SIRET : ${p.siret}`;
+
+            // Header : TVA intracommunautaire (FOUDRE seulement)
+            const tvaEl = document.getElementById('company-tva-line');
+            if (tvaEl) {
+                if (p.tva) {
+                    tvaEl.innerHTML = `N° TVA : ${p.tva}`;
+                    tvaEl.style.display = 'block';
+                } else {
+                    tvaEl.style.display = 'none';
+                }
+            }
+
+            // RIB / coordonnées bancaires
             const rib = document.getElementById('company-rib');
             if (rib) {
                 const swift = p.swift ? `<br>SWIFT : ${p.swift}` : '';
                 rib.innerHTML = `<strong>${p.name}</strong> — SIRET ${p.siret} — ${p.banque}<br><strong>IBAN : ${p.iban}</strong><br>BIC : ${p.bic}${swift}`;
             }
+
+            // Mention légale pénalités de retard (obligatoire B2B — affichée pour FOUDRE)
+            const pen = document.getElementById('legal-penalites');
+            if (pen) pen.style.display = p.tva ? 'list-item' : 'none';
+
+            // Numéro de document : basculer préfixe FS-
+            const numEl = document.getElementById('devis-number');
+            if (numEl) {
+                let n = numEl.innerText.trim();
+                if (n && !n.includes('XXX')) {
+                    if (n.startsWith('FS-')) n = n.slice(3);
+                    if (key === 'foudre') n = 'FS-' + n;
+                    numEl.innerText = n;
+                    document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = n);
+                }
+            }
+
+            // Boutons toggle
             ['ozza', 'foudre'].forEach(k => {
                 const btn = document.getElementById(`prof-btn-${k}`);
                 if (!btn) return;
@@ -1192,11 +1228,12 @@
             const now = new Date();
             const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
             const num = (currentRequestId || dossier.meta?.airtableId || "").toString().slice(-6).toUpperCase();
+            const _pfx = (localStorage.getItem('ds_company_profile') === 'foudre') ? 'FS-' : '';
 
             // 1. META
             const devNumEl = document.getElementById('devis-number');
-            if (devNumEl) devNumEl.innerText = `${yearMonth}-${num}`;
-            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `${yearMonth}-${num}`);
+            if (devNumEl) devNumEl.innerText = `${_pfx}${yearMonth}-${num}`;
+            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `${_pfx}${yearMonth}-${num}`);
 
             // 2. CLIENT
             const c = dossier.client;
@@ -1411,9 +1448,10 @@
             const now = new Date();
             const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
             const num = (fields["Numéro Devis"] || fields["ID"] || currentRequestId || "").toString().slice(-6).toUpperCase();
+            const _pfx2 = (localStorage.getItem('ds_company_profile') === 'foudre') ? 'FS-' : '';
             const devNumEl = document.getElementById('devis-number');
-            if (devNumEl) devNumEl.innerText = `${yearMonth}-${num}`;
-            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `${yearMonth}-${num}`);
+            if (devNumEl) devNumEl.innerText = `${_pfx2}${yearMonth}-${num}`;
+            document.querySelectorAll('.devis-num-footer').forEach(el => el.innerText = `${_pfx2}${yearMonth}-${num}`);
 
             const clientInfoEl = document.querySelector('.client-info');
             if (clientInfoEl) {
