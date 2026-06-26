@@ -480,6 +480,11 @@
 
     <!-- Controls -->
     <div class="controls-bar no-print">
+        <div style="display:flex;align-items:center;gap:3px;padding:3px 8px;background:#f0ede6;border-radius:8px;border:1px solid #d1cec7;">
+            <span style="font-size:11px;color:#6b7280;font-weight:500;margin-right:4px;white-space:nowrap;">Société :</span>
+            <button id="prof-btn-ozza" onclick="setCompanyProfile('ozza')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:#3a5538;color:white;">OZZA</button>
+            <button id="prof-btn-foudre" onclick="setCompanyProfile('foudre')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:transparent;color:#3a5538;">FOUDRE SOCIETY</button>
+        </div>
         <span id="unsaved-badge" style="display:none; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; align-self:center; animation: pulse 2s infinite;">
             <i class="fas fa-circle-exclamation" style="margin-right:4px;"></i> Modifications non enregistrées
         </span>
@@ -525,7 +530,7 @@
                     4, plan du sesquier, 34140 Mèze<br>
                     Tél : +33 7 68 77 85 27<br>
                     Email : contact@domainesesquier.com<br>
-                    <strong>OZZA SASU</strong> — SIRET : 903 246 478 00015
+                    <span id="company-header-line"><strong>OZZA SASU</strong> — SIRET : 903 246 478 00015</span>
                 </div>
             </div>
             <div class="meta-col">
@@ -666,7 +671,7 @@
                     <li contenteditable="true">• <strong>Annulation :</strong> Acompte conservé. J-29/J-15 : 50%. J-14/J-8 : 75%. Moins de J-7 : 100%.</li>
                     <li contenteditable="true">• <strong>Divers :</strong> Chambres disponibles à 15h ou avant selon demandes (arrivée). Libérées à 11h, flexible selon déroulé du séjour (départ).</li>
                 </ul>
-                <div style="font-size: 7.5pt; color: #999; margin-top: 10px; line-height: 1.2;">
+                <div id="company-rib" style="font-size: 7.5pt; color: #999; margin-top: 10px; line-height: 1.2;">
                     <strong>OZZA SASU</strong> — SIRET 903 246 478 00015 — BNP Paribas<br>
                     <strong>IBAN : FR76 3000 4006 4000 0107 8926 886</strong>
                 </div>
@@ -734,6 +739,50 @@
         // On ne le destructure PAS pour éviter de perdre la valeur dynamique.
         const formatEuro = SesquierUtils ? SesquierUtils.formatEuro.bind(SesquierUtils) : (n) => n + ' €';
         const API_RESERVATIONS_URL = SesquierUtils ? SesquierUtils.API_RESERVATIONS_URL : '';
+
+        // ── Profils société ──────────────────────────────────────────────────
+        const COMPANY_PROFILES = {
+            ozza: {
+                name: 'OZZA SASU',
+                siret: '903 246 478 00015',
+                banque: 'BNP Paribas',
+                iban: 'FR76 3000 4006 4000 0107 8926 886',
+                bic: 'BNPAFRPPXXX',
+                swift: null,
+            },
+            foudre: {
+                name: 'FOUDRE SOCIETY SASU',
+                siret: '10651345000010',
+                banque: 'QONTO',
+                iban: 'FR76 1695 8000 0151 7488 5807 771',
+                bic: 'QNTOFRP1XXX',
+                swift: 'TRWIBEB3XXX',
+            },
+        };
+
+        function setCompanyProfile(key) {
+            const p = COMPANY_PROFILES[key];
+            if (!p) return;
+            const hdr = document.getElementById('company-header-line');
+            if (hdr) hdr.innerHTML = `<strong>${p.name}</strong> — SIRET : ${p.siret}`;
+            const rib = document.getElementById('company-rib');
+            if (rib) {
+                const swift = p.swift ? `<br>SWIFT : ${p.swift}` : '';
+                rib.innerHTML = `<strong>${p.name}</strong> — SIRET ${p.siret} — ${p.banque}<br><strong>IBAN : ${p.iban}</strong><br>BIC : ${p.bic}${swift}`;
+            }
+            ['ozza', 'foudre'].forEach(k => {
+                const btn = document.getElementById(`prof-btn-${k}`);
+                if (!btn) return;
+                btn.style.background = k === key ? '#3a5538' : 'transparent';
+                btn.style.color      = k === key ? 'white'   : '#3a5538';
+            });
+            localStorage.setItem('ds_company_profile', key);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setCompanyProfile(localStorage.getItem('ds_company_profile') || 'ozza');
+        });
+        // ────────────────────────────────────────────────────────────────────
 
         let currentRecord = null;
         let currentDossier = null; // Dossier complet chargé — source de vérité pour la sauvegarde
@@ -1138,6 +1187,8 @@
                 return;
             }
             currentDossier = dossier; // Stocker pour la sauvegarde
+            // Restaurer le profil société si sauvegardé dans le dossier
+            if (dossier.companyProfile) setCompanyProfile(dossier.companyProfile);
             const now = new Date();
             const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
             const num = (currentRequestId || dossier.meta?.airtableId || "").toString().slice(-6).toUpperCase();
@@ -1849,6 +1900,7 @@
                             ? Math.round(totalHT / (currentDossier?.sejour?.participants || 1) * 100) / 100 : 0,
                     },
                     mealsPlanning,
+                    companyProfile: localStorage.getItem('ds_company_profile') || 'ozza',
                 };
 
                 // 7. Mettre à jour currentDossier

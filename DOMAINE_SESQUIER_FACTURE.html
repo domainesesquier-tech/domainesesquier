@@ -56,6 +56,11 @@
 
     <!-- Controls -->
     <div class="controls-bar no-print">
+        <div style="display:flex;align-items:center;gap:3px;padding:3px 8px;background:#f0ede6;border-radius:8px;border:1px solid #d1cec7;">
+            <span style="font-size:11px;color:#6b7280;font-weight:500;margin-right:4px;white-space:nowrap;">Société :</span>
+            <button id="prof-btn-ozza" onclick="setCompanyProfile('ozza')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:#3a5538;color:white;">OZZA</button>
+            <button id="prof-btn-foudre" onclick="setCompanyProfile('foudre')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:transparent;color:#3a5538;">FOUDRE SOCIETY</button>
+        </div>
         <button class="btn btn-primary" onclick="generatePDF()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -80,7 +85,7 @@
                     4, plan du sesquier, 34140 Mèze<br>
                     Tél : +33 7 68 77 85 27<br>
                     Email : contact@domainesesquier.com<br>
-                    <strong>OZZA SASU</strong> — SIRET : 903 246 478 00015
+                    <span id="company-header-line"><strong>OZZA SASU</strong> — SIRET : 903 246 478 00015</span>
                 </div>
             </div>
             <div class="meta-col">
@@ -217,7 +222,7 @@
                     <li>• <strong>Mode de paiement :</strong> Virement bancaire uniquement.</li>
                     <li>• <strong>Divers :</strong> Chambres disponibles à 15h (arrivée) / Libérées à 11h (départ).</li>
                 </ul>
-                <div style="font-size:7.5pt;color:#999;margin-top:12px;line-height:1.5;">
+                <div id="company-rib" style="font-size:7.5pt;color:#999;margin-top:12px;line-height:1.5;">
                     <strong>OZZA SASU</strong> — SIRET 903 246 478 00015 — BNP Paribas<br>
                     <strong>IBAN : FR76 3000 4006 4000 0107 8926 886</strong><br>
                     BIC : BNPAFRPPXXX
@@ -289,6 +294,31 @@
         const API_BASE            = SesquierUtils.API_BASE;
         const API_RESERVATIONS_URL = SesquierUtils.API_RESERVATIONS_URL;
         const formatEuro          = SesquierUtils.formatEuro.bind(SesquierUtils);
+
+        // ── Profils société ──────────────────────────────────────────────────
+        const COMPANY_PROFILES = {
+            ozza: { name:'OZZA SASU', siret:'903 246 478 00015', banque:'BNP Paribas', iban:'FR76 3000 4006 4000 0107 8926 886', bic:'BNPAFRPPXXX', swift:null },
+            foudre: { name:'FOUDRE SOCIETY SASU', siret:'10651345000010', banque:'QONTO', iban:'FR76 1695 8000 0151 7488 5807 771', bic:'QNTOFRP1XXX', swift:'TRWIBEB3XXX' },
+        };
+        function setCompanyProfile(key) {
+            const p = COMPANY_PROFILES[key]; if (!p) return;
+            const hdr = document.getElementById('company-header-line');
+            if (hdr) hdr.innerHTML = `<strong>${p.name}</strong> — SIRET : ${p.siret}`;
+            const rib = document.getElementById('company-rib');
+            if (rib) {
+                const swift = p.swift ? `<br>SWIFT : ${p.swift}` : '';
+                rib.innerHTML = `<strong>${p.name}</strong> — SIRET ${p.siret} — ${p.banque}<br><strong>IBAN : ${p.iban}</strong><br>BIC : ${p.bic}${swift}`;
+            }
+            ['ozza','foudre'].forEach(k => {
+                const btn = document.getElementById(`prof-btn-${k}`);
+                if (!btn) return;
+                btn.style.background = k === key ? '#3a5538' : 'transparent';
+                btn.style.color      = k === key ? 'white'   : '#3a5538';
+            });
+            localStorage.setItem('ds_company_profile', key);
+        }
+        document.addEventListener('DOMContentLoaded', () => setCompanyProfile(localStorage.getItem('ds_company_profile') || 'ozza'));
+        // ────────────────────────────────────────────────────────────────────
 
         let currentRecord = null;
 
