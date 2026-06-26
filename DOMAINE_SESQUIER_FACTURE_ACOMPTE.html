@@ -344,6 +344,34 @@
         // =====================================================================
         // RENDER PRINCIPAL
         // =====================================================================
+        // Aligne dossier.sejour (blob figé) sur les valeurs live de la base.
+        function reconcileSejourFromLive(dossier, fields) {
+            if (!dossier || !fields) return;
+            dossier.sejour = dossier.sejour || {};
+            const s = dossier.sejour;
+
+            const liveP = parseInt(fields["Nombre de personnes"] ?? fields["Nb personnes"], 10);
+            if (!isNaN(liveP) && liveP > 0) s.participants = liveP;
+
+            if (fields["Date arrivée"]) {
+                s.dateArrivee = fields["Date arrivée"];
+                s.dateArriveeFormatted = new Date(fields["Date arrivée"])
+                    .toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+            }
+            if (fields["Date départ"]) {
+                s.dateDepart = fields["Date départ"];
+                s.dateDepartFormatted = new Date(fields["Date départ"])
+                    .toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+            }
+
+            let liveN = parseInt(fields["Nuits"], 10);
+            if ((!liveN || isNaN(liveN)) && fields["Date arrivée"] && fields["Date départ"]) {
+                liveN = Math.max(0, Math.round(
+                    (new Date(fields["Date départ"]) - new Date(fields["Date arrivée"])) / 86400000));
+            }
+            if (!isNaN(liveN)) { s.nights = liveN; s.days = liveN + 1; }
+        }
+
         function renderFromRecord(fields) {
             let dossier = null;
 
@@ -362,6 +390,9 @@
                 console.log('[FA] Reconstruction depuis champs legacy…');
                 dossier = DossierModel.buildFromAirtableFields(fields);
             }
+
+            // 🔄 La donnée live de la base prime sur le blob figé (nb pers, dates, nuits)
+            reconcileSejourFromLive(dossier, fields);
 
             renderMeta(dossier, fields);
             renderClient(dossier);
