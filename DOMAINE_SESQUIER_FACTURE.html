@@ -760,10 +760,16 @@
             const numEl = document.getElementById('doc-id');
             if (!numEl) { alert('Erreur : impossible de trouver le numéro de facture.'); return; }
 
-            // FOUDRE : figer un numéro de facture finale séquentiel avant impression
+            // FOUDRE : figer un numéro de facture finale séquentiel avant impression.
+            // Si l'attribution échoue, on bloque : une facture ne doit jamais
+            // sortir avec un numéro provisoire.
             if ((localStorage.getItem('ds_company_profile') || 'ozza') === 'foudre' && currentRecord?.id) {
-                await SesquierUtils.ensureFoudreNumber(currentRecord.id, currentRecord.fields, 'ff');
+                const assigned = await SesquierUtils.ensureFoudreNumber(currentRecord.id, currentRecord.fields, 'ff');
                 applyDocNumber();
+                if (!assigned) {
+                    alert("❌ Impossible d'attribuer un numéro de facture séquentiel (compteur indisponible).\nLa facture n'a pas été générée. Vérifiez la base avant de réessayer.");
+                    return;
+                }
             }
 
             const num        = numEl.innerText.trim();
