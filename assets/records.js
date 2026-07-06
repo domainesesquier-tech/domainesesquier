@@ -103,7 +103,7 @@ const SesquierRecords = {
             class: 'badge-effectue'
         },
         'annulé': {
-            label: 'ANNULÉ',
+            label: 'REFUSÉ',
             airtable: 'annulé',
             color: '#C53030',
             bg: 'rgba(197, 48, 48, 0.1)',
