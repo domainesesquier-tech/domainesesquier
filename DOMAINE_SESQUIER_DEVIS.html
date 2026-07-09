@@ -1760,7 +1760,12 @@
         function addMealGrid(fields, savedState = null) {
             const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
             const dArrStr = fields["Date arrivée"];
-            const nights = fields["Nuits"] || 0;
+            // Nuits depuis le champ ; sinon recalcul depuis les dates (source de vérité)
+            let nights = fields["Nuits"] || 0;
+            if (!nights && fields["Date arrivée"] && fields["Date départ"]) {
+                nights = Math.max(0, Math.round(
+                    (new Date(fields["Date départ"]) - new Date(fields["Date arrivée"])) / 86400000));
+            }
             const nbPers = fields["Nombre de personnes"] || 1;
             const days = nights + 1;
 
