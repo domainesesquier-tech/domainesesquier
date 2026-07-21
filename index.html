@@ -55,6 +55,7 @@
         async function fastUpdateRecord(id, field, value, element = null) {
             const record = allRecords.find(r => r.id === id);
             if (!record) return;
+            let skipPlanningSync = false;
 
             // Utilisation de la couche de normalisation pour préparer le payload
             const updatePayload = SesquierRecords.prepareUpdate(field, value);
@@ -84,7 +85,7 @@
                 if (field === SesquierRecords.FIELDS.STATUT) {
                     await autoLogTimeline(id, `Statut changé : **${currentVal || 'Inconnu'}** → **${newVal}**`);
                     if (newVal.toLowerCase() === 'annulé') {
-                        // Annulé → supprimer du planning
+                        // Refusé/annulé → supprimer du planning (mais NE PAS re-synchroniser)
                         const planningId = record._raw?.fields?.['planning_id'];
                         if (planningId) {
                             try {
@@ -96,7 +97,7 @@
                                 if (record._raw) record._raw.fields['planning_id'] = null;
                             } catch(e) { console.warn('[annulé] planning delete failed', e.message); }
                         }
-                        return; // pas de syncToPlanning sur annulé
+                        skipPlanningSync = true; // pas de syncToPlanning, mais on rafraîchit quand même l'UI
                     }
                 }
 
@@ -107,14 +108,14 @@
                     const idx = allRecords.findIndex(r => r.id === id);
                     if (idx !== -1) allRecords[idx] = updated;
                 }
-                
+
                 if (element) {
                     element.style.opacity = '1';
                     element.style.pointerEvents = 'auto';
                 }
                 showSyncBanner(`${field} mis à jour !`);
                 const syncFields = ['Date arrivée', 'Date départ', 'Statut', 'Montant Hébergement HT', 'Nom client', 'Nb personnes'];
-                if (syncFields.includes(field)) syncToPlanning(id);
+                if (syncFields.includes(field) && !skipPlanningSync) syncToPlanning(id);
                 
                 updateKPIs();
                 updateFilters();
@@ -3188,7 +3189,8 @@
             document.getElementById('count-traiter').innerText = counts['à traiter'] || 0;
             document.getElementById('count-confirme').innerText = counts['confirmé'] || 0;
             document.getElementById('count-devis').innerText = counts['devis envoyé'] || 0;
-            document.getElementById('count-annule').innerText = counts['annulé'] || 0;
+            // Refusé : compter tous les refusés (archivés inclus), cohérent avec son filtre
+            document.getElementById('count-annule').innerText = allRecords.filter(r => r.statut === 'annulé').length || 0;
             document.getElementById('count-effectue').innerText = counts['effectué'] || 0;
             document.getElementById('count-archived').innerText = archived.length || 0;
         }
@@ -3272,6 +3274,9 @@
                 let recordsToDisplay = allRecords;
                 if (currentFilter === 'archived') {
                     recordsToDisplay = recordsToDisplay.filter(r => r.estArchive);
+                } else if (currentFilter === 'annulé') {
+                    // Refusé : afficher tous les refusés, archivés ou non
+                    recordsToDisplay = recordsToDisplay.filter(r => r.statut === 'annulé');
                 } else {
                     recordsToDisplay = recordsToDisplay.filter(r => !r.estArchive);
                     if (currentFilter !== 'all') {
@@ -3326,6 +3331,9 @@
             // Filtre archive
             if (currentFilter === 'archived') {
                 records = records.filter(r => r.estArchive);
+            } else if (currentFilter === 'annulé') {
+                // Refusé : afficher tous les refusés, archivés ou non
+                records = records.filter(r => r.statut === 'annulé');
             } else {
                 records = records.filter(r => !r.estArchive);
                 if (currentFilter !== 'all') {
