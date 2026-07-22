@@ -267,16 +267,18 @@
   let currentMonth = today.getMonth() + 1;
 
   /* ── Logique métier ──────────────────────────────────────────── */
-  const TYPES_BLOQUANTS   = ['Mariage', 'Week-end privé', 'Séminaire', 'Bloqué'];
-  const TYPES_DEMANDE     = ['Mariage', 'Week-end privé', 'Séminaire'];
-  const STATUTS_CONFIRMES = ['Confirmé'];
-  const STATUTS_DEMANDE   = ['Option', 'À traiter', 'Devis envoyé'];
-  const STATUTS_EXCLUS    = ['Annulé', 'Archivé'];
+  // Comparaisons insensibles à la casse : la base stocke les statuts en
+  // minuscules ("confirmé", "annulé"…) mais les types gardent leur casse d'origine.
+  const TYPES_BLOQUANTS   = ['mariage', 'week-end privé', 'séminaire', 'bloqué'];
+  const TYPES_DEMANDE     = ['mariage', 'week-end privé', 'séminaire'];
+  const STATUTS_CONFIRMES = ['confirmé'];
+  const STATUTS_DEMANDE   = ['option', 'à traiter', 'devis envoyé'];
+  const STATUTS_EXCLUS    = ['annulé', 'archivé'];
 
   // Retourne : 2 = Indisponible, 1 = Sur demande, 0 = Disponible, -1 = ignoré
   function priorite(res) {
-    const type   = (res.type   || '').trim();
-    const statut = (res.statut || '').trim();
+    const type   = (res.type   || '').trim().toLowerCase();
+    const statut = (res.statut || '').trim().toLowerCase();
     if (STATUTS_EXCLUS.includes(statut)) return -1;
     if (TYPES_BLOQUANTS.includes(type) && STATUTS_CONFIRMES.includes(statut)) return 2;
     if (TYPES_DEMANDE.includes(type)   && STATUTS_DEMANDE.includes(statut))   return 1;
