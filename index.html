@@ -3597,28 +3597,43 @@
 
             const API_PLANNING = SesquierUtils.API_BASE + '/api/planning';
 
-            try {
-                if (planningId) {
-                    await SesquierUtils.fetchJson(API_PLANNING, {
+            // Crée une nouvelle entrée planning et lie son id à la réservation
+            async function createPlanningEntry() {
+                const res = await SesquierUtils.fetchJson(API_PLANNING, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fields: planningFields }),
+                });
+                const newId = res?.record?.id || res?.id;
+                if (newId) {
+                    await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: planningId, fields: planningFields }),
+                        body: JSON.stringify({ id: recordId, fields: { 'planning_id': newId } }),
                     });
-                } else {
-                    const res = await SesquierUtils.fetchJson(API_PLANNING, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ fields: planningFields }),
-                    });
-                    const newId = res?.record?.id || res?.id;
-                    if (newId) {
-                        await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                    if (record._raw) record._raw.fields['planning_id'] = newId;
+                }
+            }
+
+            try {
+                if (planningId) {
+                    try {
+                        await SesquierUtils.fetchJson(API_PLANNING, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: recordId, fields: { 'planning_id': newId } }),
+                            body: JSON.stringify({ id: planningId, fields: planningFields }),
                         });
-                        if (record._raw) record._raw.fields['planning_id'] = newId;
+                    } catch (patchErr) {
+                        // planning_id orphelin (entrée supprimée côté planning) → auto-réparation
+                        if (/introuvable|not found|404/i.test(patchErr.message || '')) {
+                            console.warn('[syncToPlanning] planning_id orphelin, recréation:', planningId);
+                            await createPlanningEntry();
+                        } else {
+                            throw patchErr;
+                        }
                     }
+                } else {
+                    await createPlanningEntry();
                 }
             } catch (e) {
                 console.error('[syncToPlanning]', e.message);
