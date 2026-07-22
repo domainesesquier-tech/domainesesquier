@@ -267,22 +267,21 @@
   let currentMonth = today.getMonth() + 1;
 
   /* ── Logique métier ──────────────────────────────────────────── */
-  // Comparaisons insensibles à la casse : la base stocke les statuts en
-  // minuscules ("confirmé", "annulé"…) mais les types gardent leur casse d'origine.
-  const TYPES_BLOQUANTS   = ['mariage', 'week-end privé', 'séminaire', 'bloqué'];
-  const TYPES_DEMANDE     = ['mariage', 'week-end privé', 'séminaire'];
-  const STATUTS_CONFIRMES = ['confirmé'];
-  const STATUTS_DEMANDE   = ['option', 'à traiter', 'devis envoyé'];
+  // Le Domaine se loue toujours en intégralité (chaque réservation couvre
+  // la quasi-totalité des logements), quel que soit le canal — Séminaire,
+  // Mariage, Week-end privé, mais aussi Airbnb, Booking, Elloha, Particulier…
+  // On se base donc uniquement sur le STATUT, indépendamment du Type.
+  // Comparaison insensible à la casse : la base stocke des statuts en
+  // minuscules ("confirmé") ou capitalisés ("Confirmé") selon leur origine.
+  const STATUTS_CONFIRMES = ['confirmé', 'bloqué'];
   const STATUTS_EXCLUS    = ['annulé', 'archivé'];
 
   // Retourne : 2 = Indisponible, 1 = Sur demande, 0 = Disponible, -1 = ignoré
   function priorite(res) {
-    const type   = (res.type   || '').trim().toLowerCase();
     const statut = (res.statut || '').trim().toLowerCase();
-    if (STATUTS_EXCLUS.includes(statut)) return -1;
-    if (TYPES_BLOQUANTS.includes(type) && STATUTS_CONFIRMES.includes(statut)) return 2;
-    if (TYPES_DEMANDE.includes(type)   && STATUTS_DEMANDE.includes(statut))   return 1;
-    return 0;
+    if (!statut || STATUTS_EXCLUS.includes(statut)) return -1;
+    if (STATUTS_CONFIRMES.includes(statut)) return 2;
+    return 1; // tout statut restant (Option, À traiter, Devis envoyé…) = sur demande
   }
 
   /* ── Utilitaires date ────────────────────────────────────────── */
