@@ -430,6 +430,27 @@
       box-shadow: inset 0 0 0 2px var(--green-mid);
     }
 
+    /* Fusion visuelle : les jours consécutifs d'une même réservation
+       forment un seul bloc bordé, sans coupure interne. Deux réservations
+       différentes qui se suivent dans le même logement restent, elles,
+       visuellement séparées par une bordure de chaque côté. */
+    .cell.occupied {
+      border-left: none;
+      border-right: none;
+      border-top: 1.5px solid rgba(0, 0, 0, 0.16);
+      border-bottom: 1.5px solid rgba(0, 0, 0, 0.16);
+    }
+    .cell.occupied.block-start {
+      border-left: 1.5px solid rgba(0, 0, 0, 0.16);
+      border-top-left-radius: 6px;
+      border-bottom-left-radius: 6px;
+    }
+    .cell.occupied.block-end {
+      border-right: 1.5px solid rgba(0, 0, 0, 0.16);
+      border-top-right-radius: 6px;
+      border-bottom-right-radius: 6px;
+    }
+
     .cell-label {
       font-size: 10px;
       font-weight: 700;
@@ -1394,18 +1415,27 @@ function buildGrid() {
 
     (res.logements || []).forEach(logName => {
       if (!grid[logName]) return;
-      let isFirst = true;
 
+      // Jours de cette réservation visibles dans le mois affiché.
+      // isFirst/isLast sont relatifs à ce qui est VISIBLE (pas à la réservation
+      // entière) : un séjour qui déborde du mois précédent affiche quand même
+      // son étiquette sur le 1er du mois, et son bloc se termine proprement
+      // sur le dernier jour visible.
+      const visibleDays = [];
       for (let cur = new Date(arrDate); cur < depDate; cur.setDate(cur.getDate() + 1)) {
-        if (cur.getFullYear() !== currentYear || cur.getMonth() + 1 !== currentMonth) {
-          isFirst = false;
-          continue;
-        }
+        if (cur.getFullYear() !== currentYear || cur.getMonth() + 1 !== currentMonth) continue;
         const day = cur.getDate();
-        if (day < 1 || day > dim) { isFirst = false; continue; }
-        grid[logName][day] = { reservation: res, isFirst };
-        isFirst = false;
+        if (day < 1 || day > dim) continue;
+        visibleDays.push(day);
       }
+
+      visibleDays.forEach((day, idx) => {
+        grid[logName][day] = {
+          reservation: res,
+          isFirst: idx === 0,
+          isLast:  idx === visibleDays.length - 1,
+        };
+      });
     });
   });
 
@@ -1523,12 +1553,13 @@ function renderGrid() {
           ? esc(res.nom.length > 10 ? res.nom.slice(0, 10) + '…' : res.nom)
           : '';
         const optionCls     = res.statut === 'Option' ? ' reservation-option' : '';
+        const blockCls       = `${cell.isFirst ? ' block-start' : ''}${cell.isLast ? ' block-end' : ''}`;
         const conflictList  = conflicts[logement.name]?.[d] || [];
         const conflictCls   = conflictList.length >= 2 ? ' has-conflict' : '';
         const conflictBadge = conflictList.length >= 2
           ? `<span class="conflict-badge">⚠ ${conflictList.length}</span>` : '';
         html += `<td
-          class="cell occupied${todayCls}${optionCls}${conflictCls}"
+          class="cell occupied${todayCls}${optionCls}${blockCls}${conflictCls}"
           style="background-color:${color.bg};color:${color.text};"
           data-res-id="${esc(res.id)}"
           data-logement="${esc(logement.name)}"
