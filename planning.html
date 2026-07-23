@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Planning — Domaine Sesquier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <style>
     /* ------------------------------------------------------------------ */
     /*  RESET & BASE                                                        */
@@ -43,11 +46,29 @@
       --success-bg:     #E8F5EE;
       --shadow-xs:      0 1px 2px rgba(0,0,0,0.04);
       --shadow-md:      0 4px 6px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.03);
+
+      /* — Refonte planning : 3 couleurs de type (oklch, même L/C, hue différent) — */
+      --type-seminaire:      oklch(0.5 0.15 264);
+      --type-seminaire-bg:   oklch(0.5 0.15 264 / 8%);
+      --type-weekend:        oklch(0.62 0.17 48);
+      --type-weekend-bg:     oklch(0.62 0.17 48 / 10%);
+      --type-weekend-text:   oklch(0.22 0.05 48);
+      --type-gite:           oklch(0.55 0.12 175);
+      --type-gite-bg:        oklch(0.55 0.12 175 / 8%);
+      --type-bloque:         oklch(0.55 0 0);
+      --type-bloque-bg:      oklch(0.55 0 0 / 8%);
+      --statut-annule-bg:    oklch(0.94 0.01 30);
+      --statut-annule-border: oklch(0.65 0.03 30);
+      --statut-annule-text:  oklch(0.42 0.02 30);
+      --header-dark:         oklch(0.2 0.02 260);
+      --section-divider:     oklch(0.28 0.03 250);
+      --weekend-tint:        oklch(0.94 0.01 90);
+      --font-display:        'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
     html, body {
       height: 100%;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: var(--font-display);
       font-size: 14px;
       background: var(--beige-light);
       color: var(--text);
@@ -251,6 +272,15 @@
       );
     }
 
+    .legend-dot-dashed {
+      background: rgba(0,0,0,.03);
+      border: 2px dashed var(--text-muted);
+    }
+    .legend-dot-annule {
+      background: var(--statut-annule-bg);
+      border: 2px dashed var(--statut-annule-border);
+    }
+
     .cell.has-conflict {
       outline: 2px solid #DC2626;
       outline-offset: -2px;
@@ -337,10 +367,11 @@
     }
 
     thead .col-logement {
-      background: var(--green-dark);
+      background: var(--header-dark);
       color: var(--white);
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
+      font-family: var(--font-display);
       letter-spacing: .05em;
       text-transform: uppercase;
       height: 44px;
@@ -374,22 +405,24 @@
     }
 
     thead .col-day {
-      background: var(--beige);
+      background: var(--header-dark);
       height: 44px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
+      font-family: var(--font-display);
       text-transform: uppercase;
-      color: var(--text-muted);
+      color: rgba(255,255,255,.65);
     }
     thead .col-day.today {
-      background: var(--green);
+      background: var(--type-seminaire);
       color: var(--white);
     }
     thead .col-day.weekend {
-      background: var(--beige-dark);
+      background: oklch(0.28 0.02 260);
+      color: rgba(255,255,255,.8);
     }
     thead .col-day.today.weekend {
-      background: var(--green);
+      background: var(--type-seminaire);
       color: var(--white);
     }
 
@@ -425,6 +458,10 @@
       background: var(--white);
     }
     .cell.free:hover { background: var(--green-light); }
+    .cell.free.weekend {
+      background: var(--weekend-tint);
+    }
+    .cell.free.weekend:hover { background: var(--green-light); }
 
     .cell.today-border {
       box-shadow: inset 0 0 0 2px var(--green-mid);
@@ -437,29 +474,99 @@
     .cell.occupied {
       border-left: none;
       border-right: none;
-      border-top: 1.5px solid rgba(0, 0, 0, 0.16);
-      border-bottom: 1.5px solid rgba(0, 0, 0, 0.16);
+      border-top: 1.5px solid rgba(0, 0, 0, 0.12);
+      border-bottom: 1.5px solid rgba(0, 0, 0, 0.12);
     }
     .cell.occupied.block-start {
-      border-left: 1.5px solid rgba(0, 0, 0, 0.16);
+      border-left: 1.5px solid rgba(0, 0, 0, 0.12);
       border-top-left-radius: 6px;
       border-bottom-left-radius: 6px;
     }
     .cell.occupied.block-end {
-      border-right: 1.5px solid rgba(0, 0, 0, 0.16);
+      border-right: 1.5px solid rgba(0, 0, 0, 0.12);
       border-top-right-radius: 6px;
       border-bottom-right-radius: 6px;
     }
 
-    .cell-label {
-      font-size: 10px;
-      font-weight: 700;
+    /* Couleur par bucket de type — injectée par cellule via variables CSS
+       inline (--type-color / --type-bg), les 3 règles de statut ci-dessous
+       s'appliquent ensuite génériquement à tous les buckets. */
+    .cell.occupied.statut-confirme {
+      background: var(--type-color);
+      color: var(--type-text, #fff);
+    }
+    .cell.occupied.statut-option {
+      background: var(--type-bg);
+      color: var(--type-color);
+      border-top-color: var(--type-color);    border-top-style: dashed;
+      border-bottom-color: var(--type-color); border-bottom-style: dashed;
+    }
+    .cell.occupied.statut-option.block-start {
+      border-left-color: var(--type-color); border-left-style: dashed;
+    }
+    .cell.occupied.statut-option.block-end {
+      border-right-color: var(--type-color); border-right-style: dashed;
+    }
+    .cell.occupied.statut-annule {
+      background: var(--statut-annule-bg);
+      color: var(--statut-annule-text);
+      border-top-color: var(--statut-annule-border);    border-top-style: dashed;
+      border-bottom-color: var(--statut-annule-border); border-bottom-style: dashed;
+    }
+    .cell.occupied.statut-annule.block-start {
+      border-left-color: var(--statut-annule-border); border-left-style: dashed;
+    }
+    .cell.occupied.statut-annule.block-end {
+      border-right-color: var(--statut-annule-border); border-right-style: dashed;
+    }
+    .cell.occupied.statut-annule .chip-type,
+    .cell.occupied.statut-annule .chip-name {
+      text-decoration: line-through;
+    }
+
+    /* Étiquette (1er jour visible du bloc) : abréviation du type + prénom */
+    .cell-chip {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 100%;
+      padding: 0 4px;
+      overflow: hidden;
+      font-family: var(--font-display);
+    }
+    .chip-type {
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      opacity: .85;
+      line-height: 1.3;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    .chip-name {
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Jours de continuation : un simple point, pas de texte */
+    .cell-dot-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+    .cell-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
       display: block;
-      padding: 0 2px;
-      line-height: 38px;
     }
 
     tbody tr:hover .col-logement {
@@ -468,10 +575,11 @@
 
     /* Séparateur avant les salles */
     tr.separator-row td {
-      background: var(--green-dark);
+      background: var(--section-divider);
       color: var(--white);
       font-size: 10px;
       font-weight: 700;
+      font-family: var(--font-display);
       letter-spacing: .08em;
       text-transform: uppercase;
       padding: 3px 10px;
@@ -543,41 +651,151 @@
 
     .kpi-icon {
       width: 42px; height: 42px;
-      border-radius: 12px;
+      border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
       font-size: 16px; flex-shrink: 0;
+      color: #fff;
     }
-    .kpi-card:nth-child(1) .kpi-icon { background: var(--primary-subtle); color: var(--primary); }
-    .kpi-card:nth-child(2) .kpi-icon { background: linear-gradient(135deg, rgba(158,93,76,0.1), rgba(158,93,76,0.05)); color: var(--accent); }
-    .kpi-card:nth-child(3) .kpi-icon { background: var(--warning-bg); color: var(--warning); }
-    .kpi-card:nth-child(4) .kpi-icon { background: var(--success-bg); color: var(--success); }
+    .kpi-icon-seminaire { background: var(--type-seminaire); }
+    .kpi-icon-gite       { background: var(--type-gite); }
+    .kpi-icon-weekend    { background: var(--type-weekend); color: var(--type-weekend-text); }
+    .kpi-icon-bloque     { background: var(--type-bloque); }
 
     .kpi-content { flex: 1; min-width: 0; }
 
     .kpi-label {
-      font-size: 11px;
+      font-size: 12px;
       text-transform: none;
       letter-spacing: 0;
       color: var(--text-muted);
-      font-weight: 400;
+      font-weight: 500;
       margin-bottom: 4px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: var(--font-display);
     }
 
     .kpi-value {
-      font-size: 18px;
-      font-weight: 700;
+      font-size: 26px;
+      font-weight: 800;
       color: var(--text);
       line-height: 1.1;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: var(--font-display);
     }
 
     .kpi-sub {
-      font-size: 10px;
+      font-size: 11px;
       color: var(--text-muted);
-      margin-top: 2px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin-top: 3px;
+      font-family: var(--font-display);
+      font-weight: 500;
     }
+
+    /* ------------------------------------------------------------------ */
+    /*  PAGE TITLE                                                          */
+    /* ------------------------------------------------------------------ */
+    .page-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      padding: 20px 20px 4px;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  DETAIL HINT / DETAIL CARD (en tête de page, remplace le survol)     */
+    /* ------------------------------------------------------------------ */
+    .detail-hint {
+      padding: 4px 20px 14px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      font-family: var(--font-display);
+    }
+
+    .detail-card {
+      margin: 0 20px 16px;
+      background: #1a1a1a;
+      color: #fff;
+      border-radius: 12px;
+      padding: 18px 22px;
+      font-family: var(--font-display);
+      animation: modalIn .18s ease;
+    }
+    .detail-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .detail-card-name {
+      font-size: 19px;
+      font-weight: 800;
+    }
+    .detail-card-close {
+      background: rgba(255,255,255,.08);
+      border: none;
+      color: #fff;
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .detail-card-close:hover { background: rgba(255,255,255,.16); }
+
+    .detail-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 12px 20px;
+      margin-bottom: 16px;
+    }
+    .detail-card-item .dc-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.5);
+      margin-bottom: 3px;
+    }
+    .detail-card-item .dc-value {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .detail-card-badge {
+      display: inline-block;
+      padding: 3px 11px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+
+    .detail-card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,.12);
+    }
+    .detail-card-actions .btn {
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.14);
+      color: #fff;
+    }
+    .detail-card-actions .btn:hover { background: rgba(255,255,255,.16); }
+    .detail-card-actions .btn-primary {
+      background: #fff;
+      color: #1a1a1a;
+      border-color: #fff;
+    }
+    .detail-card-actions .btn-primary:hover { background: #e5e5e5; }
+    .detail-card-actions .btn-danger {
+      background: rgba(220,38,38,.18);
+      border-color: rgba(220,38,38,.4);
+      color: #FCA5A5;
+    }
+    .detail-card-actions .btn-danger:hover { background: rgba(220,38,38,.28); }
 
     /* ------------------------------------------------------------------ */
     /*  MODAL OVERLAY                                                       */
@@ -682,7 +900,8 @@
     }
     .statut-badge.confirme  { background: #D1FAE5; color: #065F46; }
     .statut-badge.option    { background: #FEF3C7; color: #92400E; }
-    .statut-badge.annule    { background: #FEE2E2; color: #991B1B; }
+    .statut-badge.annule    { background: var(--statut-annule-bg); color: var(--statut-annule-text); text-decoration: line-through; }
+    .statut-badge.bloque    { background: #E5E7EB; color: #374151; }
 
     .logements-tags {
       display: flex;
@@ -1061,6 +1280,9 @@
   <!-- CONTENT -->
   <div class="content">
 
+  <!-- PAGE TITLE -->
+  <h1 class="page-title">Planning du domaine — <span id="page-title-month">—</span></h1>
+
   <!-- MONTH NAV BAR -->
   <div class="month-bar">
     <button class="btn btn-icon" id="btn-prev" title="Mois précédent">&#8249;</button>
@@ -1083,13 +1305,10 @@
     <button id="btn-week-next">&#8250;</button>
   </div>
 
-  <!-- LEGEND -->
-  <div class="legend" id="legend"></div>
-
   <!-- KPI CARDS -->
   <div class="kpi-grid" id="summary">
     <div class="kpi-card">
-      <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div class="kpi-icon kpi-icon-seminaire"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
       <div class="kpi-content">
         <div class="kpi-label">Nuits disponibles</div>
         <div class="kpi-value" id="sum-dispo">—</div>
@@ -1097,7 +1316,7 @@
       </div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div class="kpi-icon kpi-icon-gite"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
       <div class="kpi-content">
         <div class="kpi-label">Nuits occupées</div>
         <div class="kpi-value" id="sum-occ">—</div>
@@ -1105,7 +1324,7 @@
       </div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+      <div class="kpi-icon kpi-icon-weekend"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
       <div class="kpi-content">
         <div class="kpi-label">Taux d'occupation</div>
         <div class="kpi-value" id="sum-taux">—</div>
@@ -1113,7 +1332,7 @@
       </div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      <div class="kpi-icon kpi-icon-bloque"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
       <div class="kpi-content">
         <div class="kpi-label">CA du mois</div>
         <div class="kpi-value" id="sum-ca">—</div>
@@ -1121,6 +1340,13 @@
       </div>
     </div>
   </div>
+
+  <!-- LEGEND -->
+  <div class="legend" id="legend"></div>
+
+  <!-- DETAIL CARD : remplace ce texte au clic sur une case du planning -->
+  <p class="detail-hint" id="detail-hint">Clique un bloc du planning pour voir le détail complet ici (nom, dates, personnes, montant, statut).</p>
+  <div class="detail-card" id="detail-card" style="display:none;"></div>
 
   <!-- MAIN CALENDAR AREA -->
   <div class="main">
@@ -1189,7 +1415,30 @@ const COLORS = {
 };
 
 const TYPES   = Object.keys(COLORS);
-const STATUTS = ['Confirmé', 'Option', 'Bloqué', 'Archivé'];
+const STATUTS = ['Confirmé', 'Option', 'Bloqué', 'Annulé', 'Archivé'];
+
+// ── Regroupement visuel : les 8 types se répartissent dans 3 couleurs ──
+// (Séminaire / Week-end privé / Gîte individuel), + un 4e neutre pour les
+// blocages administratifs. Le Type précis reste stocké et affiché tel quel
+// dans le détail — seul le rendu de la grille utilise ce regroupement.
+const TYPE_BUCKET = {
+  'Séminaire':           'seminaire',
+  'Week-end privé':      'weekend',
+  'Mariage':             'weekend',
+  'Airbnb':              'gite',
+  'Booking':             'gite',
+  'Elloha':              'gite',
+  'Réservation directe': 'gite',
+  'Bloqué':              'bloque',
+};
+function bucketOf(type) { return TYPE_BUCKET[type] || 'gite'; }
+
+const BUCKET_STYLE = {
+  seminaire: { label: 'Séminaire',       abbr: 'SÉM',  color: 'var(--type-seminaire)', bg: 'var(--type-seminaire-bg)', text: '#fff' },
+  weekend:   { label: 'Week-end privé',  abbr: 'W-E',  color: 'var(--type-weekend)',   bg: 'var(--type-weekend-bg)',   text: 'var(--type-weekend-text)' },
+  gite:      { label: 'Gîte individuel', abbr: 'GÎTE', color: 'var(--type-gite)',      bg: 'var(--type-gite-bg)',      text: '#fff' },
+  bloque:    { label: 'Bloqué',          abbr: 'BLOQ', color: 'var(--type-bloque)',    bg: 'var(--type-bloque-bg)',    text: '#fff' },
+};
 
 const MONTHS_FR = [
   'Janvier','Février','Mars','Avril','Mai','Juin',
@@ -1378,25 +1627,33 @@ async function deleteReservation(id) {
 /* ------------------------------------------------------------------ */
 function renderLegend() {
   const el = document.getElementById('legend');
-  el.innerHTML = TYPES.map(type => {
-    const c = COLORS[type];
+  const buckets = ['seminaire', 'weekend', 'gite'];
+  el.innerHTML = buckets.map(key => {
+    const b = BUCKET_STYLE[key];
     return `<div class="legend-item">
-      <span class="legend-dot" style="background:${c.bg};"></span>
-      <span>${type}</span>
+      <span class="legend-dot" style="background:${b.color};"></span>
+      <span>${b.label}</span>
     </div>`;
   }).join('');
-  el.innerHTML += `<div class="legend-item">
-    <span class="legend-dot reservation-option" style="background:#999;"></span>
-    <span>Option (non confirmée)</span>
-  </div>`;
+  el.innerHTML += `
+    <div class="legend-item">
+      <span class="legend-dot legend-dot-dashed"></span>
+      <span>En option</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-dot legend-dot-annule"></span>
+      <span>Annulé</span>
+    </div>`;
 }
 
 /* ------------------------------------------------------------------ */
 /*  MONTH LABEL                                                         */
 /* ------------------------------------------------------------------ */
 function renderMonthLabel() {
-  document.getElementById('month-label').textContent =
-    `${MONTHS_FR[currentMonth - 1]} ${currentYear}`;
+  const label = `${MONTHS_FR[currentMonth - 1]} ${currentYear}`;
+  document.getElementById('month-label').textContent = label;
+  const titleEl = document.getElementById('page-title-month');
+  if (titleEl) titleEl.textContent = label;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1447,7 +1704,7 @@ function buildConflicts() {
   const map = {};
   LOGEMENTS.forEach(l => { map[l.name] = {}; });
   reservations.forEach(res => {
-    if (res.statut === 'Archivé' || !res.arrivee || !res.depart) return;
+    if (res.statut === 'Archivé' || res.statut === 'Annulé' || !res.arrivee || !res.depart) return;
     const arr = parseYMD(res.arrivee), dep = parseYMD(res.depart);
     (res.logements || []).forEach(logName => {
       if (!map[logName]) return;
@@ -1523,7 +1780,7 @@ function renderGrid() {
   LOGEMENTS.forEach(logement => {
     if (prevType === 'gite' && logement.type === 'salle') {
       html += `<tr class="separator-row">
-        <td colspan="${numCols + 1}" style="background:var(--green-dark);color:rgba(255,255,255,.7);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;height:24px;border:none;">
+        <td colspan="${numCols + 1}" style="background:var(--section-divider);color:rgba(255,255,255,.7);font-size:10px;font-weight:700;font-family:var(--font-display);letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;height:24px;border:none;">
           🏛 Salles de réception
         </td>
       </tr>`;
@@ -1542,35 +1799,42 @@ function renderGrid() {
       </td>`;
 
     for (let d = startDay; d <= endDay; d++) {
-      const isToday  = isThisMonth && d === todayDay;
-      const cell     = grid[logement.name][d];
-      const todayCls = isToday ? ' today-border' : '';
+      const isToday   = isThisMonth && d === todayDay;
+      const cell      = grid[logement.name][d];
+      const todayCls  = isToday ? ' today-border' : '';
+      const dayIdx2   = new Date(currentYear, currentMonth - 1, d).getDay();
+      const weekendCl = (dayIdx2 === 0 || dayIdx2 === 6) ? ' weekend' : '';
 
       if (cell) {
-        const res   = cell.reservation;
-        const color = COLORS[res.type] || { bg: '#999', text: '#fff' };
-        const label = cell.isFirst
-          ? esc(res.nom.length > 10 ? res.nom.slice(0, 10) + '…' : res.nom)
-          : '';
-        const optionCls     = res.statut === 'Option' ? ' reservation-option' : '';
-        const blockCls       = `${cell.isFirst ? ' block-start' : ''}${cell.isLast ? ' block-end' : ''}`;
+        const res    = cell.reservation;
+        const bucket = BUCKET_STYLE[bucketOf(res.type)];
+        const sCls   = statutCellClass(res.statut);
+        const blockCls      = `${cell.isFirst ? ' block-start' : ''}${cell.isLast ? ' block-end' : ''}`;
         const conflictList  = conflicts[logement.name]?.[d] || [];
         const conflictCls   = conflictList.length >= 2 ? ' has-conflict' : '';
         const conflictBadge = conflictList.length >= 2
           ? `<span class="conflict-badge">⚠ ${conflictList.length}</span>` : '';
+        // 1er jour visible du bloc : étiquette (type abrégé + prénom).
+        // Jours suivants : simple point de couleur, pas de texte répété.
+        const inner = cell.isFirst
+          ? `<div class="cell-chip">
+               <span class="chip-type">${esc(bucket.abbr)}</span>
+               <span class="chip-name">${esc((res.nom || '').split(' ')[0])}</span>
+             </div>`
+          : `<div class="cell-dot-wrap"><span class="cell-dot"></span></div>`;
         html += `<td
-          class="cell occupied${todayCls}${optionCls}${blockCls}${conflictCls}"
-          style="background-color:${color.bg};color:${color.text};"
+          class="cell occupied${todayCls} ${sCls}${blockCls}${conflictCls}"
+          style="--type-color:${bucket.color};--type-bg:${bucket.bg};--type-text:${bucket.text};"
           data-res-id="${esc(res.id)}"
           data-logement="${esc(logement.name)}"
           data-day="${d}"
           data-conflict-ids="${conflictList.length >= 2 ? conflictList.map(r => r.id).join(',') : ''}"
           role="gridcell"
           tabindex="0"
-        ><span class="cell-label">${label}</span>${conflictBadge}</td>`;
+        >${inner}${conflictBadge}</td>`;
       } else {
         html += `<td
-          class="cell free${todayCls}"
+          class="cell free${todayCls}${weekendCl}"
           data-logement="${esc(logement.name)}"
           data-day="${d}"
           role="gridcell"
@@ -1604,7 +1868,7 @@ function renderGrid() {
         hideGanttTooltip();
         const conflictIds = (td.dataset.conflictIds || '').split(',').filter(Boolean);
         if (conflictIds.length >= 2) openConflictModal(conflictIds);
-        else openDetailModal(res);
+        else showDetailCard(res);
       }, { passive: false });
     }
   });
@@ -1666,7 +1930,7 @@ function openConflictModal(ids) {
         </div>
       </div>
       <button class="btn btn-primary" style="font-size:11px;padding:4px 10px;"
-        onclick="closeModal(); setTimeout(() => openDetailModal(reservations.find(r=>r.id==='${esc(r.id)}')), 50)">
+        onclick="closeModal(); showDetailCard(reservations.find(r=>r.id==='${esc(r.id)}'))">
         Voir
       </button>
     </div>`).join('');
@@ -1699,7 +1963,7 @@ function onCellClick(e) {
       openConflictModal(conflictIds);
     } else {
       const res = reservations.find(r => r.id === resId);
-      if (res) openDetailModal(res);
+      if (res) showDetailCard(res);
     }
   } else {
     if (window.innerWidth > 768) {
@@ -1781,81 +2045,88 @@ document.addEventListener('keydown', e => {
 });
 
 /* ----  DETAIL MODAL  ---- */
-function openDetailModal(res) {
-  const color  = COLORS[res.type] || { bg: '#999', text: '#fff' };
+/* ----  DETAIL CARD (en tête de page, remplace le modal + le survol)  ---- */
+function showDetailCard(res) {
+  const bucket = BUCKET_STYLE[bucketOf(res.type)];
   const sBadge = statutBadgeClass(res.statut);
 
-  const html = `
-    <div class="modal-header">
-      <span class="modal-title">Détails réservation</span>
-      <button class="modal-close" onclick="closeModal()" title="Fermer">&#x2715;</button>
+  const hint = document.getElementById('detail-hint');
+  const card = document.getElementById('detail-card');
+  if (hint) hint.style.display = 'none';
+
+  card.innerHTML = `
+    <div class="detail-card-header">
+      <div class="detail-card-name">${esc(res.nom)}</div>
+      <button class="detail-card-close" onclick="hideDetailCard()" title="Fermer">&#x2715;</button>
     </div>
 
-    <div class="detail-grid">
-      <div class="detail-item full">
-        <div class="label">Client</div>
-        <div class="value" style="font-size:18px;">${esc(res.nom)}</div>
+    <div class="detail-card-grid">
+      <div class="detail-card-item">
+        <div class="dc-label">Type</div>
+        <div class="dc-value"><span class="detail-card-badge" style="background:${bucket.color};color:${bucket.text};">${esc(res.type)}</span></div>
       </div>
-      <div class="detail-item">
-        <div class="label">Type</div>
-        <div class="value">
-          <span class="type-badge" style="background:${color.bg};color:${color.text};">${esc(res.type)}</span>
-        </div>
+      <div class="detail-card-item">
+        <div class="dc-label">Statut</div>
+        <div class="dc-value"><span class="statut-badge ${sBadge}">${esc(res.statut)}</span></div>
       </div>
-      <div class="detail-item">
-        <div class="label">Statut</div>
-        <div class="value">
-          <span class="statut-badge ${sBadge}">${esc(res.statut)}</span>
-        </div>
+      <div class="detail-card-item">
+        <div class="dc-label">Arrivée</div>
+        <div class="dc-value">${formatDate(res.arrivee)}</div>
       </div>
-      <div class="detail-item">
-        <div class="label">Arrivée</div>
-        <div class="value">${formatDate(res.arrivee)}</div>
+      <div class="detail-card-item">
+        <div class="dc-label">Départ</div>
+        <div class="dc-value">${formatDate(res.depart)}</div>
       </div>
-      <div class="detail-item">
-        <div class="label">Départ</div>
-        <div class="value">${formatDate(res.depart)}</div>
+      <div class="detail-card-item">
+        <div class="dc-label">Personnes</div>
+        <div class="dc-value">${res.personnes || '—'}</div>
       </div>
-      <div class="detail-item">
-        <div class="label">Personnes</div>
-        <div class="value">${res.personnes || '—'}</div>
-      </div>
-      <div class="detail-item">
-        <div class="label">Montant</div>
-        <div class="value">${res.montant ? Number(res.montant).toLocaleString('fr-FR', {style:'currency',currency:'EUR',maximumFractionDigits:0}) : '—'}</div>
-      </div>
-      <div class="detail-item full">
-        <div class="label">Logements</div>
-        <div class="value">
-          <div class="logements-tags">
-            ${(res.logements || []).map(l => `<span class="logement-tag">${esc(l)}</span>`).join('')}
-          </div>
-        </div>
+      <div class="detail-card-item">
+        <div class="dc-label">Montant</div>
+        <div class="dc-value">${res.montant ? Number(res.montant).toLocaleString('fr-FR', {style:'currency',currency:'EUR',maximumFractionDigits:0}) : '—'}</div>
       </div>
       ${res.contact_tel ? `
-      <div class="detail-item">
-        <div class="label">Contact tél</div>
-        <div class="value">${esc(res.contact_tel)}</div>
+      <div class="detail-card-item">
+        <div class="dc-label">Contact tél</div>
+        <div class="dc-value">${esc(res.contact_tel)}</div>
       </div>` : ''}
-      <div class="detail-item">
-        <div class="label">Draps</div>
-        <div class="value">${res.draps ? '✓ Oui' : '—'}</div>
+      <div class="detail-card-item">
+        <div class="dc-label">Draps</div>
+        <div class="dc-value">${res.draps ? '✓ Oui' : '—'}</div>
       </div>
-      ${res.notes ? `
-      <div class="detail-item full">
-        <div class="label">Notes</div>
-        <div class="notes-box">${esc(res.notes)}</div>
-      </div>` : ''}
     </div>
 
-    <div class="modal-actions">
+    ${(res.logements && res.logements.length) ? `
+    <div style="margin-bottom:14px;">
+      <div class="dc-label" style="margin-bottom:6px;">Logements</div>
+      <div class="logements-tags">
+        ${res.logements.map(l => `<span class="logement-tag" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#fff;">${esc(l)}</span>`).join('')}
+      </div>
+    </div>` : ''}
+
+    ${res.notes ? `
+    <div style="margin-bottom:14px;">
+      <div class="dc-label" style="margin-bottom:6px;">Notes</div>
+      <div class="notes-box" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:#fff;">${esc(res.notes)}</div>
+    </div>` : ''}
+
+    <div class="detail-card-actions">
       <button class="btn btn-danger" onclick="confirmDelete('${res.id}')">Supprimer</button>
-      <button class="btn" style="color:#666;" onclick="confirmArchive('${res.id}')">Archiver</button>
-      <button class="btn" onclick="closeModal()">Fermer</button>
+      <button class="btn" onclick="confirmArchive('${res.id}')">Archiver</button>
+      <button class="btn" onclick="hideDetailCard()">Fermer</button>
       <button class="btn btn-primary" onclick="openEditModal('${esc(res.id)}')">Modifier</button>
     </div>`;
 
-  openModal(html);
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function hideDetailCard() {
+  const card = document.getElementById('detail-card');
+  card.style.display = 'none';
+  card.innerHTML = '';
+  const hint = document.getElementById('detail-hint');
+  if (hint) hint.style.display = 'block';
 }
 
 /* ----  FORM MODAL (create / edit)  ---- */
@@ -2064,6 +2335,7 @@ async function confirmDelete(id) {
   if (!confirm('Supprimer définitivement cette réservation ?')) return;
 
   closeModal();
+  hideDetailCard();
   try {
     await deleteReservation(id);
     reservations = reservations.filter(r => r.id !== id);
@@ -2087,6 +2359,7 @@ async function confirmArchive(id) {
     });
     reservations = reservations.filter(r => r.id !== id);
     closeModal();
+    hideDetailCard();
     renderGrid();
     renderSummary();
     showFlash('Réservation archivée.', 'success');
@@ -2144,8 +2417,17 @@ function formatDate(str) {
 function statutBadgeClass(statut) {
   if (statut === 'Confirmé') return 'confirme';
   if (statut === 'Option')   return 'option';
-  if (statut === 'Bloqué')   return 'annule';
+  if (statut === 'Annulé')   return 'annule';
+  if (statut === 'Bloqué')   return 'bloque';
   return '';
+}
+
+// Classe de statut utilisée pour le rendu des cellules de la grille
+// (regroupe Bloqué avec Confirmé visuellement : un bloc plein).
+function statutCellClass(statut) {
+  if (statut === 'Annulé') return 'statut-annule';
+  if (statut === 'Option') return 'statut-option';
+  return 'statut-confirme'; // Confirmé, Bloqué
 }
 
 /* ------------------------------------------------------------------ */
