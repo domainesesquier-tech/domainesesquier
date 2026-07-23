@@ -1320,7 +1320,7 @@
       <div class="kpi-content">
         <div class="kpi-label">Nuits occupées</div>
         <div class="kpi-value" id="sum-occ">—</div>
-        <div class="kpi-sub">Réservations actives</div>
+        <div class="kpi-sub">≥ 1 gîte réservé</div>
       </div>
     </div>
     <div class="kpi-card">
@@ -1979,30 +1979,32 @@ function onCellClick(e) {
 function renderSummary() {
   const dim   = daysInMonth(currentYear, currentMonth);
   const gites = LOGEMENTS.filter(l => l.type === 'gite');
-  const total = dim * gites.length;
+  // Disponibilité en jours calendaires du mois (et non en nuitées-gîtes).
+  const total = dim;
 
-  let occupied = 0;
-  let ca       = 0;
+  // Un jour est "occupé" dès qu'au moins un gîte y est réservé (confirmé).
+  const occupiedDays = new Set();
+  let ca = 0;
 
   reservations.forEach(res => {
     if (res.statut === 'Confirmé') {
-      const arr   = parseYMD(res.arrivee);
-      const dep   = parseYMD(res.depart);
-      const nLogs = (res.logements || []).filter(l =>
+      const arr = parseYMD(res.arrivee);
+      const dep = parseYMD(res.depart);
+      const touchesGite = (res.logements || []).some(l =>
         gites.some(lg => lg.name === l)
-      ).length;
-
-      let nights = 0;
-      for (let cur = new Date(arr); cur < dep; cur.setDate(cur.getDate() + 1)) {
-        if (cur.getFullYear() === currentYear && cur.getMonth() + 1 === currentMonth) {
-          nights++;
+      );
+      if (touchesGite) {
+        for (let cur = new Date(arr); cur < dep; cur.setDate(cur.getDate() + 1)) {
+          if (cur.getFullYear() === currentYear && cur.getMonth() + 1 === currentMonth) {
+            occupiedDays.add(cur.getDate());
+          }
         }
       }
-      occupied += nights * nLogs;
-      ca       += Number(res.montant) || 0;
+      ca += Number(res.montant) || 0;
     }
   });
 
+  const occupied = occupiedDays.size;
   const taux = total > 0 ? Math.round((occupied / total) * 100) : 0;
 
   document.getElementById('sum-dispo').textContent = total;
