@@ -703,20 +703,30 @@
 
                 const wrapperTop  = wrapper.getBoundingClientRect().top;
                 const sectionEls  = Array.from(wrapper.querySelectorAll(
-                    '.pricing-section, #options-proposal, #activities-proposal, .bottom-section, .info-section'
+                    '.pricing-section, #options-proposal, #activities-proposal, .bottom-section, .info-section, ' +
+                    '#pricing-body > tr, #options-body > tr, #activities-body > tr'
                 ));
                 const sectionTops = sectionEls
                     .map(el => Math.round((el.getBoundingClientRect().top - wrapperTop) * 2))
                     .filter(y => y > 0)
                     .sort((a, b) => a - b);
 
+                // Découpage glouton : on coupe à la DERNIÈRE ligne qui tient
+                // encore dans la page courante, jamais à la première qui déborde.
+                // Sinon la tranche serait plus haute qu'une A4 et son bas serait
+                // rogné (texte coupé en deux).
                 const pageCuts = [0];
                 let pageStart  = 0;
+                let lastFit    = 0;
 
                 for (const sTop of sectionTops) {
-                    if (sTop - pageStart > pageH_px) {
-                        pageCuts.push(sTop);
-                        pageStart = sTop;
+                    if (sTop - pageStart <= pageH_px) {
+                        lastFit = sTop;                 // tient encore : candidat de coupe
+                    } else {
+                        const cut = (lastFit > pageStart) ? lastFit : sTop;
+                        pageCuts.push(cut);
+                        pageStart = cut;
+                        lastFit   = (sTop - pageStart <= pageH_px) ? sTop : pageStart;
                     }
                 }
                 let lastCut = pageCuts[pageCuts.length - 1];
