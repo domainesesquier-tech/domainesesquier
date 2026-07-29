@@ -83,7 +83,7 @@
             border-radius: 4px;
             background: #fdf6e3;
             color: #92400e;
-            font-size: 6.5pt;
+            font-size: 4.9pt;
             font-weight: 800;
             letter-spacing: .06em;
             vertical-align: middle;
@@ -94,9 +94,38 @@
             border-color: #92400e !important;
             color: #fff !important;
         }
-        /* Ligne récap "Options (non incluses)" */
-        .options-recap-row { color: var(--primary); }
-        .options-recap-row.hidden { display: none; }
+        /* Encadré récap des options (sous-total non inclus) */
+        .options-recap-box {
+            margin-top: 12px;
+            border: 1px solid #e6c98a;
+            background: #fdf8ee;
+            border-radius: 5px;
+            padding: 8px 10px;
+        }
+        .options-recap-box.hidden { display: none; }
+        .options-recap-title {
+            font-size: 7pt;
+            font-weight: 800;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: #92400e;
+            margin-bottom: 4px;
+        }
+        .options-recap-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 9.5pt;
+            font-weight: 700;
+            color: #7a3d00;
+        }
+        .options-recap-note {
+            font-size: 7pt;
+            font-style: italic;
+            color: #a06a2c;
+            margin-top: 3px;
+            line-height: 1.3;
+        }
 
         tr.dragging { opacity: 0.35; background: #f1f5f9 !important; }
         tr.drag-over td { border-top: 3px solid #6B7060; }
@@ -720,10 +749,13 @@
                     <span id="display-total-ttc" style="font-size: 16pt;">0,00 €</span>
                 </div>
 
-                <div class="total-row options-recap-row hidden" id="options-recap"
-                    style="margin-top: 8px; font-size: 8.5pt; font-style: italic;">
-                    <span>Options (non incluses)</span>
-                    <span id="display-options-total" style="font-weight: 600;">0,00 €</span>
+                <div class="options-recap-box hidden" id="options-recap">
+                    <div class="options-recap-title">Options</div>
+                    <div class="options-recap-line">
+                        <span>Sous-total options</span>
+                        <span id="display-options-total">0,00 €</span>
+                    </div>
+                    <div class="options-recap-note">Non inclus dans le total — à activer si souhaité</div>
                 </div>
 
                 <div class="price-summary-box"
@@ -1918,7 +1950,7 @@
             const recapVal = document.getElementById('display-options-total');
             if (recapRow && recapVal) {
                 if (optionsHT > 0) {
-                    recapVal.innerText = formatEuro(optionsHT);
+                    recapVal.innerText = formatEuro(optionsHT) + ' HT';
                     recapRow.classList.remove('hidden');
                 } else {
                     recapRow.classList.add('hidden');
