@@ -2262,16 +2262,39 @@
                 const ratio    = CONTENT_W_PT / canvas.width;
                 const pageH_px = Math.floor(CONTENT_H_PT / ratio); // hauteur max d'une page en px canvas
 
-                // ── Coupures de page : intervalles fixes ──────────────────────
-                // Approche simple et fiable : couper tous les pageH_px pixels.
-                // Les deux .page divs (#devis-content + #page2-content) sont
-                // continus dans le canvas — aucune logique de section nécessaire.
-                // Le contenu coule naturellement d'une page à l'autre.
+                // ── Coupures de page alignées sur les bords de lignes ─────────
+                // On coupe à la DERNIÈRE frontière (début de ligne / section) qui
+                // tient encore dans la page courante — jamais au milieu d'une ligne.
+                const wrapperTop2 = wrapper.getBoundingClientRect().top;
+                const boundaryEls = Array.from(wrapper.querySelectorAll(
+                    'section, .category-row, .subtotal-row, .meal-grid-row, ' +
+                    '#pricing-body > tr, #options-body > tr, #activities-body > tr'
+                ));
+                const boundaries = [...new Set(
+                    boundaryEls
+                        .map(el => Math.round((el.getBoundingClientRect().top - wrapperTop2) * 2))
+                        .filter(y => y > 0 && y < canvas.height)
+                )].sort((a, b) => a - b);
+
                 const pageCuts = [0];
-                let pos = pageH_px;
-                while (pos < canvas.height) {
-                    pageCuts.push(Math.round(pos));
-                    pos += pageH_px;
+                let pageStart = 0;
+                let lastFit   = 0;
+                for (const b of boundaries) {
+                    if (b - pageStart <= pageH_px) {
+                        lastFit = b;                    // tient encore : candidat de coupe
+                    } else {
+                        const cut = (lastFit > pageStart) ? lastFit : b; // fallback si rien ne tient
+                        pageCuts.push(cut);
+                        pageStart = cut;
+                        lastFit   = (b - pageStart <= pageH_px) ? b : pageStart;
+                    }
+                }
+                // Sécurité : si le dernier segment (zone sans frontière) dépasse
+                // une page, on complète par des coupes fixes.
+                let lastCut = pageCuts[pageCuts.length - 1];
+                while (canvas.height - lastCut > pageH_px) {
+                    lastCut += pageH_px;
+                    pageCuts.push(lastCut);
                 }
                 pageCuts.push(canvas.height);
 
