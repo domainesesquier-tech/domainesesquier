@@ -70,6 +70,34 @@
         .row-subtitle:focus:before { content: none; }
         .row-label { font-weight: 500; }
 
+        /* ── Lignes en option : affichées mais non comptées ── */
+        tr.is-option td { color: #9ca3af; }
+        tr.is-option .row-label,
+        tr.is-option .row-total { color: #9ca3af; }
+        tr.is-option .row-label::after {
+            content: "OPTION";
+            display: inline-block;
+            margin-left: 8px;
+            padding: 1px 6px;
+            border: 1px solid #c8a23c;
+            border-radius: 4px;
+            background: #fdf6e3;
+            color: #92400e;
+            font-size: 6.5pt;
+            font-weight: 800;
+            letter-spacing: .06em;
+            vertical-align: middle;
+        }
+        /* Bouton Option actif (état sélectionné) */
+        tr.is-option .row-option-btn {
+            background: #92400e !important;
+            border-color: #92400e !important;
+            color: #fff !important;
+        }
+        /* Ligne récap "Options (non incluses)" */
+        .options-recap-row { color: var(--primary); }
+        .options-recap-row.hidden { display: none; }
+
         tr.dragging { opacity: 0.35; background: #f1f5f9 !important; }
         tr.drag-over td { border-top: 3px solid #6B7060; }
         .drag-handle {
@@ -690,6 +718,12 @@
                     style="margin-top: 10px; border-top: 2px solid var(--primary); padding-top: 10px;">
                     <span style="font-size: 11pt; text-transform: uppercase; letter-spacing: 1px;">Total TTC</span>
                     <span id="display-total-ttc" style="font-size: 16pt;">0,00 €</span>
+                </div>
+
+                <div class="total-row options-recap-row hidden" id="options-recap"
+                    style="margin-top: 8px; font-size: 8.5pt; font-style: italic;">
+                    <span>Options (non incluses)</span>
+                    <span id="display-options-total" style="font-weight: 600;">0,00 €</span>
                 </div>
 
                 <div class="price-summary-box"
@@ -1385,6 +1419,7 @@
                     const sub = row.querySelector('.row-subtitle');
                     if (sub) sub.innerText = line.subtitle;
                 }
+                if (line.option) row.classList.add('is-option');
                 const tbody = document.getElementById(targetId);
                 if (tbody) tbody.appendChild(row);
             };
@@ -1665,6 +1700,7 @@
                         mealKey,
                     };
                     if (subtitleText) entry.subtitle = subtitleText;
+                    if (tr.classList.contains('is-option')) entry.option = true;
                     rows.push(entry);
                 }
             });
@@ -1870,12 +1906,24 @@
         }
 
         function updateCalculations() {
-            const { totalHT, totalTVA, ttc } = SesquierUtils.runCommonCalculations();
+            const { totalHT, totalTVA, ttc, optionsHT } = SesquierUtils.runCommonCalculations();
 
             // Mise à jour des totaux généraux
             document.getElementById('display-total-ht').innerText = formatEuro(totalHT);
             document.getElementById('display-total-tva').innerText = formatEuro(totalTVA);
             document.getElementById('display-total-ttc').innerText = formatEuro(ttc);
+
+            // Récap "Options (non incluses)" — affiché seulement s'il y a des options
+            const recapRow = document.getElementById('options-recap');
+            const recapVal = document.getElementById('display-options-total');
+            if (recapRow && recapVal) {
+                if (optionsHT > 0) {
+                    recapVal.innerText = formatEuro(optionsHT);
+                    recapRow.classList.remove('hidden');
+                } else {
+                    recapRow.classList.add('hidden');
+                }
+            }
 
             // Calcul automatique de l'acompte conseillé (30%)
             const depositEl = document.getElementById('display-deposit');

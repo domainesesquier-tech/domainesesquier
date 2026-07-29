@@ -181,9 +181,10 @@ const SesquierUtils = {
 
     addPricingRow(label, qty, price, tva, mealKey = null, targetId = 'pricing-body') {
         const tbody = document.getElementById(targetId);
-        if (!tbody) return;
+        if (!tbody) return null;
         const tr = this.createPricingRow(label, qty, price, tva, mealKey);
         tbody.appendChild(tr);
+        return tr;
     },
 
     createPricingRow(label, qty, price, tva, mealKey = null) {
@@ -200,12 +201,26 @@ const SesquierUtils = {
             <td class="tva-rate" contenteditable="true" style="text-align:center; font-size:9pt; color:#6b7280;">${tva}</td>
             <td class="row-total" style="text-align:right; font-weight:600; font-size:9pt;">0.00</td>
             <td class="no-print" style="text-align:center; vertical-align:middle; white-space:nowrap; padding:0 4px;">
+                <button class="row-option-btn no-print" onclick="SesquierUtils.toggleOption(this, event)" title="Basculer en option (ligne affichée mais non comptée)" style="background:none; border:1px solid #d1d5db; border-radius:4px; color:#9ca3af; cursor:pointer; font-size:7.5pt; font-weight:700; padding:1px 5px; margin-right:2px; text-transform:uppercase; letter-spacing:.04em; vertical-align:middle;">Option</button>
                 <span class="drag-handle no-print" title="Déplacer" style="cursor:grab; color:#d1d5db; font-size:10pt; padding:0 3px; user-select:none;"><i class="fa-solid fa-grip-vertical"></i></span>
                 <button onclick="SesquierUtils.removeRow(this, event)" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:14pt; padding:0 3px; line-height:1;">&times;</button>
             </td>
         `;
         this._bindDragRow(tr);
         return tr;
+    },
+
+    /**
+     * Bascule une ligne de prestation en "option" : elle reste affichée mais
+     * son montant n'est plus compté dans les sous-totaux ni le total du devis.
+     */
+    toggleOption(btn, event) {
+        if (event) event.stopPropagation();
+        const tr = btn.closest('tr');
+        if (!tr) return;
+        tr.classList.toggle('is-option');
+        if (typeof updateCalculations === 'function') updateCalculations();
+        if (typeof markDirty === 'function') markDirty();
     },
 
     _bindDragRow(tr) {
@@ -318,6 +333,7 @@ const SesquierUtils = {
     runCommonCalculations() {
         let totalHT = 0, totalTVA = 0;
         let sHeberg = 0, sRestau = 0, sOpt = 0, sActiv = 0;
+        let optionsHT = 0; // total des lignes "en option" (non compté dans le devis)
 
         const parseP = (val) => {
             if (!val) return 0;
@@ -342,6 +358,13 @@ const SesquierUtils = {
 
                 const totalEl = row.querySelector('.row-total');
                 if (totalEl) totalEl.innerText = line.toFixed(2);
+
+                // Ligne en option : affichée (montant conservé) mais exclue de
+                // tous les totaux — cumulée à part dans optionsHT.
+                if (row.classList.contains('is-option')) {
+                    optionsHT += line;
+                    return;
+                }
 
                 totalHT += line;
 
@@ -386,7 +409,7 @@ const SesquierUtils = {
         updateField('subtotal-activities', sActiv);
 
         const ttc = totalHT + totalTVA;
-        return { totalHT, totalTVA: Math.round(totalTVA * 100) / 100, ttc: Math.round(ttc * 100) / 100, subtotals: { sHeberg, sRestau, sOpt, sActiv } };
+        return { totalHT, totalTVA: Math.round(totalTVA * 100) / 100, ttc: Math.round(ttc * 100) / 100, optionsHT: Math.round(optionsHT * 100) / 100, subtotals: { sHeberg, sRestau, sOpt, sActiv } };
     },
 
     /**
