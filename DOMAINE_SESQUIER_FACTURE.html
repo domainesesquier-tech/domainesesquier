@@ -575,7 +575,7 @@
             tbody.innerHTML = '';
             lines.forEach(line => {
                 if      (line.type === 'category') SesquierUtils.addCategoryRow(line.title, tbodyId);
-                else if (line.type === 'subtotal') SesquierUtils.addSubtotalRow(line.label, line.id, tbodyId);
+                else if (line.type === 'subtotal') SesquierUtils.addSubtotalRow(SesquierUtils.subtotalDisplayLabel(line.id, line.label), line.id, tbodyId);
                 else if (line.type === 'pricing') {
                     const row = SesquierUtils.addPricingRow(
                         line.label, line.qty, line.unitPriceHT,

@@ -309,13 +309,28 @@ const SesquierUtils = {
             <td colspan="4" style="padding: 6px 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <button class="no-print" onclick="SesquierUtils.addRowBefore(this)" style="background: white; border:1.5px solid var(--primary); color: var(--primary); border-radius:4px; padding:4px 12px; cursor:pointer; font-size:8pt; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">+ Ligne</button>
-                    <span style="font-style: italic; color:#666; font-size:8.5pt;">Sous-total ${label} HT</span>
+                    <div style="text-align:right;">
+                        <span style="font-style: italic; color:#666; font-size:8.5pt;">Sous-total ${label} HT</span>
+                        <div class="section-options-note" id="${id}-opt" style="display:none; font-size:7.5pt; font-weight:600; font-style:italic; color:#92400e; margin-top:2px;"></div>
+                    </div>
                 </div>
             </td>
             <td class="subtotal-val" id="${id}" style="text-align: right; padding-right: 5px; font-size:9.5pt;">0.00</td>
             <td class="no-print"></td>
         `;
         tbody.appendChild(tr);
+    },
+
+    // Libellé d'affichage normalisé d'un sous-total, à partir de son id
+    // (corrige les anciens devis où la section "espaces" était nommée "Options").
+    SUBTOTAL_LABELS: {
+        'subtotal-hebergement': 'Hébergement',
+        'subtotal-restauration': 'Restauration',
+        'subtotal-salles': 'espaces',
+        'subtotal-activities': 'Activités',
+    },
+    subtotalDisplayLabel(id, fallback) {
+        return this.SUBTOTAL_LABELS[id] || fallback;
     },
 
     addRowBefore(btn) {
@@ -334,6 +349,8 @@ const SesquierUtils = {
         let totalHT = 0, totalTVA = 0;
         let sHeberg = 0, sRestau = 0, sOpt = 0, sActiv = 0;
         let optionsHT = 0; // total des lignes "en option" (non compté dans le devis)
+        // Total des options par section (pour la note affichée sous chaque sous-total)
+        const optBySection = { 'subtotal-hebergement': 0, 'subtotal-restauration': 0, 'subtotal-salles': 0, 'subtotal-activities': 0 };
 
         const parseP = (val) => {
             if (!val) return 0;
@@ -359,26 +376,29 @@ const SesquierUtils = {
                 const totalEl = row.querySelector('.row-total');
                 if (totalEl) totalEl.innerText = line.toFixed(2);
 
-                // Ligne en option : affichée (montant conservé) mais exclue de
-                // tous les totaux — cumulée à part dans optionsHT.
+                // Section de la ligne (pour ventiler sous-totaux et options)
+                let sectionId;
+                if (tbodyId === 'pricing-body') {
+                    const label = (row.querySelector('.row-label')?.innerText || row.cells[0]?.innerText || "").toLowerCase();
+                    const isHeberg = label.includes("chambre") || label.includes("hébergement") || label.includes("héberg") || label.includes("twin");
+                    sectionId = isHeberg ? 'subtotal-hebergement' : 'subtotal-restauration';
+                } else if (tbodyId === 'options-body')      sectionId = 'subtotal-salles';
+                else if (tbodyId === 'activities-body')      sectionId = 'subtotal-activities';
+
+                // Ligne en option : affichée (montant conservé) mais exclue de tous
+                // les totaux — cumulée à part (global + par section).
                 if (row.classList.contains('is-option')) {
                     optionsHT += line;
+                    if (sectionId) optBySection[sectionId] += line;
                     return;
                 }
 
                 totalHT += line;
 
-                if (tbodyId === 'pricing-body') {
-                    const label = (row.querySelector('.row-label')?.innerText || row.cells[0]?.innerText || "").toLowerCase();
-                    const isHeberg = label.includes("chambre") || label.includes("hébergement") || label.includes("héberg") || label.includes("twin");
-                    
-                    if (isHeberg) {
-                        sHeberg += line;
-                    } else {
-                        sRestau += line;
-                    }
-                } else if (tbodyId === 'options-body') sOpt += line;
-                else if (tbodyId === 'activities-body') sActiv += line;
+                if      (sectionId === 'subtotal-hebergement')  sHeberg += line;
+                else if (sectionId === 'subtotal-restauration') sRestau += line;
+                else if (sectionId === 'subtotal-salles')       sOpt    += line;
+                else if (sectionId === 'subtotal-activities')   sActiv  += line;
 
                 const tvaEl = row.querySelector('.tva-rate');
                 let rate = 0.1;
@@ -407,6 +427,18 @@ const SesquierUtils = {
         updateField('subtotal-restauration', sRestau);
         updateField('subtotal-salles', sOpt);
         updateField('subtotal-activities', sActiv);
+
+        // Note "options proposées (non incluses)" sous chaque sous-total de section
+        Object.entries(optBySection).forEach(([sid, amount]) => {
+            const note = document.getElementById(sid + '-opt');
+            if (!note) return;
+            if (amount > 0) {
+                note.textContent = `+ ${this.formatEuro(amount)} HT d'options proposées (non incluses au total)`;
+                note.style.display = 'block';
+            } else {
+                note.style.display = 'none';
+            }
+        });
 
         const ttc = totalHT + totalTVA;
         return { totalHT, totalTVA: Math.round(totalTVA * 100) / 100, ttc: Math.round(ttc * 100) / 100, optionsHT: Math.round(optionsHT * 100) / 100, subtotals: { sHeberg, sRestau, sOpt, sActiv } };

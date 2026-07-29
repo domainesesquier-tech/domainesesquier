@@ -116,7 +116,7 @@ const DossierModel = {
         lines.push({ type: 'category', title: 'Mise à disposition des espaces' });
         optionsLines.forEach(l => lines.push(l));
         subtotals.options = optionsLines.reduce((sum, l) => sum + l.totalHT, 0);
-        lines.push({ type: 'subtotal', label: 'Options', id: 'subtotal-salles', value: subtotals.options });
+        lines.push({ type: 'subtotal', label: 'espaces', id: 'subtotal-salles', value: subtotals.options });
 
         // D. ACTIVITÉS
         const activitesLines = this._buildActivites(options.activities || {});

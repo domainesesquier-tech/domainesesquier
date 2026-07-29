@@ -1265,7 +1265,7 @@
             if (salleAmountHT > 0) {
                 addPricingRow(salleLabel, qS, salleAmountHT / qS, "20%", null, "options-body");
             }
-            addSubtotalRow("Options", "subtotal-salles", "options-body");
+            addSubtotalRow("espaces", "subtotal-salles", "options-body");
 
             // --- D. Activities (Page 2) ---
             const actBody = document.getElementById('activities-body');
@@ -1431,6 +1431,7 @@
             const SUBTOTAL_ID_MAP = {
                 'hébergement': 'subtotal-hebergement',
                 'restauration': 'subtotal-restauration',
+                'espaces':      'subtotal-salles',
                 'options':      'subtotal-salles',
                 'salles':       'subtotal-salles',
                 'activités':    'subtotal-activities',
@@ -1442,6 +1443,17 @@
                     if (key.includes(k)) return id;
                 }
                 return label ? 'subtotal-' + key.replace(/\s+/g, '-') : 'subtotal-unknown';
+            }
+            // Libellé d'affichage normalisé depuis l'id (corrige aussi les anciens
+            // devis où la section espaces était nommée "Options").
+            const SUBTOTAL_LABELS = {
+                'subtotal-hebergement': 'Hébergement',
+                'subtotal-restauration': 'Restauration',
+                'subtotal-salles': 'espaces',
+                'subtotal-activities': 'Activités',
+            };
+            function subtotalDisplayLabel(id, fallback) {
+                return SUBTOTAL_LABELS[id] || fallback;
             }
 
             // Helper : ajoute une ligne pricing avec subtitle optionnel
@@ -1463,7 +1475,7 @@
                 pricingLines.forEach(line => {
                     if (line.type === 'category') addCategoryRow(line.title);
                     else if (line.type === 'separator') { const tr = createSeparatorRow(line.label); document.getElementById('pricing-body').appendChild(tr); }
-                    else if (line.type === 'subtotal') addSubtotalRow(line.label, line.id || resolveSubtotalId(line.label));
+                    else if (line.type === 'subtotal') { const sid = line.id || resolveSubtotalId(line.label); addSubtotalRow(subtotalDisplayLabel(sid, line.label), sid); }
                     else if (line.type === 'pricing') addPricingRowWithSubtitle(line, 'pricing-body');
                 });
             }
@@ -1481,7 +1493,7 @@
                 optionsLines.forEach(line => {
                     if (line.type === 'category') SesquierUtils.addCategoryRow(line.title, 'options-body');
                     else if (line.type === 'separator') { const tr = createSeparatorRow(line.label); document.getElementById('options-body').appendChild(tr); }
-                    else if (line.type === 'subtotal') SesquierUtils.addSubtotalRow(line.label, line.id || resolveSubtotalId(line.label), 'options-body');
+                    else if (line.type === 'subtotal') { const sid = line.id || resolveSubtotalId(line.label); SesquierUtils.addSubtotalRow(subtotalDisplayLabel(sid, line.label), sid, 'options-body'); }
                     else if (line.type === 'pricing') addPricingRowWithSubtitle(line, 'options-body');
                 });
             }
@@ -1493,7 +1505,7 @@
                 activitesLines.forEach(line => {
                     if (line.type === 'category') SesquierUtils.addCategoryRow(line.title, 'activities-body');
                     else if (line.type === 'separator') { const tr = createSeparatorRow(line.label); document.getElementById('activities-body').appendChild(tr); }
-                    else if (line.type === 'subtotal') SesquierUtils.addSubtotalRow(line.label, line.id || resolveSubtotalId(line.label), 'activities-body');
+                    else if (line.type === 'subtotal') { const sid = line.id || resolveSubtotalId(line.label); SesquierUtils.addSubtotalRow(subtotalDisplayLabel(sid, line.label), sid, 'activities-body'); }
                     else if (line.type === 'pricing') addPricingRowWithSubtitle(line, 'activities-body');
                 });
                 // Ajouter le sous-total activités s'il n'est pas déjà dans les lignes
