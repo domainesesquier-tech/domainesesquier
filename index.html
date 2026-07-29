@@ -3591,7 +3591,9 @@
                 'Date départ':  depart,
                 'Statut':       statut,
                 'Logements':    PLANNING_LOGEMENTS_DEFAULT,
-                'Montant':      parseFloat(f['Total TTC'] || f['Montant Hébergement HT']) || 0,
+                // Montant = total devis HT (DOSSIER JSON financials.totalHT, sinon
+                // somme des champs plats HT) — et non l'hébergement seul.
+                'Montant':      record.totalHT || (parseFloat(f['Montant Hébergement HT']) || 0) + (parseFloat(f['Montant Repas HT']) || 0) + (parseFloat(f['Montant Options HT']) || 0),
                 'Nb personnes': parseInt(f['Nb personnes'] || f['Nombre de personnes'], 10) || 0,
             };
 
