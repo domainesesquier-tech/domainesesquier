@@ -675,7 +675,7 @@
         /* ========== KPI CARDS ========== */
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 14px;
             margin-bottom: 24px;
         }
@@ -2348,11 +2348,19 @@
                     </div>
                 </div>
                 <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fa-solid fa-file-signature"></i></div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">CA signé</div>
+                        <div class="kpi-value" id="kpi-ca-signe">—</div>
+                        <div class="kpi-sub">Confirmés (à venir)</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
                     <div class="kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
                     <div class="kpi-content">
-                        <div class="kpi-label">CA confirmé</div>
-                        <div class="kpi-value" id="kpi-ca-confirmed">—</div>
-                        <div class="kpi-sub">Confirmés + Effectués</div>
+                        <div class="kpi-label">CA effectué</div>
+                        <div class="kpi-value" id="kpi-ca-effectue">—</div>
+                        <div class="kpi-sub">Séjours réalisés</div>
                     </div>
                 </div>
             </div>
@@ -3144,21 +3152,22 @@
         // KPIs
         // =====================================================================
         function updateKPIs() {
-            let caTotal = 0, caPending = 0, caConfirmed = 0;
-            const STATUTS_PENDING   = new Set(['à traiter', 'devis envoyé']);
-            const STATUTS_CONFIRMED = new Set(['confirmé', 'effectué']);
+            let caTotal = 0, caPending = 0, caSigne = 0, caEffectue = 0;
+            const STATUTS_PENDING = new Set(['à traiter', 'devis envoyé']);
 
             allRecords.forEach(r => {
                 if (r.estArchive) return; // Exclure les archives
                 const s = (r.statut || '').toLowerCase();
                 caTotal += r.totalHT;
-                if (STATUTS_PENDING.has(s))   caPending   += r.totalHT;
-                if (STATUTS_CONFIRMED.has(s)) caConfirmed += r.totalHT;
+                if (STATUTS_PENDING.has(s)) caPending  += r.totalHT;
+                if (s === 'confirmé')       caSigne    += r.totalHT;  // signé, à venir
+                if (s === 'effectué')       caEffectue += r.totalHT;  // séjour réalisé
             });
 
             animateValue('kpi-total', allRecords.filter(r => !r.estArchive).length);
-            document.getElementById('kpi-ca-pending').innerText    = SesquierUtils.formatEuro(caPending);
-            document.getElementById('kpi-ca-confirmed').innerText  = SesquierUtils.formatEuro(caConfirmed);
+            document.getElementById('kpi-ca-pending').innerText   = SesquierUtils.formatEuro(caPending);
+            document.getElementById('kpi-ca-signe').innerText     = SesquierUtils.formatEuro(caSigne);
+            document.getElementById('kpi-ca-effectue').innerText  = SesquierUtils.formatEuro(caEffectue);
         }
 
         function animateValue(id, value) {
