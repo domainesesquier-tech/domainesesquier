@@ -14,8 +14,8 @@
 (function () {
   'use strict';
 
-  // Code par défaut : "domaine2026"
-  var CODE_HASH = 'bebcf71af153d92f18db1a883ff1db879f2538aa40e12361877f8c1fcd8f1576';
+  // Code d'accès (empreinte SHA-256)
+  var CODE_HASH = '6d41366d187aab33743770d0f2227ddca6e861da0dfeb924532efde6adc5fdc8';
   var KEY = 'ds_gate_ok';
 
   // Si la page est embarquée par notre propre app (iframe même origine),
