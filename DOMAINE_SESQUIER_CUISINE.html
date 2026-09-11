@@ -451,6 +451,7 @@
 
         const EVENT_TYPES = {
             'petitDej': { label: 'Petit-Déjeuner', icon: 'fa-coffee', hasMenu: false },
+            'brunch': { label: 'Brunch', icon: 'fa-egg', hasMenu: false },
             'collation': { label: 'Collation', icon: 'fa-cookie-bite', hasMenu: false },
             'lunch': { label: 'Déjeuner', icon: 'fa-utensils', hasMenu: true },
             'dinner': { label: 'Dîner', icon: 'fa-moon', hasMenu: true },
@@ -458,17 +459,32 @@
             'custom': { label: 'Prestation', icon: 'fa-star', hasMenu: false }
         };
 
-        function addEvent(dayIdx, afterIdx, type) {
-            const proto = {
+        // Contenus de base pré-remplis (éditables) pour les créneaux sans menu.
+        const DEFAULT_CONTENT = {
+            'petitDej':  'Petit-déjeuner complet servi au domaine — salé, sucré, viennoiseries, fruits frais, boissons chaudes et jus de fruits.',
+            'brunch':    'Brunch complet — œufs, charcuteries & fromages, salé et sucré, viennoiseries, fruits frais, boissons chaudes et jus.',
+            'collation': 'Pause gourmande — fruits frais, biscuits maison, boissons chaudes et froides.',
+            'cocktail':  'Apéritif — sélection de boissons (softs, vins) et amuse-bouches maison.',
+        };
+
+        // Fabrique un événement repas, avec contenu de base pré-rempli si applicable.
+        function makeEvent(type, opts) {
+            opts = opts || {};
+            const t = EVENT_TYPES[type] || EVENT_TYPES.custom;
+            return {
                 id: Date.now() + Math.random(),
                 type: type,
-                label: EVENT_TYPES[type].label,
-                time: "10:00",
-                count: state.days[dayIdx].people || 0,
+                label: opts.label || t.label,
+                time: opts.time || '10:00',
+                count: (opts.count != null) ? opts.count : 0,
                 enabled: true,
                 menu: { entree: '', plat: '', dessert: '' },
-                desc: ''
+                desc: (!t.hasMenu && DEFAULT_CONTENT[type]) ? DEFAULT_CONTENT[type] : ''
             };
+        }
+
+        function addEvent(dayIdx, afterIdx, type) {
+            const proto = makeEvent(type, { count: state.days[dayIdx].people || 0 });
             if (afterIdx === -1) {
                 state.days[dayIdx].events.unshift(proto);
             } else {
@@ -615,32 +631,43 @@
                     const saved = JSON.parse(fields["Cuisine JSON"]);
                     state.days = Array.isArray(saved.days) ? saved.days : [];
                 } else {
-                    const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
-                    const counts = (details.meals && details.meals.counts) ? details.meals.counts : [];
-                    const globalDiet = (details.meals && details.meals.dietary) ? details.meals.dietary : "";
+                    // ── A. Pré-remplissage depuis la grille repas RÉELLE du Devis ──
+                    let dossier = null;
+                    try { dossier = fields["DOSSIER JSON"] ? JSON.parse(fields["DOSSIER JSON"]) : null; } catch (e) { dossier = null; }
+                    const planning = (dossier && Array.isArray(dossier.mealsPlanning)) ? dossier.mealsPlanning : [];
+                    const people = fields["Nombre de personnes"] || 0;
+                    const globalDiet = (dossier && dossier.sejour && dossier.sejour.dietary) || '';
+                    const TIMES = { petitDej: '08:30', collationMatin: '10:30', dejeuner: '12:30', collationAprem: '16:00', diner: '20:00' };
 
-                    if (dArr && dDep) {
-                        const diffDays = Math.ceil((dDep - dArr) / 86400000);
-                        for (let i = 0; i <= diffDays; i++) {
+                    if (dArr && dDep && planning.length) {
+                        const nights = Math.max(0, Math.round((dDep - dArr) / 86400000));
+                        const nbDays = nights + 1;
+                        // Aligne la grille sur la fin (certains vieux dossiers ont une
+                        // 1re entrée parasite "JOUR" à ignorer).
+                        const offset = Math.max(0, planning.length - nbDays);
+
+                        for (let i = 0; i < nbDays; i++) {
                             const cur = new Date(dArr); cur.setDate(dArr.getDate() + i);
-                            const meta = counts.find(c => c.day === i) || { petitDej: 0, dejeuner: 0, diner: 0, collationMatin: 0, collationAprem: 0 };
-
-                            const dayEvents = [
-                                { id: Math.random(), type: 'petitDej', label: 'Petit-Déjeuner', time: '08:30', count: fields["Nombre de personnes"] || 0, enabled: true, menu: {}, desc: '' },
-                                { id: Math.random(), type: 'collation', label: 'Collation Matin', time: '10:30', count: fields["Nombre de personnes"] || 0, enabled: true, menu: {}, desc: '' },
-                                { id: Math.random(), type: 'lunch', label: 'Déjeuner', time: '12:30', count: fields["Nombre de personnes"] || 0, enabled: true, menu: { entree: '', plat: '', dessert: '' }, desc: '' },
-                                { id: Math.random(), type: 'collation', label: 'Collation Après-midi', time: '16:00', count: fields["Nombre de personnes"] || 0, enabled: true, menu: {}, desc: '' },
-                                { id: Math.random(), type: 'cocktail', label: 'Apéritif / Cocktail', time: '18:30', count: fields["Nombre de personnes"] || 0, enabled: true, menu: {}, desc: '' },
-                                { id: Math.random(), type: 'dinner', label: 'Dîner', time: '20:00', count: fields["Nombre de personnes"] || 0, enabled: true, menu: { entree: '', plat: '', dessert: '' }, desc: '' }
+                            const m = (planning[offset + i] && planning[offset + i].meals) || {};
+                            const events = [];
+                            if (m.petitDej)       events.push(makeEvent('petitDej',  { label: 'Petit-Déjeuner',      time: TIMES.petitDej,       count: people }));
+                            if (m.collationMatin) events.push(makeEvent('collation', { label: 'Collation Matin',      time: TIMES.collationMatin, count: people }));
+                            if (m.dejeuner)       events.push(makeEvent('lunch',     { label: 'Déjeuner',             time: TIMES.dejeuner,       count: people }));
+                            if (m.collationAprem) events.push(makeEvent('collation', { label: 'Collation Après-midi', time: TIMES.collationAprem, count: people }));
+                            if (m.diner)          events.push(makeEvent('dinner',    { label: 'Dîner',                time: TIMES.diner,          count: people }));
+                            state.days.push({ date: cur.toISOString(), people, events, notes: '', dietary: i === 0 ? globalDiet : '' });
+                        }
+                    } else if (dArr && dDep) {
+                        // Repli : pas de grille repas dans le Devis -> structure standard.
+                        const nights = Math.max(0, Math.round((dDep - dArr) / 86400000));
+                        for (let i = 0; i <= nights; i++) {
+                            const cur = new Date(dArr); cur.setDate(dArr.getDate() + i);
+                            const events = [
+                                makeEvent('petitDej', { label: 'Petit-Déjeuner', time: TIMES.petitDej, count: people }),
+                                makeEvent('lunch',    { label: 'Déjeuner',       time: TIMES.dejeuner, count: people }),
+                                makeEvent('dinner',   { label: 'Dîner',          time: TIMES.diner,    count: people }),
                             ];
-
-                            state.days.push({
-                                date: cur.toISOString(),
-                                people: fields["Nombre de personnes"] || 0,
-                                events: dayEvents,
-                                notes: "",
-                                dietary: i === 0 ? globalDiet : ""
-                            });
+                            state.days.push({ date: cur.toISOString(), people, events, notes: '', dietary: i === 0 ? globalDiet : '' });
                         }
                     }
                 }
