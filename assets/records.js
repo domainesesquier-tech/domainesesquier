@@ -89,8 +89,8 @@ const SesquierRecords = {
         'effectué': {
             label: 'EFFECTUÉ',
             airtable: 'effectué',
-            color: '#2D8B56',
-            bg: 'rgba(45, 139, 86, 0.08)',
+            color: '#4338CA',
+            bg: 'rgba(67, 56, 202, 0.1)',
             icon: 'fa-flag-checkered',
             class: 'badge-effectue'
         },
