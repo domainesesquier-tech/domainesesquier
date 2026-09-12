@@ -6,18 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Menu du Séjour — Domaine Sesquier</title>
     <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Outfit:wght@300;400;500;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="assets/utils.js"></script>
 
     <style>
         :root {
-            --primary: #3A5538;
-            --accent: #9E5D4C;
-            --gold: #C5A059;
-            --bg: #fff;
-            --text: #2D302A;
+            --primary: #2d4a30;
+            /* titres */
+            --dark: #131e13;
+            /* accents forts */
+            --accent: #92c47a;
+            /* labels, notes, liens */
+            --bg: #f4f2ee;
+            /* fond général */
+            --card-bg: #faf8f4;
+            /* fond des blocs repas, variante proche du fond */
+            --text: #33352c;
+            /* corps de texte */
+            --border: rgba(19, 30, 19, 0.1);
         }
 
         * {
@@ -28,7 +36,7 @@
 
         body {
             font-family: 'Outfit', sans-serif;
-            background: #fdfdfb;
+            background: var(--bg);
             color: var(--text);
             padding-bottom: 100px;
         }
@@ -70,35 +78,23 @@
             min-height: 297mm;
             margin: 40px auto;
             background: #fff;
-            padding: 50mm 25mm 25mm 25mm;
-            /* Large top margin for elegance */
+            padding: 32mm 22mm 25mm 22mm;
             position: relative;
-            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.05);
-        }
-
-        #menu-card::before {
-            content: '';
-            position: absolute;
-            top: 15mm;
-            left: 15mm;
-            right: 15mm;
-            bottom: 15mm;
-            border: 0.5px solid var(--gold);
-            pointer-events: none;
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.06);
         }
 
         .header {
             text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 10px;
         }
 
         .header h1 {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 38px;
+            font-family: 'Libre Baskerville', serif;
+            font-size: 34px;
             color: var(--primary);
-            font-weight: 600;
-            margin-bottom: 5px;
-            letter-spacing: 2px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
         }
 
         .header .subtitle {
@@ -109,106 +105,179 @@
             font-weight: 600;
         }
 
+        .header::after {
+            content: '';
+            display: block;
+            width: 46px;
+            height: 2px;
+            background: var(--accent);
+            margin: 16px auto 0;
+        }
+
         .client-info {
             text-align: center;
-            margin-bottom: 60px;
+            margin: 34px 0 46px;
         }
 
         .client-info h2 {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 24px;
+            font-family: 'Libre Baskerville', serif;
+            font-size: 21px;
             font-style: italic;
-            color: var(--gold);
+            font-weight: 400;
+            color: var(--primary);
         }
 
         .client-info p {
-            font-size: 12px;
-            opacity: 0.6;
+            font-size: 11px;
+            color: var(--text);
+            opacity: 0.55;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 5px;
+            letter-spacing: 1.5px;
+            margin-top: 6px;
         }
 
         .days-list {
             display: flex;
             flex-direction: column;
-            gap: 40px;
+            gap: 38px;
         }
 
         .day-section {
-            text-align: center;
+            page-break-inside: avoid;
             break-inside: avoid;
         }
 
         .day-label {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 20px;
+            text-align: center;
+            font-family: 'Libre Baskerville', serif;
+            font-size: 17px;
             font-weight: 700;
             color: var(--primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
-            margin-bottom: 25px;
+            gap: 14px;
+            margin-bottom: 18px;
+            letter-spacing: 0.5px;
         }
 
         .day-label::before,
         .day-label::after {
             content: '';
-            block-size: 1px;
-            width: 40px;
-            background: var(--gold);
-            opacity: 0.4;
+            display: block;
+            height: 1px;
+            width: 36px;
+            background: var(--accent);
+            opacity: 0.5;
         }
 
-        .meal-group {
-            margin-bottom: 25px;
+        .meals-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .meal-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px 26px;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         .meal-title {
+            text-align: center;
             font-size: 10px;
             color: var(--accent);
             text-transform: uppercase;
             letter-spacing: 3px;
             font-weight: 700;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }
 
-        .dish {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 18px;
-            color: var(--text);
-            margin-bottom: 4px;
-            font-weight: 500;
+        .course {
+            text-align: left;
         }
 
-        .dish-sub {
-            font-size: 11px;
-            opacity: 0.5;
-            font-style: italic;
-            margin-bottom: 15px;
+        .course+.course {
+            border-top: 1px solid var(--border);
+            margin-top: 14px;
+            padding-top: 14px;
         }
 
-        .menu-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-        }
-
-        .full-width {
-            grid-column: span 2;
-        }
-
-        .footer-logo {
-            position: absolute;
-            bottom: 25mm;
-            left: 0;
-            right: 0;
+        .course-label {
             text-align: center;
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 16px;
+            font-size: 9px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2.2px;
+            font-weight: 700;
+            opacity: 0.9;
+            margin-bottom: 6px;
+        }
+
+        .dish-name {
+            text-align: left;
+            font-size: 14.5px;
+            font-weight: 700;
             color: var(--primary);
-            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .dish-desc {
+            text-align: left;
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--text);
+            line-height: 1.5;
+            margin-top: 3px;
+        }
+
+        .dish-regime {
+            text-align: left;
+            font-size: 11px;
+            font-style: italic;
+            color: var(--accent);
+            margin-top: 5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text);
+            opacity: 0.5;
+            font-size: 13px;
+        }
+
+        .doc-footer {
+            margin-top: 54px;
+            padding-top: 22px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .doc-footer-name {
+            font-family: 'Libre Baskerville', serif;
+            font-weight: 700;
+            color: var(--dark);
+            font-size: 15px;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .doc-footer-tagline {
+            font-size: 11px;
+            font-style: italic;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+
+        .doc-footer-contact {
+            font-size: 10px;
+            color: var(--text);
+            opacity: 0.55;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
         }
 
         @media print {
@@ -255,16 +324,134 @@
             <!-- Dynamically populated -->
         </div>
 
-        <div class="footer-logo">
-            Esprit de famille & Art de vivre
+        <div class="doc-footer">
+            <div class="doc-footer-name">Domaine Sesquier</div>
+            <div class="doc-footer-tagline">Esprit de famille &amp; Art de vivre</div>
+            <div class="doc-footer-contact">contact@domainesesquier.com</div>
         </div>
     </div>
 
     <script>
+        // ── Données de démonstration ─────────────────────────────
+        // Utilisées quand la page est ouverte sans paramètre ?id=,
+        // pour prévisualiser le rendu sans dossier réel.
+        // Couvre : un jour à 4 repas, un jour à 1 seul repas,
+        // un plat avec variante régime, et des repas à 3 temps.
+        const DEMO_DATA = {
+            clientName: 'Famille Reparstores',
+            dateArrivee: '2026-11-19',
+            dateDepart: '2026-11-21',
+            days: [
+                {
+                    date: '2026-11-19',
+                    events: [
+                        {
+                            label: 'Petit-Déjeuner', type: 'petitDej', time: '08:30', enabled: true,
+                            desc: 'Petit-déjeuner complet servi au domaine — salé, sucré, viennoiseries, fruits frais, boissons chaudes et jus de fruits.',
+                            menu: {}
+                        },
+                        {
+                            label: 'Collation Matin', type: 'collation', time: '10:30', enabled: true,
+                            desc: 'Pause gourmande — fruits frais, biscuits maison, boissons chaudes et froides.',
+                            menu: {}
+                        },
+                        {
+                            label: 'Déjeuner', type: 'lunch', time: '12:30', enabled: true, desc: '',
+                            menu: {
+                                entree: "Rouleaux de printemps végétarien (crudités marinés sésame grillé/soja, sucrine, fromage frais, menthe et gingembre confit, mangue)",
+                                plat: "Riz sauté aux légumes - cébette, cacahuète et coriandre\nPorc au caramel ou bœuf teriyaki (selon les régimes)",
+                                dessert: "Ganache au chocolat, crumble cacao, caramel et cacahuète"
+                            }
+                        },
+                        {
+                            label: 'Dîner', type: 'dinner', time: '20:00', enabled: true, desc: '',
+                            menu: {
+                                entree: "Spanakopita (spécialité croustillante grecque à la fêta, épinard et menthe) et salade verte",
+                                plat: "Cuisse de poulet grillée aux épices ou Porc effiloché\nPomme de terre Hasselback et sauce chimichurri\nFenouil rôtis",
+                                dessert: "Pavlova individuelle pêche et romarin."
+                            }
+                        }
+                    ]
+                },
+                {
+                    date: '2026-11-20',
+                    events: [
+                        {
+                            label: 'Petit-Déjeuner', type: 'petitDej', time: '08:30', enabled: true,
+                            desc: 'Petit-déjeuner complet servi au domaine — salé, sucré, viennoiseries, fruits frais, boissons chaudes et jus de fruits.',
+                            menu: {}
+                        }
+                    ]
+                }
+            ]
+        };
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        // Extrait une variante régime en fin de ligne, ex :
+        // "Porc au caramel (selon les régimes)" -> { clean: "Porc au caramel", note: "selon les régimes" }
+        // Ne se déclenche que si la parenthèse finale contient un mot-clé régime,
+        // pour ne pas casser une simple précision entre parenthèses (ingrédients, etc.)
+        function splitRegime(line) {
+            const m = line.match(/^(.*?)\(([^()]*)\)\s*$/);
+            if (m) {
+                const note = m[2].trim();
+                if (/régime|regime|végétar|vegetar|vegan|lactose|allerg|halal|casher|kascher|gluten|intoléran/i.test(note)) {
+                    return { clean: m[1].trim(), note };
+                }
+            }
+            return { clean: line.trim(), note: null };
+        }
+
+        // Rend le contenu d'un temps de repas (entrée / plat / dessert) :
+        // 1ère ligne = nom du plat (gras, vert foncé)
+        // lignes suivantes = description/accompagnements (normal)
+        // variante régime en fin de ligne = petite note italique accent
+        function renderCourseContent(rawText) {
+            const lines = String(rawText).split('\n').map(l => l.trim()).filter(Boolean);
+            if (lines.length === 0) return '';
+            const parsed = lines.map(splitRegime);
+            const [nameLine, ...descLines] = parsed;
+            const regimeNotes = parsed.map(p => p.note).filter(Boolean);
+
+            let html = `<div class="dish-name">${escapeHtml(nameLine.clean)}</div>`;
+            html += descLines.map(d => `<div class="dish-desc">${escapeHtml(d.clean)}</div>`).join('');
+            html += regimeNotes.map(n => `<div class="dish-regime">${escapeHtml(n)}</div>`).join('');
+            return html;
+        }
+
+        // Rend une description libre (petit-déjeuner, collation, brunch, cocktail…) :
+        // paragraphe(s) en corps normal, alignés à gauche, + notes régime éventuelles.
+        function renderSimpleContent(rawText) {
+            const lines = String(rawText).split('\n').map(l => l.trim()).filter(Boolean);
+            if (lines.length === 0) return '';
+            const parsed = lines.map(splitRegime);
+            const regimeNotes = parsed.map(p => p.note).filter(Boolean);
+
+            let html = parsed.map(p => `<div class="dish-desc">${escapeHtml(p.clean)}</div>`).join('');
+            html += regimeNotes.map(n => `<div class="dish-regime">${escapeHtml(n)}</div>`).join('');
+            return html;
+        }
+
         async function loadData() {
             const urlParams = new URLSearchParams(window.location.search);
             const id = urlParams.get('id');
-            if (!id) return;
+
+            // Pas d'id -> mode démo, pour prévisualiser le rendu sans dossier réel.
+            if (!id) {
+                document.getElementById('client-name').innerText = `Séjour de ${DEMO_DATA.clientName}`;
+                const dArr = new Date(DEMO_DATA.dateArrivee);
+                const dDep = new Date(DEMO_DATA.dateDepart);
+                document.getElementById('stay-dates').innerText =
+                    `Du ${dArr.toLocaleDateString('fr-FR')} au ${dDep.toLocaleDateString('fr-FR')}  ·  Aperçu de démonstration`;
+                renderMenu(DEMO_DATA.days);
+                return;
+            }
 
             try {
                 const r = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${id}`);
@@ -296,7 +483,7 @@
             const menuDays = days.filter(d => d.events && d.events.some(ev => ev.enabled));
 
             if (menuDays.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding:50px; opacity:0.5;">Aucun repas n'a été activé ou saisi dans la fiche cuisine.</div>`;
+                container.innerHTML = `<div class="empty-state">Aucun repas n'a été activé ou saisi dans la fiche cuisine.</div>`;
                 return;
             }
 
@@ -304,50 +491,81 @@
                 const dateObj = new Date(day.date);
                 const dateStr = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
-                // On génère le HTML pour chaque événement activé du jour
-                const eventsHtml = day.events
+                // Ordre chronologique réel de la journée, quel que soit l'ordre de saisie
+                const sortedEvents = [...day.events].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+                const mealsHtml = sortedEvents
                     .filter(ev => ev.enabled)
                     .map(ev => {
                         const isMenuType = (ev.type === 'lunch' || ev.type === 'dinner');
+                        let bodyHtml = '';
 
-                        let detailsHtml = "";
                         if (isMenuType) {
-                            if (ev.menu.entree || ev.menu.plat || ev.menu.dessert) {
-                                detailsHtml = `
-                                    ${ev.menu.entree ? `<div class="dish">${ev.menu.entree}</div>` : ''}
-                                    ${ev.menu.plat ? `<div class="dish">${ev.menu.plat}</div>` : ''}
-                                    ${ev.menu.dessert ? `<div class="dish">${ev.menu.dessert}</div>` : ''}
-                                `;
-                            }
+                            const courses = [];
+                            if (ev.menu && ev.menu.entree) courses.push({ label: 'Entrée', text: ev.menu.entree });
+                            if (ev.menu && ev.menu.plat) courses.push({ label: 'Plat', text: ev.menu.plat });
+                            if (ev.menu && ev.menu.dessert) courses.push({ label: 'Dessert', text: ev.menu.dessert });
+                            bodyHtml = courses.map(c => `
+                                <div class="course">
+                                    <div class="course-label">${c.label}</div>
+                                    ${renderCourseContent(c.text)}
+                                </div>
+                            `).join('');
                         } else if (ev.desc) {
-                            detailsHtml = `<div class="dish" style="font-size:15px; font-style:italic;">${ev.desc}</div>`;
+                            bodyHtml = renderSimpleContent(ev.desc);
                         }
 
-                        if (!detailsHtml) return ""; // Skip if nothing to show
+                        if (!bodyHtml) return '';
 
                         return `
-                            <div class="meal-group">
-                                <div class="meal-title">${ev.label}</div>
-                                ${detailsHtml}
+                            <div class="meal-card">
+                                <div class="meal-title">${escapeHtml(ev.label)}</div>
+                                ${bodyHtml}
                             </div>
                         `;
                     }).join('');
 
-                if (!eventsHtml) return "";
+                if (!mealsHtml) return '';
 
                 return `
                     <div class="day-section">
                         <div class="day-label">${dateStr.toUpperCase()}</div>
-                        <div class="menu-grid">
-                            ${eventsHtml}
-                        </div>
+                        <div class="meals-list">${mealsHtml}</div>
                     </div>
                 `;
             }).join('');
         }
 
         async function generatePDF() {
-            await SesquierUtils.generatePDF('menu-card', 'Menu_Domaine_Sesquier.pdf', { margin: 0, html2canvas: { scale: 3, useCORS: true } });
+            const element = document.getElementById('menu-card');
+            const opt = {
+                margin: 0,
+                filename: 'Menu_Domaine_Sesquier.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 3, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] }
+            };
+            try {
+                await html2pdf().set(opt).from(element).toPdf().get('pdf').then(pdf => {
+                    const total = pdf.internal.getNumberOfPages();
+                    const w = pdf.internal.pageSize.getWidth();
+                    const h = pdf.internal.pageSize.getHeight();
+                    for (let i = 1; i <= total; i++) {
+                        pdf.setPage(i);
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.setFontSize(8);
+                        pdf.setTextColor(130, 130, 118);
+                        pdf.text('Domaine Sesquier   ·   contact@domainesesquier.com', w / 2, h - 10, { align: 'center' });
+                        if (total > 1) {
+                            pdf.text(`${i} / ${total}`, w - 14, h - 10, { align: 'right' });
+                        }
+                    }
+                }).save();
+            } catch (err) {
+                console.error('[PDF] Error:', err);
+                alert('Erreur PDF: ' + err.message);
+            }
         }
 
         window.onload = loadData;
