@@ -94,6 +94,7 @@ function rowToRecord(row) {
       'Timeline JSON':            row.timeline_json,
       'Rooming JSON':             row.rooming_json,
       'DEROULE JSON':             row.deroule_json,
+      'Cuisine JSON':             row.cuisine_json,
       'Notes':                    row.notes,
       'Suivi Source':             row.suivi_source,
       'Suivi Décideur':           row.suivi_decideur,
@@ -162,6 +163,7 @@ const FIELD_MAP = {
   'Température':              'temperature',
   'Menage JSON':              'menage_json',
   'Numeros JSON':             'numeros_json',
+  'Cuisine JSON':             'cuisine_json',
 };
 
 function fieldsToRow(fields) {
