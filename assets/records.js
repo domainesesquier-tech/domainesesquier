@@ -38,14 +38,6 @@ const SesquierRecords = {
     // 2. SYSTÈME DE STATUTS CENTRALISÉ
     // Doit être synchronisé avec DossierModel.STATUTS si possible.
     STATUS_MAP: {
-        'demande': {
-            label: 'DEMANDE',
-            airtable: 'demande',
-            color: '#6B7060',
-            bg: 'rgba(107, 112, 96, 0.1)',
-            icon: 'fa-envelope',
-            class: 'badge-traiter'
-        },
         'à traiter': {
             label: 'À TRAITER',
             airtable: 'à traiter',
