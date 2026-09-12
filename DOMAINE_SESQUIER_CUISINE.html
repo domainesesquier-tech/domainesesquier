@@ -607,7 +607,7 @@
         };
 
         const EVENT_TYPES = {
-            'petitDej': { label: 'Petit-Déjeuner', icon: 'fa-coffee', hasMenu: false },
+            'petitDej': { label: 'Petit-déjeuner du Domaine', icon: 'fa-coffee', hasMenu: false },
             'brunch': { label: 'Brunch', icon: 'fa-egg', hasMenu: false },
             'collation': { label: 'Collation', icon: 'fa-cookie-bite', hasMenu: false },
             'lunch': { label: 'Déjeuner', icon: 'fa-utensils', hasMenu: true },
@@ -618,7 +618,7 @@
 
         // Contenus de base pré-remplis (éditables) pour les créneaux sans menu.
         const DEFAULT_CONTENT = {
-            'petitDej':  'Petit-déjeuner complet servi au domaine — salé, sucré, viennoiseries, fruits frais, boissons chaudes et jus de fruits.',
+            'petitDej':  'Un buffet gourmand, entre douceurs sucrées et salées, préparé avec des produits du terroir de Thau.',
             'brunch':    'Brunch complet — œufs, charcuteries & fromages, salé et sucré, viennoiseries, fruits frais, boissons chaudes et jus.',
             'collation': 'Pause gourmande — fruits frais, biscuits maison, boissons chaudes et froides.',
             'cocktail':  'Apéritif — sélection de boissons (softs, vins) et amuse-bouches maison.',
@@ -994,7 +994,7 @@
                             const cur = new Date(dArr); cur.setDate(dArr.getDate() + i);
                             const m = (planning[offset + i] && planning[offset + i].meals) || {};
                             const events = [];
-                            if (m.petitDej)       events.push(makeEvent('petitDej',  { label: 'Petit-Déjeuner',      time: TIMES.petitDej,       count: people }));
+                            if (m.petitDej)       events.push(makeEvent('petitDej',  { label: 'Petit-déjeuner du Domaine', time: TIMES.petitDej,       count: people }));
                             if (m.collationMatin) events.push(makeEvent('collation', { label: 'Collation Matin',      time: TIMES.collationMatin, count: people }));
                             if (m.dejeuner)       events.push(makeEvent('lunch',     { label: 'Déjeuner',             time: TIMES.dejeuner,       count: people }));
                             if (m.collationAprem) events.push(makeEvent('collation', { label: 'Collation Après-midi', time: TIMES.collationAprem, count: people }));
@@ -1007,7 +1007,7 @@
                         for (let i = 0; i <= nights; i++) {
                             const cur = new Date(dArr); cur.setDate(dArr.getDate() + i);
                             const events = [
-                                makeEvent('petitDej', { label: 'Petit-Déjeuner', time: TIMES.petitDej, count: people }),
+                                makeEvent('petitDej', { label: 'Petit-déjeuner du Domaine', time: TIMES.petitDej, count: people }),
                                 makeEvent('lunch',    { label: 'Déjeuner',       time: TIMES.dejeuner, count: people }),
                                 makeEvent('dinner',   { label: 'Dîner',          time: TIMES.diner,    count: people }),
                             ];
