@@ -94,14 +94,6 @@ const SesquierRecords = {
             icon: 'fa-flag-checkered',
             class: 'badge-effectue'
         },
-        'terminé': {
-            label: 'TERMINÉ',
-            airtable: 'terminé',
-            color: '#6B7060',
-            bg: 'rgba(107, 112, 96, 0.1)',
-            icon: 'fa-archive',
-            class: 'badge-effectue'
-        },
         'annulé': {
             label: 'REFUSÉ',
             airtable: 'annulé',
