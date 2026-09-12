@@ -16,6 +16,10 @@ const SesquierUtils = {
         return `${this.API_BASE}/api/pricing`;
     },
 
+    get API_MENUS_URL() {
+        return `${this.API_BASE}/api/menus`;
+    },
+
     /**
      * Format numbers to Euro currency string
      * @param {number} amount 

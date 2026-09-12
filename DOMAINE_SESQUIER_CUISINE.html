@@ -406,18 +406,175 @@
                 box-shadow: none !important;
             }
         }
+
+        /* ── Bibliothèque de menus ── */
+        #menu-lib-toggle {
+            display: flex; align-items: center; gap: 6px;
+            padding: 7px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 500;
+            cursor: pointer; border: 1px solid var(--border); background: white;
+            color: var(--text); transition: all 0.15s; font-family: 'Outfit', sans-serif;
+        }
+        #menu-lib-toggle:hover { background: rgba(58,85,56,0.08); border-color: var(--primary); color: var(--primary); }
+        #menu-lib-panel {
+            position: fixed; top: 0; right: -340px; width: 320px; height: 100vh;
+            background: white; border-left: 1px solid var(--border);
+            box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; z-index: 500;
+            transition: right 0.25s ease; font-family: 'Outfit', sans-serif;
+        }
+        #menu-lib-panel.open { right: 0; }
+        .mlib-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 16px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+        }
+        .mlib-header h3 { font-size: 14px; font-weight: 600; color: var(--text); }
+        .mlib-header-actions { display: flex; gap: 6px; align-items: center; }
+        .mlib-add-btn {
+            padding: 5px 12px; border-radius: 5px; font-size: 12px; font-weight: 600;
+            background: var(--primary); color: white; border: none; cursor: pointer;
+        }
+        .mlib-close {
+            background: none; border: none; font-size: 16px; cursor: pointer;
+            color: var(--text-muted); padding: 2px 6px;
+        }
+        .mlib-target-bar {
+            padding: 8px 12px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 8px; flex-shrink: 0; background: #fafafa;
+        }
+        .mlib-target-bar label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+        .mlib-target-select {
+            flex: 1; font-size: 12px; padding: 4px 8px; border: 1px solid var(--border);
+            border-radius: 5px; background: white; font-family: 'Outfit', sans-serif; outline: none;
+        }
+        .mlib-body { flex: 1; overflow-y: auto; padding: 8px; }
+        .mlib-category {
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+            color: var(--primary); padding: 10px 6px 4px;
+        }
+        .mlib-item {
+            border: 1px solid var(--border); border-radius: 7px; margin-bottom: 6px;
+            background: #fafafa; transition: border-color 0.15s;
+        }
+        .mlib-item:hover { border-color: var(--primary); background: white; }
+        .mlib-item-row { display: flex; align-items: flex-start; gap: 6px; padding: 8px 10px; }
+        .mlib-item-main { flex: 1; min-width: 0; cursor: pointer; }
+        .mlib-item-name { font-size: 12px; font-weight: 600; color: var(--text); }
+        .mlib-item-desc { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+        .mlib-item-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        .mlib-item-add {
+            width: 24px; height: 24px; border-radius: 5px; border: 1.5px solid var(--primary);
+            background: rgba(58,85,56,0.08); color: var(--primary);
+            font-size: 16px; font-weight: 700; cursor: pointer; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .mlib-item-add:hover { background: var(--primary); color: white; }
+        .mlib-item-edit, .mlib-item-del {
+            background: none; border: none; cursor: pointer; font-size: 13px;
+            padding: 2px 3px; opacity: 0.5; transition: opacity 0.15s;
+        }
+        .mlib-item-edit:hover, .mlib-item-del:hover { opacity: 1; }
+        .mlib-empty { text-align: center; padding: 30px 16px; font-size: 12.5px; color: var(--text-muted); font-style: italic; }
+
+        #menu-lib-modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.4); z-index: 600;
+            align-items: center; justify-content: center;
+        }
+        #menu-lib-modal-overlay.open { display: flex; }
+        #menu-lib-modal {
+            background: white; border-radius: 12px; padding: 24px;
+            width: 380px; max-width: 90vw;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        }
+        .mlib-modal-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+        .mlib-form-row { margin-bottom: 12px; }
+        .mlib-form-label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 5px; }
+        .mlib-form-input, .mlib-form-select, .mlib-form-textarea {
+            width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+            font-family: 'Outfit', sans-serif; font-size: 13px; outline: none; box-sizing: border-box;
+        }
+        .mlib-form-input:focus, .mlib-form-select:focus, .mlib-form-textarea:focus { border-color: var(--primary); }
+        .mlib-form-textarea { resize: vertical; min-height: 50px; }
+        .mlib-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .mlib-btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: white; font-family: 'Outfit', sans-serif; }
+        .mlib-btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+        .mlib-btn-danger { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
     </style>
 </head>
 
 <body>
 
-    <div class="no-print">
+    <div class="no-print" style="display:flex; align-items:center; gap:10px;">
         <button class="btn-action btn-pdf" onclick="generatePDF()"><i class="fa-solid fa-print"></i> PDF
             CUISINE</button>
-        <div style="font-weight: 700; color: var(--primary); font-size: 14px; letter-spacing: 0.5px;">PLAN RESTAURATION
+        <div style="font-weight: 700; color: var(--primary); font-size: 14px; letter-spacing: 0.5px; flex:1;">PLAN RESTAURATION
             V3.1</div>
+        <button id="menu-lib-toggle" onclick="toggleMenuLib()"><i class="fa-solid fa-book-open"></i> Bibliothèque de menus</button>
         <button class="btn-action btn-save" onclick="saveCuisine()"><i class="fa-solid fa-cloud-arrow-up"></i>
             Enregistrer Dossier</button>
+    </div>
+
+    <!-- ── Bibliothèque de menus panel ── -->
+    <div id="menu-lib-panel">
+        <div class="mlib-header">
+            <h3>Bibliothèque de menus</h3>
+            <div class="mlib-header-actions">
+                <button class="mlib-add-btn" onclick="openMenuLibModal(null)">+ Ajouter</button>
+                <button class="mlib-close" onclick="toggleMenuLib()">✕</button>
+            </div>
+        </div>
+        <div class="mlib-target-bar">
+            <label>Insérer dans :</label>
+            <select class="mlib-target-select" id="mlib-target"></select>
+        </div>
+        <div class="mlib-body" id="mlib-body">
+            <div class="mlib-empty">Chargement…</div>
+        </div>
+    </div>
+
+    <!-- ── Modal bibliothèque de menus ── -->
+    <div id="menu-lib-modal-overlay" onclick="if(event.target===this)closeMenuLibModal()">
+        <div id="menu-lib-modal">
+            <div class="mlib-modal-title" id="mlib-modal-title">Nouveau menu</div>
+            <input type="hidden" id="mlib-f-id">
+            <div class="mlib-form-row">
+                <label class="mlib-form-label">Type</label>
+                <select class="mlib-form-select" id="mlib-f-type" onchange="onMlibTypeChange()">
+                    <option value="menu">Menu complet</option>
+                    <option value="entree">Autre entrée</option>
+                    <option value="accompagnement">Autre accompagnement</option>
+                </select>
+            </div>
+            <div id="mlib-fields-menu">
+                <div class="mlib-form-row">
+                    <label class="mlib-form-label">Nom du menu</label>
+                    <input class="mlib-form-input" id="mlib-f-nom" type="text" placeholder="Ex : Menu 1">
+                </div>
+                <div class="mlib-form-row">
+                    <label class="mlib-form-label">Entrée</label>
+                    <textarea class="mlib-form-textarea" id="mlib-f-entree" placeholder="Entrée…"></textarea>
+                </div>
+                <div class="mlib-form-row">
+                    <label class="mlib-form-label">Plat</label>
+                    <textarea class="mlib-form-textarea" id="mlib-f-plat" placeholder="Plat…"></textarea>
+                </div>
+                <div class="mlib-form-row">
+                    <label class="mlib-form-label">Dessert</label>
+                    <textarea class="mlib-form-textarea" id="mlib-f-dessert" placeholder="Dessert…"></textarea>
+                </div>
+            </div>
+            <div id="mlib-fields-extra" style="display:none;">
+                <div class="mlib-form-row">
+                    <label class="mlib-form-label">Contenu</label>
+                    <textarea class="mlib-form-textarea" id="mlib-f-contenu" placeholder="Ex : Carpaccio tomate mozzarella, pêches et basilic"></textarea>
+                </div>
+            </div>
+            <div class="mlib-modal-actions">
+                <button class="mlib-btn mlib-btn-danger" id="mlib-del-btn" style="display:none;margin-right:auto" onclick="confirmDeleteMenuLibItem()">Supprimer</button>
+                <button class="mlib-btn" onclick="closeMenuLibModal()">Annuler</button>
+                <button class="mlib-btn mlib-btn-primary" onclick="saveMenuLibItem()">Enregistrer</button>
+            </div>
+        </div>
     </div>
 
     <div class="container">
@@ -570,6 +727,8 @@
                     </div>
                 `;
             }).join('');
+
+            populateMlibTarget();
         }
 
         function showAddMenu(dayIdx, afterIdx) {
@@ -597,6 +756,191 @@
             m.style.display = 'flex';
         }
         function closeModal() { const m = document.getElementById('quick-modal'); if (m) m.style.display = 'none'; }
+
+        // ── Bibliothèque de menus ──────────────────────────────
+        let mlibData = [];
+        let mlibLoaded = false;
+
+        function toggleMenuLib() {
+            const panel = document.getElementById('menu-lib-panel');
+            const isOpen = panel.classList.toggle('open');
+            if (isOpen) {
+                populateMlibTarget();
+                if (!mlibLoaded) loadMenuLib();
+            }
+        }
+
+        function populateMlibTarget() {
+            const sel = document.getElementById('mlib-target');
+            if (!sel) return;
+            const prev = sel.value;
+            const options = [];
+            state.days.forEach((day, dIdx) => {
+                day.events.forEach((ev, eIdx) => {
+                    const t = EVENT_TYPES[ev.type] || EVENT_TYPES.custom;
+                    if (t.hasMenu) options.push({ value: `${dIdx}_${eIdx}`, label: `Jour ${dIdx + 1} — ${ev.label}` });
+                });
+            });
+            sel.innerHTML = options.length
+                ? options.map(o => `<option value="${o.value}">${o.label}</option>`).join('')
+                : '<option value="">— Aucun déjeuner/dîner —</option>';
+            if (options.some(o => o.value === prev)) sel.value = prev;
+        }
+
+        async function loadMenuLib() {
+            try {
+                const data = await SesquierUtils.fetchJson(SesquierUtils.API_MENUS_URL);
+                mlibData = (data.records || []).map(r => ({
+                    id: r.id,
+                    type: r.fields['Type'] || 'menu',
+                    nom: r.fields['Nom'] || '',
+                    entree: r.fields['Entree'] || '',
+                    plat: r.fields['Plat'] || '',
+                    dessert: r.fields['Dessert'] || '',
+                }));
+                mlibLoaded = true;
+                renderMenuLib();
+            } catch (e) {
+                document.getElementById('mlib-body').innerHTML = `<div class="mlib-empty">Erreur : ${e.message}</div>`;
+            }
+        }
+
+        function renderMenuLib() {
+            const body = document.getElementById('mlib-body');
+            if (!body) return;
+            if (mlibData.length === 0) {
+                body.innerHTML = `<div class="mlib-empty">${mlibLoaded ? 'Aucun menu. Cliquez "+ Ajouter" pour commencer.' : 'Chargement…'}</div>`;
+                return;
+            }
+            const GROUPS = [
+                { type: 'menu', label: 'Menus complets' },
+                { type: 'entree', label: 'Autres entrées' },
+                { type: 'accompagnement', label: 'Autres accompagnements' },
+            ];
+            body.innerHTML = GROUPS.map(g => {
+                const items = mlibData.filter(i => i.type === g.type);
+                if (items.length === 0) return '';
+                return `
+                    <div class="mlib-category">${g.label}</div>
+                    ${items.map(item => {
+                        const iJ = JSON.stringify(item).replace(/"/g, '&quot;');
+                        const desc = item.type === 'menu'
+                            ? [item.entree, item.plat, item.dessert].filter(Boolean).join(' · ')
+                            : '';
+                        return `<div class="mlib-item">
+                            <div class="mlib-item-row">
+                                <div class="mlib-item-main" onclick="addMenuLibItem(${iJ})">
+                                    <div class="mlib-item-name">${item.nom || '(sans titre)'}</div>
+                                    ${desc ? `<div class="mlib-item-desc">${desc}</div>` : ''}
+                                </div>
+                                <div class="mlib-item-actions">
+                                    <button class="mlib-item-add" title="Insérer" onclick="addMenuLibItem(${iJ})">+</button>
+                                    <button class="mlib-item-edit" title="Modifier" onclick="openMenuLibModal(${iJ})">✏️</button>
+                                    <button class="mlib-item-del" title="Supprimer" onclick="confirmDeleteMenuLibItem('${item.id}')">🗑</button>
+                                </div>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                `;
+            }).join('');
+        }
+
+        function addMenuLibItem(item) {
+            const sel = document.getElementById('mlib-target');
+            const target = sel?.value;
+            if (!target) { alert('Ajoutez d\'abord un Déjeuner ou un Dîner dans le planning.'); return; }
+            const [dIdx, eIdx] = target.split('_').map(Number);
+            const ev = state.days[dIdx]?.events[eIdx];
+            if (!ev) return;
+            if (item.type === 'menu') {
+                ev.menu.entree = item.entree || '';
+                ev.menu.plat = item.plat || '';
+                ev.menu.dessert = item.dessert || '';
+            } else if (item.type === 'entree') {
+                ev.menu.entree = ev.menu.entree ? `${ev.menu.entree}\n${item.nom}` : item.nom;
+            } else if (item.type === 'accompagnement') {
+                ev.menu.plat = ev.menu.plat ? `${ev.menu.plat}\n${item.nom}` : item.nom;
+            }
+            render();
+        }
+
+        function openMenuLibModal(item) {
+            document.getElementById('mlib-modal-title').textContent = item ? 'Modifier le menu' : 'Nouveau menu';
+            document.getElementById('mlib-f-id').value = item?.id || '';
+            document.getElementById('mlib-f-type').value = item?.type || 'menu';
+            document.getElementById('mlib-f-nom').value = item?.type === 'menu' ? (item?.nom || '') : '';
+            document.getElementById('mlib-f-entree').value = item?.entree || '';
+            document.getElementById('mlib-f-plat').value = item?.plat || '';
+            document.getElementById('mlib-f-dessert').value = item?.dessert || '';
+            document.getElementById('mlib-f-contenu').value = (item && item.type !== 'menu') ? (item?.nom || '') : '';
+            document.getElementById('mlib-del-btn').style.display = item ? 'inline-flex' : 'none';
+            onMlibTypeChange();
+            document.getElementById('menu-lib-modal-overlay').classList.add('open');
+        }
+
+        function onMlibTypeChange() {
+            const type = document.getElementById('mlib-f-type').value;
+            document.getElementById('mlib-fields-menu').style.display = type === 'menu' ? '' : 'none';
+            document.getElementById('mlib-fields-extra').style.display = type === 'menu' ? 'none' : '';
+        }
+
+        function closeMenuLibModal() {
+            document.getElementById('menu-lib-modal-overlay').classList.remove('open');
+        }
+
+        async function saveMenuLibItem() {
+            const type = document.getElementById('mlib-f-type').value;
+            const isMenu = type === 'menu';
+            const nom = isMenu ? document.getElementById('mlib-f-nom').value.trim() : document.getElementById('mlib-f-contenu').value.trim();
+            if (!nom) { alert(isMenu ? 'Le nom du menu est obligatoire.' : 'Le contenu est obligatoire.'); return; }
+            const id = document.getElementById('mlib-f-id').value;
+            const fields = {
+                Type: type,
+                Nom: nom,
+                Entree: isMenu ? document.getElementById('mlib-f-entree').value.trim() : null,
+                Plat: isMenu ? document.getElementById('mlib-f-plat').value.trim() : null,
+                Dessert: isMenu ? document.getElementById('mlib-f-dessert').value.trim() : null,
+            };
+            const btn = document.querySelector('#menu-lib-modal .mlib-btn-primary');
+            btn.textContent = '…'; btn.disabled = true;
+            try {
+                if (id) {
+                    await SesquierUtils.fetchJson(SesquierUtils.API_MENUS_URL, {
+                        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id, fields })
+                    });
+                    const idx = mlibData.findIndex(i => i.id === id);
+                    if (idx !== -1) mlibData[idx] = { id, type, nom, entree: fields.Entree || '', plat: fields.Plat || '', dessert: fields.Dessert || '' };
+                } else {
+                    const created = await SesquierUtils.fetchJson(SesquierUtils.API_MENUS_URL, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fields })
+                    });
+                    mlibData.push({ id: created.id, type, nom, entree: fields.Entree || '', plat: fields.Plat || '', dessert: fields.Dessert || '' });
+                }
+                closeMenuLibModal();
+                renderMenuLib();
+            } catch (e) {
+                alert('Erreur : ' + e.message);
+            } finally {
+                btn.textContent = 'Enregistrer'; btn.disabled = false;
+            }
+        }
+
+        async function confirmDeleteMenuLibItem(id) {
+            id = id || document.getElementById('mlib-f-id').value;
+            if (!id) return;
+            if (!confirm('Supprimer ce menu de la bibliothèque ?')) return;
+            try {
+                await SesquierUtils.fetchJson(SesquierUtils.API_MENUS_URL, {
+                    method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                mlibData = mlibData.filter(i => i.id !== id);
+                closeMenuLibModal();
+                renderMenuLib();
+            } catch (e) { alert('Erreur : ' + e.message); }
+        }
 
         async function loadData() {
             const urlParams = new URLSearchParams(window.location.search);
