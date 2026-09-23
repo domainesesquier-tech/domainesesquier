@@ -202,6 +202,24 @@
             margin-left: auto;
         }
 
+        .move-btn {
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 10px;
+            opacity: 0.5;
+            transition: opacity 0.2s, color 0.2s;
+        }
+
+        .move-btn:hover {
+            opacity: 1;
+            color: var(--primary);
+        }
+
+        .move-btn-disabled {
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
         .toggle-btn {
             cursor: pointer;
             color: var(--text-muted);
@@ -650,6 +668,15 @@
             render();
         }
 
+        // Déplace un repas vers le haut (-1) ou le bas (+1) dans l'ordre du jour.
+        function moveEvent(dayIdx, evIdx, direction) {
+            const events = state.days[dayIdx].events;
+            const target = evIdx + direction;
+            if (target < 0 || target >= events.length) return;
+            [events[evIdx], events[target]] = [events[target], events[evIdx]];
+            render();
+        }
+
         function removeEvent(dayIdx, evIdx) {
             if (confirm("Supprimer ce repas définitivement ?")) {
                 state.days[dayIdx].events.splice(evIdx, 1);
@@ -700,6 +727,8 @@
                                 `}
 
                                 <div class="event-controls no-print">
+                                    <i class="fa-solid fa-chevron-up move-btn ${eIdx === 0 ? 'move-btn-disabled' : ''}" onclick="moveEvent(${dIdx}, ${eIdx}, -1)" title="Monter"></i>
+                                    <i class="fa-solid fa-chevron-down move-btn ${eIdx === day.events.length - 1 ? 'move-btn-disabled' : ''}" onclick="moveEvent(${dIdx}, ${eIdx}, 1)" title="Descendre"></i>
                                     <i class="fa-solid fa-circle-check toggle-btn ${ev.enabled ? 'active' : ''}" onclick="toggleEvent(${dIdx}, ${eIdx})" title="Cacher au client"></i>
                                     <i class="fa-solid fa-trash-can delete-btn" onclick="removeEvent(${dIdx}, ${eIdx})" title="Supprimer"></i>
                                 </div>
