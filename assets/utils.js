@@ -174,13 +174,46 @@ const SesquierUtils = {
 
     // --- Document UI Helpers ---
 
-    addCategoryRow(title, targetId = 'pricing-body') {
+    addCategoryRow(title, targetId = 'pricing-body', deletable = false) {
         const tbody = document.getElementById(targetId);
         if (!tbody) return;
         const tr = document.createElement('tr');
         tr.className = "category-row no-edit";
-        tr.innerHTML = `<td colspan="6">${title}</td>`;
+        tr.innerHTML = `<td colspan="6" style="position:relative;">
+            <span>${title}</span>
+            ${deletable ? `<button class="no-print" onclick="SesquierUtils.removeCategorySection(this, event)" title="Supprimer toute la section « ${title} »" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:#c53030; cursor:pointer; font-size:9pt; opacity:0.55; padding:2px 4px;"><i class="fa-solid fa-trash-can"></i></button>` : ''}
+        </td>`;
         tbody.appendChild(tr);
+    },
+
+    /**
+     * Supprime une section entière d'un devis : la ligne de catégorie cliquée,
+     * toutes les lignes de prestation qui suivent, et le sous-total associé
+     * (première ligne .subtotal-row rencontrée). S'arrête avant toute autre
+     * ligne de catégorie si aucun sous-total n'est trouvé avant.
+     */
+    removeCategorySection(btn, event) {
+        if (event) { event.preventDefault(); event.stopPropagation(); }
+        const context = window.top || window;
+        const confirmFn = (context.confirm || window.confirm).bind(context);
+        if (!confirmFn("Supprimer cette section entière (lignes + sous-total) du devis ?")) return;
+
+        const catRow = btn.closest('tr');
+        if (!catRow) return;
+        let node = catRow.nextElementSibling;
+        while (node) {
+            const next = node.nextElementSibling;
+            const isSubtotal = node.classList.contains('subtotal-row');
+            const isCategory = node.classList.contains('category-row');
+            if (isCategory) break; // pas de sous-total avant la prochaine catégorie
+            node.remove();
+            if (isSubtotal) break;
+            node = next;
+        }
+        catRow.remove();
+
+        if (typeof window.updateCalculations === 'function') window.updateCalculations();
+        if (typeof window.markDirty === 'function') window.markDirty();
     },
 
     addPricingRow(label, qty, price, tva, mealKey = null, targetId = 'pricing-body') {

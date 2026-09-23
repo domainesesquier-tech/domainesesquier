@@ -916,6 +916,7 @@
         let pricingMap = {}; // { CODE: { pu, tva } } — rempli depuis /api/pricing
         let hasUnsavedChanges = false;
         let suppressDirtyFlag = false; // pour ne pas marquer pendant le chargement initial
+        let mealGridHidden = false; // true si "Planning prévisionnel de la restauration" a été supprimé manuellement
         const urlParams = new URLSearchParams(window.location.search);
         let currentRequestId = urlParams.get('id') || sessionStorage.getItem('currentDossierId');
 
@@ -1492,7 +1493,7 @@
             if (optBody) {
                 optBody.innerHTML = '';
                 optionsLines.forEach(line => {
-                    if (line.type === 'category') SesquierUtils.addCategoryRow(line.title, 'options-body');
+                    if (line.type === 'category') SesquierUtils.addCategoryRow(line.title, 'options-body', true);
                     else if (line.type === 'separator') { const tr = createSeparatorRow(line.label); document.getElementById('options-body').appendChild(tr); }
                     else if (line.type === 'subtotal') { const sid = line.id || resolveSubtotalId(line.label); SesquierUtils.addSubtotalRow(subtotalDisplayLabel(sid, line.label), sid, 'options-body'); }
                     else if (line.type === 'pricing') addPricingRowWithSubtitle(line, 'options-body');
@@ -1756,6 +1757,7 @@
          * Capture le planning repas au format mealsPlanning du dossier
          */
         function captureMealPlanningForDossier() {
+            if (mealGridHidden) return []; // supprimé manuellement : ne pas revenir à l'ancien planning
             const gridState = captureMealGrid();
             if (!gridState || gridState.length === 0) return currentDossier?.mealsPlanning || [];
             const labels = [];
@@ -1779,7 +1781,7 @@
 
         const addRowBefore = (btn) => SesquierUtils.addRowBefore(btn);
 
-        function addCategoryRow(title, targetId) { return SesquierUtils.addCategoryRow(title, targetId); }
+        function addCategoryRow(title, targetId) { return SesquierUtils.addCategoryRow(title, targetId, true); }
         function addPricingRow(label, qty, price, tva, mealKey, targetId) { return SesquierUtils.addPricingRow(label, qty, price, tva, mealKey, targetId); }
 
         function addManualRow(targetId) {
@@ -1839,6 +1841,7 @@
         }
 
         function addMealGrid(fields, savedState = null) {
+            if (mealGridHidden) return; // supprimé manuellement pour ce devis
             const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
             const dArrStr = fields["Date arrivée"];
             // Nuits depuis le champ ; sinon recalcul depuis les dates (source de vérité)
@@ -1861,8 +1864,9 @@
 
             // Title styled like a category sub-header
             let html = `<td colspan="6">
-                <div style="background-color: rgba(58, 85, 56, 0.04); color: var(--primary); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 11pt; padding: 8px 10px; border-bottom: 2px solid var(--primary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">
+                <div style="background-color: rgba(58, 85, 56, 0.04); color: var(--primary); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 11pt; padding: 8px 10px; border-bottom: 2px solid var(--primary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; position:relative;">
                     Planning prévisionnel de la restauration
+                    <button class="no-print" onclick="removeMealGrid(this, event)" title="Supprimer le planning prévisionnel de la restauration" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:#c53030; cursor:pointer; font-size:9pt; opacity:0.55; padding:2px 4px; text-transform:none; letter-spacing:normal; font-weight:400; font-family:inherit;"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
                 <table class="meal-check-grid">
                     <thead><tr><th>Jour</th>
@@ -1914,6 +1918,21 @@
             html += `</tbody></table></td>`;
             tr.innerHTML = html;
             document.getElementById('pricing-body').appendChild(tr);
+        }
+
+        // Supprime le bloc "Planning prévisionnel de la restauration" du devis.
+        // mealGridHidden empêche sa régénération automatique (Cuisine/reconciliation)
+        // et captureMealPlanningForDossier() sauvegarde alors un planning vide.
+        function removeMealGrid(btn, event) {
+            if (event) { event.preventDefault(); event.stopPropagation(); }
+            const context = window.top || window;
+            const confirmFn = (context.confirm || window.confirm).bind(context);
+            if (!confirmFn("Supprimer le planning prévisionnel de la restauration de ce devis ?")) return;
+            const row = btn.closest('tr.meal-grid-row');
+            if (row) row.remove();
+            mealGridHidden = true;
+            if (typeof updateCalculations === 'function') updateCalculations();
+            if (typeof markDirty === 'function') markDirty();
         }
 
         function toggleMealCheck(wrapper, mealKey, nbPers) {
