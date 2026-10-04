@@ -474,8 +474,55 @@
             padding: 12px;
             border-top: 1px solid var(--border-light);
             display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+        }
+
+        .sidebar-account {
+            border-top: 1px solid var(--border-light);
+            padding-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .sidebar-user {
+            display: flex;
             align-items: center;
-            justify-content: space-between;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 0 10px;
+            min-width: 0;
+        }
+
+        .sidebar-user span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: inherit;
+            color: var(--danger);
+            background: var(--danger-bg);
+            border: 1px solid transparent;
+            border-radius: var(--radius-xs);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .logout-btn:hover {
+            border-color: var(--danger);
         }
 
         .theme-toggle {
@@ -2301,10 +2348,16 @@
                 <i class="fa-regular fa-moon"></i>
                 <span>Mode sombre</span>
             </button>
-            <button class="theme-toggle" onclick="window.SesquierAuth && window.SesquierAuth.logout()" title="Se déconnecter de ce navigateur">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                <span>Déconnexion</span>
-            </button>
+            <div class="sidebar-account">
+                <div class="sidebar-user" title="Compte connecté">
+                    <i class="fa-regular fa-circle-user"></i>
+                    <span id="sidebar-user-email">—</span>
+                </div>
+                <button class="logout-btn" onclick="window.SesquierAuth && window.SesquierAuth.logout()" title="Se déconnecter de ce navigateur">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>Se déconnecter</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -2718,6 +2771,14 @@
         // =====================================================================
         window.addEventListener('DOMContentLoaded', () => {
             updateThemeButton();
+
+            // Compte connecté, affiché en bas de la barre latérale
+            if (window.SesquierAuth) {
+                window.SesquierAuth.getUserEmail().then(email => {
+                    const el = document.getElementById('sidebar-user-email');
+                    if (el && email) el.textContent = email;
+                });
+            }
 
             const urlParams = new URLSearchParams(window.location.search);
             const recordId = urlParams.get('id');
