@@ -40,7 +40,19 @@ const SesquierUtils = {
      */
     async fetchJson(url, options = {}) {
         try {
-            const response = await fetch(url, options);
+            // Attache le jeton de session courant (si une page d'auth est
+            // chargée) à chaque appel vers le Worker. Les pages publiques
+            // sans auth.js (MENU_CLIENT, CALENDRIER_PUBLIC) n'ont pas
+            // window.SesquierAuth : l'appel part simplement sans jeton,
+            // ce qui convient aux routes /api/public/*.
+            const opts = { ...options };
+            if (window.SesquierAuth && typeof window.SesquierAuth.getToken === 'function') {
+                const token = await window.SesquierAuth.getToken();
+                if (token) {
+                    opts.headers = { ...(opts.headers || {}), 'Authorization': `Bearer ${token}` };
+                }
+            }
+            const response = await fetch(url, opts);
             if (!response.ok) {
                 const errorText = await response.text();
                 let errorJson = {};

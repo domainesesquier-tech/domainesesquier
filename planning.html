@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <script src="assets/gate.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/auth.js"></script>
   <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Planning — Domaine Sesquier</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1572,9 +1574,15 @@ function recordToRes(record) {
 /*  API CALLS                                                           */
 /* ------------------------------------------------------------------ */
 async function apiFetch(url, options = {}) {
+  // Jeton de session (assets/auth.js) — exigé par le Worker.
+  let authHeader = {};
+  if (window.SesquierAuth && typeof window.SesquierAuth.getToken === 'function') {
+    const token = await window.SesquierAuth.getToken();
+    if (token) authHeader = { 'Authorization': `Bearer ${token}` };
+  }
   const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
+    headers: { 'Content-Type': 'application/json', ...authHeader, ...options.headers },
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {

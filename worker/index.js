@@ -27,13 +27,17 @@ function json(body, status = 200, env = {}, requestOrigin = "") {
 
 // ── Supabase helpers ────────────────────────────────────────
 
+// La clé anon identifie le projet (apikey). L'autorisation, elle, porte le
+// jeton de l'utilisateur connecté (env.USER_JWT, posé par le handler pour
+// la requête en cours) : c'est ce qui permet à RLS de filtrer côté base.
+// Sans utilisateur (routes publiques), on retombe sur le rôle anon.
 async function sbFetch(env, path, init = {}) {
   const url = `${env.SUPABASE_URL}/rest/v1${path}`;
   const res = await fetch(url, {
     ...init,
     headers: {
       "apikey": env.SUPABASE_ANON_KEY,
-      "Authorization": `Bearer ${env.SUPABASE_ANON_KEY}`,
+      "Authorization": `Bearer ${env.USER_JWT || env.SUPABASE_ANON_KEY}`,
       "Content-Type": "application/json",
       "Prefer": "return=representation",
       ...(init.headers || {}),
@@ -255,6 +259,43 @@ function menuRowToRecord(row) {
   };
 }
 
+// ── Authentification ────────────────────────────────────────
+// Routes accessibles sans session (liens publics ou pages publiques
+// du site). Tout le reste exige un JWT Supabase valide.
+const PUBLIC_ROUTES = [
+  { path: "/api/health",                methods: ["GET"] },
+  { path: "/api/public/disponibilites", methods: ["GET"] },
+  { path: "/api/public/menu",           methods: ["GET"] },
+];
+
+function isPublicRoute(pathname, method) {
+  return PUBLIC_ROUTES.some(r => r.path === pathname && r.methods.includes(method));
+}
+
+function bearerToken(request) {
+  const authHeader = request.headers.get("Authorization") || "";
+  return authHeader.replace(/^Bearer\s+/i, "").trim();
+}
+
+// Valide le token envoyé par le front (Authorization: Bearer <jwt>) en
+// interrogeant Supabase Auth. Renvoie l'utilisateur si le token est
+// valide et non expiré, sinon null.
+async function verifyUser(token, env) {
+  if (!token) return null;
+  try {
+    const res = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        "apikey": env.SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
 // ============================================================
 // HANDLER PRINCIPAL
 // ============================================================
@@ -271,6 +312,22 @@ export default {
 
     if (method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders(env, requestOrigin) });
+    }
+
+    // Session utilisateur : si un jeton valide est présent, il est transmis
+    // à Supabase pour toute la requête (RLS filtre alors sur l'utilisateur).
+    // `env` est recopié pour CETTE requête uniquement — pas d'état partagé
+    // entre requêtes concurrentes.
+    const token = bearerToken(request);
+    const user  = token ? await verifyUser(token, env) : null;
+    if (user) env = { ...env, USER_JWT: token };
+
+    // Toute route non listée dans PUBLIC_ROUTES exige une session valide.
+    // AUTH_ENFORCED=false ne sert qu'à la bascule sans coupure (déploiement
+    // via `--var AUTH_ENFORCED:false`) ; par défaut, l'accès est verrouillé.
+    const enforced = env.AUTH_ENFORCED !== "false";
+    if (enforced && !user && !isPublicRoute(url.pathname, method)) {
+      return json({ error: { message: "Authentification requise" } }, 401, env, requestOrigin);
     }
 
     try {
@@ -433,6 +490,62 @@ export default {
         if (!id) return json({ error: { message: "id requis (query param ou body)" } }, 400, env, requestOrigin);
         await sbFetch(env, `/planning?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
         return json({ deleted: true, id }, 200, env, requestOrigin);
+      }
+
+      // ── ROUTES PUBLIQUES (aucune session requise) ───────────
+      // Volontairement minimales : seuls les champs strictement
+      // nécessaires à l'affichage public sont renvoyés — jamais de
+      // nom, téléphone, montant ou notes internes. Elles passent par
+      // des fonctions SQL dédiées (public_disponibilites, public_menu)
+      // pour que les tables elles-mêmes restent fermées au rôle anon.
+
+      // Calendrier public : disponibilités du mois, rien d'autre.
+      if (url.pathname === "/api/public/disponibilites" && method === "GET") {
+        const mois = url.searchParams.get("mois");
+        let p_from = null, p_to = null;
+        if (mois && /^\d{4}-\d{2}$/.test(mois)) {
+          const [year, month] = mois.split("-").map(Number);
+          p_from = `${year}-${String(month).padStart(2, "0")}-01`;
+          p_to   = new Date(Date.UTC(year, month, 1)).toISOString().split("T")[0];
+        }
+        const rows = await sbFetch(env, `/rpc/public_disponibilites`, {
+          method: "POST",
+          body: JSON.stringify({ p_from, p_to }),
+        }) || [];
+        const records = rows.map(row => ({
+          fields: {
+            'Date arrivée': row.date_arrivee,
+            'Date départ':  row.date_depart,
+            'Statut':       row.statut,
+            'Type':         row.type,
+          },
+        }));
+        return json({ records }, 200, env, requestOrigin);
+      }
+
+      // Menu client : nom + dates + planning repas d'UN dossier précis
+      // (l'id, aléatoire sur 14 caractères, sert de clé d'accès au lien).
+      if (url.pathname === "/api/public/menu" && method === "GET") {
+        const id = url.searchParams.get("id");
+        if (!id) return json({ error: { message: "id requis" } }, 400, env, requestOrigin);
+        const row = await sbFetch(env, `/rpc/public_menu`, {
+          method: "POST",
+          body: JSON.stringify({ p_id: id }),
+        });
+        if (!row) return json({ error: { message: "Not found" } }, 404, env, requestOrigin);
+        // Même forme que GET /api/reservations?id= pour que la page
+        // MENU_CLIENT n'ait qu'à changer d'URL.
+        return json({
+          records: [{
+            id,
+            fields: {
+              'Nom client':    row.nom_client,
+              'Date arrivée':  row.date_arrivee,
+              'Date départ':   row.date_depart,
+              'Cuisine JSON':  row.cuisine_json,
+            },
+          }],
+        }, 200, env, requestOrigin);
       }
 
       // ── LIBRARY ────────────────────────────────────────────

@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Menu du Séjour — Domaine Sesquier</title>
     <link
@@ -460,7 +461,7 @@
             }
 
             try {
-                const r = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${id}`);
+                const r = await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/public/menu?id=${encodeURIComponent(id)}`);
                 const record = r.records ? r.records[0] : r;
                 if (!record || !record.fields) return;
 

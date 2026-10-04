@@ -2,8 +2,10 @@
 <html lang="fr">
 
 <head>
-    <script src="assets/gate.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/auth.js"></script>
     <meta charset="UTF-8">
+    <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Séminaires — Domaine Sesquier</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2299,6 +2301,10 @@
                 <i class="fa-regular fa-moon"></i>
                 <span>Mode sombre</span>
             </button>
+            <button class="theme-toggle" onclick="window.SesquierAuth && window.SesquierAuth.logout()" title="Se déconnecter de ce navigateur">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                <span>Déconnexion</span>
+            </button>
         </div>
     </div>
 
@@ -2516,13 +2522,20 @@
         // =====================================================================
         const SB_URL      = 'https://ymwebdihbmzrcaivldxu.supabase.co';
         const SB_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inltd2ViZGloYm16cmNhaXZsZHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0ODkxMjMsImV4cCI6MjA5NDA2NTEyM30.htAc4nHjbv-yFHW-59i_1eBPUsNcfd8-DMq9D1igVPw';
-        const SB_HEADERS  = { 'apikey': SB_ANON_KEY, 'Authorization': `Bearer ${SB_ANON_KEY}` };
         const SB_BUCKET   = 'documents';
+
+        // En-têtes Storage : la clé anon identifie le projet, mais c'est le
+        // jeton de session de l'utilisateur connecté qui donne l'accès
+        // (le bucket est privé, réservé aux comptes autorisés).
+        async function sbHeaders() {
+            const token = window.SesquierAuth ? await window.SesquierAuth.getToken() : null;
+            return { 'apikey': SB_ANON_KEY, 'Authorization': `Bearer ${token || SB_ANON_KEY}` };
+        }
 
         async function loadDocuments(recordId) {
             const res = await fetch(`${SB_URL}/storage/v1/object/list/${SB_BUCKET}`, {
                 method: 'POST',
-                headers: { ...SB_HEADERS, 'Content-Type': 'application/json' },
+                headers: { ...(await sbHeaders()), 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prefix: `${recordId}/`, limit: 100, sortBy: { column: 'created_at', order: 'desc' } })
             });
             if (!res.ok) throw new Error(`Storage list: ${res.status}`);
@@ -2533,7 +2546,7 @@
             const path = `${recordId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
             const res = await fetch(`${SB_URL}/storage/v1/object/${SB_BUCKET}/${path}`, {
                 method: 'POST',
-                headers: { ...SB_HEADERS, 'Content-Type': file.type, 'x-upsert': 'true' },
+                headers: { ...(await sbHeaders()), 'Content-Type': file.type, 'x-upsert': 'true' },
                 body: file
             });
             if (!res.ok) { const e = await res.json(); throw new Error(e.message || res.status); }
@@ -2543,14 +2556,31 @@
         async function deleteDocument(path) {
             const res = await fetch(`${SB_URL}/storage/v1/object/${SB_BUCKET}`, {
                 method: 'DELETE',
-                headers: { ...SB_HEADERS, 'Content-Type': 'application/json' },
+                headers: { ...(await sbHeaders()), 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prefixes: [path] })
             });
             if (!res.ok) throw new Error(`Delete: ${res.status}`);
         }
 
-        function getPublicUrl(path) {
-            return `${SB_URL}/storage/v1/object/public/${SB_BUCKET}/${path}`;
+        // Ouvre un document via un lien signé temporaire (5 min) — le bucket
+        // n'est plus public. La fenêtre est ouverte tout de suite (avant
+        // l'appel réseau) pour ne pas être bloquée comme popup.
+        async function openDoc(path) {
+            const win = window.open('', '_blank');
+            try {
+                const res = await fetch(`${SB_URL}/storage/v1/object/sign/${SB_BUCKET}/${path}`, {
+                    method: 'POST',
+                    headers: { ...(await sbHeaders()), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ expiresIn: 300 })
+                });
+                if (!res.ok) throw new Error(`Lien signé : ${res.status}`);
+                const { signedURL } = await res.json();
+                const url = `${SB_URL}/storage/v1${signedURL}`;
+                if (win) win.location = url; else window.location.href = url;
+            } catch (e) {
+                if (win) win.close();
+                alert('Erreur ouverture : ' + e.message);
+            }
         }
 
         async function openDocsPanel(recordId) {
@@ -2573,7 +2603,6 @@
                 }
                 list.innerHTML = files.map(f => {
                     const path     = `${recordId}/${f.name}`;
-                    const pubUrl   = getPublicUrl(path);
                     const ext      = f.name.split('.').pop().toLowerCase();
                     const iconCls  = ext === 'pdf' ? 'pdf' : ['jpg','jpeg','png'].includes(ext) ? 'img' : '';
                     const iconName = ext === 'pdf' ? 'fa-file-pdf' : ['jpg','jpeg','png'].includes(ext) ? 'fa-file-image' : 'fa-file';
@@ -2589,9 +2618,10 @@
                                 <div class="doc-file-date">${date}</div>
                             </div>
                             <div class="doc-file-actions">
-                                <a href="${pubUrl}" target="_blank" download class="doc-action-btn" title="Télécharger">
+                                <button class="doc-action-btn" title="Ouvrir / télécharger"
+                                    onclick="openDoc('${path}')">
                                     <i class="fa-solid fa-download"></i>
-                                </a>
+                                </button>
                                 <button class="doc-action-btn delete" title="Supprimer"
                                     onclick="confirmDeleteDoc('${path}', '${recordId}')">
                                     <i class="fa-solid fa-trash"></i>

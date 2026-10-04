@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <script src="assets/gate.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/auth.js"></script>
   <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Archives — Domaine Sesquier</title>
   <style>
@@ -341,6 +343,17 @@
 <script>
 const API_BASE = 'https://domainesesquier-api.domainesesquier.workers.dev/api';
 
+// Attache le jeton de session courant (fourni par assets/auth.js) à chaque
+// appel API — nécessaire depuis que le Worker exige une authentification.
+async function authFetch(url, options = {}) {
+  const opts = { ...options };
+  if (window.SesquierAuth && typeof window.SesquierAuth.getToken === 'function') {
+    const token = await window.SesquierAuth.getToken();
+    if (token) opts.headers = { ...(opts.headers || {}), 'Authorization': `Bearer ${token}` };
+  }
+  return fetch(url, opts);
+}
+
 const LOGEMENTS_LIST = [
   'Acacia','Hibiscus','Pivoine','Belle de nuit','Iris',
   'Rose','Figuier','Jasmin','Clos Josette','Sous les toits',
@@ -361,7 +374,7 @@ LOGEMENTS_LIST.forEach(l => {
 /* ---- API ---- */
 async function loadArchives() {
   try {
-    const res  = await fetch(`${API_BASE}/archives`);
+    const res  = await authFetch(`${API_BASE}/archives`);
     const data = await res.json();
     allArchives = (data.records || []).map(recordToRes);
     filtered    = [...allArchives];
@@ -474,7 +487,7 @@ function render() {
 async function restoreReservation(id) {
   if (!confirm('Restaurer cette réservation sur le planning ?')) return;
   try {
-    await fetch(`${API_BASE}/planning`, {
+    await authFetch(`${API_BASE}/planning`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, fields: { 'Statut': 'Option', 'Archived at': null } }),
@@ -491,7 +504,7 @@ async function restoreReservation(id) {
 async function deleteArchive(id) {
   if (!confirm('Supprimer définitivement cette réservation ? Cette action est irréversible.')) return;
   try {
-    await fetch(`${API_BASE}/planning?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    await authFetch(`${API_BASE}/planning?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
     allArchives = allArchives.filter(r => r.id !== id);
     filtered    = filtered.filter(r => r.id !== id);
     render();
@@ -563,7 +576,7 @@ async function saveEdit(id) {
     'Notes':           document.getElementById('e-notes').value.trim(),
   };
   try {
-    const res = await fetch(`${API_BASE}/planning`, {
+    const res = await authFetch(`${API_BASE}/planning`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, fields }),

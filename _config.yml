@@ -1,0 +1,13 @@
+# Configuration GitHub Pages (Jekyll).
+# Les fichiers listés ici restent dans le repo mais ne sont PAS publiés sur
+# admin.domainesesquier.com : code serveur, migrations SQL, sauvegardes et
+# données de test n'ont rien à faire sur le site public.
+exclude:
+  - BACKUP_DEV_1/
+  - worker/
+  - migrations/
+  - wrangler.toml
+  - supabase_migration.sql
+  - test_api.json
+  - CONTEXT.md
+  - serve.json

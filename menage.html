@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <script src="assets/gate.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/auth.js"></script>
   <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ménage — Domaine Sesquier</title>
   <style>
@@ -423,7 +425,13 @@ function formatDateFr(d) {
 
 /* ── LOAD DATA ── */
 async function apiFetch(url) {
-  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+  // Jeton de session (assets/auth.js) — exigé par le Worker.
+  const headers = { 'Content-Type': 'application/json' };
+  if (window.SesquierAuth && typeof window.SesquierAuth.getToken === 'function') {
+    const token = await window.SesquierAuth.getToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  }
+  const res = await fetch(url, { headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((typeof data.error === 'object' ? data.error?.message : data.error) || `HTTP ${res.status}`);
   return data;
