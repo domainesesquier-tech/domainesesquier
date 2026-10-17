@@ -353,6 +353,17 @@
             }
         }
     </style>
+    <style>
+    /* Téléphone : barres qui passent à la ligne, cartes sur une colonne */
+    @media (max-width: 640px) {
+        .no-print:has(> .btn-action) { flex-wrap: wrap; gap: 8px; }
+        .gite-grid { grid-template-columns: 1fr !important; }
+        .gite-card { width: auto !important; min-width: 0 !important; }
+        .room-row { grid-template-columns: minmax(0, 1fr) 92px 52px 26px !important; gap: 6px !important; }
+        .room-row > * { min-width: 0; }
+        .room-row input, .room-row select { width: 100%; min-width: 0; }
+    }
+    </style>
 </head>
 
 <body>
