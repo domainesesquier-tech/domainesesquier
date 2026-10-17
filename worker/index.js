@@ -1,3 +1,4 @@
+import { rediger } from "./redaction.js";
 // ============================================================
 // Domaine Sesquier — Cloudflare Worker (Supabase backend)
 // ============================================================
@@ -401,7 +402,7 @@ export default {
 
     // Copie de travail V2 : READ_ONLY=true → dossiers et calendrier en bac à sable (mémoire),
     // toute autre écriture est refusée. Rien n'est jamais écrit dans la base de production.
-    const SANDBOX_ROUTES = ["/api/reservations", "/api/planning", "/api/next-number", "/api/public/demande"];
+    const SANDBOX_ROUTES = ["/api/reservations", "/api/planning", "/api/next-number", "/api/public/demande", "/api/ia/redaction"];
     if (env.READ_ONLY === "true" && method !== "GET" && method !== "OPTIONS" && !SANDBOX_ROUTES.some(r => url.pathname.startsWith(r))) {
       return json({ error: { message: "Copie V2 en lecture seule : aucune écriture en base." } }, 403, env, requestOrigin);
     }
@@ -604,6 +605,13 @@ export default {
       // ── QUESTIONNAIRE PUBLIC : nouvelle demande de devis ──
       // Données validées ici, insertion via la fonction SQL public_demande
       // (security definer) : le rôle anon n'a aucun accès direct aux tables.
+      // Rédaction assistée par Claude (admin connecté uniquement)
+      if (url.pathname === "/api/ia/redaction" && method === "POST") {
+        const body = await request.json().catch(() => null);
+        const out = await rediger(env, body);
+        return json(out.data, out.status, env, requestOrigin);
+      }
+
       if (url.pathname === "/api/public/demande" && method === "POST") {
         const raw = await request.text();
         if (raw.length > 20000) return json({ error: { message: "Demande trop volumineuse" } }, 413, env, requestOrigin);

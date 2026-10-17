@@ -559,6 +559,8 @@
             </svg>
             Enregistrer (Airtable)
         </button>
+        <button class="btn" onclick="redigerIA('devis')" title="Mot d'accueil + mail d'accompagnement rédigés par Claude">✨ Rédiger</button>
+        <button class="btn" onclick="redigerIA('relance')" title="Relance rédigée par Claude">✨ Relance</button>
         <button class="btn btn-primary" onclick="generatePDF()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -654,6 +656,7 @@
             style="font-size: 10pt; font-weight: 600; color: var(--primary); margin-bottom: 15px; border-left: 3px solid var(--primary); padding-left: 12px; outline: none;">
             <!-- Dynamically filled -->
         </div>
+        <div id="mot-accueil" contenteditable="true" style="display:none; font-size:9.5pt; line-height:1.5; color:#333; margin:0 0 14px; white-space:pre-line;"></div>
         <div id="included-box" contenteditable="true" style="display:none; font-size:8.5pt; color:#555; background:rgba(58,85,56,0.05); border-radius:4px; padding:8px 12px; margin:-6px 0 15px;"></div>
 
         <!-- E. Pricing Table -->
@@ -1379,6 +1382,8 @@
             // Restaurer le profil société si sauvegardé dans le dossier
             if (dossier.companyProfile) setCompanyProfile(dossier.companyProfile);
             setPrixTTC(!!dossier.prixTTC);
+            const ma = document.getElementById('mot-accueil');
+            if (ma) { ma.innerText = dossier.motAccueil || ''; ma.style.display = dossier.motAccueil ? 'block' : 'none'; }
 
             // 1. META — numéro selon le profil (séquentiel FOUDRE / historique OZZA)
             applyDevisNumber();
@@ -2368,6 +2373,7 @@
                     },
                     mealsPlanning,
                     companyProfile: localStorage.getItem('ds_company_profile') || 'ozza',
+                    motAccueil: (document.getElementById('mot-accueil')?.innerText || '').trim(),
                     prixTTC: !!SesquierUtils.prixTTC,
                 };
 
@@ -3104,6 +3110,81 @@
             }
         }
     </script>
+<!-- Rédaction assistée (Claude) — panneau non imprimé -->
+<div id="ia-panel" class="no-print" style="display:none; position:fixed; top:0; right:0; bottom:0; width:min(440px,100%); background:#fff; box-shadow:-8px 0 24px rgba(0,0,0,.15); z-index:2000; padding:18px; overflow-y:auto; font-family:system-ui,sans-serif; font-size:14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <strong id="ia-titre">Rédaction</strong>
+        <button onclick="document.getElementById('ia-panel').style.display='none'" style="border:none;background:none;font-size:22px;cursor:pointer;">×</button>
+    </div>
+    <div id="ia-statut" style="color:#666; margin-bottom:10px;"></div>
+    <div id="ia-points" style="display:none; background:#FFF7E6; border-radius:8px; padding:10px 12px; margin-bottom:12px;"></div>
+    <label style="font-weight:600;">Objet</label>
+    <input id="ia-objet" style="width:100%; box-sizing:border-box; padding:8px; margin:4px 0 10px; border:1px solid #ddd; border-radius:6px; font:inherit;">
+    <label style="font-weight:600;">Mail</label>
+    <textarea id="ia-corps" rows="18" style="width:100%; box-sizing:border-box; padding:8px; margin-top:4px; border:1px solid #ddd; border-radius:6px; font:inherit; line-height:1.45;"></textarea>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+        <button class="btn" onclick="navigator.clipboard.writeText(document.getElementById('ia-corps').value); this.textContent='Copié ✓'">Copier le mail</button>
+        <button class="btn btn-primary" onclick="ouvrirMailIA()">Ouvrir dans ma messagerie</button>
+    </div>
+    <p style="color:#888; font-size:12px; margin-top:10px;">Texte rédigé par Claude à partir du devis et du guide de ton. Relis avant d'envoyer : rien n'est envoyé automatiquement.</p>
+</div>
+<script>
+    // Rédaction assistée : envoie le dossier et le devis affiché au Worker, qui appelle Claude
+    async function redigerIA(mode) {
+        const f = window._liveFields || currentRecord?.fields || {};
+        const panel = document.getElementById('ia-panel');
+        const st = document.getElementById('ia-statut');
+        panel.style.display = 'block';
+        document.getElementById('ia-titre').textContent = mode === 'relance' ? 'Relance' : "Mot d'accueil et mail d'envoi";
+        st.textContent = 'Rédaction en cours (15 à 40 s)…';
+        const lignes = [...document.querySelectorAll('#pricing-body tr, #options-body tr, #activities-body tr')].map(tr => {
+            if (tr.classList.contains('category-row')) return { section: tr.innerText.trim() };
+            if (!tr.querySelector('.qty')) return null;
+            return { libelle: tr.querySelector('.row-label')?.innerText.trim(), detail: tr.querySelector('.row-subtitle')?.innerText.trim() || undefined,
+                     qte: tr.querySelector('.qty').innerText.trim(), pu: tr.querySelector('.price')?.innerText.trim(),
+                     tva: tr.querySelector('.tva-rate')?.innerText.trim(), option: tr.classList.contains('is-option') || undefined };
+        }).filter(Boolean);
+        const txt = id => document.getElementById(id)?.innerText.trim() || undefined;
+        const body = {
+            mode,
+            dossier: {
+                type: f['Type'], organisation: f['Entreprise'] || f['Nom client'], prenom: f['Prénom contact'], nom: f['Nom contact'],
+                dateArrivee: f['Date arrivée'], dateDepart: f['Date départ'], personnes: f['Nombre de personnes'],
+                messageClient: f['Message'], questionnaire: parseDetails(f).questionnaire?.reponses,
+                dateEnvoiDevis: f['Suivi Date devis'], journalSuivi: f['Suivi Log'], prochaineAction: f['Suivi Prochaine action'],
+            },
+            devis: {
+                prix: SesquierUtils.prixTTC ? 'TTC' : 'HT', synthese: txt('stay-synthesis'), lignes,
+                totalHT: txt('display-total-ht'), totalTTC: txt('display-total-ttc'), parPersonne: txt('price-per-person'),
+                inclus: txt('included-box'), conditions: txt('cond-reglement'), caution: txt('cond-caution'), option: txt('cond-option'),
+            },
+        };
+        try {
+            const base = SesquierUtils.API_RESERVATIONS_URL.replace(/\/api\/reservations.*$/, '');
+            const r = await SesquierUtils.fetchJson(base + '/api/ia/redaction', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+            });
+            document.getElementById('ia-objet').value = r.mail_objet || '';
+            document.getElementById('ia-corps').value = r.mail_corps || '';
+            const pts = document.getElementById('ia-points');
+            pts.style.display = r.points_attention?.length ? 'block' : 'none';
+            pts.innerHTML = '<strong>À vérifier</strong><ul style="margin:6px 0 0 18px;padding:0;">' + (r.points_attention || []).map(p => `<li>${p.replace(/</g, '&lt;')}</li>`).join('') + '</ul>';
+            if (mode === 'devis' && r.mot_accueil) {
+                const ma = document.getElementById('mot-accueil');
+                ma.innerText = r.mot_accueil; ma.style.display = 'block';
+                if (typeof markDirty === 'function') markDirty();
+            }
+            st.textContent = mode === 'devis' ? "Mot d'accueil ajouté en tête du devis (modifiable). Pense à enregistrer." : '';
+        } catch (e) {
+            st.textContent = 'Échec : ' + e.message;
+        }
+    }
+    function ouvrirMailIA() {
+        const f = window._liveFields || currentRecord?.fields || {};
+        const url = `mailto:${encodeURIComponent(f['Email'] || '')}?subject=${encodeURIComponent(document.getElementById('ia-objet').value)}&body=${encodeURIComponent(document.getElementById('ia-corps').value)}`;
+        window.location.href = url;
+    }
+</script>
 </body>
 
 </html>
