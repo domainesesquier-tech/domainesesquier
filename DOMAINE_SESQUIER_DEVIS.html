@@ -732,7 +732,7 @@
                 <ul class="cond-list">
                     <li contenteditable="true">• <strong>Validité :</strong> 15 jours à compter de l'émission.</li>
                     <li contenteditable="true">• <strong>Effectif :</strong> L'effectif indiqué au devis constitue le nombre minimum facturable. Toute réduction notifiée par écrit plus de 30 jours avant le début du séjour donnera lieu à un ajustement des coûts d'hébergement et de restauration. Les prestations forfaitaires (privatisation, coordination, animations, transport) restent intégralement dues.</li>
-                    <li contenteditable="true">• <strong>Règlement :</strong> Acompte de 30% à la réservation, solde à l'arrivée.</li>
+                    <li id="cond-reglement" contenteditable="true">• <strong>Règlement :</strong> Acompte de 30% à la réservation, solde à l'arrivée.</li>
                     <li contenteditable="true">• <strong>Annulation :</strong> Acompte conservé. J-29/J-15 : 50%. J-14/J-8 : 75%. Moins de J-7 : 100%.</li>
                     <li contenteditable="true">• <strong>Divers :</strong> Chambres disponibles à 15h ou avant selon demandes (arrivée). Libérées à 11h, flexible selon déroulé du séjour (départ).</li>
                     <li id="cond-option" contenteditable="true" style="display:none;"></li>
@@ -1221,10 +1221,11 @@
 
             // 5. Build Main Pricing Table
             const segInit = segmentFromType(fields["Type"]);
-            const layoutV2 = segInit === 'seminaire' || segInit === 'groupe';
+            const layoutV2 = true;
             setPrixTTC(segInit !== 'seminaire');
             if (segInit === 'seminaire') buildLayoutSeminaire(fields);
             if (segInit === 'groupe') buildLayoutGroupe();
+            if (segInit === 'mariage') buildLayoutMariage();
             if (!layoutV2) {
             const tbody = document.getElementById('pricing-body');
             tbody.innerHTML = '';
@@ -1322,7 +1323,7 @@
 
             updateCalculations();
             // Nouveau dossier séminaire : pré-remplir hébergement et espaces avec la grille 2027
-            if (['seminaire', 'groupe'].includes(segmentFromType(fields["Type"]))) applyGrille2027({ silent: true });
+            applyGrille2027({ silent: true });
             renderSeminaireExtras(fields);
             // Fin du rendu initial : réactiver le tracking et marquer "propre"
             setTimeout(() => { suppressDirtyFlag = false; markClean(); }, 50);
@@ -1910,6 +1911,25 @@
             addSubtotalRow("Options", "subtotal-services", 'activities-body');
         }
 
+        // Devis mariage (OZZA, TTC) : domaine, réception, options
+        function buildLayoutMariage() {
+            buildLayoutGroupe();
+            addCategoryRow("Réception");
+            addSubtotalRow("Réception", "subtotal-reception");
+        }
+
+        // Échéancier mariage : 30 % à la signature, 40 % à J-180, solde à J-30
+        function renderEcheancier() {
+            const li = document.getElementById('cond-reglement');
+            const f = window._liveFields || currentRecord?.fields || {};
+            if (!li || segmentFromType(f["Type"]) !== 'mariage') return;
+            const ttc = parseFloat((document.getElementById('display-total-ttc')?.innerText || '0').replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+            const arr = f["Date arrivée"] ? new Date(f["Date arrivée"]) : null;
+            const jm = n => { if (!arr) return `J-${n}`; const d = new Date(arr); d.setDate(d.getDate() - n); return d.toLocaleDateString('fr-FR'); };
+            const m = x => formatEuro(Math.round(ttc * x * 100) / 100);
+            li.innerHTML = `• <strong>Échéancier :</strong> acompte 30 % à la signature (${m(.3)}) · 40 % le ${jm(180)} (${m(.4)}) · solde 30 % le ${jm(30)} (${m(.3)}).`;
+        }
+
         // Remise commerciale : section dédiée, juste avant les totaux
         function addRemise() {
             let sub = document.getElementById('subtotal-remise');
@@ -1927,10 +1947,12 @@
         // Encadré « Inclus » et date limite d'option (séminaire)
         function renderSeminaireExtras(fields) {
             const seg = segmentFromType(fields?.["Type"]);
-            if (seg !== 'seminaire' && seg !== 'groupe') return;
+            if (!seg) return;
             const box = document.getElementById('included-box');
             if (box) {
-                box.innerHTML = seg === 'groupe'
+                box.innerHTML = seg === 'mariage'
+                    ? '<strong>Inclus :</strong> domaine privatisé 2 nuits (40 couchages, linge de lit) · arrivée vendredi 12h, départ dimanche 16h · accompagnement et visite technique · remise en état · ménage · taxe de séjour'
+                    : seg === 'groupe'
                     ? '<strong>Inclus :</strong> domaine privatisé (8 gîtes, 35 couchages) · salle Champs d\'olivier · piscine et jardins · ménage de fin de séjour · taxe de séjour'
                     : '<strong>Inclus :</strong> domaine privatisé · lits faits, draps et serviettes · ménage de fin de séjour · référent joignable chaque jour · taxe de séjour';
                 box.style.display = 'block';
@@ -1943,7 +1965,11 @@
                 li.style.display = '';
             }
             const cc = document.getElementById('cond-caution');
-            if (cc) cc.style.display = seg === 'groupe' ? '' : 'none';
+            if (cc) {
+                cc.style.display = seg === 'seminaire' ? 'none' : '';
+                cc.innerHTML = `• <strong>Caution :</strong> ${seg === 'mariage' ? '2 000' : '1 000'} € demandée à l'arrivée, restituée après l'état des lieux.`;
+            }
+            renderEcheancier();
         }
 
         // Premier sous-total existant parmi une liste (nouvelle puis ancienne mise en page)
@@ -1983,10 +2009,6 @@
         async function applyGrille2027(opts = {}) {
             const fields = window._liveFields || (typeof currentRecord !== 'undefined' && currentRecord?.fields) || {};
             const segment = segmentFromType(fields["Type"]);
-            if (segment === 'mariage') {
-                if (!opts.silent) alert('La grille 2027 n\'est pas encore branchée pour les mariages.');
-                return;
-            }
             if (!GRILLE_2027) GRILLE_2027 = await fetch('assets/grille_2027.json').then(r => r.json());
 
             let nuits = fields["Nuits"] || 0;
@@ -1999,13 +2021,14 @@
                 ? PricingEngine.fromQuestionnaire(GRILLE_2027, questionnaire.reponses).demande
                 : { segment, dateArrivee: fields["Date arrivée"] || '', personnes: fields["Nombre de personnes"] || 0, nuits,
                     // Groupe : draps proposés par défaut pour chaque personne
-                    options: segment === 'groupe' ? { draps: fields["Nombre de personnes"] || 0 } : undefined };
+                    options: segment === 'groupe' ? { draps: fields["Nombre de personnes"] || 0 } : undefined,
+                    mariage: segment === 'mariage' ? { diner: fields["Nombre de personnes"] || 0 } : undefined };
             const res = PricingEngine.compute(GRILLE_2027, demande);
 
             // Catégorie de ligne → section du devis (nouvelle mise en page, sinon historique)
             const CIBLES = {
                 hebergement: ['subtotal-domaine', 'subtotal-hebergement'],
-                lieu:        ['subtotal-domaine', 'subtotal-salles'],
+                lieu:        ['subtotal-reception', 'subtotal-domaine', 'subtotal-salles'],
                 repas:       ['subtotal-restauration'],
                 boisson:     ['subtotal-boissons', 'subtotal-restauration'],
                 activite:    ['subtotal-activites', 'subtotal-activities'],
@@ -2209,6 +2232,7 @@
             }
 
             // Calcul automatique de l'acompte conseillé (30%)
+            renderEcheancier();
             const depositEl = document.getElementById('display-deposit');
             if (depositEl) depositEl.innerText = formatEuro(ttc * 0.3);
 
