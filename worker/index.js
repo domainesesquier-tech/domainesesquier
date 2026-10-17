@@ -53,12 +53,12 @@ async function sandboxFetch(env, path, init = {}) {
     const p = JSON.parse(init.body || "{}").p || {};
     const pid = crypto.randomUUID();
     SANDBOX.planning.set(pid, {
-      id: pid, nom: p.nom_client, type: "Séminaire", date_arrivee: p.date_arrivee, date_depart: p.date_depart,
+      id: pid, nom: p.nom_client, type: { groupe: "Week-end privé", mariage: "Mariage" }[p.segment] || "Séminaire", date_arrivee: p.date_arrivee, date_depart: p.date_depart,
       statut: "Demandé", nb_personnes: p.nombre_de_personnes, montant: p.estimation_ht || null,
       notes: "Demande reçue via le questionnaire du site", contact_tel: p.telephone, __new: true,
     });
-    const { estimation_ht, ...row } = p;
-    SANDBOX.reservations.set(String(p.id), { ...row, type: "Séminaire", statut: "à traiter", planning_id: pid, created_at: new Date().toISOString(), __new: true });
+    const { estimation_ht, segment, ...row } = p;
+    SANDBOX.reservations.set(String(p.id), { ...row, statut: "à traiter", planning_id: pid, created_at: new Date().toISOString(), __new: true });
     return null;
   }
   const m = path.match(/^\/(reservations|planning)(\?|$)/);
@@ -621,8 +621,9 @@ export default {
           petitDej: (+j.petitDej || 0) * nb, collationMatin: ((+j.collationMatin || 0) + (+j.accueil || 0)) * nb,
           dejeuner: (+j.dejeuner || 0) * nb, collationAprem: (+j.collationAprem || 0) * nb, diner: (+j.diner || 0) * nb,
         }));
+        const seg = ["groupe", "mariage"].includes(p.segment) ? p.segment : "seminaire";
         const details = {
-          type: "pro",
+          type: seg === "seminaire" ? "pro" : "prive",
           source: "questionnaire",
           meals: { mode: q.restauration === "pension" ? "pension" : (q.restauration === "aucune" ? "libre" : "demi"), counts },
           questionnaire: { reponses: q, estimation: p.estimation || null, origine: txt(p.origine, 300) },
@@ -633,12 +634,14 @@ export default {
           entreprise: txt(c.organisation) || null,
           prenom_contact: txt(c.prenom), nom_contact: txt(c.nom),
           email: txt(c.email), telephone: txt(c.telephone, 40),
-          type: "Séminaire",
+          segment: seg,
+          type: { seminaire: "Séminaire", groupe: "séjour de groupe", mariage: "mariage" }[seg],
           date_arrivee: iso(q.dateArrivee),
           date_depart: q.journeeEtude ? iso(q.dateArrivee) : iso(q.dateDepart),
           nombre_de_personnes: nb,
           message: txt(c.message, 4000),
-          budget_estime: p.estimation?.ht ? `${Math.round(p.estimation.ht)} € HT (estimation questionnaire)` : null,
+          budget_estime: seg !== "seminaire" && p.estimation?.ttc ? `${Math.round(p.estimation.ttc)} € TTC (estimation questionnaire)`
+            : p.estimation?.ht ? `${Math.round(p.estimation.ht)} € HT (estimation questionnaire)` : null,
           suivi_source: q.agence ? "questionnaire (agence)" : "questionnaire",
           details_json: JSON.stringify(details),
           estimation_ht: p.estimation?.ht ? Math.round(p.estimation.ht) : null,

@@ -204,6 +204,20 @@
 
     function fromQuestionnaire(grille, q) {
         const n = Math.max(1, +q.participants || 0);
+        // Groupe / mariage : forfait, pas de programme repas
+        if (q.segment === 'groupe' || q.segment === 'mariage') {
+            const nuits = q.dateArrivee && q.dateDepart
+                ? Math.max(0, Math.round((new Date(q.dateDepart) - new Date(q.dateArrivee)) / 86400000)) : 2;
+            return {
+                jours: [],
+                demande: {
+                    segment: q.segment, dateArrivee: q.dateArrivee || '', personnes: n, nuits,
+                    options: { draps: q.draps ? Math.min(n, 40) : 0, archipel: !!q.archipel, cuisine_pro: !!q.cuisine_pro },
+                    mariage: { diner: n, pack: q.pack || undefined, secondeSoiree: !!q.secondeSoiree,
+                               traiteurExterieur: !!q.traiteurExterieur, nuitsSup: Math.max(0, nuits - 2) }
+                }
+            };
+        }
         const { nuits, jours } = planRepas(q);
         const somme = k => jours.reduce((s, j) => s + j[k], 0);
         const cat = grille.seminaire.catalogue;

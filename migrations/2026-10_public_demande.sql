@@ -17,7 +17,8 @@ begin
   -- 1) Calendrier : la date passe en « Demandé » (affichée « sur demande » sur le calendrier public)
   insert into planning (nom, type, date_arrivee, date_depart, statut, nb_personnes, montant, notes, contact_tel)
   values (
-    left(p->>'nom_client', 200), 'Séminaire',
+    left(p->>'nom_client', 200),
+    case p->>'segment' when 'groupe' then 'Week-end privé' when 'mariage' then 'Mariage' else 'Séminaire' end,
     (p->>'date_arrivee')::date, (p->>'date_depart')::date, 'Demandé',
     least(greatest(coalesce((p->>'nombre_de_personnes')::int, 0), 0), 500),
     nullif(p->>'estimation_ht', '')::numeric,
@@ -35,7 +36,7 @@ begin
     left(p->>'nom_client', 200), left(p->>'entreprise', 200),
     left(p->>'prenom_contact', 100), left(p->>'nom_contact', 100),
     left(p->>'email', 200), left(p->>'telephone', 40),
-    'Séminaire', 'à traiter',
+    case p->>'segment' when 'groupe' then 'séjour de groupe' when 'mariage' then 'mariage' else 'Séminaire' end, 'à traiter',
     (p->>'date_arrivee')::date, (p->>'date_depart')::date,
     least(greatest(coalesce((p->>'nombre_de_personnes')::int, 0), 0), 500),
     left(p->>'message', 4000), left(p->>'budget_estime', 100),

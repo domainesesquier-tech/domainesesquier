@@ -83,9 +83,8 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
             <label class="choice"><input type="radio" name="type" value="groupe"><span>Week-end en groupe</span></label>
             <label class="choice"><input type="radio" name="type" value="mariage"><span>Mariage</span></label>
           </div>
-          <div id="note-type" class="note-type" hidden>Ce questionnaire est réservé aux séminaires pour le moment. Pour un week-end en groupe ou un mariage, écrivez-nous via la <a href="https://domainesesquier.com/contact/">page contact</a>.</div>
         </fieldset>
-        <fieldset>
+        <fieldset id="bloc-format">
           <legend>Format</legend>
           <div class="choices">
             <label class="choice"><input type="radio" name="format" value="residentiel" checked><span>Avec nuit(s) sur place</span></label>
@@ -93,8 +92,8 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
           </div>
         </fieldset>
         <fieldset>
-          <label class="lab" for="participants">Nombre de participants</label>
-          <p class="hint">De 10 à 40 personnes. Au-delà, nous construisons votre devis sur mesure.</p>
+          <label class="lab" for="participants" id="lab-participants">Nombre de participants</label>
+          <p class="hint" id="hint-participants">De 10 à 40 personnes. Au-delà, nous construisons votre devis sur mesure.</p>
           <input type="number" id="participants" name="participants" min="1" max="200" inputmode="numeric" required>
           <div class="err" data-err="participants"></div>
         </fieldset>
@@ -110,7 +109,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
             <div class="err" data-err="dateDepart"></div>
           </fieldset>
         </div>
-        <fieldset>
+        <fieldset id="bloc-profil">
           <legend>Vous êtes</legend>
           <div class="choices">
             <label class="choice"><input type="radio" name="profil" value="entreprise" checked><span>Une entreprise</span></label>
@@ -172,6 +171,34 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
             <label class="choice"><input type="radio" name="soiree" value="formule"><span>Soirée complète (bar, bière, vins)</span></label>
           </div>
         </fieldset>
+      </section>
+
+      <!-- Groupe / mariage : vos envies -->
+      <section data-step="4" hidden>
+        <h2>Vos envies</h2>
+        <div id="envies-groupe">
+          <fieldset><legend>Draps fournis (10 € par personne)</legend><div class="choices">
+            <label class="choice"><input type="radio" name="draps" value="1" checked><span>Oui</span></label>
+            <label class="choice"><input type="radio" name="draps" value="0"><span>Nous apportons les nôtres</span></label></div></fieldset>
+          <fieldset><legend>Salle Archipel (200 m², pour une soirée ou un grand repas)</legend><div class="choices">
+            <label class="choice"><input type="radio" name="archipel" value="1"><span>Oui</span></label>
+            <label class="choice"><input type="radio" name="archipel" value="0" checked><span>Non</span></label></div></fieldset>
+          <fieldset><legend>Cuisine professionnelle (traiteur ou chef)</legend><div class="choices">
+            <label class="choice"><input type="radio" name="cuisine_pro" value="1"><span>Oui</span></label>
+            <label class="choice"><input type="radio" name="cuisine_pro" value="0" checked><span>Non</span></label></div></fieldset>
+        </div>
+        <div id="envies-mariage" hidden>
+          <fieldset><legend>Lieu de la réception</legend><div class="choices">
+            <label class="choice"><input type="radio" name="pack" value="" checked><span>Je ne sais pas encore</span></label>
+            <label class="choice"><input type="radio" name="pack" value="champs_olivier"><span>Champs d'olivier (jusqu'à 40 invités)</span></label>
+            <label class="choice"><input type="radio" name="pack" value="archipel"><span>Salle Archipel</span></label></div></fieldset>
+          <fieldset><legend>Seconde soirée en salle Archipel</legend><div class="choices">
+            <label class="choice"><input type="radio" name="secondeSoiree" value="1"><span>Oui</span></label>
+            <label class="choice"><input type="radio" name="secondeSoiree" value="0" checked><span>Non</span></label></div></fieldset>
+          <fieldset><legend>Votre traiteur</legend><div class="choices">
+            <label class="choice"><input type="radio" name="traiteurExterieur" value="0" checked><span>Pas encore choisi</span></label>
+            <label class="choice"><input type="radio" name="traiteurExterieur" value="1"><span>Un traiteur qui utilisera la cuisine du domaine</span></label></div></fieldset>
+        </div>
       </section>
 
       <!-- Étape 3 -->
@@ -263,19 +290,35 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
       restauration: val('restauration'),
       pauses: val('pauses') === '1', vin: val('vin') === '1',
       soiree: val('soiree'), transport: val('transport'),
-      activites: [...form.querySelectorAll('input[name="activites"]:checked')].map(i => i.value)
+      activites: [...form.querySelectorAll('input[name="activites"]:checked')].map(i => i.value),
+      segment: val('type'),
+      draps: val('draps') === '1', archipel: val('archipel') === '1', cuisine_pro: val('cuisine_pro') === '1',
+      pack: val('pack') || '', secondeSoiree: val('secondeSoiree') === '1', traiteurExterieur: val('traiteurExterieur') === '1'
     };
   }
 
+  // Étapes affichées selon le type : séminaire 0-1-2-3, groupe / mariage 0-4-3
+  const PILLS = { seminaire: ['Le séjour', 'Le programme', 'Activités', 'Vos coordonnées'], autre: ['Le séjour', 'Vos envies', 'Vos coordonnées'] };
+  const ordre = () => val('type') === 'seminaire' ? [0, 1, 2, 3] : [0, 4, 3];
+  const section = k => steps.find(s => +s.dataset.step === k);
   function majFormat() {
+    const seg = val('type'), sem = seg === 'seminaire';
+    document.getElementById('bloc-format').hidden = !sem;
+    document.getElementById('bloc-profil').hidden = !sem;
+    if (!sem) form.querySelector('input[name="format"][value="residentiel"]').checked = true;
+    document.getElementById('envies-groupe').hidden = seg !== 'groupe';
+    document.getElementById('envies-mariage').hidden = seg !== 'mariage';
+    document.getElementById('lab-participants').textContent = seg === 'mariage' ? 'Nombre d\'invités' : (sem ? 'Nombre de participants' : 'Nombre de personnes');
+    document.getElementById('hint-participants').textContent = seg === 'mariage' ? 'Réception jusqu\'à 40 invités au Champs d\'olivier, davantage en salle Archipel. 40 couchages sur place.'
+      : seg === 'groupe' ? '35 couchages, jusqu\'à 40 avec lits d\'appoint. 2 nuits minimum.' : 'De 10 à 40 personnes. Au-delà, nous construisons votre devis sur mesure.';
+    const noms = PILLS[sem ? 'seminaire' : 'autre'];
+    pills.forEach((p, k) => { p.hidden = k >= noms.length; if (noms[k]) p.textContent = `${k + 1}. ${noms[k]}`; });
     const etude = val('format') === 'etude';
     document.getElementById('bloc-depart').hidden = etude;
     document.getElementById('bloc-depart-heure').hidden = etude;
     document.getElementById('bloc-vin').hidden = etude;
     document.getElementById('bloc-soiree').hidden = etude;
     document.getElementById('lab-arrivee').textContent = etude ? 'Date de la journée' : 'Date d\'arrivée';
-    document.getElementById('note-type').hidden = val('type') === 'seminaire';
-    btnNext.disabled = val('type') !== 'seminaire';
   }
 
   // Estimation interne : jamais affichée au client, jointe à la demande pour le devis.
@@ -284,7 +327,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
     if (!grille) return;
     const q = reponses();
     const dateOk = q.dateArrivee && (q.journeeEtude || (q.dateDepart && q.dateDepart > q.dateArrivee));
-    if (!q.participants || q.participants > 40 || !dateOk) return;
+    if (!q.participants || (q.participants > 40 && q.segment !== 'mariage') || !dateOk) return;
     const { demande, jours } = PricingEngine.fromQuestionnaire(grille, q);
     derniere = { demande, jours, resultat: PricingEngine.compute(grille, demande) };
   }
@@ -304,6 +347,8 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
       if (!q.dateArrivee) ok = erreur('dateArrivee', 'Indiquez une date.') && ok;
       if (!q.journeeEtude && (!q.dateDepart || q.dateDepart <= q.dateArrivee)) ok = erreur('dateDepart', 'La date de départ doit suivre la date d\'arrivée.') && ok;
     }
+    if (i === 0 && q.segment !== 'seminaire' && q.dateDepart && (new Date(q.dateDepart) - new Date(q.dateArrivee)) / 86400000 < 2)
+      ok = erreur('dateDepart', 'Deux nuits minimum pour une privatisation.') && ok;
     if (i === 3) {
       if (!form.prenom.value.trim()) ok = erreur('prenom', 'Champ requis.') && ok;
       if (!form.nom.value.trim()) ok = erreur('nom', 'Champ requis.') && ok;
@@ -314,13 +359,15 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
     return ok;
   }
 
+  // i = position dans ordre()
   function afficher(i) {
     etape = i;
-    steps.forEach((s, k) => s.hidden = k !== i);
+    const o = ordre(), cur = section(o[i]);
+    steps.forEach(s => s.hidden = s !== cur);
     pills.forEach((p, k) => { p.className = k < i ? 'done' : (k === i ? 'on' : ''); });
     btnPrev.hidden = i === 0;
-    btnNext.textContent = i === steps.length - 1 ? 'Envoyer ma demande' : 'Continuer';
-    const h = steps[i].querySelector('h2');
+    btnNext.textContent = i === o.length - 1 ? 'Envoyer ma demande' : 'Continuer';
+    const h = cur.querySelector('h2');
     if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -331,14 +378,14 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
     estimer();
     const q = reponses();
     const payload = {
-      segment: 'seminaire',
+      segment: q.segment,
       reponses: q,
       contact: {
         prenom: form.prenom.value.trim(), nom: form.nom.value.trim(),
         organisation: form.organisation.value.trim(), email: form.email.value.trim(),
         telephone: form.telephone.value.trim(), message: form.message.value.trim()
       },
-      estimation: derniere ? { ht: derniere.resultat.totaux.ht, par_personne_ht: derniere.resultat.par_personne.ht } : null,
+      estimation: derniere ? { ht: derniere.resultat.totaux.ht, ttc: derniere.resultat.totaux.ttc, par_personne_ht: derniere.resultat.par_personne.ht } : null,
       planning: derniere ? derniere.jours : null,
       origine: document.referrer || location.href
     };
@@ -362,8 +409,8 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
   }
 
   btnNext.addEventListener('click', () => {
-    if (!valider(etape)) return;
-    if (etape < steps.length - 1) afficher(etape + 1); else envoyer();
+    if (!valider(ordre()[etape])) return;
+    if (etape < ordre().length - 1) afficher(etape + 1); else envoyer();
   });
   btnPrev.addEventListener('click', () => afficher(etape - 1));
   form.addEventListener('input', e => {
