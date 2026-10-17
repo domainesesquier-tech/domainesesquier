@@ -2087,7 +2087,14 @@
 
             /* --- Bottom nav --- */
             .mobile-bottom-nav-index { display: flex !important; }
+            /* --- En-tête : recherche pleine largeur, actions secondaires masquées --- */
+            .dash-top-right { width: 100%; flex-wrap: wrap; gap: 8px; }
+            .dash-top-right .dossier-loader { display: none; }
+            .dash-top-right .search-box { flex: 1 1 auto; min-width: 0; }
+            .dash-top-right .search-box input { width: 100%; min-width: 0; }
+            .mobile-filter { display: block !important; width: 100%; padding: 8px 10px; border: 1px solid #E5E7EB; border-radius: 8px; background: #fff; font: inherit; font-size: 14px; }
         }
+        .mobile-filter { display: none; }
 
         /* Bottom nav (masquée sur desktop) */
         .mobile-bottom-nav-index {
@@ -2114,6 +2121,7 @@
             gap: 2px;
         }
         .mobile-bottom-nav-index a.active { color: #1B4332; }
+        .mobile-bottom-nav-index a.nav-new span.nav-icon { width: 30px; height: 30px; border-radius: 50%; background: #1B4332; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; }
         .mobile-bottom-nav-index a span.nav-icon { font-size: 18px; }
 
         /* ========== ANIMATIONS ========== */
@@ -2400,6 +2408,15 @@
                     <h2 id="dash-title">Séminaires</h2>
                     <div class="subtitle" id="dash-subtitle">Vue d'ensemble des séminaires</div>
                 </div>
+                <select class="mobile-filter" id="mobile-filter" onchange="setFilter(this.value)" aria-label="Filtrer par statut">
+                    <option value="all">Tous les statuts</option>
+                    <option value="à traiter">À traiter</option>
+                    <option value="devis envoyé">Devis envoyé</option>
+                    <option value="confirmé">Confirmé</option>
+                    <option value="effectué">Effectués</option>
+                    <option value="annulé">Refusés</option>
+                    <option value="archived">Archivés</option>
+                </select>
                 <div class="dash-top-right">
                     <div class="dossier-loader">
                         <input type="text" id="dev-id-input" placeholder="ID Dossier…">
@@ -2878,6 +2895,7 @@
             document.getElementById('dash-title').innerText = S.titre;
             document.getElementById('dash-subtitle').innerText = S.sousTitre;
             document.getElementById('kpi-total-label').innerText = S.titre;
+            document.querySelectorAll('.mobile-bottom-nav-index a[data-seg]').forEach(a => a.classList.toggle('active', a.dataset.seg === seg));
             showDossiers(navEl);
             updateKPIs();
             updateFilters();
@@ -3351,6 +3369,7 @@
         function setFilter(f) {
             currentFilter = f;
             document.querySelectorAll('.sidebar-filter').forEach(p => p.classList.toggle('active', p.dataset.filter === f));
+            const mf = document.getElementById('mobile-filter'); if (mf) mf.value = f;
             if (currentViewMode === 'list') {
                 renderTable();
             } else {
@@ -3845,12 +3864,24 @@
 <!-- MOBILE BOTTOM NAV -->
 <nav class="mobile-bottom-nav-index">
     <a href="planning.html">
-        <span class="nav-icon">📋</span>
+        <span class="nav-icon"><i class="fa-regular fa-calendar-days"></i></span>
         Planning
     </a>
-    <a href="index.html" class="active">
-        <span class="nav-icon">📁</span>
+    <a href="#" class="active" data-seg="seminaire" onclick="event.preventDefault(); document.getElementById('nav-dossiers').click()">
+        <span class="nav-icon"><i class="fa-solid fa-briefcase"></i></span>
         Séminaires
+    </a>
+    <a href="#" data-seg="groupe" onclick="event.preventDefault(); document.getElementById('nav-groupes').click()">
+        <span class="nav-icon"><i class="fa-solid fa-people-group"></i></span>
+        Groupes
+    </a>
+    <a href="#" data-seg="mariage" onclick="event.preventDefault(); document.getElementById('nav-mariages').click()">
+        <span class="nav-icon"><i class="fa-solid fa-ring"></i></span>
+        Mariages
+    </a>
+    <a href="#" class="nav-new" onclick="event.preventDefault(); openNewDossier(document.getElementById('nav-client-new'), currentSegment)">
+        <span class="nav-icon"><i class="fa-solid fa-plus"></i></span>
+        Nouveau
     </a>
 </nav>
 </body>

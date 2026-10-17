@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Demande de devis — Domaine Sesquier</title>
-<meta name="description" content="Composez votre séminaire au Domaine Sesquier et obtenez une estimation immédiate.">
+<meta name="description" content="Séminaire, week-end en groupe ou mariage au Domaine Sesquier : décrivez votre projet et recevez votre devis sous 24 h.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
@@ -66,8 +66,8 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
 <body>
 <main class="wrap">
   <p class="surtitre">— Demande de devis</p>
-  <h1>Composez votre séminaire</h1>
-  <p class="chapo">Quatre étapes pour décrire votre projet. Nous étudions votre demande et vous envoyons votre devis détaillé par e-mail sous 24 h.</p>
+  <h1 id="titre">Composez votre séminaire</h1>
+  <p class="chapo" id="chapo">Quatre étapes pour décrire votre projet. Nous étudions votre demande et vous envoyons votre devis détaillé par e-mail sous 24 h.</p>
 
   <div class="grid">
     <form id="form" class="card" novalidate>
@@ -311,6 +311,8 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
     document.getElementById('lab-participants').textContent = seg === 'mariage' ? 'Nombre d\'invités' : (sem ? 'Nombre de participants' : 'Nombre de personnes');
     document.getElementById('hint-participants').textContent = seg === 'mariage' ? 'Réception jusqu\'à 40 invités au Champs d\'olivier, davantage en salle Archipel. 40 couchages sur place.'
       : seg === 'groupe' ? '35 couchages, jusqu\'à 40 avec lits d\'appoint. 2 nuits minimum.' : 'De 10 à 40 personnes. Au-delà, nous construisons votre devis sur mesure.';
+    document.getElementById('titre').textContent = { seminaire: 'Composez votre séminaire', groupe: 'Votre week-end en groupe', mariage: 'Votre mariage au domaine' }[seg];
+    document.getElementById('chapo').textContent = `${sem ? 'Quatre' : 'Trois'} étapes pour décrire votre projet. Nous étudions votre demande et vous envoyons votre devis détaillé par e-mail sous 24 h.`;
     const noms = PILLS[sem ? 'seminaire' : 'autre'];
     pills.forEach((p, k) => { p.hidden = k >= noms.length; if (noms[k]) p.textContent = `${k + 1}. ${noms[k]}`; });
     const etude = val('format') === 'etude';
