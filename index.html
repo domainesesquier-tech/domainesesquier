@@ -426,6 +426,14 @@
             overflow-y: auto;
         }
 
+        .nav-sub { padding-left: 26px; }
+        .nav-sub .nav-add { margin-left: auto; width: 22px; height: 22px; border: none; border-radius: 6px; background: transparent; color: var(--text-secondary); cursor: pointer; opacity: .55; }
+        .nav-sub:hover .nav-add, .nav-sub.active .nav-add { opacity: 1; }
+        .nav-sub .nav-add:hover { background: rgba(0,0,0,.08); }
+        .type-chooser { display: none; padding: 2px 0 6px 26px; }
+        .type-chooser.show { display: block; }
+        .type-chooser button { display: block; width: 100%; text-align: left; padding: 6px 10px; margin-bottom: 2px; border: none; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+        .type-chooser button:hover { background: rgba(0,0,0,.06); }
         .nav-item {
             padding: 8px 12px;
             margin-bottom: 2px;
@@ -2285,26 +2293,38 @@
                 <span>Ménage</span>
             </a>
             <div class="nav-section-title">Gestion</div>
-            <li class="nav-item active" id="nav-dossiers" onclick="showSegment('seminaire', this)">
+            <li class="nav-item" style="cursor:default;">
+                <i class="fa-regular fa-folder-open"></i>
+                <span>Dossiers</span>
+            </li>
+            <li class="nav-item nav-sub active" id="nav-dossiers" onclick="showSegment('seminaire', this)">
                 <i class="fa-solid fa-briefcase"></i>
                 <span>Séminaires</span>
+                <button class="nav-add" title="Nouveau séminaire" onclick="event.stopPropagation(); openNewDossier(document.getElementById('nav-client-new'), 'seminaire')"><i class="fa-solid fa-plus"></i></button>
             </li>
-            <li class="nav-item" id="nav-groupes" onclick="showSegment('groupe', this)">
+            <li class="nav-item nav-sub" id="nav-groupes" onclick="showSegment('groupe', this)">
                 <i class="fa-solid fa-people-group"></i>
                 <span>Groupes</span>
+                <button class="nav-add" title="Nouveau groupe" onclick="event.stopPropagation(); openNewDossier(document.getElementById('nav-client-new'), 'groupe')"><i class="fa-solid fa-plus"></i></button>
             </li>
-            <li class="nav-item" id="nav-mariages" onclick="showSegment('mariage', this)">
+            <li class="nav-item nav-sub" id="nav-mariages" onclick="showSegment('mariage', this)">
                 <i class="fa-solid fa-ring"></i>
                 <span>Mariages</span>
+                <button class="nav-add" title="Nouveau mariage" onclick="event.stopPropagation(); openNewDossier(document.getElementById('nav-client-new'), 'mariage')"><i class="fa-solid fa-plus"></i></button>
             </li>
 
             <div class="nav-divider"></div>
             <div class="nav-section-title">Outils</div>
 
-            <li class="nav-item" id="nav-client-new" onclick="openNewDossier(this)">
+            <li class="nav-item" id="nav-client-new" onclick="document.getElementById('type-chooser').classList.toggle('show')">
                 <i class="fa-solid fa-user-plus"></i>
                 <span>Nouveau client</span>
             </li>
+            <div class="type-chooser" id="type-chooser">
+                <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'seminaire')"><i class="fa-solid fa-briefcase"></i>&nbsp; Séminaire</button>
+                <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'groupe')"><i class="fa-solid fa-people-group"></i>&nbsp; Groupe</button>
+                <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'mariage')"><i class="fa-solid fa-ring"></i>&nbsp; Mariage</button>
+            </div>
 
             <div class="nav-divider"></div>
             <div class="nav-section-title">Filtres</div>
@@ -2864,8 +2884,11 @@
             if (currentViewMode === 'list') renderTable(); else renderCalendar();
         }
 
-        async function openNewDossier(navEl) {
+        async function openNewDossier(navEl, seg) {
             if (navEl.disabled) return;
+            document.getElementById('type-chooser')?.classList.remove('show');
+            // Bascule dans l'espace du type choisi avant de créer le dossier
+            if (seg && seg !== currentSegment) showSegment(seg, document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[seg]));
 
             // Désactiver le bouton pendant la création pour éviter les doubles soumissions
             navEl.disabled = true;
