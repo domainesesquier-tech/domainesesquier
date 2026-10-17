@@ -47,7 +47,7 @@
         (demande.prestations || []).forEach(p => {
             const item = cat[p.code];
             if (!item) throw new Error(`Prestation inconnue pour ${seg} : ${p.code}`);
-            lignes.push(ligne(base, item.label, p.qte, item.pu, item.tva, item.cat));
+            lignes.push(Object.assign(ligne(base, item.label, p.qte, item.pu, item.tva, item.cat), { code: p.code }));
         });
     }
 

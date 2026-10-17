@@ -544,6 +544,7 @@
         <div style="display:flex;align-items:center;gap:3px;padding:3px 8px;background:#f0ede6;border-radius:8px;border:1px solid #d1cec7;">
             <span style="font-size:11px;color:#6b7280;font-weight:500;margin-right:4px;white-space:nowrap;">Société :</span>
             <button id="prof-btn-ozza" onclick="setCompanyProfile('ozza')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:#3a5538;color:white;">OZZA</button>
+            <button id="btn-remise" onclick="addRemise()" title="Ajoute une ligne de remise juste avant les totaux" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;background:#fff;color:#3a5538;margin-right:6px;">+ Remise</button>
             <button id="btn-grille-2027" onclick="applyGrille2027()" title="Recalcule hébergement et espaces avec la grille 2027" style="padding:4px 10px;border:1px solid #8b3a1e;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;background:#fff;color:#8b3a1e;margin-right:6px;">Grille 2027</button>
             <button id="prof-btn-foudre" onclick="setCompanyProfile('foudre')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:transparent;color:#3a5538;">FOUDRE SOCIETY</button>
         </div>
@@ -653,6 +654,7 @@
             style="font-size: 10pt; font-weight: 600; color: var(--primary); margin-bottom: 15px; border-left: 3px solid var(--primary); padding-left: 12px; outline: none;">
             <!-- Dynamically filled -->
         </div>
+        <div id="included-box" contenteditable="true" style="display:none; font-size:8.5pt; color:#555; background:rgba(58,85,56,0.05); border-radius:4px; padding:8px 12px; margin:-6px 0 15px;"></div>
 
         <!-- E. Pricing Table -->
         <section class="pricing-section">
@@ -733,6 +735,7 @@
                     <li contenteditable="true">• <strong>Règlement :</strong> Acompte de 30% à la réservation, solde à l'arrivée.</li>
                     <li contenteditable="true">• <strong>Annulation :</strong> Acompte conservé. J-29/J-15 : 50%. J-14/J-8 : 75%. Moins de J-7 : 100%.</li>
                     <li contenteditable="true">• <strong>Divers :</strong> Chambres disponibles à 15h ou avant selon demandes (arrivée). Libérées à 11h, flexible selon déroulé du séjour (départ).</li>
+                    <li id="cond-option" contenteditable="true" style="display:none;"></li>
                     <li id="legal-penalites" style="display:none;color:#777;">• <strong>Pénalités de retard :</strong> Taux directeur BCE majoré de 10 points. <strong>Indemnité forfaitaire de recouvrement : 40 €</strong> (art. L441-10 C. com.).</li>
                 </ul>
                 <div id="company-rib" style="font-size: 7.5pt; color: #999; margin-top: 10px; line-height: 1.2;">
@@ -745,7 +748,8 @@
             <div class="totals-col">
                 <div class="total-row"><span>Total HT</span><span id="display-total-ht" style="font-weight: 600;">0,00
                         €</span></div>
-                <div class="total-row"><span>TVA (estimée)</span><span id="display-total-tva">0,00 €</span></div>
+                <div class="total-row"><span>TVA</span><span id="display-total-tva">0,00 €</span></div>
+                <div id="display-tva-detail" style="font-size:8pt; color:#777; text-align:right; margin-top:-2px;"></div>
 
 
                 <div class="total-row final"
@@ -1215,6 +1219,9 @@
             } catch (e) { console.error("Synthesis error:", e); }
 
             // 5. Build Main Pricing Table
+            const layoutV2 = segmentFromType(fields["Type"]) === 'seminaire';
+            if (layoutV2) buildLayoutSeminaire(fields);
+            if (!layoutV2) {
             const tbody = document.getElementById('pricing-body');
             tbody.innerHTML = '';
 
@@ -1300,6 +1307,8 @@
                 addSubtotalRow("Activités & Services Annexes", "subtotal-activities", "activities-body");
             }
 
+            } // fin mise en page historique
+
             // --- E. Initial Taxe de séjour Calculation ---
             if (nbPers > 0 && nNights > 0) {
                 const ts = nbPers * nNights * 4.31; // 4.31€ per person per night
@@ -1310,6 +1319,7 @@
             updateCalculations();
             // Nouveau dossier séminaire : pré-remplir hébergement et espaces avec la grille 2027
             if (segmentFromType(fields["Type"]) === 'seminaire') applyGrille2027({ silent: true });
+            renderSeminaireExtras(fields);
             // Fin du rendu initial : réactiver le tracking et marquer "propre"
             setTimeout(() => { suppressDirtyFlag = false; markClean(); }, 50);
         }
@@ -1349,6 +1359,7 @@
         }
 
         function renderFromDossier(dossier, fields) {
+            window._liveFields = fields;
             if (!dossier || !dossier.financials) {
                 console.warn('[renderFromDossier] Dossier incomplet, rendu annulé');
                 return;
@@ -1541,6 +1552,7 @@
             if (document.getElementById('display-total-tva')) document.getElementById('display-total-tva').innerText = formatEuro(totalTVA);
             if (document.getElementById('display-total-ttc')) document.getElementById('display-total-ttc').innerText = formatEuro(totalTTC);
             if (document.getElementById('display-deposit'))   document.getElementById('display-deposit').innerText   = formatEuro(financials.acompte30 || totalTTC * 0.3);
+            renderSeminaireExtras(fields);
         }
 
         /**
@@ -1852,6 +1864,65 @@
         // =====================================================================
         let GRILLE_2027 = null;
 
+        // Nouvelle structure du devis séminaire : chaque section a son sous-total.
+        function buildLayoutSeminaire(fields) {
+            document.getElementById('pricing-body').innerHTML = '';
+            addCategoryRow("Le domaine");
+            addSubtotalRow("Le domaine", "subtotal-domaine");
+            addCategoryRow("Restauration");
+            addSubtotalRow("Restauration", "subtotal-restauration");
+            addMealGrid(fields);
+            addCategoryRow("Boissons");
+            addSubtotalRow("Boissons", "subtotal-boissons");
+
+            document.getElementById('options-body').innerHTML = '';
+            SesquierUtils.addCategoryRow("Activités", 'options-body', true);
+            addSubtotalRow("Activités", "subtotal-activites", 'options-body');
+
+            document.getElementById('activities-body').innerHTML = '';
+            SesquierUtils.addCategoryRow("Services", 'activities-body');
+            addSubtotalRow("Services", "subtotal-services", 'activities-body');
+            const th = document.querySelector('#activities-proposal th.col-detail');
+            if (th) th.textContent = '';
+        }
+
+        // Remise commerciale : section dédiée, juste avant les totaux
+        function addRemise() {
+            let sub = document.getElementById('subtotal-remise');
+            if (!sub) {
+                SesquierUtils.addCategoryRow("Remise", 'activities-body');
+                addSubtotalRow("Remise", "subtotal-remise", 'activities-body');
+                sub = document.getElementById('subtotal-remise');
+            }
+            const subTr = sub.closest('tr');
+            subTr.parentNode.insertBefore(createPricingRow('Remise commerciale', 1, 0, '20%'), subTr);
+            updateCalculations();
+            markDirty();
+        }
+
+        // Encadré « Inclus » et date limite d'option (séminaire)
+        function renderSeminaireExtras(fields) {
+            if (segmentFromType(fields?.["Type"]) !== 'seminaire') return;
+            const box = document.getElementById('included-box');
+            if (box) {
+                box.innerHTML = '<strong>Inclus :</strong> domaine privatisé · lits faits, draps et serviettes · ménage de fin de séjour · référent joignable chaque jour · taxe de séjour';
+                box.style.display = 'block';
+            }
+            const li = document.getElementById('cond-option');
+            if (li) {
+                const d = new Date();
+                d.setDate(d.getDate() + 15);
+                li.innerHTML = `• <strong>Option :</strong> vos dates sont réservées jusqu'au ${d.toLocaleDateString('fr-FR')}, date de validité de ce devis.`;
+                li.style.display = '';
+            }
+        }
+
+        // Premier sous-total existant parmi une liste (nouvelle puis ancienne mise en page)
+        function firstSubtotal(ids) {
+            for (const id of ids) { const el = document.getElementById(id); if (el) return id; }
+            return null;
+        }
+
         // Le Worker (Supabase) renvoie "Details JSON", l'ancien Airtable "Détails JSON".
         function parseDetails(fields) {
             const raw = fields["Détails JSON"] || fields["Details JSON"];
@@ -1900,19 +1971,46 @@
                 : { segment, dateArrivee: fields["Date arrivée"] || '', personnes: fields["Nombre de personnes"] || 0, nuits };
             const res = PricingEngine.compute(GRILLE_2027, demande);
 
-            const sections = [
-                { cats: ['hebergement'], subtotal: 'subtotal-hebergement' },
-                { cats: ['lieu'], subtotal: 'subtotal-salles' }
-            ];
-            if (questionnaire?.reponses) sections.push(
-                { cats: ['repas', 'boisson'], subtotal: 'subtotal-restauration' },
-                { cats: ['activite', 'service', 'transport'], subtotal: 'subtotal-activities' }
-            );
-            sections.forEach(s => {
-                const subTr = clearSection(s.subtotal);
+            // Catégorie de ligne → section du devis (nouvelle mise en page, sinon historique)
+            const CIBLES = {
+                hebergement: ['subtotal-domaine', 'subtotal-hebergement'],
+                lieu:        ['subtotal-domaine', 'subtotal-salles'],
+                repas:       ['subtotal-restauration'],
+                boisson:     ['subtotal-boissons', 'subtotal-restauration'],
+                activite:    ['subtotal-activites', 'subtotal-activities'],
+                service:     ['subtotal-services', 'subtotal-activities'],
+                transport:   ['subtotal-services', 'subtotal-activities']
+            };
+            const catsAjour = questionnaire?.reponses ? Object.keys(CIBLES) : ['hebergement', 'lieu'];
+
+            // Lignes repas reliées à la grille « planning » (cocher/décocher met à jour les quantités)
+            const MEAL_KEYS = { petit_dej: 'petitDej', dejeuner: 'dejeuner', diner: 'diner' };
+            let lignes = res.lignes;
+            if (questionnaire?.reponses) {
+                const { jours } = PricingEngine.fromQuestionnaire(GRILLE_2027, questionnaire.reponses);
+                const n = demande.personnes;
+                const somme = k => jours.reduce((t, j) => t + j[k], 0);
+                lignes = lignes.flatMap(l => {
+                    if (l.code !== 'collation') return [l];
+                    return [
+                        { ...l, label: 'Collation matinale', qte: n * somme('collationMatin'), mealKey: 'collationMatin' },
+                        { ...l, label: 'Collation de l\'après-midi', qte: n * somme('collationAprem'), mealKey: 'collationAprem' }
+                    ].filter(x => x.qte > 0);
+                });
+            }
+
+            const parSection = {};
+            lignes.filter(l => catsAjour.includes(l.cat)).forEach(l => {
+                const id = firstSubtotal(CIBLES[l.cat] || []);
+                if (id) (parSection[id] = parSection[id] || []).push(l);
+            });
+            // On vide chaque section concernée une seule fois, puis on la remplit
+            [...new Set(catsAjour.map(c => firstSubtotal(CIBLES[c])).filter(Boolean))].forEach(id => {
+                const subTr = clearSection(id);
                 if (!subTr) return;
-                res.lignes.filter(l => s.cats.includes(l.cat)).forEach(l => {
-                    subTr.parentNode.insertBefore(createPricingRow(l.label, l.qte, l.pu, `${l.tva}%`), subTr);
+                (parSection[id] || []).forEach(l => {
+                    const mk = l.mealKey || MEAL_KEYS[l.code] || null;
+                    subTr.parentNode.insertBefore(createPricingRow(l.label, l.qte, l.pu, `${l.tva}%`, mk), subTr);
                 });
             });
 
@@ -2055,7 +2153,12 @@
         }
 
         function updateCalculations() {
-            const { totalHT, totalTVA, ttc, optionsHT } = SesquierUtils.runCommonCalculations();
+            const { totalHT, totalTVA, ttc, optionsHT, tvaByRate } = SesquierUtils.runCommonCalculations();
+            const tvaDetail = document.getElementById('display-tva-detail');
+            if (tvaDetail) tvaDetail.innerText = Object.entries(tvaByRate || {})
+                .filter(([, v]) => v)
+                .sort(([a], [b]) => a - b)
+                .map(([r, v]) => `dont TVA ${r} % : ${formatEuro(v)}`).join(' · ');
 
             // Mise à jour des totaux généraux
             document.getElementById('display-total-ht').innerText = formatEuro(totalHT);
@@ -2079,7 +2182,7 @@
             if (depositEl) depositEl.innerText = formatEuro(ttc * 0.3);
 
             // Mise à jour de la synthèse (Total par personne)
-            const n = currentRecord?.nbPersonnes || currentRecord?.fields?.["Nombre de personnes"] || 0;
+            const n = currentRecord?.nbPersonnes || currentRecord?.fields?.["Nombre de personnes"] || window._liveFields?.["Nombre de personnes"] || 0;
             if (n > 0) {
                 const tsBox = document.getElementById('price-total-summary');
                 if (tsBox) tsBox.innerText = `Total séjour : ${formatEuro(totalHT)} HT (${formatEuro(ttc)} TTC)`;
@@ -2088,7 +2191,10 @@
                 if (ppBox) ppBox.innerText = `Soit ${Math.round(totalHT / n)} € HT / personne`;
 
                 const snapPP = document.getElementById('snapshot-price-per-person');
-                if (snapPP) snapPP.innerText = `${formatEuro(totalHT / n)} HT`;
+                const f = window._liveFields || currentRecord?.fields || {};
+                let nuits = f["Nuits"] || 0;
+                if (!nuits && f["Date arrivée"] && f["Date départ"]) nuits = Math.max(0, Math.round((new Date(f["Date départ"]) - new Date(f["Date arrivée"])) / 86400000));
+                if (snapPP) snapPP.innerText = `${formatEuro(totalHT / n)} HT` + (nuits > 0 ? ` (${formatEuro(totalHT / n / nuits)} / nuit)` : '');
             }
         }
 
@@ -2696,14 +2802,25 @@
                 if (subtitleEl) subtitleEl.innerText = displayDesc;
             }
 
-            // Trouver l'ancre d'insertion : sous-total de la bonne sous-section
-            const subtotalId = SECTION_SUBTOTAL[item.categorie];
-            let anchor = subtotalId ? document.getElementById(subtotalId)?.closest('tr') : null;
+            // Trouver l'ancre d'insertion : nouvelle structure séminaire d'abord, puis historique
+            const tvaNum = parseFloat(String(item.tva || '10').replace(/[^\d.,]/g, '')) || 10;
+            const ACTIVITES = ['Team Building', 'Sport & Plein Air', 'Culture & Découverte', 'Bien-être & Spa'];
+            let candidats = [];
+            if (item.categorie === 'Hébergement' || item.categorie === 'Options & Salles') candidats = ['subtotal-domaine'];
+            else if (item.categorie === 'Restauration') candidats = tvaNum >= 20 ? ['subtotal-boissons', 'subtotal-restauration'] : ['subtotal-restauration'];
+            else if (ACTIVITES.includes(item.categorie)) candidats = ['subtotal-activites'];
+            else if (item.categorie === 'Activités & Services Annexes') candidats = ['subtotal-services'];
+            const idV2 = firstSubtotal(candidats);
+            let anchor = idV2 ? document.getElementById(idV2).closest('tr') : null;
+            if (!anchor) {
+                const subtotalId = SECTION_SUBTOTAL[item.categorie];
+                anchor = subtotalId ? document.getElementById(subtotalId)?.closest('tr') : null;
+            }
             // Fallback : premier sous-total du tbody
             if (!anchor) anchor = tbody.querySelector('.subtotal-row');
 
             if (anchor) {
-                tbody.insertBefore(newRow, anchor);
+                anchor.parentNode.insertBefore(newRow, anchor);
             } else {
                 tbody.appendChild(newRow);
             }

@@ -395,11 +395,14 @@ const SesquierUtils = {
      * @returns {object} Calculated totals: { totalHT, totalTVA, ttc, subtotals }
      */
     runCommonCalculations() {
-        let totalHT = 0, totalTVA = 0;
-        let sHeberg = 0, sRestau = 0, sOpt = 0, sActiv = 0;
-        let optionsHT = 0; // total des lignes "en option" (non compté dans le devis)
-        // Total des options par section (pour la note affichée sous chaque sous-total)
-        const optBySection = { 'subtotal-hebergement': 0, 'subtotal-restauration': 0, 'subtotal-salles': 0, 'subtotal-activities': 0 };
+        // Calcul positionnel : chaque ligne appartient au premier sous-total qui la suit
+        // dans son tableau. Fonctionne pour l'ancienne mise en page (hébergement, restauration,
+        // espaces, activités) comme pour la nouvelle (domaine, restauration, boissons,
+        // activités, services), quels que soient les identifiants de sous-totaux.
+        let totalHT = 0, totalTVA = 0, optionsHT = 0;
+        const sections = {};       // { 'subtotal-xxx': montant HT }
+        const optBySection = {};   // options (non comptées) par section
+        const tvaByRate = {};      // { 10: montant TVA, 20: montant TVA }
 
         const parseP = (val) => {
             if (!val) return 0;
@@ -408,11 +411,21 @@ const SesquierUtils = {
             return parseFloat(clean) || 0;
         };
 
-        const processTable = (tbodyId) => {
+        ['pricing-body', 'options-body', 'activities-body'].forEach(tbodyId => {
             const tbody = document.getElementById(tbodyId);
             if (!tbody) return;
+            let sum = 0, sumOpt = 0;
             tbody.querySelectorAll('tr').forEach(row => {
-                if (row.classList.contains('category-row') || row.classList.contains('subtotal-row')) return;
+                if (row.classList.contains('subtotal-row')) {
+                    const id = row.querySelector('.subtotal-val')?.id;
+                    if (id) {
+                        sections[id] = (sections[id] || 0) + sum;
+                        optBySection[id] = (optBySection[id] || 0) + sumOpt;
+                    }
+                    sum = 0; sumOpt = 0;
+                    return;
+                }
+                if (row.classList.contains('category-row')) return;
 
                 const qEl = row.querySelector('.qty');
                 const pEl = row.querySelector('.price');
@@ -425,62 +438,33 @@ const SesquierUtils = {
                 const totalEl = row.querySelector('.row-total');
                 if (totalEl) totalEl.innerText = line.toFixed(2);
 
-                // Section de la ligne (pour ventiler sous-totaux et options)
-                let sectionId;
-                if (tbodyId === 'pricing-body') {
-                    const label = (row.querySelector('.row-label')?.innerText || row.cells[0]?.innerText || "").toLowerCase();
-                    const isHeberg = label.includes("chambre") || label.includes("hébergement") || label.includes("héberg") || label.includes("twin");
-                    sectionId = isHeberg ? 'subtotal-hebergement' : 'subtotal-restauration';
-                } else if (tbodyId === 'options-body')      sectionId = 'subtotal-salles';
-                else if (tbodyId === 'activities-body')      sectionId = 'subtotal-activities';
-
-                // Ligne en option : affichée (montant conservé) mais exclue de tous
-                // les totaux — cumulée à part (global + par section).
+                // Ligne en option : affichée (montant conservé) mais exclue de tous les totaux
                 if (row.classList.contains('is-option')) {
                     optionsHT += line;
-                    if (sectionId) optBySection[sectionId] += line;
+                    sumOpt += line;
                     return;
                 }
 
                 totalHT += line;
-
-                if      (sectionId === 'subtotal-hebergement')  sHeberg += line;
-                else if (sectionId === 'subtotal-restauration') sRestau += line;
-                else if (sectionId === 'subtotal-salles')       sOpt    += line;
-                else if (sectionId === 'subtotal-activities')   sActiv  += line;
+                sum += line;
 
                 const tvaEl = row.querySelector('.tva-rate');
-                let rate = 0.1;
-                if (tvaEl) {
-                    const rawTva = tvaEl.innerText.replace(/[^\d.,]/g, '').replace(',', '.');
-                    rate = (parseFloat(rawTva) / 100) || 0.1;
-                }
-                totalTVA += (line * rate);
+                let ratePct = 10;
+                if (tvaEl) ratePct = parseFloat(tvaEl.innerText.replace(/[^\d.,]/g, '').replace(',', '.')) || 10;
+                const tva = line * ratePct / 100;
+                totalTVA += tva;
+                tvaByRate[ratePct] = (tvaByRate[ratePct] || 0) + tva;
             });
-        };
+        });
 
-        processTable('pricing-body');
-        processTable('options-body');
-        processTable('activities-body');
-
-        // Mise à jour forcé des sous-totaux dans le DOM
-        const updateField = (id, value) => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.innerText = value.toFixed(2);
-                el.classList.add('updated'); // Optionnel: pour debug visuel
-            }
-        };
-
-        updateField('subtotal-hebergement', sHeberg);
-        updateField('subtotal-restauration', sRestau);
-        updateField('subtotal-salles', sOpt);
-        updateField('subtotal-activities', sActiv);
-
-        // Note "options proposées (non incluses)" sous chaque sous-total de section
-        Object.entries(optBySection).forEach(([sid, amount]) => {
-            const note = document.getElementById(sid + '-opt');
+        // Sous-totaux : toutes les cellules présentes (0 si la section est vide)
+        document.querySelectorAll('#pricing-body .subtotal-val, #options-body .subtotal-val, #activities-body .subtotal-val').forEach(el => {
+            if (!el.id) return;
+            el.innerText = (sections[el.id] || 0).toFixed(2);
+            el.classList.add('updated');
+            const note = document.getElementById(el.id + '-opt');
             if (!note) return;
+            const amount = optBySection[el.id] || 0;
             if (amount > 0) {
                 note.textContent = `+ ${this.formatEuro(amount)} HT d'options proposées (non incluses au total)`;
                 note.style.display = 'block';
@@ -489,8 +473,18 @@ const SesquierUtils = {
             }
         });
 
+        Object.keys(tvaByRate).forEach(k => { tvaByRate[k] = Math.round(tvaByRate[k] * 100) / 100; });
         const ttc = totalHT + totalTVA;
-        return { totalHT, totalTVA: Math.round(totalTVA * 100) / 100, ttc: Math.round(ttc * 100) / 100, optionsHT: Math.round(optionsHT * 100) / 100, subtotals: { sHeberg, sRestau, sOpt, sActiv } };
+        // Agrégats historiques (factures, dossier) : la nouvelle mise en page séminaire
+        // (domaine / boissons / activités / services) est ramenée aux 4 anciennes rubriques.
+        const sec = id => sections[id] || 0;
+        const subtotals = {
+            sHeberg: sec('subtotal-hebergement') + sec('subtotal-domaine'),
+            sRestau: sec('subtotal-restauration') + sec('subtotal-boissons'),
+            sOpt:    sec('subtotal-salles'),
+            sActiv:  sec('subtotal-activities') + sec('subtotal-activites') + sec('subtotal-services') + sec('subtotal-remise')
+        };
+        return { totalHT, totalTVA: Math.round(totalTVA * 100) / 100, ttc: Math.round(ttc * 100) / 100, optionsHT: Math.round(optionsHT * 100) / 100, subtotals, sections, tvaByRate };
     },
 
     /**

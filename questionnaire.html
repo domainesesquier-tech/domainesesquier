@@ -348,7 +348,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
       envoye = res.ok;
-      test = res.status === 403;
+      test = res.status === 403 || location.hostname === 'localhost';
       if (!res.ok && !test) throw new Error(res.status);
     } catch (e) {
       document.getElementById('err-envoi').textContent = 'L\'envoi a échoué. Réessayez, ou écrivez-nous à contact@domainesesquier.com.';
@@ -357,7 +357,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
     }
     form.innerHTML = `<div class="merci"><h2>Merci ${payload.contact.prenom}, c'est noté.</h2>
       <p>Nous étudions votre projet et vous envoyons votre devis détaillé sous 24 h à <b>${payload.contact.email}</b>.</p>
-      ${test ? '<p class="note-type">Copie de test V2 : la demande n\'a pas été enregistrée (base en lecture seule).</p>' : ''}</div>`;
+      ${test ? '<p class="note-type">Copie de test V2 : la demande est créée dans le bac à sable (dossier « à traiter » et date « Demandé » au calendrier), pas dans ta base.</p>' : ''}</div>`;
     window.__derniereDemande = payload; // inspection en test
   }
 
