@@ -413,6 +413,12 @@
             if (fields['DOSSIER JSON']) {
                 try {
                     dossier = JSON.parse(fields['DOSSIER JSON']);
+                    // Devis groupe / mariage saisi en TTC : même mode ici (totaux au centime près)
+                    SesquierUtils.prixTTC = !!dossier?.prixTTC;
+                    if (SesquierUtils.prixTTC) {
+                        document.querySelectorAll('th.col-price').forEach(th => th.textContent = 'PU TTC');
+                        document.querySelectorAll('th.col-total').forEach(th => th.textContent = 'Total TTC');
+                    }
                     console.log('[FA] Dossier JSON chargé —', dossier.financials?.lines?.length || 0, 'lignes');
                 } catch (e) {
                     console.warn('[FA] DOSSIER JSON invalide, fallback…', e);
@@ -545,7 +551,7 @@
                 else if (line.type === 'subtotal') SesquierUtils.addSubtotalRow(SesquierUtils.subtotalDisplayLabel(line.id, line.label), line.id, tbodyId);
                 else if (line.type === 'pricing') {
                     const row = SesquierUtils.addPricingRow(
-                        line.label, line.qty, line.unitPriceHT,
+                        line.label, line.qty, (SesquierUtils.prixTTC && line.unitPriceTTC != null ? line.unitPriceTTC : line.unitPriceHT),
                         line.tvaRate + '%', line.mealKey, tbodyId
                     );
                     // Ligne en option : affichée mais exclue des totaux

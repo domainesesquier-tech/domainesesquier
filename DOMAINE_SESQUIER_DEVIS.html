@@ -1484,7 +1484,10 @@
 
             // Helper : ajoute une ligne pricing avec subtitle optionnel
             const addPricingRowWithSubtitle = (line, targetId) => {
-                const row = SesquierUtils.createPricingRow(line.label, line.qty, line.unitPriceHT, line.tvaRate + '%', line.mealKey);
+                const pu = SesquierUtils.prixTTC
+                    ? (line.unitPriceTTC ?? line.unitPriceHT * (1 + (parseFloat(line.tvaRate) || 0) / 100))
+                    : line.unitPriceHT;
+                const row = SesquierUtils.createPricingRow(line.label, line.qty, pu, line.tvaRate + '%', line.mealKey);
                 if (line.subtitle) {
                     const sub = row.querySelector('.row-subtitle');
                     if (sub) sub.innerText = line.subtitle;
@@ -1761,15 +1764,19 @@
                     const price    = parseFloat(String(priceStr).replace(/[^\d.,-]/g, '').replace(',', '.'))|| 0;
                     const tvaNum   = parseFloat(String(tvaStr).replace(/[^\d.,]/g, '').replace(',', '.'))   || 0;
 
+                    // Mode TTC (groupe, mariage) : on stocke le vrai HT pour les factures, et le TTC saisi à part
+                    const ttc = !!SesquierUtils.prixTTC;
+                    const ht  = ttc ? price / (1 + tvaNum / 100) : price;
                     const entry = {
                         type: 'pricing',
                         label: labelText,
                         qty,
-                        unitPriceHT: price,
+                        unitPriceHT: Math.round(ht * 10000) / 10000,
                         tvaRate: tvaNum,
-                        totalHT: Math.round(qty * price * 100) / 100,
+                        totalHT: Math.round(qty * ht * 100) / 100,
                         mealKey,
                     };
+                    if (ttc) entry.unitPriceTTC = price;
                     if (subtitleText) entry.subtitle = subtitleText;
                     if (tr.classList.contains('is-option')) entry.option = true;
                     rows.push(entry);
