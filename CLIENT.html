@@ -209,7 +209,7 @@
                 <div class="section-body">
                     <div class="form-grid">
                         <div class="form-group" style="grid-column: span 2;">
-                            <label>Société / Organisation</label>
+                            <label id="lab-entreprise">Société / Organisation</label>
                             <input type="text" id="Entreprise" class="input-field" placeholder="Ex: Google France" data-field="Entreprise">
                         </div>
                         <div class="form-group">
@@ -242,10 +242,10 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Type d'événement</label>
-                            <select id="Type" class="input-field" data-field="Type">
-                                <option value="Séminaire professionnel">Séminaire professionnel</option>
-                                <option value="Séjour privé">Séjour privé</option>
-                                <option value="Autre">Autre</option>
+                            <select id="Type" class="input-field" data-field="Type" onchange="majType()">
+                                <option value="Séminaire professionnel">Séminaire</option>
+                                <option value="séjour de groupe">Groupe (week-end)</option>
+                                <option value="mariage">Mariage</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -288,7 +288,7 @@
                             <input type="date" id="Date départ" class="input-field" data-field="Date départ">
                         </div>
                         <div class="form-group">
-                            <label>Nombre de participants</label>
+                            <label id="lab-participants">Nombre de participants</label>
                             <input type="number" id="Nb personnes" class="input-field" placeholder="Ex: 15" data-field="Nombre de personnes">
                         </div>
                         <div class="form-group">
@@ -317,6 +317,33 @@
                             <input type="text" id="Suivi_Action" class="input-field" placeholder="Ex: Appeler pour faire le point...">
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- SECTION : PROJET (selon le type d'événement) -->
+            <div class="section-card" id="card-projet">
+                <div class="section-header">
+                    <i class="fas fa-list-check"></i>
+                    <h2 id="titre-projet">Le projet</h2>
+                </div>
+                <div class="section-body">
+                    <div class="form-grid" id="projet-groupe">
+                        <div class="form-group"><label>Draps fournis (10 € / pers)</label>
+                            <select id="q-draps" class="input-q"><option value="1">Oui</option><option value="0">Non, ils apportent les leurs</option></select></div>
+                        <div class="form-group"><label>Salle Archipel</label>
+                            <select id="q-archipel" class="input-q"><option value="0">Non</option><option value="1">Oui</option></select></div>
+                        <div class="form-group"><label>Cuisine professionnelle</label>
+                            <select id="q-cuisine_pro" class="input-q"><option value="0">Non</option><option value="1">Oui</option></select></div>
+                    </div>
+                    <div class="form-grid" id="projet-mariage">
+                        <div class="form-group"><label>Lieu de la réception</label>
+                            <select id="q-pack" class="input-q"><option value="">À définir</option><option value="champs_olivier">Champs d'olivier (40 invités max)</option><option value="archipel">Salle Archipel</option></select></div>
+                        <div class="form-group"><label>Seconde soirée en salle Archipel</label>
+                            <select id="q-secondeSoiree" class="input-q"><option value="0">Non</option><option value="1">Oui</option></select></div>
+                        <div class="form-group"><label>Traiteur</label>
+                            <select id="q-traiteurExterieur" class="input-q"><option value="0">Pas encore choisi</option><option value="1">Traiteur extérieur (cuisine du domaine)</option></select></div>
+                    </div>
+                    <div id="projet-seminaire" style="font-size:14px; line-height:1.7; color:var(--text-secondary, #555);"></div>
                 </div>
             </div>
 
@@ -372,6 +399,7 @@
         if (isCreating) {
             document.getElementById('new-badge').style.display = 'inline-block';
             document.getElementById('fiche-title').innerText = "Nouveau Dossier Client";
+            setTimeout(majType, 0);
         } else {
             loadRecord(currentId);
         }
@@ -452,6 +480,15 @@
                 const logVal = f["Suivi Log"] || "";
                 document.getElementById('f-log').value             = logVal;
                 document.getElementById('f-log-display').innerText = logVal;
+                // Type normalisé + infos projet (réponses du questionnaire)
+                try { details = typeof f["Details JSON"] === 'string' ? JSON.parse(f["Details JSON"]) : (f["Details JSON"] || {}); } catch (e) { details = {}; }
+                document.getElementById('Type').value = TYPES[segmentDe(f["Type"])];
+                const rep = details.questionnaire?.reponses || {};
+                document.querySelectorAll('.input-q').forEach(el => {
+                    const k = el.id.slice(2);
+                    if (rep[k] !== undefined) el.value = typeof rep[k] === 'boolean' ? (rep[k] ? '1' : '0') : rep[k];
+                });
+                majType();
                 checkRelance();
                 setTemperature(Math.min(5, Math.max(1, parseInt(f["Température"]) || 1)), false);
 
@@ -459,6 +496,42 @@
                 showToast("Erreur : " + err.message, true);
             } finally {
                 document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        let details = {};
+        const TYPES = { seminaire: 'Séminaire professionnel', groupe: 'séjour de groupe', mariage: 'mariage' };
+        function segmentDe(type) {
+            let t = Array.isArray(type) ? type[0] : (type || '');
+            if (typeof t === 'string' && t.startsWith('[')) { try { t = JSON.parse(t)[0] || ''; } catch (e) {} }
+            t = String(t).toLowerCase();
+            if (t.includes('mariage')) return 'mariage';
+            if (!t || t.includes('minaire') || t.includes('professionnel')) return 'seminaire';
+            return 'groupe';
+        }
+        // Libellés et bloc « projet » selon le type d'événement
+        function majType() {
+            const seg = segmentDe(document.getElementById('Type').value);
+            document.getElementById('lab-entreprise').textContent = { seminaire: 'Société / Organisation', groupe: 'Nom du groupe / organisation', mariage: 'Noms des mariés' }[seg];
+            document.getElementById('Entreprise').placeholder = { seminaire: 'Ex: Google France', groupe: 'Ex: Famille Martin, association…', mariage: 'Ex: Léa & Thomas' }[seg];
+            document.getElementById('lab-participants').textContent = { seminaire: 'Nombre de participants', groupe: 'Nombre de personnes', mariage: "Nombre d'invités" }[seg];
+            document.getElementById('titre-projet').textContent = { seminaire: 'Demande du client (questionnaire)', groupe: 'Le week-end', mariage: 'Le mariage' }[seg];
+            document.getElementById('projet-groupe').style.display = seg === 'groupe' ? '' : 'none';
+            document.getElementById('projet-mariage').style.display = seg === 'mariage' ? '' : 'none';
+            const sem = document.getElementById('projet-seminaire');
+            const q = details.questionnaire?.reponses;
+            sem.style.display = seg === 'seminaire' ? '' : 'none';
+            if (seg === 'seminaire') {
+                sem.innerHTML = q ? [
+                    ['Format', q.journeeEtude ? "Journée d'étude" : 'Avec nuit(s) sur place'],
+                    ['Client', q.agence ? 'Agence' : 'Entreprise'],
+                    ['Arrivée / départ', `${{ matin: 'le matin', midi: 'pour le déjeuner', apresmidi: "l'après-midi" }[q.arrivee] || '—'} / ${{ matin: 'après le petit-déjeuner', apres_dejeuner: 'après le déjeuner', soir: 'en fin de journée' }[q.depart] || '—'}`],
+                    ['Restauration', { pension: 'Tous les repas', sans_diner: 'Sans les dîners', aucune: 'Aucune' }[q.restauration] || '—'],
+                    ['Pauses / vin', `${q.pauses ? 'pauses' : 'sans pauses'} · ${q.vin ? 'vin au repas' : 'sans vin'}`],
+                    ['Soirée', { aucune: 'Rien de prévu', aperitif: 'Apéritif', pack: 'Boissons en libre-service', formule: 'Soirée complète' }[q.soiree] || '—'],
+                    ['Activités', (q.activites || []).map(c => c.replace(/_/g, ' ').replace(/^./, x => x.toUpperCase())).join(', ') || 'Aucune'],
+                    ['Accès', { aucun: 'Par leurs moyens', vtc: 'Navette VTC', autocar: 'Autocar' }[q.transport] || '—'],
+                ].map(([k, v]) => `<b>${k} :</b> ${v}`).join('<br>') : 'Dossier créé à la main : pas de questionnaire rempli.';
             }
         }
 
@@ -511,6 +584,19 @@
                     "Suivi Log":              document.getElementById('f-log')?.value               || null,
                     "Température":            parseInt(document.getElementById('Température')?.value) || 1,
                 };
+
+                // Groupe / mariage : infos projet rangées dans les réponses du questionnaire (lues par le devis)
+                const seg = segmentDe(typeVal);
+                if (seg !== 'seminaire') {
+                    const rep = { ...(details.questionnaire?.reponses || {}), segment: seg,
+                        participants: fields["Nombre de personnes"], dateArrivee: fields["Date arrivée"] || '', dateDepart: fields["Date départ"] || '' };
+                    document.querySelectorAll('.input-q').forEach(el => {
+                        const k = el.id.slice(2);
+                        rep[k] = k === 'pack' ? el.value : el.value === '1';
+                    });
+                    details = { ...details, type: 'prive', questionnaire: { ...(details.questionnaire || {}), reponses: rep } };
+                    fields["Details JSON"] = JSON.stringify(details);
+                }
 
                 if (isCreating) {
                     const res = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
