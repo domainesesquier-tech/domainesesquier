@@ -2285,9 +2285,17 @@
                 <span>Ménage</span>
             </a>
             <div class="nav-section-title">Gestion</div>
-            <li class="nav-item active" id="nav-dossiers" onclick="showDossiers(this)">
-                <i class="fa-regular fa-folder-open"></i>
+            <li class="nav-item active" id="nav-dossiers" onclick="showSegment('seminaire', this)">
+                <i class="fa-solid fa-briefcase"></i>
                 <span>Séminaires</span>
+            </li>
+            <li class="nav-item" id="nav-groupes" onclick="showSegment('groupe', this)">
+                <i class="fa-solid fa-people-group"></i>
+                <span>Groupes</span>
+            </li>
+            <li class="nav-item" id="nav-mariages" onclick="showSegment('mariage', this)">
+                <i class="fa-solid fa-ring"></i>
+                <span>Mariages</span>
             </li>
 
             <div class="nav-divider"></div>
@@ -2369,7 +2377,7 @@
 
             <div class="dash-top">
                 <div class="dash-top-left">
-                    <h2>Séminaires</h2>
+                    <h2 id="dash-title">Séminaires</h2>
                     <div class="subtitle" id="dash-subtitle">Vue d'ensemble des séminaires</div>
                 </div>
                 <div class="dash-top-right">
@@ -2394,7 +2402,7 @@
                 <div class="kpi-card">
                     <div class="kpi-icon"><i class="fa-regular fa-folder-open"></i></div>
                     <div class="kpi-content">
-                        <div class="kpi-label">Séminaires</div>
+                        <div class="kpi-label" id="kpi-total-label">Séminaires</div>
                         <div class="kpi-value" id="kpi-total">—</div>
                         <div class="kpi-sub">Total des événements</div>
                     </div>
@@ -2730,6 +2738,14 @@
         // =====================================================================
         let allRecords = [];
         let currentFilter = 'all';
+        // Espace affiché : 'seminaire' | 'groupe' | 'mariage'
+        let currentSegment = 'seminaire';
+        const SEGMENTS = {
+            seminaire: { titre: 'Séminaires', sousTitre: "Vue d'ensemble des séminaires", typeDossier: 'séminaire professionnel', typePlanning: 'Séminaire' },
+            groupe:    { titre: 'Groupes',    sousTitre: "Vue d'ensemble des week-ends de groupe", typeDossier: 'séjour de groupe', typePlanning: 'Week-end privé' },
+            mariage:   { titre: 'Mariages',   sousTitre: "Vue d'ensemble des mariages", typeDossier: 'mariage', typePlanning: 'Mariage' },
+        };
+        const segRecords = () => allRecords.filter(r => r.segment === currentSegment);
         let searchQuery = '';
         let activeIframeId = null;
         let sortMode = 'date-desc'; // date-desc, date-asc, amount-desc
@@ -2836,6 +2852,18 @@
             activeRecordId = null;
         }
 
+        function showSegment(seg, navEl) {
+            currentSegment = seg;
+            const S = SEGMENTS[seg];
+            document.getElementById('dash-title').innerText = S.titre;
+            document.getElementById('dash-subtitle').innerText = S.sousTitre;
+            document.getElementById('kpi-total-label').innerText = S.titre;
+            showDossiers(navEl);
+            updateKPIs();
+            updateFilters();
+            if (currentViewMode === 'list') renderTable(); else renderCalendar();
+        }
+
         async function openNewDossier(navEl) {
             if (navEl.disabled) return;
 
@@ -2849,7 +2877,7 @@
                 const defaultFields = {
                     [SesquierRecords.FIELDS.NOM]: "Nouveau Dossier " + new Date().toLocaleDateString('fr-FR'),
                     [SesquierRecords.FIELDS.STATUT]: ["à traiter"],
-                    [SesquierRecords.FIELDS.TYPE]: ["séminaire professionnel"]
+                    [SesquierRecords.FIELDS.TYPE]: [SEGMENTS[currentSegment].typeDossier]
                 };
 
                 const res = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
@@ -2914,7 +2942,7 @@
                 document.getElementById('iframe-layer').classList.add('hidden');
                 document.getElementById('dossier-overlay').classList.add('show');
             } else {
-                showDossiers(document.getElementById('nav-dossiers'));
+                showDossiers(document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[currentSegment]));
                 refreshData(); // Refresh list when coming back
             }
         }
@@ -3188,8 +3216,9 @@
                     } else {
                         renderCalendar();
                     }
+                    const nSeg = segRecords().length;
                     document.getElementById('dash-subtitle').textContent =
-                        `${allRecords.length} réservation${allRecords.length > 1 ? 's' : ''} au total`;
+                        `${nSeg} dossier${nSeg > 1 ? 's' : ''} au total`;
                 } else {
                     showEmptyState('Aucune donnée', 'Impossible de récupérer les événements');
                 }
@@ -3247,7 +3276,7 @@
             let caTotal = 0, caPending = 0, caSigne = 0, caEffectue = 0;
             const STATUTS_PENDING = new Set(['à traiter', 'devis envoyé']);
 
-            allRecords.forEach(r => {
+            segRecords().forEach(r => {
                 if (r.estArchive) return; // Exclure les archives
                 const s = (r.statut || '').toLowerCase();
                 caTotal += r.totalHT;
@@ -3256,7 +3285,7 @@
                 if (s === 'effectué')       caEffectue += r.totalHT;  // séjour réalisé
             });
 
-            animateValue('kpi-total', allRecords.filter(r => !r.estArchive).length);
+            animateValue('kpi-total', segRecords().filter(r => !r.estArchive).length);
             document.getElementById('kpi-ca-pending').innerText   = SesquierUtils.formatEuro(caPending);
             document.getElementById('kpi-ca-signe').innerText     = SesquierUtils.formatEuro(caSigne);
             document.getElementById('kpi-ca-effectue').innerText  = SesquierUtils.formatEuro(caEffectue);
@@ -3280,8 +3309,8 @@
         // FILTERS
         // =====================================================================
         function updateFilters() {
-            const nonArchived = allRecords.filter(r => !r.estArchive);
-            const archived = allRecords.filter(r => r.estArchive);
+            const nonArchived = segRecords().filter(r => !r.estArchive);
+            const archived = segRecords().filter(r => r.estArchive);
             const counts = { all: nonArchived.length };
             nonArchived.forEach(r => {
                 counts[r.statut] = (counts[r.statut] || 0) + 1;
@@ -3291,7 +3320,7 @@
             document.getElementById('count-confirme').innerText = counts['confirmé'] || 0;
             document.getElementById('count-devis').innerText = counts['devis envoyé'] || 0;
             // Refusé : compter tous les refusés (archivés inclus), cohérent avec son filtre
-            document.getElementById('count-annule').innerText = allRecords.filter(r => r.statut === 'annulé').length || 0;
+            document.getElementById('count-annule').innerText = segRecords().filter(r => r.statut === 'annulé').length || 0;
             document.getElementById('count-effectue').innerText = counts['effectué'] || 0;
             document.getElementById('count-archived').innerText = archived.length || 0;
         }
@@ -3372,7 +3401,7 @@
                 // Find events for this day
                 let dayEvents = '';
                 
-                let recordsToDisplay = allRecords;
+                let recordsToDisplay = segRecords();
                 if (currentFilter === 'archived') {
                     recordsToDisplay = recordsToDisplay.filter(r => r.estArchive);
                 } else if (currentFilter === 'annulé') {
@@ -3427,7 +3456,7 @@
         // =====================================================================
         function renderTable() {
             const body = document.getElementById('table-body');
-            let records = allRecords;
+            let records = segRecords();
 
             // Filtre archive
             if (currentFilter === 'archived') {
@@ -3687,7 +3716,11 @@
 
             const planningFields = {
                 'Nom':          f['Nom client'] || '',
-                'Type':         'Séminaire',
+                'Type':         (() => {
+                    const t = String(Array.isArray(f['Type']) ? f['Type'][0] : (f['Type'] || '')).toLowerCase();
+                    return t.includes('mariage') ? 'Mariage'
+                        : (!t || t.includes('séminaire') || t.includes('professionnel')) ? 'Séminaire' : 'Week-end privé';
+                })(),
                 'Date arrivée': arrivee,
                 'Date départ':  depart,
                 'Statut':       statut,
