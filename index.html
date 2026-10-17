@@ -2095,6 +2095,16 @@
             .mobile-filter { display: block !important; width: 100%; padding: 8px 10px; border: 1px solid #E5E7EB; border-radius: 8px; background: #fff; font: inherit; font-size: 14px; }
         }
         .mobile-filter { display: none; }
+        /* Menu « Plus » de la barre mobile */
+        .mobile-more { display: none; position: fixed; right: 8px; bottom: 64px; z-index: 600; background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 6px; min-width: 200px; }
+        .mobile-more.show { display: block; }
+        .mobile-more a, .mobile-more button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px; border: none; background: none; font: inherit; font-size: 15px; color: #333; text-decoration: none; border-radius: 8px; cursor: pointer; text-align: left; }
+        .mobile-more .danger { color: #b91c1c; }
+        @media (max-width: 768px) {
+            .iframe-nav-tabs { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; -webkit-overflow-scrolling: touch; min-width: 0; }
+            .iframe-nav-tabs::-webkit-scrollbar { display: none; }
+            .iframe-nav-tabs .nav-tab { flex: 0 0 auto; white-space: nowrap; }
+        }
 
         /* Bottom nav (masquée sur desktop) */
         .mobile-bottom-nav-index {
@@ -3862,6 +3872,12 @@
     </script>
 
 <!-- MOBILE BOTTOM NAV -->
+<div class="mobile-more" id="mobile-more">
+    <a href="menage.html"><i class="fa-solid fa-broom"></i> Ménage</a>
+    <button onclick="toggleTheme(); this.parentNode.classList.remove('show')"><i class="fa-regular fa-moon"></i> Mode sombre / clair</button>
+    <button class="danger" onclick="window.SesquierAuth && window.SesquierAuth.logout()"><i class="fa-solid fa-right-from-bracket"></i> Se déconnecter</button>
+</div>
+<script>document.addEventListener('click', e => { if (!e.target.closest('#mobile-more')) document.getElementById('mobile-more')?.classList.remove('show'); });</script>
 <nav class="mobile-bottom-nav-index">
     <a href="planning.html">
         <span class="nav-icon"><i class="fa-regular fa-calendar-days"></i></span>
@@ -3878,6 +3894,10 @@
     <a href="#" data-seg="mariage" onclick="event.preventDefault(); document.getElementById('nav-mariages').click()">
         <span class="nav-icon"><i class="fa-solid fa-ring"></i></span>
         Mariages
+    </a>
+    <a href="#" onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('mobile-more').classList.toggle('show')">
+        <span class="nav-icon"><i class="fa-solid fa-ellipsis"></i></span>
+        Plus
     </a>
     <a href="#" class="nav-new" onclick="event.preventDefault(); openNewDossier(document.getElementById('nav-client-new'), currentSegment)">
         <span class="nav-icon"><i class="fa-solid fa-plus"></i></span>
