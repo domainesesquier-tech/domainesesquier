@@ -21,6 +21,7 @@
     <script src="assets/utils.js"></script>
     <script src="assets/constants.js"></script>
     <script src="assets/dossier-model.js"></script>
+    <script src="assets/pricing-engine.js"></script>
     <style>
         /* ── Séparateur de section dans les tableaux de prix ── */
         .separator-row td {
@@ -543,6 +544,7 @@
         <div style="display:flex;align-items:center;gap:3px;padding:3px 8px;background:#f0ede6;border-radius:8px;border:1px solid #d1cec7;">
             <span style="font-size:11px;color:#6b7280;font-weight:500;margin-right:4px;white-space:nowrap;">Société :</span>
             <button id="prof-btn-ozza" onclick="setCompanyProfile('ozza')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:#3a5538;color:white;">OZZA</button>
+            <button id="btn-grille-2027" onclick="applyGrille2027()" title="Recalcule hébergement et espaces avec la grille 2027" style="padding:4px 10px;border:1px solid #8b3a1e;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;background:#fff;color:#8b3a1e;margin-right:6px;">Grille 2027</button>
             <button id="prof-btn-foudre" onclick="setCompanyProfile('foudre')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:transparent;color:#3a5538;">FOUDRE SOCIETY</button>
         </div>
         <span id="unsaved-badge" style="display:none; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; align-self:center; animation: pulse 2s infinite;">
@@ -1134,6 +1136,7 @@
 
         function populateDevis(fields) {
             if (!fields) return;
+            window._liveFields = fields;
 
             // =====================================================================
             // 🧠 PRIORITÉ 1 : Utiliser "Dossier JSON" (nouveau système)
@@ -1153,7 +1156,7 @@
             // =====================================================================
             // 🔄 LEGACY : Code original pour les anciens enregistrements
             // =====================================================================
-            const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
+            const details = parseDetails(fields);
             const activities = details.activities || {};
 
             // 0. CHECK FOR SNAPSHOT (Re-édition)
@@ -1305,6 +1308,8 @@
             }
 
             updateCalculations();
+            // Nouveau dossier séminaire : pré-remplir hébergement et espaces avec la grille 2027
+            if (segmentFromType(fields["Type"]) === 'seminaire') applyGrille2027({ silent: true });
             // Fin du rendu initial : réactiver le tracking et marquer "propre"
             setTimeout(() => { suppressDirtyFlag = false; markClean(); }, 50);
         }
@@ -1619,7 +1624,7 @@
             const daysSyn = nNights + 1;
             const synthEl = document.getElementById('stay-synthesis');
             if (synthEl) {
-                const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
+                const details = parseDetails(fields);
                 let mealLabel = "Restauration à la carte";
                 if (details.meals?.mode === 'pension') mealLabel = "Pension Complète";
                 else if (details.meals?.mode === 'demi') mealLabel = "Demi-pension";
@@ -1842,9 +1847,87 @@
             btnContainer.appendChild(sepBtn);
         }
 
+        // =====================================================================
+        // GRILLE 2027 — lignes calculées par assets/pricing-engine.js
+        // =====================================================================
+        let GRILLE_2027 = null;
+
+        // Le Worker (Supabase) renvoie "Details JSON", l'ancien Airtable "Détails JSON".
+        function parseDetails(fields) {
+            const raw = fields["Détails JSON"] || fields["Details JSON"];
+            if (!raw) return {};
+            try { return typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { return {}; }
+        }
+
+        function segmentFromType(type) {
+            const t = (Array.isArray(type) ? type[0] : (type || '')).toLowerCase();
+            if (t.includes('mariage')) return 'mariage';
+            if (t.includes('minaire') || t === 'pro') return 'seminaire';
+            return 'groupe';
+        }
+
+        // Supprime les lignes de prix d'une section (entre sa catégorie et son sous-total).
+        function clearSection(subtotalId) {
+            const anchor = document.getElementById(subtotalId);
+            const subTr = anchor && anchor.closest('tr');
+            if (!subTr) return null;
+            let tr = subTr.previousElementSibling;
+            while (tr && tr.querySelector('td.qty')) {
+                const prev = tr.previousElementSibling;
+                tr.remove();
+                tr = prev;
+            }
+            return subTr;
+        }
+
+        async function applyGrille2027(opts = {}) {
+            const fields = window._liveFields || (typeof currentRecord !== 'undefined' && currentRecord?.fields) || {};
+            const segment = segmentFromType(fields["Type"]);
+            if (segment !== 'seminaire') {
+                if (!opts.silent) alert('La grille 2027 est branchée pour les séminaires uniquement pour le moment.');
+                return;
+            }
+            if (!GRILLE_2027) GRILLE_2027 = await fetch('assets/grille_2027.json').then(r => r.json());
+
+            let nuits = fields["Nuits"] || 0;
+            if (!nuits && fields["Date arrivée"] && fields["Date départ"]) {
+                nuits = Math.max(0, Math.round((new Date(fields["Date départ"]) - new Date(fields["Date arrivée"])) / 86400000));
+            }
+            // Demande issue du questionnaire du site : tout le devis est pré-rempli
+            const questionnaire = parseDetails(fields).questionnaire;
+            const demande = questionnaire?.reponses
+                ? PricingEngine.fromQuestionnaire(GRILLE_2027, questionnaire.reponses).demande
+                : { segment, dateArrivee: fields["Date arrivée"] || '', personnes: fields["Nombre de personnes"] || 0, nuits };
+            const res = PricingEngine.compute(GRILLE_2027, demande);
+
+            const sections = [
+                { cats: ['hebergement'], subtotal: 'subtotal-hebergement' },
+                { cats: ['lieu'], subtotal: 'subtotal-salles' }
+            ];
+            if (questionnaire?.reponses) sections.push(
+                { cats: ['repas', 'boisson'], subtotal: 'subtotal-restauration' },
+                { cats: ['activite', 'service', 'transport'], subtotal: 'subtotal-activities' }
+            );
+            sections.forEach(s => {
+                const subTr = clearSection(s.subtotal);
+                if (!subTr) return;
+                res.lignes.filter(l => s.cats.includes(l.cat)).forEach(l => {
+                    subTr.parentNode.insertBefore(createPricingRow(l.label, l.qte, l.pu, `${l.tva}%`), subTr);
+                });
+            });
+
+            setCompanyProfile(res.entite);
+            const tsEl = document.getElementById('display-taxe-sejour');
+            if (tsEl) tsEl.innerText = 'incluse';
+            updateCalculations();
+            if (!opts.silent) markDirty();
+            if (res.manuel.length) alert('À traiter manuellement : ' + res.manuel.join(', '));
+            console.log('[GRILLE 2027]', res);
+        }
+
         function addMealGrid(fields, savedState = null) {
             if (mealGridHidden) return; // supprimé manuellement pour ce devis
-            const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
+            const details = parseDetails(fields);
             const dArrStr = fields["Date arrivée"];
             // Nuits depuis le champ ; sinon recalcul depuis les dates (source de vérité)
             let nights = fields["Nuits"] || 0;

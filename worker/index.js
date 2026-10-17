@@ -266,6 +266,7 @@ const PUBLIC_ROUTES = [
   { path: "/api/health",                methods: ["GET"] },
   { path: "/api/public/disponibilites", methods: ["GET"] },
   { path: "/api/public/menu",           methods: ["GET"] },
+  { path: "/api/public/demande",        methods: ["POST"] },
 ];
 
 function isPublicRoute(pathname, method) {
@@ -328,6 +329,11 @@ export default {
     const enforced = env.AUTH_ENFORCED !== "false";
     if (enforced && !user && !isPublicRoute(url.pathname, method)) {
       return json({ error: { message: "Authentification requise" } }, 401, env, requestOrigin);
+    }
+
+    // Copie de travail V2 : READ_ONLY=true bloque toute écriture vers la base de production.
+    if (env.READ_ONLY === "true" && method !== "GET") {
+      return json({ error: { message: "Copie V2 en lecture seule : aucune écriture en base." } }, 403, env, requestOrigin);
     }
 
     try {
@@ -525,6 +531,52 @@ export default {
 
       // Menu client : nom + dates + planning repas d'UN dossier précis
       // (l'id, aléatoire sur 14 caractères, sert de clé d'accès au lien).
+      // ── QUESTIONNAIRE PUBLIC : nouvelle demande de devis ──
+      // Données validées ici, insertion via la fonction SQL public_demande
+      // (security definer) : le rôle anon n'a aucun accès direct aux tables.
+      if (url.pathname === "/api/public/demande" && method === "POST") {
+        const raw = await request.text();
+        if (raw.length > 20000) return json({ error: { message: "Demande trop volumineuse" } }, 413, env, requestOrigin);
+        let p;
+        try { p = JSON.parse(raw); } catch { return json({ error: { message: "JSON invalide" } }, 400, env, requestOrigin); }
+        const c = p?.contact || {}, q = p?.reponses || {};
+        const txt = (v, n = 200) => String(v ?? "").trim().slice(0, n);
+        const iso = v => /^\d{4}-\d{2}-\d{2}$/.test(v || "") ? v : null;
+        const nb = Math.max(0, Math.min(500, parseInt(q.participants, 10) || 0));
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(txt(c.email)) || !txt(c.nom) || !nb || !iso(q.dateArrivee)) {
+          return json({ error: { message: "Champs requis manquants" } }, 400, env, requestOrigin);
+        }
+        // Planning au format attendu par la page devis (repas en nombre de personnes)
+        const counts = (Array.isArray(p.planning) ? p.planning : []).slice(0, 30).map(j => ({
+          petitDej: (+j.petitDej || 0) * nb, collationMatin: ((+j.collationMatin || 0) + (+j.accueil || 0)) * nb,
+          dejeuner: (+j.dejeuner || 0) * nb, collationAprem: (+j.collationAprem || 0) * nb, diner: (+j.diner || 0) * nb,
+        }));
+        const details = {
+          type: "pro",
+          source: "questionnaire",
+          meals: { mode: q.restauration === "pension" ? "pension" : (q.restauration === "aucune" ? "libre" : "demi"), counts },
+          questionnaire: { reponses: q, estimation: p.estimation || null, origine: txt(p.origine, 300) },
+        };
+        const row = {
+          id: newRecId(),
+          nom_client: txt(c.organisation) || `${txt(c.prenom)} ${txt(c.nom)}`.trim(),
+          entreprise: txt(c.organisation) || null,
+          prenom_contact: txt(c.prenom), nom_contact: txt(c.nom),
+          email: txt(c.email), telephone: txt(c.telephone, 40),
+          type: "Séminaire",
+          date_arrivee: iso(q.dateArrivee),
+          date_depart: q.journeeEtude ? iso(q.dateArrivee) : iso(q.dateDepart),
+          nombre_de_personnes: nb,
+          message: txt(c.message, 4000),
+          budget_estime: p.estimation?.ht ? `${Math.round(p.estimation.ht)} € HT (estimation questionnaire)` : null,
+          suivi_source: q.agence ? "questionnaire (agence)" : "questionnaire",
+          details_json: JSON.stringify(details),
+          estimation_ht: p.estimation?.ht ? Math.round(p.estimation.ht) : null,
+        };
+        await sbFetch(env, `/rpc/public_demande`, { method: "POST", body: JSON.stringify({ p: row }) });
+        return json({ ok: true }, 201, env, requestOrigin);
+      }
+
       if (url.pathname === "/api/public/menu" && method === "GET") {
         const id = url.searchParams.get("id");
         if (!id) return json({ error: { message: "id requis" } }, 400, env, requestOrigin);

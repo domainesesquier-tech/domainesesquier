@@ -498,6 +498,13 @@
       background: var(--type-color);
       color: var(--type-text, #fff);
     }
+    /* Date demandée (questionnaire du site) : contour pointillé, fond clair, pas encore d'option posée */
+    .cell.occupied.statut-demande {
+      background: repeating-linear-gradient(45deg, var(--type-bg), var(--type-bg) 4px, #fff 4px, #fff 8px);
+      color: var(--type-color);
+      border-top-color: var(--type-color);    border-top-style: dotted;
+      border-bottom-color: var(--type-color); border-bottom-style: dotted;
+    }
     .cell.occupied.statut-option {
       background: var(--type-bg);
       color: var(--type-color);
@@ -903,6 +910,7 @@
     }
     .statut-badge.confirme  { background: #D1FAE5; color: #065F46; }
     .statut-badge.option    { background: #FEF3C7; color: #92400E; }
+    .statut-badge.demande   { background: #F3F1EC; color: #5B5B52; border: 1px dashed #8A8A80; }
     .statut-badge.annule    { background: var(--statut-annule-bg); color: var(--statut-annule-text); text-decoration: line-through; }
     .statut-badge.bloque    { background: #E5E7EB; color: #374151; }
 
@@ -1426,7 +1434,7 @@ const COLORS = {
 };
 
 const TYPES   = Object.keys(COLORS);
-const STATUTS = ['Confirmé', 'Option', 'Bloqué', 'Annulé', 'Archivé'];
+const STATUTS = ['Confirmé', 'Option', 'Demandé', 'Bloqué', 'Annulé', 'Archivé'];
 
 // ── Regroupement visuel : les 8 types se répartissent dans 3 couleurs ──
 // (Séminaire / Week-end privé / Gîte individuel), + un 4e neutre pour les
@@ -2440,6 +2448,7 @@ function formatDate(str) {
 function statutBadgeClass(statut) {
   if (statut === 'Confirmé') return 'confirme';
   if (statut === 'Option')   return 'option';
+  if (statut === 'Demandé')  return 'demande';
   if (statut === 'Annulé')   return 'annule';
   if (statut === 'Bloqué')   return 'bloque';
   return '';
@@ -2450,6 +2459,7 @@ function statutBadgeClass(statut) {
 function statutCellClass(statut) {
   if (statut === 'Annulé') return 'statut-annule';
   if (statut === 'Option') return 'statut-option';
+  if (statut === 'Demandé') return 'statut-demande';
   return 'statut-confirme'; // Confirmé, Bloqué
 }
 

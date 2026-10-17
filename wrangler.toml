@@ -12,6 +12,7 @@ ENVIRONMENT = "production"
 [env.dev.vars]
 ALLOWED_ORIGINS = "https://admin.domainesesquier.com,https://www.domainesesquier.com,https://domainesesquier.com,http://localhost:8080,http://localhost:3000"
 ENVIRONMENT = "development"
+READ_ONLY = "true"
 
 # SUPABASE_URL et SUPABASE_ANON_KEY sont des secrets Cloudflare.
 # Ne jamais les mettre ici en clair.
