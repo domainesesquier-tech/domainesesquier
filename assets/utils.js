@@ -359,7 +359,7 @@ const SesquierUtils = {
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <button class="no-print" onclick="SesquierUtils.addRowBefore(this)" style="background: white; border:1.5px solid var(--primary); color: var(--primary); border-radius:4px; padding:4px 12px; cursor:pointer; font-size:8pt; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">+ Ligne</button>
                     <div style="text-align:right;">
-                        <span style="font-style: italic; color:#666; font-size:8.5pt;">Sous-total ${label} HT</span>
+                        <span style="font-style: italic; color:#666; font-size:8.5pt;">Sous-total ${label} ${this.prixTTC ? 'TTC' : 'HT'}</span>
                         <div class="section-options-note" id="${id}-opt" style="display:none; font-size:7.5pt; font-weight:600; font-style:italic; color:#92400e; margin-top:2px;"></div>
                     </div>
                 </div>
@@ -445,13 +445,15 @@ const SesquierUtils = {
                     return;
                 }
 
-                totalHT += line;
                 sum += line;
 
                 const tvaEl = row.querySelector('.tva-rate');
                 let ratePct = 10;
                 if (tvaEl) ratePct = parseFloat(tvaEl.innerText.replace(/[^\d.,]/g, '').replace(',', '.')) || 10;
-                const tva = line * ratePct / 100;
+                // Mode TTC (groupes, mariages) : le prix saisi est TTC, on en déduit HT et TVA
+                const ht = this.prixTTC ? line / (1 + ratePct / 100) : line;
+                const tva = this.prixTTC ? line - ht : line * ratePct / 100;
+                totalHT += ht;
                 totalTVA += tva;
                 tvaByRate[ratePct] = (tvaByRate[ratePct] || 0) + tva;
             });

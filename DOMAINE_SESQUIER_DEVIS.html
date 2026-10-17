@@ -736,6 +736,7 @@
                     <li contenteditable="true">• <strong>Annulation :</strong> Acompte conservé. J-29/J-15 : 50%. J-14/J-8 : 75%. Moins de J-7 : 100%.</li>
                     <li contenteditable="true">• <strong>Divers :</strong> Chambres disponibles à 15h ou avant selon demandes (arrivée). Libérées à 11h, flexible selon déroulé du séjour (départ).</li>
                     <li id="cond-option" contenteditable="true" style="display:none;"></li>
+                    <li id="cond-caution" contenteditable="true" style="display:none;">• <strong>Caution :</strong> 1 000 € demandée à l'arrivée, restituée après l'état des lieux.</li>
                     <li id="legal-penalites" style="display:none;color:#777;">• <strong>Pénalités de retard :</strong> Taux directeur BCE majoré de 10 points. <strong>Indemnité forfaitaire de recouvrement : 40 €</strong> (art. L441-10 C. com.).</li>
                 </ul>
                 <div id="company-rib" style="font-size: 7.5pt; color: #999; margin-top: 10px; line-height: 1.2;">
@@ -1219,8 +1220,11 @@
             } catch (e) { console.error("Synthesis error:", e); }
 
             // 5. Build Main Pricing Table
-            const layoutV2 = segmentFromType(fields["Type"]) === 'seminaire';
-            if (layoutV2) buildLayoutSeminaire(fields);
+            const segInit = segmentFromType(fields["Type"]);
+            const layoutV2 = segInit === 'seminaire' || segInit === 'groupe';
+            setPrixTTC(segInit !== 'seminaire');
+            if (segInit === 'seminaire') buildLayoutSeminaire(fields);
+            if (segInit === 'groupe') buildLayoutGroupe();
             if (!layoutV2) {
             const tbody = document.getElementById('pricing-body');
             tbody.innerHTML = '';
@@ -1318,7 +1322,7 @@
 
             updateCalculations();
             // Nouveau dossier séminaire : pré-remplir hébergement et espaces avec la grille 2027
-            if (segmentFromType(fields["Type"]) === 'seminaire') applyGrille2027({ silent: true });
+            if (['seminaire', 'groupe'].includes(segmentFromType(fields["Type"]))) applyGrille2027({ silent: true });
             renderSeminaireExtras(fields);
             // Fin du rendu initial : réactiver le tracking et marquer "propre"
             setTimeout(() => { suppressDirtyFlag = false; markClean(); }, 50);
@@ -1373,6 +1377,7 @@
 
             // Restaurer le profil société si sauvegardé dans le dossier
             if (dossier.companyProfile) setCompanyProfile(dossier.companyProfile);
+            setPrixTTC(!!dossier.prixTTC);
 
             // 1. META — numéro selon le profil (séquentiel FOUDRE / historique OZZA)
             applyDevisNumber();
@@ -1684,7 +1689,7 @@
                 if (tr.classList.contains('category-row')) {
                     rows.push({ type: 'category', title: tr.querySelector('td')?.innerText.trim() });
                 } else if (tr.classList.contains('subtotal-row')) {
-                    const label = tr.querySelector('span')?.innerText.replace('Sous-total ', '').replace(' HT', '') || '';
+                    const label = tr.querySelector('span')?.innerText.replace('Sous-total ', '').replace(/ (HT|TTC)$/, '') || '';
                     const id = tr.querySelector('.subtotal-val')?.id;
                     rows.push({ type: 'subtotal', label, id });
                 } else if (tr.classList.contains('meal-grid-row')) {
@@ -1736,7 +1741,7 @@
                     const label = tr.querySelector('.separator-label')?.innerText.trim() || '';
                     rows.push({ type: 'separator', label });
                 } else if (tr.classList.contains('subtotal-row')) {
-                    const label = tr.querySelector('span')?.innerText.replace('Sous-total ', '').replace(' HT', '') || '';
+                    const label = tr.querySelector('span')?.innerText.replace('Sous-total ', '').replace(/ (HT|TTC)$/, '') || '';
                     const id = tr.querySelector('.subtotal-val')?.id;
                     rows.push({ type: 'subtotal', label, id });
                 } else if (!tr.classList.contains('meal-grid-row')) {
@@ -1886,6 +1891,25 @@
             if (th) th.textContent = '';
         }
 
+        // Prix saisis TTC (groupes, mariages) ou HT (séminaires)
+        function setPrixTTC(on) {
+            SesquierUtils.prixTTC = !!on;
+            const b = on ? 'TTC' : 'HT';
+            document.querySelectorAll('th.col-price').forEach(th => th.textContent = 'PU ' + b);
+            document.querySelectorAll('th.col-total').forEach(th => th.textContent = 'Total ' + b);
+        }
+
+        // Devis groupe (OZZA, TTC, 1 page) : une seule section « Le domaine »
+        function buildLayoutGroupe() {
+            document.getElementById('pricing-body').innerHTML = '';
+            addCategoryRow("Le domaine");
+            addSubtotalRow("Le domaine", "subtotal-domaine");
+            document.getElementById('options-body').innerHTML = '';
+            document.getElementById('activities-body').innerHTML = '';
+            SesquierUtils.addCategoryRow("Options", 'activities-body');
+            addSubtotalRow("Options", "subtotal-services", 'activities-body');
+        }
+
         // Remise commerciale : section dédiée, juste avant les totaux
         function addRemise() {
             let sub = document.getElementById('subtotal-remise');
@@ -1902,10 +1926,13 @@
 
         // Encadré « Inclus » et date limite d'option (séminaire)
         function renderSeminaireExtras(fields) {
-            if (segmentFromType(fields?.["Type"]) !== 'seminaire') return;
+            const seg = segmentFromType(fields?.["Type"]);
+            if (seg !== 'seminaire' && seg !== 'groupe') return;
             const box = document.getElementById('included-box');
             if (box) {
-                box.innerHTML = '<strong>Inclus :</strong> domaine privatisé · lits faits, draps et serviettes · ménage de fin de séjour · référent joignable chaque jour · taxe de séjour';
+                box.innerHTML = seg === 'groupe'
+                    ? '<strong>Inclus :</strong> domaine privatisé (8 gîtes, 35 couchages) · salle Champs d\'olivier · piscine et jardins · ménage de fin de séjour · taxe de séjour'
+                    : '<strong>Inclus :</strong> domaine privatisé · lits faits, draps et serviettes · ménage de fin de séjour · référent joignable chaque jour · taxe de séjour';
                 box.style.display = 'block';
             }
             const li = document.getElementById('cond-option');
@@ -1915,6 +1942,8 @@
                 li.innerHTML = `• <strong>Option :</strong> vos dates sont réservées jusqu'au ${d.toLocaleDateString('fr-FR')}, date de validité de ce devis.`;
                 li.style.display = '';
             }
+            const cc = document.getElementById('cond-caution');
+            if (cc) cc.style.display = seg === 'groupe' ? '' : 'none';
         }
 
         // Premier sous-total existant parmi une liste (nouvelle puis ancienne mise en page)
@@ -1954,8 +1983,8 @@
         async function applyGrille2027(opts = {}) {
             const fields = window._liveFields || (typeof currentRecord !== 'undefined' && currentRecord?.fields) || {};
             const segment = segmentFromType(fields["Type"]);
-            if (segment !== 'seminaire') {
-                if (!opts.silent) alert('La grille 2027 est branchée pour les séminaires uniquement pour le moment.');
+            if (segment === 'mariage') {
+                if (!opts.silent) alert('La grille 2027 n\'est pas encore branchée pour les mariages.');
                 return;
             }
             if (!GRILLE_2027) GRILLE_2027 = await fetch('assets/grille_2027.json').then(r => r.json());
@@ -1968,7 +1997,9 @@
             const questionnaire = parseDetails(fields).questionnaire;
             const demande = questionnaire?.reponses
                 ? PricingEngine.fromQuestionnaire(GRILLE_2027, questionnaire.reponses).demande
-                : { segment, dateArrivee: fields["Date arrivée"] || '', personnes: fields["Nombre de personnes"] || 0, nuits };
+                : { segment, dateArrivee: fields["Date arrivée"] || '', personnes: fields["Nombre de personnes"] || 0, nuits,
+                    // Groupe : draps proposés par défaut pour chaque personne
+                    options: segment === 'groupe' ? { draps: fields["Nombre de personnes"] || 0 } : undefined };
             const res = PricingEngine.compute(GRILLE_2027, demande);
 
             // Catégorie de ligne → section du devis (nouvelle mise en page, sinon historique)
@@ -2185,16 +2216,18 @@
             const n = currentRecord?.nbPersonnes || currentRecord?.fields?.["Nombre de personnes"] || window._liveFields?.["Nombre de personnes"] || 0;
             if (n > 0) {
                 const tsBox = document.getElementById('price-total-summary');
-                if (tsBox) tsBox.innerText = `Total séjour : ${formatEuro(totalHT)} HT (${formatEuro(ttc)} TTC)`;
+                const T = SesquierUtils.prixTTC;
+                if (tsBox) tsBox.innerText = T ? `Total séjour : ${formatEuro(ttc)} TTC` : `Total séjour : ${formatEuro(totalHT)} HT (${formatEuro(ttc)} TTC)`;
 
                 const ppBox = document.getElementById('price-per-person');
-                if (ppBox) ppBox.innerText = `Soit ${Math.round(totalHT / n)} € HT / personne`;
+                if (ppBox) ppBox.innerText = `Soit ${Math.round((T ? ttc : totalHT) / n)} € ${T ? 'TTC' : 'HT'} / personne`;
 
                 const snapPP = document.getElementById('snapshot-price-per-person');
                 const f = window._liveFields || currentRecord?.fields || {};
                 let nuits = f["Nuits"] || 0;
                 if (!nuits && f["Date arrivée"] && f["Date départ"]) nuits = Math.max(0, Math.round((new Date(f["Date départ"]) - new Date(f["Date arrivée"])) / 86400000));
-                if (snapPP) snapPP.innerText = `${formatEuro(totalHT / n)} HT` + (nuits > 0 ? ` (${formatEuro(totalHT / n / nuits)} / nuit)` : '');
+                const base = T ? ttc : totalHT;
+                if (snapPP) snapPP.innerText = `${formatEuro(base / n)} ${T ? 'TTC' : 'HT'}` + (nuits > 0 ? ` (${formatEuro(base / n / nuits)} / nuit)` : '');
             }
         }
 
@@ -2304,6 +2337,7 @@
                     },
                     mealsPlanning,
                     companyProfile: localStorage.getItem('ds_company_profile') || 'ozza',
+                    prixTTC: !!SesquierUtils.prixTTC,
                 };
 
                 // 7. Mettre à jour currentDossier
