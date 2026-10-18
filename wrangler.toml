@@ -13,6 +13,17 @@ fallthrough = true
 ALLOWED_ORIGINS = "https://admin.domainesesquier.com,https://www.domainesesquier.com,https://domainesesquier.com"
 ENVIRONMENT = "production"
 
+# Adresse de test V2 (npx wrangler deploy --env staging) → worker séparé « domainesesquier-api-v2 »
+# La prod (domainesesquier-api) n'est pas touchée. READ_ONLY=true : lectures réelles, écritures en bac à sable.
+# Passer READ_ONLY à "false" seulement quand la V2 est validée.
+[env.staging]
+name = "domainesesquier-api-v2"
+
+[env.staging.vars]
+ALLOWED_ORIGINS = "https://v2.domainesesquier.com,https://domainesesquier-v2.pages.dev,https://www.domainesesquier.com,https://domainesesquier.com"
+ENVIRONMENT = "staging"
+READ_ONLY = "true"
+
 # Environnement de développement local (npx wrangler dev --env dev)
 # Ajoute localhost pour permettre les tests en local sans toucher à la prod
 [env.dev.vars]

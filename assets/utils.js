@@ -4,9 +4,12 @@
 
 const SesquierUtils = {
     // API Configuration — pointe sur le worker local en dev, prod sinon
+    // Adresse de test V2 (v2.domainesesquier.com ou *.pages.dev) → worker de test séparé
     API_BASE: (typeof location !== 'undefined' && location.hostname === 'localhost')
         ? 'http://localhost:8788'
-        : 'https://domainesesquier-api.domainesesquier.workers.dev',
+        : (typeof location !== 'undefined' && (location.hostname.startsWith('v2.') || location.hostname.endsWith('.pages.dev')))
+            ? 'https://domainesesquier-api-v2.domainesesquier.workers.dev'
+            : 'https://domainesesquier-api.domainesesquier.workers.dev',
 
     get API_RESERVATIONS_URL() {
         return `${this.API_BASE}/api/reservations`;

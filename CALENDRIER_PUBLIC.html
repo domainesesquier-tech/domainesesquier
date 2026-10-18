@@ -206,9 +206,24 @@
       .day-num { font-size: 11px; }
       .legend { gap: 8px 16px; font-size: 12px; }
     }
+    /* ── Mode intégré (iframe sur le site vitrine) ─────────────── */
+    html.embed body { background: transparent; min-height: 0; }
+    html.embed header { display: none; }
+    html.embed main { max-width: none; padding: 0; }
+    html.embed .month-nav { margin-bottom: 16px; }
+    html.embed .month-label { font-size: 20px; }
+    html.embed .month-nav button { width: 40px; height: 40px; }
+    html.embed .cal-cell { min-height: 0; aspect-ratio: 1.6; }
+    html.embed .legend { margin-top: 16px; }
+    @media (max-width: 600px) {
+      html.embed .cal-cell { aspect-ratio: 1; }
+      html.embed .cal-head-cell { font-size: 10px; letter-spacing: 0.04em; }
+      html.embed .month-label { font-size: 17px; }
+    }
   </style>
 </head>
 <body>
+<script>if (window.self !== window.top) document.documentElement.classList.add('embed');</script>
 
 <header>
   <div class="logo">
@@ -388,6 +403,13 @@
     if (currentMonth > 12) { currentMonth = 1; currentYear++; }
     load();
   });
+
+  /* ── Hauteur auto quand intégré en iframe ───────────────────── */
+  if (window.self !== window.top && 'ResizeObserver' in window) {
+    new ResizeObserver(() => {
+      parent.postMessage({ type: 'sesquier-cal-height', h: document.querySelector('main').offsetHeight }, '*');
+    }).observe(document.querySelector('main'));
+  }
 
   /* ── Init ────────────────────────────────────────────────────── */
   load();
