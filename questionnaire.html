@@ -355,7 +355,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
       if (!q.journeeEtude && (!q.dateDepart || q.dateDepart <= q.dateArrivee)) ok = erreur('dateDepart', 'La date de départ doit suivre la date d\'arrivée.') && ok;
     }
     if (i === 0 && q.segment !== 'seminaire' && q.dateDepart && (new Date(q.dateDepart) - new Date(q.dateArrivee)) / 86400000 < 2)
-      ok = erreur('dateDepart', 'Deux nuits minimum pour une privatisation.') && ok;
+      ok = erreur('dateDepart', 'Deux nuits minimum pour accueillir votre groupe.') && ok;
     if (i === 3) {
       if (!form.prenom.value.trim()) ok = erreur('prenom', 'Champ requis.') && ok;
       if (!form.nom.value.trim()) ok = erreur('nom', 'Champ requis.') && ok;
