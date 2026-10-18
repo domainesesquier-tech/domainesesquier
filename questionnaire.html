@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demande de devis — Domaine Sesquier</title>
+<meta name="description" content="Séminaire, week-end en groupe ou mariage au Domaine Sesquier : décrivez votre projet et recevez votre devis sous 24 h.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --vert: #2D4A30; --nuit: #131E13; --fond: #F4F2EE; --creme: #F7F3EF;
+  --sauge: #9BAA90; --texte: #333; --doux: #6b6b63; --blanc: #fff; --erreur: #a3412a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fond); color: var(--texte); font: 15px/1.6 'Libre Baskerville', Georgia, serif; }
+.wrap { max-width: 1024px; margin: 0 auto; padding: 40px 16px 120px; }
+.surtitre { font-size: 15px; color: var(--texte); margin: 0 0 8px; }
+h1 { font-weight: 400; color: var(--vert); font-size: clamp(32px, 6vw, 52px); line-height: 1.05; margin: 0 0 12px; }
+.chapo { font-size: 18px; color: var(--nuit); margin: 0 0 32px; max-width: 640px; }
+.grid { max-width: 760px; }
+.card { background: var(--blanc); border: 1px solid var(--texte); border-radius: 16px; padding: 32px; }
+.steps { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+.steps span { font-size: 13px; padding: 4px 12px; border-radius: 100px; border: 1px solid #c9c5bc; color: var(--doux); }
+.steps span.on { border-color: var(--vert); color: var(--vert); }
+.steps span.done { background: var(--vert); border-color: var(--vert); color: #fff; }
+h2 { font-weight: 400; color: var(--vert); font-size: 26px; margin: 0 0 20px; }
+fieldset { border: 0; padding: 0; margin: 0 0 22px; }
+legend, .lab { display: block; font-weight: 700; font-size: 14px; color: var(--nuit); margin-bottom: 8px; }
+.hint { font-size: 13px; color: var(--doux); margin: -4px 0 8px; }
+input[type=text], input[type=email], input[type=tel], input[type=number], input[type=date], textarea {
+  width: 100%; font: inherit; padding: 10px 14px; border: 1px solid #b9b5ac; border-radius: 10px; background: var(--blanc); color: var(--texte);
+}
+textarea { min-height: 110px; resize: vertical; }
+input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px solid var(--vert); outline-offset: 2px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice { position: relative; }
+.choice input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.choice span { display: inline-block; padding: 8px 16px; border: 1px solid var(--nuit); border-radius: 100px; font-size: 14px; cursor: pointer; background: var(--blanc); }
+.choice input:checked + span { background: var(--vert); border-color: var(--vert); color: #fff; }
+.choice input:disabled + span { opacity: .45; cursor: not-allowed; }
+.acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.act { position: relative; border: 1px solid #b9b5ac; border-radius: 12px; padding: 12px 14px 12px 40px; cursor: pointer; background: var(--blanc); }
+.act input { position: absolute; left: 14px; top: 16px; accent-color: var(--vert); width: 16px; height: 16px; }
+.act b { display: block; font-size: 14px; color: var(--nuit); }
+.act small { color: var(--doux); font-size: 12px; }
+.act:has(input:checked) { border-color: var(--vert); background: var(--creme); }
+.nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 28px; }
+.btn { font: inherit; font-size: 15px; padding: 12px 24px; border-radius: 100px; border: 1px solid var(--nuit); background: transparent; color: var(--nuit); cursor: pointer; }
+.btn.plein { background: var(--vert); border-color: var(--vert); color: #fff; }
+.btn:disabled { opacity: .5; cursor: wait; }
+.err { color: var(--erreur); font-size: 13px; margin-top: 6px; min-height: 1em; }
+.hp { position: absolute; left: -9999px; }
+.check { display: flex; gap: 10px; font-size: 13px; color: var(--doux); align-items: flex-start; }
+.check input { margin-top: 4px; accent-color: var(--vert); }
+.note-type { background: var(--creme); border-radius: 12px; padding: 14px 16px; font-size: 14px; margin-top: 12px; }
+.note-type a { color: var(--vert); }
+.merci { text-align: left; }
+@media (max-width: 860px) {
+  .card { padding: 22px 18px; }
+  .row, .acts { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <p class="surtitre">— Demande de devis</p>
+  <h1 id="titre">Composez votre séminaire</h1>
+  <p class="chapo" id="chapo">Quatre étapes pour décrire votre projet. Nous étudions votre demande et vous envoyons votre devis détaillé par e-mail sous 24 h.</p>
+
+  <div class="grid">
+    <form id="form" class="card" novalidate>
+      <div class="steps" aria-hidden="true"><span>1. Le séjour</span><span>2. Le programme</span><span>3. Activités</span><span>4. Vos coordonnées</span></div>
+
+      <!-- Étape 1 -->
+      <section data-step="0">
+        <h2>Le séjour</h2>
+        <fieldset>
+          <legend>Type de séjour</legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="type" value="seminaire" checked><span>Séminaire</span></label>
+            <label class="choice"><input type="radio" name="type" value="groupe"><span>Week-end en groupe</span></label>
+            <label class="choice"><input type="radio" name="type" value="mariage"><span>Mariage</span></label>
+          </div>
+        </fieldset>
+        <fieldset id="bloc-format">
+          <legend>Format</legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="format" value="residentiel" checked><span>Avec nuit(s) sur place</span></label>
+            <label class="choice"><input type="radio" name="format" value="etude"><span>Journée d'étude</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <label class="lab" for="participants" id="lab-participants">Nombre de participants</label>
+          <p class="hint" id="hint-participants">De 10 à 40 personnes. Au-delà, nous construisons votre devis sur mesure.</p>
+          <input type="number" id="participants" name="participants" min="1" max="200" inputmode="numeric" required>
+          <div class="err" data-err="participants"></div>
+        </fieldset>
+        <div class="row">
+          <fieldset>
+            <label class="lab" for="dateArrivee" id="lab-arrivee">Date d'arrivée</label>
+            <input type="date" id="dateArrivee" name="dateArrivee" required>
+            <div class="err" data-err="dateArrivee"></div>
+          </fieldset>
+          <fieldset id="bloc-depart">
+            <label class="lab" for="dateDepart">Date de départ</label>
+            <input type="date" id="dateDepart" name="dateDepart">
+            <div class="err" data-err="dateDepart"></div>
+          </fieldset>
+        </div>
+        <fieldset id="bloc-profil">
+          <legend>Vous êtes</legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="profil" value="entreprise" checked><span>Une entreprise</span></label>
+            <label class="choice"><input type="radio" name="profil" value="agence"><span>Une agence (événementiel, voyage)</span></label>
+          </div>
+        </fieldset>
+      </section>
+
+      <!-- Étape 2 -->
+      <section data-step="1" hidden>
+        <h2>Le programme</h2>
+        <fieldset>
+          <legend>Arrivée le premier jour</legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="arrivee" value="matin" checked><span>Le matin</span></label>
+            <label class="choice"><input type="radio" name="arrivee" value="midi"><span>Pour le déjeuner</span></label>
+            <label class="choice"><input type="radio" name="arrivee" value="apresmidi"><span>L'après-midi</span></label>
+          </div>
+        </fieldset>
+        <fieldset id="bloc-depart-heure">
+          <legend>Départ le dernier jour</legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="depart" value="matin"><span>Après le petit-déjeuner</span></label>
+            <label class="choice"><input type="radio" name="depart" value="apres_dejeuner"><span>Après le déjeuner</span></label>
+            <label class="choice"><input type="radio" name="depart" value="soir" checked><span>En fin de journée</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Restauration</legend>
+          <p class="hint">Cuisine maison de nos chefs, en buffet ou en grande tablée conviviale.</p>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="restauration" value="pension" checked><span>Tous les repas</span></label>
+            <label class="choice"><input type="radio" name="restauration" value="sans_diner"><span>Sans les dîners</span></label>
+            <label class="choice"><input type="radio" name="restauration" value="aucune"><span>Pas de restauration</span></label>
+          </div>
+        </fieldset>
+        <div class="row">
+          <fieldset>
+            <legend>Pauses café matin et après-midi</legend>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="pauses" value="1" checked><span>Oui</span></label>
+              <label class="choice"><input type="radio" name="pauses" value="0"><span>Non</span></label>
+            </div>
+          </fieldset>
+          <fieldset id="bloc-vin">
+            <legend>Vin aux dîners</legend>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="vin" value="1"><span>Oui</span></label>
+              <label class="choice"><input type="radio" name="vin" value="0" checked><span>Non</span></label>
+            </div>
+          </fieldset>
+        </div>
+        <fieldset id="bloc-soiree">
+          <legend>La soirée</legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="soiree" value="aucune" checked><span>Rien de prévu</span></label>
+            <label class="choice"><input type="radio" name="soiree" value="aperitif"><span>Apéritif</span></label>
+            <label class="choice"><input type="radio" name="soiree" value="pack"><span>Boissons en libre-service</span></label>
+            <label class="choice"><input type="radio" name="soiree" value="formule"><span>Soirée complète (bar, bière, vins)</span></label>
+          </div>
+        </fieldset>
+      </section>
+
+      <!-- Groupe / mariage : vos envies -->
+      <section data-step="4" hidden>
+        <h2>Vos envies</h2>
+        <div id="envies-groupe">
+          <fieldset><legend>Draps fournis (10 € par personne)</legend><div class="choices">
+            <label class="choice"><input type="radio" name="draps" value="1" checked><span>Oui</span></label>
+            <label class="choice"><input type="radio" name="draps" value="0"><span>Nous apportons les nôtres</span></label></div></fieldset>
+          <fieldset><legend>Salle Archipel (200 m², pour une soirée ou un grand repas)</legend><div class="choices">
+            <label class="choice"><input type="radio" name="archipel" value="1"><span>Oui</span></label>
+            <label class="choice"><input type="radio" name="archipel" value="0" checked><span>Non</span></label></div></fieldset>
+          <fieldset><legend>Cuisine professionnelle (traiteur ou chef)</legend><div class="choices">
+            <label class="choice"><input type="radio" name="cuisine_pro" value="1"><span>Oui</span></label>
+            <label class="choice"><input type="radio" name="cuisine_pro" value="0" checked><span>Non</span></label></div></fieldset>
+        </div>
+        <div id="envies-mariage" hidden>
+          <fieldset><legend>Lieu de la réception</legend><div class="choices">
+            <label class="choice"><input type="radio" name="pack" value="" checked><span>Je ne sais pas encore</span></label>
+            <label class="choice"><input type="radio" name="pack" value="champs_olivier"><span>Champs d'olivier (jusqu'à 40 invités)</span></label>
+            <label class="choice"><input type="radio" name="pack" value="archipel"><span>Salle Archipel</span></label></div></fieldset>
+          <fieldset><legend>Seconde soirée en salle Archipel</legend><div class="choices">
+            <label class="choice"><input type="radio" name="secondeSoiree" value="1"><span>Oui</span></label>
+            <label class="choice"><input type="radio" name="secondeSoiree" value="0" checked><span>Non</span></label></div></fieldset>
+          <fieldset><legend>Votre traiteur</legend><div class="choices">
+            <label class="choice"><input type="radio" name="traiteurExterieur" value="0" checked><span>Pas encore choisi</span></label>
+            <label class="choice"><input type="radio" name="traiteurExterieur" value="1"><span>Un traiteur qui utilisera la cuisine du domaine</span></label></div></fieldset>
+        </div>
+      </section>
+
+      <!-- Étape 3 -->
+      <section data-step="2" hidden>
+        <h2>Activités et accès</h2>
+        <fieldset>
+          <legend>Activités de cohésion</legend>
+          <p class="hint">Facultatif. Nous coordonnons les activités sur place.</p>
+          <div class="acts" id="acts"></div>
+        </fieldset>
+        <fieldset>
+          <legend>Venir au domaine</legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="transport" value="aucun" checked><span>Par nos propres moyens</span></label>
+            <label class="choice"><input type="radio" name="transport" value="vtc"><span>Navette VTC depuis Montpellier</span></label>
+            <label class="choice"><input type="radio" name="transport" value="autocar"><span>Autocar depuis la gare</span></label>
+          </div>
+        </fieldset>
+      </section>
+
+      <!-- Étape 4 -->
+      <section data-step="3" hidden>
+        <h2>Vos coordonnées</h2>
+        <div class="row">
+          <fieldset><label class="lab" for="prenom">Prénom</label><input type="text" id="prenom" name="prenom" autocomplete="given-name" required><div class="err" data-err="prenom"></div></fieldset>
+          <fieldset><label class="lab" for="nom">Nom</label><input type="text" id="nom" name="nom" autocomplete="family-name" required><div class="err" data-err="nom"></div></fieldset>
+        </div>
+        <fieldset><label class="lab" for="organisation">Entreprise ou agence</label><input type="text" id="organisation" name="organisation" autocomplete="organization"></fieldset>
+        <div class="row">
+          <fieldset><label class="lab" for="email">E-mail professionnel</label><input type="email" id="email" name="email" autocomplete="email" required><div class="err" data-err="email"></div></fieldset>
+          <fieldset><label class="lab" for="telephone">Téléphone</label><input type="tel" id="telephone" name="telephone" autocomplete="tel" required><div class="err" data-err="telephone"></div></fieldset>
+        </div>
+        <fieldset><label class="lab" for="message">Votre projet</label><textarea id="message" name="message" placeholder="Objectifs, contraintes, envies particulières…"></textarea></fieldset>
+        <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <label class="check"><input type="checkbox" id="rgpd" required><span>J'accepte que mes informations soient utilisées pour traiter ma demande de devis. Elles ne sont jamais transmises à des tiers.</span></label>
+        <div class="err" data-err="rgpd"></div>
+      </section>
+
+      <div class="nav">
+        <button type="button" class="btn" id="prev" hidden>Retour</button>
+        <button type="button" class="btn plein" id="next">Continuer</button>
+      </div>
+      <div class="err" id="err-envoi" role="alert"></div>
+    </form>
+
+  </div>
+</main>
+
+<script src="assets/pricing-engine.js"></script>
+<script>
+(function () {
+  const API_BASE = location.hostname === 'localhost'
+    ? 'http://localhost:8788'
+    : (location.hostname.startsWith('v2.') || location.hostname.endsWith('.pages.dev'))
+      ? 'https://domainesesquier-api-v2.domainesesquier.workers.dev'
+      : 'https://domainesesquier-api.domainesesquier.workers.dev';
+  // Saisie interne depuis le tableau de bord (?admin=1) : pas d'anti-robot ni de case RGPD,
+  // pré-remplissage possible via #prefill=<JSON encodé> (clés = attributs name du formulaire).
+  const ADMIN = new URLSearchParams(location.search).get('admin') === '1';
+  const ACTIVITES = [
+    ['velos', 'L\'étang à vélo', 'Balade guidée, demi-journée'],
+    ['bateau', 'Sortie bateau', 'Coucher de soleil sur l\'étang de Thau'],
+    ['kayak', 'Kayak guidé', 'Le long des parcs à huîtres'],
+    ['olympiades', 'Olympiades du Domaine', 'Archerie, escape game, jeux du Sud'],
+    ['archery_tag', 'Archery tag', 'Arcs et flèches mousse, en équipes'],
+    ['blind_test', 'Blind-test territoire', 'Vins et musiques du Sud, après le dîner'],
+    ['workshop', 'Workshop intelligence collective', 'Ouverture et clôture du séminaire'],
+    ['murder_party', 'Murder party', 'Enquête au cœur du domaine']
+  ];
+  const form = document.getElementById('form');
+  const steps = [...form.querySelectorAll('section[data-step]')];
+  const pills = [...document.querySelectorAll('.steps span')];
+  const btnNext = document.getElementById('next'), btnPrev = document.getElementById('prev');
+  const debut = Date.now();
+  let etape = 0, grille = null, derniere = null;
+
+  document.getElementById('acts').innerHTML = ACTIVITES.map(([code, titre, desc]) =>
+    `<label class="act"><input type="checkbox" name="activites" value="${code}"><b>${titre}</b><small>${desc}</small></label>`).join('');
+
+  const today = new Date().toISOString().slice(0, 10);
+  form.dateArrivee.min = today; form.dateDepart.min = today;
+
+  const val = name => (form.querySelector(`input[name="${name}"]:checked`) || {}).value;
+  const eur = n => n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+
+  function reponses() {
+    return {
+      participants: +form.participants.value || 0,
+      dateArrivee: form.dateArrivee.value,
+      dateDepart: form.dateDepart.value,
+      journeeEtude: val('format') === 'etude',
+      agence: val('profil') === 'agence',
+      arrivee: val('arrivee'), depart: val('depart'),
+      restauration: val('restauration'),
+      pauses: val('pauses') === '1', vin: val('vin') === '1',
+      soiree: val('soiree'), transport: val('transport'),
+      activites: [...form.querySelectorAll('input[name="activites"]:checked')].map(i => i.value),
+      segment: val('type'),
+      draps: val('draps') === '1', archipel: val('archipel') === '1', cuisine_pro: val('cuisine_pro') === '1',
+      pack: val('pack') || '', secondeSoiree: val('secondeSoiree') === '1', traiteurExterieur: val('traiteurExterieur') === '1'
+    };
+  }
+
+  // Étapes affichées selon le type : séminaire 0-1-2-3, groupe / mariage 0-4-3
+  const PILLS = { seminaire: ['Le séjour', 'Le programme', 'Activités', 'Vos coordonnées'], autre: ['Le séjour', 'Vos envies', 'Vos coordonnées'] };
+  const ordre = () => val('type') === 'seminaire' ? [0, 1, 2, 3] : [0, 4, 3];
+  const section = k => steps.find(s => +s.dataset.step === k);
+  function majFormat() {
+    const seg = val('type'), sem = seg === 'seminaire';
+    document.getElementById('bloc-format').hidden = !sem;
+    document.getElementById('bloc-profil').hidden = !sem;
+    if (!sem) form.querySelector('input[name="format"][value="residentiel"]').checked = true;
+    document.getElementById('envies-groupe').hidden = seg !== 'groupe';
+    document.getElementById('envies-mariage').hidden = seg !== 'mariage';
+    document.getElementById('lab-participants').textContent = seg === 'mariage' ? 'Nombre d\'invités' : (sem ? 'Nombre de participants' : 'Nombre de personnes');
+    document.getElementById('hint-participants').textContent = seg === 'mariage' ? 'Réception jusqu\'à 40 invités au Champs d\'olivier, davantage en salle Archipel. 40 couchages sur place.'
+      : seg === 'groupe' ? '35 couchages, jusqu\'à 40 avec lits d\'appoint. 2 nuits minimum.' : 'De 10 à 40 personnes. Au-delà, nous construisons votre devis sur mesure.';
+    document.getElementById('titre').textContent = { seminaire: 'Composez votre séminaire', groupe: 'Votre week-end en groupe', mariage: 'Votre mariage au domaine' }[seg];
+    document.getElementById('chapo').textContent = `${sem ? 'Quatre' : 'Trois'} étapes pour décrire votre projet. Nous étudions votre demande et vous envoyons votre devis détaillé par e-mail sous 24 h.`;
+    const noms = PILLS[sem ? 'seminaire' : 'autre'];
+    pills.forEach((p, k) => { p.hidden = k >= noms.length; if (noms[k]) p.textContent = `${k + 1}. ${noms[k]}`; });
+    const etude = val('format') === 'etude';
+    document.getElementById('bloc-depart').hidden = etude;
+    document.getElementById('bloc-depart-heure').hidden = etude;
+    document.getElementById('bloc-vin').hidden = etude;
+    document.getElementById('bloc-soiree').hidden = etude;
+    document.getElementById('lab-arrivee').textContent = etude ? 'Date de la journée' : 'Date d\'arrivée';
+  }
+
+  // Estimation interne : jamais affichée au client, jointe à la demande pour le devis.
+  function estimer() {
+    derniere = null;
+    if (!grille) return;
+    const q = reponses();
+    const dateOk = q.dateArrivee && (q.journeeEtude || (q.dateDepart && q.dateDepart > q.dateArrivee));
+    if (!q.participants || (q.participants > 40 && q.segment !== 'mariage') || !dateOk) return;
+    const { demande, jours } = PricingEngine.fromQuestionnaire(grille, q);
+    derniere = { demande, jours, resultat: PricingEngine.compute(grille, demande) };
+  }
+
+  function erreur(champ, msg) {
+    const el = form.querySelector(`[data-err="${champ}"]`);
+    if (el) el.textContent = msg || '';
+    return !msg;
+  }
+
+  function valider(i) {
+    form.querySelectorAll('.err[data-err]').forEach(e => e.textContent = '');
+    const q = reponses();
+    let ok = true;
+    if (i === 0) {
+      if (!q.participants || q.participants < 1) ok = erreur('participants', 'Indiquez le nombre de participants.') && ok;
+      if (!q.dateArrivee) ok = erreur('dateArrivee', 'Indiquez une date.') && ok;
+      if (!q.journeeEtude && (!q.dateDepart || q.dateDepart <= q.dateArrivee)) ok = erreur('dateDepart', 'La date de départ doit suivre la date d\'arrivée.') && ok;
+    }
+    if (i === 0 && q.segment !== 'seminaire' && q.dateDepart && (new Date(q.dateDepart) - new Date(q.dateArrivee)) / 86400000 < 2)
+      ok = erreur('dateDepart', 'Deux nuits minimum pour une privatisation.') && ok;
+    if (i === 3) {
+      if (!form.prenom.value.trim()) ok = erreur('prenom', 'Champ requis.') && ok;
+      if (!form.nom.value.trim()) ok = erreur('nom', 'Champ requis.') && ok;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.value.trim())) ok = erreur('email', 'Adresse e-mail invalide.') && ok;
+      if ((!ADMIN || form.telephone.value.trim()) && form.telephone.value.replace(/\D/g, '').length < 9) ok = erreur('telephone', 'Numéro de téléphone invalide.') && ok;
+      if (!document.getElementById('rgpd').checked) ok = erreur('rgpd', 'Merci de cocher la case pour envoyer votre demande.') && ok;
+    }
+    return ok;
+  }
+
+  // i = position dans ordre()
+  function afficher(i) {
+    etape = i;
+    const o = ordre(), cur = section(o[i]);
+    steps.forEach(s => s.hidden = s !== cur);
+    pills.forEach((p, k) => { p.className = k < i ? 'done' : (k === i ? 'on' : ''); });
+    btnPrev.hidden = i === 0;
+    btnNext.textContent = i === o.length - 1 ? 'Envoyer ma demande' : 'Continuer';
+    const h = cur.querySelector('h2');
+    if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function envoyer() {
+    if (!ADMIN && (form.website.value || Date.now() - debut < 4000)) return; // anti-robot
+    btnNext.disabled = true;
+    estimer();
+    const q = reponses();
+    const payload = {
+      segment: q.segment,
+      reponses: q,
+      contact: {
+        prenom: form.prenom.value.trim(), nom: form.nom.value.trim(),
+        organisation: form.organisation.value.trim(), email: form.email.value.trim(),
+        telephone: form.telephone.value.trim(), message: form.message.value.trim()
+      },
+      estimation: derniere ? { ht: derniere.resultat.totaux.ht, ttc: derniere.resultat.totaux.ttc, par_personne_ht: derniere.resultat.par_personne.ht } : null,
+      planning: derniere ? derniere.jours : null,
+      origine: ADMIN ? 'Tableau de bord (saisie interne)' : (document.referrer || location.href)
+    };
+    let envoye = false, test = false;
+    try {
+      const res = await fetch(`${API_BASE}/api/public/demande`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      envoye = res.ok;
+      test = res.status === 403 || location.hostname === 'localhost';
+      if (!res.ok && !test) throw new Error(res.status);
+    } catch (e) {
+      document.getElementById('err-envoi').textContent = 'L\'envoi a échoué. Réessayez, ou écrivez-nous à contact@domainesesquier.com.';
+      btnNext.disabled = false;
+      return;
+    }
+    if (ADMIN) {
+      form.innerHTML = `<div class="merci"><h2>Demande créée pour ${payload.contact.prenom} ${payload.contact.nom}</h2>
+        <p>Le dossier est dans le tableau de bord, statut « à traiter », avec l'estimation jointe pour préparer le devis.</p>
+        ${test ? '<p class="note-type">Copie de test V2 : dossier créé dans le bac à sable, pas dans ta base.</p>' : ''}
+        <p><a class="btn" href="index.html">Retour au tableau de bord</a> &nbsp; <a href="questionnaire?admin=1">Saisir une autre demande</a></p></div>`;
+      window.__derniereDemande = payload;
+      return;
+    }
+    form.innerHTML = `<div class="merci"><h2>Merci ${payload.contact.prenom}, c'est noté.</h2>
+      <p>Nous étudions votre projet et vous envoyons votre devis détaillé sous 24 h à <b>${payload.contact.email}</b>.</p>
+      ${test ? '<p class="note-type">Copie de test V2 : la demande est créée dans le bac à sable (dossier « à traiter » et date « Demandé » au calendrier), pas dans ta base.</p>' : ''}</div>`;
+    window.__derniereDemande = payload; // inspection en test
+  }
+
+  btnNext.addEventListener('click', () => {
+    if (!valider(ordre()[etape])) return;
+    if (etape < ordre().length - 1) afficher(etape + 1); else envoyer();
+  });
+  btnPrev.addEventListener('click', () => afficher(etape - 1));
+  form.addEventListener('input', e => {
+    const el = form.querySelector(`[data-err="${e.target.name}"]`);
+    if (el) el.textContent = '';
+    if (e.target.name === 'dateArrivee' && e.target.value) {
+      const lendemain = new Date(e.target.value + 'T12:00:00');
+      lendemain.setDate(lendemain.getDate() + 1);
+      const l = lendemain.toISOString().slice(0, 10);
+      form.dateDepart.min = l;
+      if (!form.dateDepart.value || form.dateDepart.value < l) form.dateDepart.value = l;
+      form.querySelector('[data-err="dateDepart"]').textContent = '';
+    }
+    majFormat(); estimer();
+  });
+  form.addEventListener('change', () => { majFormat(); estimer(); });
+
+  const params = new URLSearchParams(location.search);
+  if (params.get('type')) { const t = form.querySelector(`input[name="type"][value="${params.get('type')}"]`); if (t) t.checked = true; }
+  if (params.get('format') === 'etude') form.querySelector('input[name="format"][value="etude"]').checked = true;
+
+  if (ADMIN) {
+    document.title = 'Saisie d\'une demande — Domaine Sesquier';
+    form.telephone.required = false; const rg = document.getElementById('rgpd'); rg.required = false; rg.checked = true; rg.closest('label').hidden = true;
+    const bandeau = document.createElement('p'); bandeau.className = 'note-type';
+    bandeau.innerHTML = 'Saisie interne : tu remplis la demande à la place du client (Cactus, téléphone, mail…). Elle crée le dossier comme une demande du site. <a href="index.html">← Tableau de bord</a>';
+    form.parentNode.insertBefore(bandeau, form);
+    try {
+      const m = location.hash.match(/^#prefill=(.+)$/);
+      const pre = m ? JSON.parse(decodeURIComponent(m[1])) : null;
+      if (pre) Object.entries(pre).forEach(([k, v]) => {
+        const els = [...form.querySelectorAll(`[name="${k}"]`)];
+        if (!els.length || v == null) return;
+        if (els[0].type === 'radio') els.forEach(e => { e.checked = e.value === String(v); });
+        else if (els[0].type === 'checkbox' && Array.isArray(v)) els.forEach(e => { e.checked = v.includes(e.value); });
+        else if (els[0].type === 'checkbox') els[0].checked = v === true || v === '1' || v === 1;
+        else els[0].value = v;
+      });
+    } catch (e) { console.warn('[prefill] ignoré :', e.message); }
+  }
+
+  majFormat();
+  afficher(0);
+  window.scrollTo(0, 0);
+  fetch('assets/grille_2027.json').then(r => r.json()).then(g => { grille = g; estimer(); });
+})();
+</script>
+</body>
+</html>

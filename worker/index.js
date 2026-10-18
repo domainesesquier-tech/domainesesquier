@@ -1,3 +1,4 @@
+import { rediger } from "./redaction.js";
 // ============================================================
 // Domaine Sesquier — Cloudflare Worker (Supabase backend)
 // ============================================================
@@ -31,7 +32,101 @@ function json(body, status = 200, env = {}, requestOrigin = "") {
 // jeton de l'utilisateur connecté (env.USER_JWT, posé par le handler pour
 // la requête en cours) : c'est ce qui permet à RLS de filtrer côté base.
 // Sans utilisateur (routes publiques), on retombe sur le rôle anon.
+// ── BAC À SABLE (copie de travail V2, READ_ONLY=true) ──────────────
+// Les écritures sur les dossiers et le calendrier sont gardées en mémoire
+// dans le Worker local (effacées au redémarrage) ; les lectures renvoient
+// les vraies données de la base, complétées par ces modifications.
+// Rien n'est jamais écrit dans Supabase.
+const SANDBOX = {
+  reservations: new Map(), planning: new Map(),
+  deleted: { reservations: new Set(), planning: new Set() },
+  numero: 900,
+};
+
+// Sur Cloudflare, la mémoire n'est pas partagée entre requêtes : si le KV SANDBOX_KV est lié
+// (worker de test), l'état du bac à sable y est relu et réécrit à chaque appel.
+async function loadSandbox(env) {
+  if (!env.SANDBOX_KV) return;
+  const st = await env.SANDBOX_KV.get("state", "json");
+  if (!st) return;
+  SANDBOX.reservations = new Map(st.reservations); SANDBOX.planning = new Map(st.planning);
+  SANDBOX.deleted = { reservations: new Set(st.deleted.reservations), planning: new Set(st.deleted.planning) };
+  SANDBOX.numero = st.numero;
+}
+async function saveSandbox(env) {
+  if (!env.SANDBOX_KV) return;
+  await env.SANDBOX_KV.put("state", JSON.stringify({
+    reservations: [...SANDBOX.reservations], planning: [...SANDBOX.planning],
+    deleted: { reservations: [...SANDBOX.deleted.reservations], planning: [...SANDBOX.deleted.planning] },
+    numero: SANDBOX.numero,
+  }));
+}
+
 async function sbFetch(env, path, init = {}) {
+  return env.READ_ONLY === "true" ? sandboxFetch(env, path, init) : sbFetchReal(env, path, init);
+}
+
+async function sandboxFetch(env, path, init = {}) {
+  const method = (init.method || "GET").toUpperCase();
+  await loadSandbox(env);
+  const res = await sandboxFetchMem(env, path, init, method);
+  if (method !== "GET") await saveSandbox(env);
+  return res;
+}
+
+async function sandboxFetchMem(env, path, init, method) {
+  if (path.startsWith("/rpc/next_doc_number")) return ++SANDBOX.numero;
+  if (path.startsWith("/rpc/public_demande")) {
+    const p = JSON.parse(init.body || "{}").p || {};
+    const pid = crypto.randomUUID();
+    SANDBOX.planning.set(pid, {
+      id: pid, nom: p.nom_client, type: { groupe: "Week-end privé", mariage: "Mariage" }[p.segment] || "Séminaire", date_arrivee: p.date_arrivee, date_depart: p.date_depart,
+      statut: "Demandé", nb_personnes: p.nombre_de_personnes, montant: p.estimation_ht || null,
+      notes: "Demande reçue via le questionnaire du site", contact_tel: p.telephone, __new: true,
+    });
+    const { estimation_ht, segment, ...row } = p;
+    SANDBOX.reservations.set(String(p.id), { ...row, statut: "à traiter", planning_id: pid, created_at: new Date().toISOString(), __new: true });
+    return null;
+  }
+  const m = path.match(/^\/(reservations|planning)(\?|$)/);
+  if (!m) {
+    if (method === "GET" || path.startsWith("/rpc/public_")) return sbFetchReal(env, path, init);
+    throw new Error("Copie V2 : cette écriture n'est pas disponible dans le bac à sable.");
+  }
+  const table = m[1], store = SANDBOX[table], del = SANDBOX.deleted[table];
+  const idm = path.match(/[?&]id=eq\.([^&]+)/);
+  const id = idm ? decodeURIComponent(idm[1]) : null;
+
+  if (method === "GET") {
+    let rows = (await sbFetchReal(env, path, init)) || [];
+    rows = rows.filter(r => !del.has(String(r.id))).map(r => store.has(String(r.id)) ? { ...r, ...store.get(String(r.id)) } : r);
+    const ids = new Set(rows.map(r => String(r.id)));
+    for (const [k, r] of store) if (r.__new && !ids.has(k) && !del.has(k) && (!id || k === id)) rows.unshift(r);
+    return rows;
+  }
+  if (method === "POST") {
+    const body = JSON.parse(init.body || "{}");
+    const row = { created_at: new Date().toISOString(), ...body, __new: true };
+    if (!row.id) row.id = crypto.randomUUID();
+    store.set(String(row.id), row);
+    return [row];
+  }
+  if (method === "PATCH") {
+    let base = store.get(id);
+    if (!base) {
+      const real = await sbFetchReal(env, `/${table}?id=eq.${encodeURIComponent(id)}`);
+      if (!real || !real.length) return [];
+      base = real[0];
+    }
+    const row = { ...base, ...JSON.parse(init.body || "{}") };
+    store.set(id, row);
+    return [row];
+  }
+  if (method === "DELETE") { store.delete(id); del.add(id); return null; }
+  return null;
+}
+
+async function sbFetchReal(env, path, init = {}) {
   const url = `${env.SUPABASE_URL}/rest/v1${path}`;
   const res = await fetch(url, {
     ...init,
@@ -266,6 +361,7 @@ const PUBLIC_ROUTES = [
   { path: "/api/health",                methods: ["GET"] },
   { path: "/api/public/disponibilites", methods: ["GET"] },
   { path: "/api/public/menu",           methods: ["GET"] },
+  { path: "/api/public/demande",        methods: ["POST"] },
 ];
 
 function isPublicRoute(pathname, method) {
@@ -328,6 +424,13 @@ export default {
     const enforced = env.AUTH_ENFORCED !== "false";
     if (enforced && !user && !isPublicRoute(url.pathname, method)) {
       return json({ error: { message: "Authentification requise" } }, 401, env, requestOrigin);
+    }
+
+    // Copie de travail V2 : READ_ONLY=true → dossiers et calendrier en bac à sable (mémoire),
+    // toute autre écriture est refusée. Rien n'est jamais écrit dans la base de production.
+    const SANDBOX_ROUTES = ["/api/reservations", "/api/planning", "/api/next-number", "/api/public/demande", "/api/ia/redaction"];
+    if (env.READ_ONLY === "true" && method !== "GET" && method !== "OPTIONS" && !SANDBOX_ROUTES.some(r => url.pathname.startsWith(r))) {
+      return json({ error: { message: "Copie V2 en lecture seule : aucune écriture en base." } }, 403, env, requestOrigin);
     }
 
     try {
@@ -525,6 +628,62 @@ export default {
 
       // Menu client : nom + dates + planning repas d'UN dossier précis
       // (l'id, aléatoire sur 14 caractères, sert de clé d'accès au lien).
+      // ── QUESTIONNAIRE PUBLIC : nouvelle demande de devis ──
+      // Données validées ici, insertion via la fonction SQL public_demande
+      // (security definer) : le rôle anon n'a aucun accès direct aux tables.
+      // Rédaction assistée par Claude (admin connecté uniquement)
+      if (url.pathname === "/api/ia/redaction" && method === "POST") {
+        const body = await request.json().catch(() => null);
+        const out = await rediger(env, body);
+        return json(out.data, out.status, env, requestOrigin);
+      }
+
+      if (url.pathname === "/api/public/demande" && method === "POST") {
+        const raw = await request.text();
+        if (raw.length > 20000) return json({ error: { message: "Demande trop volumineuse" } }, 413, env, requestOrigin);
+        let p;
+        try { p = JSON.parse(raw); } catch { return json({ error: { message: "JSON invalide" } }, 400, env, requestOrigin); }
+        const c = p?.contact || {}, q = p?.reponses || {};
+        const txt = (v, n = 200) => String(v ?? "").trim().slice(0, n);
+        const iso = v => /^\d{4}-\d{2}-\d{2}$/.test(v || "") ? v : null;
+        const nb = Math.max(0, Math.min(500, parseInt(q.participants, 10) || 0));
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(txt(c.email)) || !txt(c.nom) || !nb || !iso(q.dateArrivee)) {
+          return json({ error: { message: "Champs requis manquants" } }, 400, env, requestOrigin);
+        }
+        // Planning au format attendu par la page devis (repas en nombre de personnes)
+        const counts = (Array.isArray(p.planning) ? p.planning : []).slice(0, 30).map(j => ({
+          petitDej: (+j.petitDej || 0) * nb, collationMatin: ((+j.collationMatin || 0) + (+j.accueil || 0)) * nb,
+          dejeuner: (+j.dejeuner || 0) * nb, collationAprem: (+j.collationAprem || 0) * nb, diner: (+j.diner || 0) * nb,
+        }));
+        const seg = ["groupe", "mariage"].includes(p.segment) ? p.segment : "seminaire";
+        const details = {
+          type: seg === "seminaire" ? "pro" : "prive",
+          source: "questionnaire",
+          meals: { mode: q.restauration === "pension" ? "pension" : (q.restauration === "aucune" ? "libre" : "demi"), counts },
+          questionnaire: { reponses: q, estimation: p.estimation || null, origine: txt(p.origine, 300) },
+        };
+        const row = {
+          id: newRecId(),
+          nom_client: txt(c.organisation) || `${txt(c.prenom)} ${txt(c.nom)}`.trim(),
+          entreprise: txt(c.organisation) || null,
+          prenom_contact: txt(c.prenom), nom_contact: txt(c.nom),
+          email: txt(c.email), telephone: txt(c.telephone, 40),
+          segment: seg,
+          type: { seminaire: "Séminaire", groupe: "séjour de groupe", mariage: "mariage" }[seg],
+          date_arrivee: iso(q.dateArrivee),
+          date_depart: q.journeeEtude ? iso(q.dateArrivee) : iso(q.dateDepart),
+          nombre_de_personnes: nb,
+          message: txt(c.message, 4000),
+          budget_estime: seg !== "seminaire" && p.estimation?.ttc ? `${Math.round(p.estimation.ttc)} € TTC (estimation questionnaire)`
+            : p.estimation?.ht ? `${Math.round(p.estimation.ht)} € HT (estimation questionnaire)` : null,
+          suivi_source: q.agence ? "questionnaire (agence)" : "questionnaire",
+          details_json: JSON.stringify(details),
+          estimation_ht: p.estimation?.ht ? Math.round(p.estimation.ht) : null,
+        };
+        await sbFetch(env, `/rpc/public_demande`, { method: "POST", body: JSON.stringify({ p: row }) });
+        return json({ ok: true }, 201, env, requestOrigin);
+      }
+
       if (url.pathname === "/api/public/menu" && method === "GET") {
         const id = url.searchParams.get("id");
         if (!id) return json({ error: { message: "id requis" } }, 400, env, requestOrigin);

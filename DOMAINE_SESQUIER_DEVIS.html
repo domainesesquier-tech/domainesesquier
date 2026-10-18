@@ -21,6 +21,7 @@
     <script src="assets/utils.js"></script>
     <script src="assets/constants.js"></script>
     <script src="assets/dossier-model.js"></script>
+    <script src="assets/pricing-engine.js"></script>
     <style>
         /* ── Séparateur de section dans les tableaux de prix ── */
         .separator-row td {
@@ -543,6 +544,8 @@
         <div style="display:flex;align-items:center;gap:3px;padding:3px 8px;background:#f0ede6;border-radius:8px;border:1px solid #d1cec7;">
             <span style="font-size:11px;color:#6b7280;font-weight:500;margin-right:4px;white-space:nowrap;">Société :</span>
             <button id="prof-btn-ozza" onclick="setCompanyProfile('ozza')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:#3a5538;color:white;">OZZA</button>
+            <button id="btn-remise" onclick="addRemise()" title="Ajoute une ligne de remise juste avant les totaux" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;background:#fff;color:#3a5538;margin-right:6px;">+ Remise</button>
+            <button id="btn-grille-2027" onclick="applyGrille2027()" title="Recalcule hébergement et espaces avec la grille 2027" style="padding:4px 10px;border:1px solid #8b3a1e;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;background:#fff;color:#8b3a1e;margin-right:6px;">Grille 2027</button>
             <button id="prof-btn-foudre" onclick="setCompanyProfile('foudre')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:transparent;color:#3a5538;">FOUDRE SOCIETY</button>
         </div>
         <span id="unsaved-badge" style="display:none; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; align-self:center; animation: pulse 2s infinite;">
@@ -556,6 +559,8 @@
             </svg>
             Enregistrer (Airtable)
         </button>
+        <button class="btn" onclick="copierPourClaude('devis')" title="Copie le dossier pour Claude Code : mot d'accueil + mail d'envoi">✨ Rédiger</button>
+        <button class="btn" onclick="copierPourClaude('relance')" title="Copie le dossier pour Claude Code : relance">✨ Relance</button>
         <button class="btn btn-primary" onclick="generatePDF()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -651,6 +656,8 @@
             style="font-size: 10pt; font-weight: 600; color: var(--primary); margin-bottom: 15px; border-left: 3px solid var(--primary); padding-left: 12px; outline: none;">
             <!-- Dynamically filled -->
         </div>
+        <div id="mot-accueil" contenteditable="true" style="display:none; font-size:9.5pt; line-height:1.5; color:#333; margin:0 0 14px; white-space:pre-line;"></div>
+        <div id="included-box" contenteditable="true" style="display:none; font-size:8.5pt; color:#555; background:rgba(58,85,56,0.05); border-radius:4px; padding:8px 12px; margin:-6px 0 15px;"></div>
 
         <!-- E. Pricing Table -->
         <section class="pricing-section">
@@ -728,9 +735,11 @@
                 <ul class="cond-list">
                     <li contenteditable="true">• <strong>Validité :</strong> 15 jours à compter de l'émission.</li>
                     <li contenteditable="true">• <strong>Effectif :</strong> L'effectif indiqué au devis constitue le nombre minimum facturable. Toute réduction notifiée par écrit plus de 30 jours avant le début du séjour donnera lieu à un ajustement des coûts d'hébergement et de restauration. Les prestations forfaitaires (privatisation, coordination, animations, transport) restent intégralement dues.</li>
-                    <li contenteditable="true">• <strong>Règlement :</strong> Acompte de 30% à la réservation, solde à l'arrivée.</li>
+                    <li id="cond-reglement" contenteditable="true">• <strong>Règlement :</strong> Acompte de 30% à la réservation, solde à l'arrivée.</li>
                     <li contenteditable="true">• <strong>Annulation :</strong> Acompte conservé. J-29/J-15 : 50%. J-14/J-8 : 75%. Moins de J-7 : 100%.</li>
                     <li contenteditable="true">• <strong>Divers :</strong> Chambres disponibles à 15h ou avant selon demandes (arrivée). Libérées à 11h, flexible selon déroulé du séjour (départ).</li>
+                    <li id="cond-option" contenteditable="true" style="display:none;"></li>
+                    <li id="cond-caution" contenteditable="true" style="display:none;">• <strong>Caution :</strong> 1 000 € demandée à l'arrivée, restituée après l'état des lieux.</li>
                     <li id="legal-penalites" style="display:none;color:#777;">• <strong>Pénalités de retard :</strong> Taux directeur BCE majoré de 10 points. <strong>Indemnité forfaitaire de recouvrement : 40 €</strong> (art. L441-10 C. com.).</li>
                 </ul>
                 <div id="company-rib" style="font-size: 7.5pt; color: #999; margin-top: 10px; line-height: 1.2;">
@@ -743,7 +752,8 @@
             <div class="totals-col">
                 <div class="total-row"><span>Total HT</span><span id="display-total-ht" style="font-weight: 600;">0,00
                         €</span></div>
-                <div class="total-row"><span>TVA (estimée)</span><span id="display-total-tva">0,00 €</span></div>
+                <div class="total-row"><span>TVA</span><span id="display-total-tva">0,00 €</span></div>
+                <div id="display-tva-detail" style="font-size:8pt; color:#777; text-align:right; margin-top:-2px;"></div>
 
 
                 <div class="total-row final"
@@ -1134,6 +1144,7 @@
 
         function populateDevis(fields) {
             if (!fields) return;
+            window._liveFields = fields;
 
             // =====================================================================
             // 🧠 PRIORITÉ 1 : Utiliser "Dossier JSON" (nouveau système)
@@ -1153,7 +1164,7 @@
             // =====================================================================
             // 🔄 LEGACY : Code original pour les anciens enregistrements
             // =====================================================================
-            const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
+            const details = parseDetails(fields);
             const activities = details.activities || {};
 
             // 0. CHECK FOR SNAPSHOT (Re-édition)
@@ -1212,6 +1223,13 @@
             } catch (e) { console.error("Synthesis error:", e); }
 
             // 5. Build Main Pricing Table
+            const segInit = segmentFromType(fields["Type"]);
+            const layoutV2 = true;
+            setPrixTTC(segInit !== 'seminaire');
+            if (segInit === 'seminaire') buildLayoutSeminaire(fields);
+            if (segInit === 'groupe') buildLayoutGroupe();
+            if (segInit === 'mariage') buildLayoutMariage();
+            if (!layoutV2) {
             const tbody = document.getElementById('pricing-body');
             tbody.innerHTML = '';
 
@@ -1297,6 +1315,8 @@
                 addSubtotalRow("Activités & Services Annexes", "subtotal-activities", "activities-body");
             }
 
+            } // fin mise en page historique
+
             // --- E. Initial Taxe de séjour Calculation ---
             if (nbPers > 0 && nNights > 0) {
                 const ts = nbPers * nNights * 4.31; // 4.31€ per person per night
@@ -1305,6 +1325,9 @@
             }
 
             updateCalculations();
+            // Nouveau dossier séminaire : pré-remplir hébergement et espaces avec la grille 2027
+            applyGrille2027({ silent: true });
+            renderSeminaireExtras(fields);
             // Fin du rendu initial : réactiver le tracking et marquer "propre"
             setTimeout(() => { suppressDirtyFlag = false; markClean(); }, 50);
         }
@@ -1344,6 +1367,7 @@
         }
 
         function renderFromDossier(dossier, fields) {
+            window._liveFields = fields;
             if (!dossier || !dossier.financials) {
                 console.warn('[renderFromDossier] Dossier incomplet, rendu annulé');
                 return;
@@ -1357,6 +1381,9 @@
 
             // Restaurer le profil société si sauvegardé dans le dossier
             if (dossier.companyProfile) setCompanyProfile(dossier.companyProfile);
+            setPrixTTC(!!dossier.prixTTC);
+            const ma = document.getElementById('mot-accueil');
+            if (ma) { ma.innerText = dossier.motAccueil || ''; ma.style.display = dossier.motAccueil ? 'block' : 'none'; }
 
             // 1. META — numéro selon le profil (séquentiel FOUDRE / historique OZZA)
             applyDevisNumber();
@@ -1462,7 +1489,10 @@
 
             // Helper : ajoute une ligne pricing avec subtitle optionnel
             const addPricingRowWithSubtitle = (line, targetId) => {
-                const row = SesquierUtils.createPricingRow(line.label, line.qty, line.unitPriceHT, line.tvaRate + '%', line.mealKey);
+                const pu = SesquierUtils.prixTTC
+                    ? (line.unitPriceTTC ?? line.unitPriceHT * (1 + (parseFloat(line.tvaRate) || 0) / 100))
+                    : line.unitPriceHT;
+                const row = SesquierUtils.createPricingRow(line.label, line.qty, pu, line.tvaRate + '%', line.mealKey);
                 if (line.subtitle) {
                     const sub = row.querySelector('.row-subtitle');
                     if (sub) sub.innerText = line.subtitle;
@@ -1536,6 +1566,7 @@
             if (document.getElementById('display-total-tva')) document.getElementById('display-total-tva').innerText = formatEuro(totalTVA);
             if (document.getElementById('display-total-ttc')) document.getElementById('display-total-ttc').innerText = formatEuro(totalTTC);
             if (document.getElementById('display-deposit'))   document.getElementById('display-deposit').innerText   = formatEuro(financials.acompte30 || totalTTC * 0.3);
+            renderSeminaireExtras(fields);
         }
 
         /**
@@ -1619,7 +1650,7 @@
             const daysSyn = nNights + 1;
             const synthEl = document.getElementById('stay-synthesis');
             if (synthEl) {
-                const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
+                const details = parseDetails(fields);
                 let mealLabel = "Restauration à la carte";
                 if (details.meals?.mode === 'pension') mealLabel = "Pension Complète";
                 else if (details.meals?.mode === 'demi') mealLabel = "Demi-pension";
@@ -1667,7 +1698,7 @@
                 if (tr.classList.contains('category-row')) {
                     rows.push({ type: 'category', title: tr.querySelector('td')?.innerText.trim() });
                 } else if (tr.classList.contains('subtotal-row')) {
-                    const label = tr.querySelector('span')?.innerText.replace('Sous-total ', '').replace(' HT', '') || '';
+                    const label = tr.querySelector('span')?.innerText.replace('Sous-total ', '').replace(/ (HT|TTC)$/, '') || '';
                     const id = tr.querySelector('.subtotal-val')?.id;
                     rows.push({ type: 'subtotal', label, id });
                 } else if (tr.classList.contains('meal-grid-row')) {
@@ -1719,7 +1750,7 @@
                     const label = tr.querySelector('.separator-label')?.innerText.trim() || '';
                     rows.push({ type: 'separator', label });
                 } else if (tr.classList.contains('subtotal-row')) {
-                    const label = tr.querySelector('span')?.innerText.replace('Sous-total ', '').replace(' HT', '') || '';
+                    const label = tr.querySelector('span')?.innerText.replace('Sous-total ', '').replace(/ (HT|TTC)$/, '') || '';
                     const id = tr.querySelector('.subtotal-val')?.id;
                     rows.push({ type: 'subtotal', label, id });
                 } else if (!tr.classList.contains('meal-grid-row')) {
@@ -1738,15 +1769,19 @@
                     const price    = parseFloat(String(priceStr).replace(/[^\d.,-]/g, '').replace(',', '.'))|| 0;
                     const tvaNum   = parseFloat(String(tvaStr).replace(/[^\d.,]/g, '').replace(',', '.'))   || 0;
 
+                    // Mode TTC (groupe, mariage) : on stocke le vrai HT pour les factures, et le TTC saisi à part
+                    const ttc = !!SesquierUtils.prixTTC;
+                    const ht  = ttc ? price / (1 + tvaNum / 100) : price;
                     const entry = {
                         type: 'pricing',
                         label: labelText,
                         qty,
-                        unitPriceHT: price,
+                        unitPriceHT: Math.round(ht * 10000) / 10000,
                         tvaRate: tvaNum,
-                        totalHT: Math.round(qty * price * 100) / 100,
+                        totalHT: Math.round(qty * ht * 100) / 100,
                         mealKey,
                     };
+                    if (ttc) entry.unitPriceTTC = price;
                     if (subtitleText) entry.subtitle = subtitleText;
                     if (tr.classList.contains('is-option')) entry.option = true;
                     rows.push(entry);
@@ -1842,9 +1877,221 @@
             btnContainer.appendChild(sepBtn);
         }
 
+        // =====================================================================
+        // GRILLE 2027 — lignes calculées par assets/pricing-engine.js
+        // =====================================================================
+        let GRILLE_2027 = null;
+
+        // Nouvelle structure du devis séminaire : chaque section a son sous-total.
+        function buildLayoutSeminaire(fields) {
+            document.getElementById('pricing-body').innerHTML = '';
+            addCategoryRow("Le domaine");
+            addSubtotalRow("Le domaine", "subtotal-domaine");
+            addCategoryRow("Restauration");
+            addSubtotalRow("Restauration", "subtotal-restauration");
+            addMealGrid(fields);
+            addCategoryRow("Boissons");
+            addSubtotalRow("Boissons", "subtotal-boissons");
+
+            document.getElementById('options-body').innerHTML = '';
+            SesquierUtils.addCategoryRow("Activités", 'options-body', true);
+            addSubtotalRow("Activités", "subtotal-activites", 'options-body');
+
+            document.getElementById('activities-body').innerHTML = '';
+            SesquierUtils.addCategoryRow("Services", 'activities-body');
+            addSubtotalRow("Services", "subtotal-services", 'activities-body');
+            const th = document.querySelector('#activities-proposal th.col-detail');
+            if (th) th.textContent = '';
+        }
+
+        // Prix saisis TTC (groupes, mariages) ou HT (séminaires)
+        function setPrixTTC(on) {
+            SesquierUtils.prixTTC = !!on;
+            const b = on ? 'TTC' : 'HT';
+            document.querySelectorAll('th.col-price').forEach(th => th.textContent = 'PU ' + b);
+            document.querySelectorAll('th.col-total').forEach(th => th.textContent = 'Total ' + b);
+        }
+
+        // Devis groupe (OZZA, TTC, 1 page) : une seule section « Le domaine »
+        function buildLayoutGroupe() {
+            document.getElementById('pricing-body').innerHTML = '';
+            addCategoryRow("Le domaine");
+            addSubtotalRow("Le domaine", "subtotal-domaine");
+            document.getElementById('options-body').innerHTML = '';
+            document.getElementById('activities-body').innerHTML = '';
+            SesquierUtils.addCategoryRow("Options", 'activities-body');
+            addSubtotalRow("Options", "subtotal-services", 'activities-body');
+        }
+
+        // Devis mariage (OZZA, TTC) : domaine, réception, options
+        function buildLayoutMariage() {
+            buildLayoutGroupe();
+            addCategoryRow("Réception");
+            addSubtotalRow("Réception", "subtotal-reception");
+        }
+
+        // Échéancier mariage : 30 % à la signature, 40 % à J-180, solde à J-30
+        function renderEcheancier() {
+            const li = document.getElementById('cond-reglement');
+            const f = window._liveFields || currentRecord?.fields || {};
+            if (!li || segmentFromType(f["Type"]) !== 'mariage') return;
+            const ttc = parseFloat((document.getElementById('display-total-ttc')?.innerText || '0').replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+            const arr = f["Date arrivée"] ? new Date(f["Date arrivée"]) : null;
+            const jm = n => { if (!arr) return `J-${n}`; const d = new Date(arr); d.setDate(d.getDate() - n); return d.toLocaleDateString('fr-FR'); };
+            const m = x => formatEuro(Math.round(ttc * x * 100) / 100);
+            li.innerHTML = `• <strong>Échéancier :</strong> acompte 30 % à la signature (${m(.3)}) · 40 % le ${jm(180)} (${m(.4)}) · solde 30 % le ${jm(30)} (${m(.3)}).`;
+        }
+
+        // Remise commerciale : section dédiée, juste avant les totaux
+        function addRemise() {
+            let sub = document.getElementById('subtotal-remise');
+            if (!sub) {
+                SesquierUtils.addCategoryRow("Remise", 'activities-body');
+                addSubtotalRow("Remise", "subtotal-remise", 'activities-body');
+                sub = document.getElementById('subtotal-remise');
+            }
+            const subTr = sub.closest('tr');
+            subTr.parentNode.insertBefore(createPricingRow('Remise commerciale', 1, 0, '20%'), subTr);
+            updateCalculations();
+            markDirty();
+        }
+
+        // Encadré « Inclus » et date limite d'option (séminaire)
+        function renderSeminaireExtras(fields) {
+            const seg = segmentFromType(fields?.["Type"]);
+            if (!seg) return;
+            const box = document.getElementById('included-box');
+            if (box) {
+                box.innerHTML = seg === 'mariage'
+                    ? '<strong>Inclus :</strong> domaine privatisé 2 nuits (40 couchages, linge de lit) · arrivée vendredi 12h, départ dimanche 16h · accompagnement et visite technique · remise en état · ménage · taxe de séjour'
+                    : seg === 'groupe'
+                    ? '<strong>Inclus :</strong> domaine privatisé (8 gîtes, 35 couchages) · salle Champs d\'olivier · piscine et jardins · ménage de fin de séjour · taxe de séjour'
+                    : '<strong>Inclus :</strong> domaine privatisé · lits faits, draps et serviettes · ménage de fin de séjour · référent joignable chaque jour · taxe de séjour';
+                box.style.display = 'block';
+            }
+            const li = document.getElementById('cond-option');
+            if (li) {
+                const d = new Date();
+                d.setDate(d.getDate() + 15);
+                li.innerHTML = `• <strong>Option :</strong> vos dates sont réservées jusqu'au ${d.toLocaleDateString('fr-FR')}, date de validité de ce devis.`;
+                li.style.display = '';
+            }
+            const cc = document.getElementById('cond-caution');
+            if (cc) {
+                cc.style.display = seg === 'seminaire' ? 'none' : '';
+                cc.innerHTML = `• <strong>Caution :</strong> ${seg === 'mariage' ? '2 000' : '1 000'} € demandée à l'arrivée, restituée après l'état des lieux.`;
+            }
+            renderEcheancier();
+        }
+
+        // Premier sous-total existant parmi une liste (nouvelle puis ancienne mise en page)
+        function firstSubtotal(ids) {
+            for (const id of ids) { const el = document.getElementById(id); if (el) return id; }
+            return null;
+        }
+
+        // Le Worker (Supabase) renvoie "Details JSON", l'ancien Airtable "Détails JSON".
+        function parseDetails(fields) {
+            const raw = fields["Détails JSON"] || fields["Details JSON"];
+            if (!raw) return {};
+            try { return typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { return {}; }
+        }
+
+        function segmentFromType(type) {
+            const t = (Array.isArray(type) ? type[0] : (type || '')).toLowerCase();
+            if (t.includes('mariage')) return 'mariage';
+            if (t.includes('minaire') || t === 'pro') return 'seminaire';
+            return 'groupe';
+        }
+
+        // Supprime les lignes de prix d'une section (entre sa catégorie et son sous-total).
+        function clearSection(subtotalId) {
+            const anchor = document.getElementById(subtotalId);
+            const subTr = anchor && anchor.closest('tr');
+            if (!subTr) return null;
+            let tr = subTr.previousElementSibling;
+            while (tr && tr.querySelector('td.qty')) {
+                const prev = tr.previousElementSibling;
+                tr.remove();
+                tr = prev;
+            }
+            return subTr;
+        }
+
+        async function applyGrille2027(opts = {}) {
+            const fields = window._liveFields || (typeof currentRecord !== 'undefined' && currentRecord?.fields) || {};
+            const segment = segmentFromType(fields["Type"]);
+            if (!GRILLE_2027) GRILLE_2027 = await fetch('assets/grille_2027.json').then(r => r.json());
+
+            let nuits = fields["Nuits"] || 0;
+            if (!nuits && fields["Date arrivée"] && fields["Date départ"]) {
+                nuits = Math.max(0, Math.round((new Date(fields["Date départ"]) - new Date(fields["Date arrivée"])) / 86400000));
+            }
+            // Demande issue du questionnaire du site : tout le devis est pré-rempli
+            const questionnaire = parseDetails(fields).questionnaire;
+            const demande = questionnaire?.reponses
+                ? PricingEngine.fromQuestionnaire(GRILLE_2027, questionnaire.reponses).demande
+                : { segment, dateArrivee: fields["Date arrivée"] || '', personnes: fields["Nombre de personnes"] || 0, nuits,
+                    // Groupe : draps proposés par défaut pour chaque personne
+                    options: segment === 'groupe' ? { draps: fields["Nombre de personnes"] || 0 } : undefined,
+                    mariage: segment === 'mariage' ? { diner: fields["Nombre de personnes"] || 0 } : undefined };
+            const res = PricingEngine.compute(GRILLE_2027, demande);
+
+            // Catégorie de ligne → section du devis (nouvelle mise en page, sinon historique)
+            const CIBLES = {
+                hebergement: ['subtotal-domaine', 'subtotal-hebergement'],
+                lieu:        ['subtotal-reception', 'subtotal-domaine', 'subtotal-salles'],
+                repas:       ['subtotal-restauration'],
+                boisson:     ['subtotal-boissons', 'subtotal-restauration'],
+                activite:    ['subtotal-activites', 'subtotal-activities'],
+                service:     ['subtotal-services', 'subtotal-activities'],
+                transport:   ['subtotal-services', 'subtotal-activities']
+            };
+            const catsAjour = questionnaire?.reponses ? Object.keys(CIBLES) : ['hebergement', 'lieu'];
+
+            // Lignes repas reliées à la grille « planning » (cocher/décocher met à jour les quantités)
+            const MEAL_KEYS = { petit_dej: 'petitDej', dejeuner: 'dejeuner', diner: 'diner' };
+            let lignes = res.lignes;
+            if (questionnaire?.reponses) {
+                const { jours } = PricingEngine.fromQuestionnaire(GRILLE_2027, questionnaire.reponses);
+                const n = demande.personnes;
+                const somme = k => jours.reduce((t, j) => t + j[k], 0);
+                lignes = lignes.flatMap(l => {
+                    if (l.code !== 'collation') return [l];
+                    return [
+                        { ...l, label: 'Collation matinale', qte: n * somme('collationMatin'), mealKey: 'collationMatin' },
+                        { ...l, label: 'Collation de l\'après-midi', qte: n * somme('collationAprem'), mealKey: 'collationAprem' }
+                    ].filter(x => x.qte > 0);
+                });
+            }
+
+            const parSection = {};
+            lignes.filter(l => catsAjour.includes(l.cat)).forEach(l => {
+                const id = firstSubtotal(CIBLES[l.cat] || []);
+                if (id) (parSection[id] = parSection[id] || []).push(l);
+            });
+            // On vide chaque section concernée une seule fois, puis on la remplit
+            [...new Set(catsAjour.map(c => firstSubtotal(CIBLES[c])).filter(Boolean))].forEach(id => {
+                const subTr = clearSection(id);
+                if (!subTr) return;
+                (parSection[id] || []).forEach(l => {
+                    const mk = l.mealKey || MEAL_KEYS[l.code] || null;
+                    subTr.parentNode.insertBefore(createPricingRow(l.label, l.qte, l.pu, `${l.tva}%`, mk), subTr);
+                });
+            });
+
+            setCompanyProfile(res.entite);
+            const tsEl = document.getElementById('display-taxe-sejour');
+            if (tsEl) tsEl.innerText = 'incluse';
+            updateCalculations();
+            if (!opts.silent) markDirty();
+            if (res.manuel.length) alert('À traiter manuellement : ' + res.manuel.join(', '));
+            console.log('[GRILLE 2027]', res);
+        }
+
         function addMealGrid(fields, savedState = null) {
             if (mealGridHidden) return; // supprimé manuellement pour ce devis
-            const details = fields["Détails JSON"] ? JSON.parse(fields["Détails JSON"]) : {};
+            const details = parseDetails(fields);
             const dArrStr = fields["Date arrivée"];
             // Nuits depuis le champ ; sinon recalcul depuis les dates (source de vérité)
             let nights = fields["Nuits"] || 0;
@@ -1972,7 +2219,12 @@
         }
 
         function updateCalculations() {
-            const { totalHT, totalTVA, ttc, optionsHT } = SesquierUtils.runCommonCalculations();
+            const { totalHT, totalTVA, ttc, optionsHT, tvaByRate } = SesquierUtils.runCommonCalculations();
+            const tvaDetail = document.getElementById('display-tva-detail');
+            if (tvaDetail) tvaDetail.innerText = Object.entries(tvaByRate || {})
+                .filter(([, v]) => v)
+                .sort(([a], [b]) => a - b)
+                .map(([r, v]) => `dont TVA ${r} % : ${formatEuro(v)}`).join(' · ');
 
             // Mise à jour des totaux généraux
             document.getElementById('display-total-ht').innerText = formatEuro(totalHT);
@@ -1992,20 +2244,26 @@
             }
 
             // Calcul automatique de l'acompte conseillé (30%)
+            renderEcheancier();
             const depositEl = document.getElementById('display-deposit');
             if (depositEl) depositEl.innerText = formatEuro(ttc * 0.3);
 
             // Mise à jour de la synthèse (Total par personne)
-            const n = currentRecord?.nbPersonnes || currentRecord?.fields?.["Nombre de personnes"] || 0;
+            const n = currentRecord?.nbPersonnes || currentRecord?.fields?.["Nombre de personnes"] || window._liveFields?.["Nombre de personnes"] || 0;
             if (n > 0) {
                 const tsBox = document.getElementById('price-total-summary');
-                if (tsBox) tsBox.innerText = `Total séjour : ${formatEuro(totalHT)} HT (${formatEuro(ttc)} TTC)`;
+                const T = SesquierUtils.prixTTC;
+                if (tsBox) tsBox.innerText = T ? `Total séjour : ${formatEuro(ttc)} TTC` : `Total séjour : ${formatEuro(totalHT)} HT (${formatEuro(ttc)} TTC)`;
 
                 const ppBox = document.getElementById('price-per-person');
-                if (ppBox) ppBox.innerText = `Soit ${Math.round(totalHT / n)} € HT / personne`;
+                if (ppBox) ppBox.innerText = `Soit ${Math.round((T ? ttc : totalHT) / n)} € ${T ? 'TTC' : 'HT'} / personne`;
 
                 const snapPP = document.getElementById('snapshot-price-per-person');
-                if (snapPP) snapPP.innerText = `${formatEuro(totalHT / n)} HT`;
+                const f = window._liveFields || currentRecord?.fields || {};
+                let nuits = f["Nuits"] || 0;
+                if (!nuits && f["Date arrivée"] && f["Date départ"]) nuits = Math.max(0, Math.round((new Date(f["Date départ"]) - new Date(f["Date arrivée"])) / 86400000));
+                const base = T ? ttc : totalHT;
+                if (snapPP) snapPP.innerText = `${formatEuro(base / n)} ${T ? 'TTC' : 'HT'}` + (nuits > 0 ? ` (${formatEuro(base / n / nuits)} / nuit)` : '');
             }
         }
 
@@ -2115,6 +2373,8 @@
                     },
                     mealsPlanning,
                     companyProfile: localStorage.getItem('ds_company_profile') || 'ozza',
+                    motAccueil: (document.getElementById('mot-accueil')?.innerText || '').trim(),
+                    prixTTC: !!SesquierUtils.prixTTC,
                 };
 
                 // 7. Mettre à jour currentDossier
@@ -2613,14 +2873,25 @@
                 if (subtitleEl) subtitleEl.innerText = displayDesc;
             }
 
-            // Trouver l'ancre d'insertion : sous-total de la bonne sous-section
-            const subtotalId = SECTION_SUBTOTAL[item.categorie];
-            let anchor = subtotalId ? document.getElementById(subtotalId)?.closest('tr') : null;
+            // Trouver l'ancre d'insertion : nouvelle structure séminaire d'abord, puis historique
+            const tvaNum = parseFloat(String(item.tva || '10').replace(/[^\d.,]/g, '')) || 10;
+            const ACTIVITES = ['Team Building', 'Sport & Plein Air', 'Culture & Découverte', 'Bien-être & Spa'];
+            let candidats = [];
+            if (item.categorie === 'Hébergement' || item.categorie === 'Options & Salles') candidats = ['subtotal-domaine'];
+            else if (item.categorie === 'Restauration') candidats = tvaNum >= 20 ? ['subtotal-boissons', 'subtotal-restauration'] : ['subtotal-restauration'];
+            else if (ACTIVITES.includes(item.categorie)) candidats = ['subtotal-activites'];
+            else if (item.categorie === 'Activités & Services Annexes') candidats = ['subtotal-services'];
+            const idV2 = firstSubtotal(candidats);
+            let anchor = idV2 ? document.getElementById(idV2).closest('tr') : null;
+            if (!anchor) {
+                const subtotalId = SECTION_SUBTOTAL[item.categorie];
+                anchor = subtotalId ? document.getElementById(subtotalId)?.closest('tr') : null;
+            }
             // Fallback : premier sous-total du tbody
             if (!anchor) anchor = tbody.querySelector('.subtotal-row');
 
             if (anchor) {
-                tbody.insertBefore(newRow, anchor);
+                anchor.parentNode.insertBefore(newRow, anchor);
             } else {
                 tbody.appendChild(newRow);
             }
@@ -2839,6 +3110,98 @@
             }
         }
     </script>
+<style>#mot-accueil:empty::before { content: attr(data-placeholder); color: #aaa; font-style: italic; } @media print { #mot-accueil:empty { display: none !important; } }</style>
+<!-- Rédaction assistée (Claude) — panneau non imprimé -->
+<div id="ia-panel" class="no-print" style="display:none; position:fixed; top:0; right:0; bottom:0; width:min(440px,100%); background:#fff; box-shadow:-8px 0 24px rgba(0,0,0,.15); z-index:2000; padding:18px; overflow-y:auto; font-family:system-ui,sans-serif; font-size:14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <strong id="ia-titre">Rédaction</strong>
+        <button onclick="document.getElementById('ia-panel').style.display='none'" style="border:none;background:none;font-size:22px;cursor:pointer;">×</button>
+    </div>
+    <div id="ia-statut" style="color:#666; margin-bottom:10px;"></div>
+    <div id="ia-points" style="display:none; background:#FFF7E6; border-radius:8px; padding:10px 12px; margin-bottom:12px;"></div>
+    <label style="font-weight:600;">Objet</label>
+    <input id="ia-objet" style="width:100%; box-sizing:border-box; padding:8px; margin:4px 0 10px; border:1px solid #ddd; border-radius:6px; font:inherit;">
+    <label style="font-weight:600;">Mail</label>
+    <textarea id="ia-corps" rows="18" style="width:100%; box-sizing:border-box; padding:8px; margin-top:4px; border:1px solid #ddd; border-radius:6px; font:inherit; line-height:1.45;"></textarea>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+        <button class="btn" onclick="navigator.clipboard.writeText(document.getElementById('ia-corps').value); this.textContent='Copié ✓'">Copier le mail</button>
+        <button class="btn btn-primary" onclick="ouvrirMailIA()">Ouvrir dans ma messagerie</button>
+    </div>
+    <p style="color:#888; font-size:12px; margin-top:10px;">Texte rédigé par Claude à partir du devis et du guide de ton. Relis avant d'envoyer : rien n'est envoyé automatiquement.</p>
+</div>
+<script>
+    // Contexte du dossier et du devis affiché (pour Claude Code ou l'API)
+    function contexteIA(mode) {
+        const f = window._liveFields || currentRecord?.fields || {};
+        const lignes = [...document.querySelectorAll('#pricing-body tr, #options-body tr, #activities-body tr')].map(tr => {
+            if (tr.classList.contains('category-row')) return { section: tr.innerText.trim() };
+            if (!tr.querySelector('.qty')) return null;
+            return { libelle: tr.querySelector('.row-label')?.innerText.trim(), detail: tr.querySelector('.row-subtitle')?.innerText.trim() || undefined,
+                     qte: tr.querySelector('.qty').innerText.trim(), pu: tr.querySelector('.price')?.innerText.trim(),
+                     tva: tr.querySelector('.tva-rate')?.innerText.trim(), option: tr.classList.contains('is-option') || undefined };
+        }).filter(Boolean);
+        const txt = id => document.getElementById(id)?.innerText.trim() || undefined;
+        return {
+            mode,
+            dossier: {
+                id: currentRequestId, email: f['Email'],
+                type: f['Type'], organisation: f['Entreprise'] || f['Nom client'], prenom: f['Prénom contact'], nom: f['Nom contact'],
+                dateArrivee: f['Date arrivée'], dateDepart: f['Date départ'], personnes: f['Nombre de personnes'],
+                messageClient: f['Message'], questionnaire: parseDetails(f).questionnaire?.reponses,
+                dateEnvoiDevis: f['Suivi Date devis'], journalSuivi: f['Suivi Log'], prochaineAction: f['Suivi Prochaine action'],
+            },
+            devis: {
+                prix: SesquierUtils.prixTTC ? 'TTC' : 'HT', synthese: txt('stay-synthesis'), lignes,
+                totalHT: txt('display-total-ht'), totalTTC: txt('display-total-ttc'), parPersonne: txt('price-per-person'),
+                inclus: txt('included-box'), conditions: txt('cond-reglement'), caution: txt('cond-caution'), option: txt('cond-option'),
+            },
+        };
+    }
+
+    // Usage perso : copie le contexte à coller dans Claude Code (/sesquier-redaction), sans clé API
+    async function copierPourClaude(mode) {
+        const texte = `/sesquier-redaction ${mode}\n${JSON.stringify(contexteIA(mode))}`;
+        try { await navigator.clipboard.writeText(texte); } catch (e) { prompt('Copie ce texte :', texte); }
+        const ma = document.getElementById('mot-accueil');
+        if (mode === 'devis' && ma && !ma.innerText.trim()) { ma.style.display = 'block'; ma.dataset.placeholder = "Colle ici le mot d'accueil rédigé par Claude"; }
+        if (typeof showToast === 'function') showToast('Copié : colle-le dans Claude Code');
+        else alert("Copié : colle-le dans Claude Code. Le mail arrivera en brouillon dans Gmail.");
+    }
+
+    // Usage client (plus tard) : appel direct au Worker, qui interroge l'API Claude avec la clé du domaine
+    async function redigerIA(mode) {
+        const panel = document.getElementById('ia-panel');
+        const st = document.getElementById('ia-statut');
+        panel.style.display = 'block';
+        document.getElementById('ia-titre').textContent = mode === 'relance' ? 'Relance' : "Mot d'accueil et mail d'envoi";
+        st.textContent = 'Rédaction en cours (15 à 40 s)…';
+        const body = contexteIA(mode);
+        try {
+            const base = SesquierUtils.API_RESERVATIONS_URL.replace(/\/api\/reservations.*$/, '');
+            const r = await SesquierUtils.fetchJson(base + '/api/ia/redaction', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+            });
+            document.getElementById('ia-objet').value = r.mail_objet || '';
+            document.getElementById('ia-corps').value = r.mail_corps || '';
+            const pts = document.getElementById('ia-points');
+            pts.style.display = r.points_attention?.length ? 'block' : 'none';
+            pts.innerHTML = '<strong>À vérifier</strong><ul style="margin:6px 0 0 18px;padding:0;">' + (r.points_attention || []).map(p => `<li>${p.replace(/</g, '&lt;')}</li>`).join('') + '</ul>';
+            if (mode === 'devis' && r.mot_accueil) {
+                const ma = document.getElementById('mot-accueil');
+                ma.innerText = r.mot_accueil; ma.style.display = 'block';
+                if (typeof markDirty === 'function') markDirty();
+            }
+            st.textContent = mode === 'devis' ? "Mot d'accueil ajouté en tête du devis (modifiable). Pense à enregistrer." : '';
+        } catch (e) {
+            st.textContent = 'Échec : ' + e.message;
+        }
+    }
+    function ouvrirMailIA() {
+        const f = window._liveFields || currentRecord?.fields || {};
+        const url = `mailto:${encodeURIComponent(f['Email'] || '')}?subject=${encodeURIComponent(document.getElementById('ia-objet').value)}&body=${encodeURIComponent(document.getElementById('ia-corps').value)}`;
+        window.location.href = url;
+    }
+</script>
 </body>
 
 </html>

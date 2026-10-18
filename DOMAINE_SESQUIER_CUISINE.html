@@ -520,6 +520,12 @@
         .mlib-btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
         .mlib-btn-danger { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
     </style>
+    <style>
+    /* Téléphone : barres qui passent à la ligne, cartes sur une colonne */
+    @media (max-width: 640px) {
+        .no-print:has(> .btn-action) { flex-wrap: wrap; gap: 8px; }
+    }
+    </style>
 </head>
 
 <body>

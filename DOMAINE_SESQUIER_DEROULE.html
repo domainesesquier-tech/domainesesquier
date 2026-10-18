@@ -541,6 +541,15 @@
             border: 1px solid #e8e2d8;
         }
     </style>
+    <style>
+    /* Téléphone : barres qui passent à la ligne, cartes sur une colonne */
+    @media (max-width: 640px) {
+        .toolbar, .toolbar-right { flex-wrap: wrap; min-width: 0; }
+        .toolbar-right { flex-shrink: 1; }
+        .jour-header { flex-wrap: wrap; }
+        .jour-fields { min-width: 0; max-width: 100%; flex-wrap: wrap; }
+    }
+    </style>
 </head>
 <body>
 

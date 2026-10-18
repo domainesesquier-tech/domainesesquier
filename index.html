@@ -426,6 +426,14 @@
             overflow-y: auto;
         }
 
+        .nav-sub { padding-left: 26px; }
+        .nav-sub .nav-add { margin-left: auto; width: 22px; height: 22px; border: none; border-radius: 6px; background: transparent; color: var(--text-secondary); cursor: pointer; opacity: .55; }
+        .nav-sub:hover .nav-add, .nav-sub.active .nav-add { opacity: 1; }
+        .nav-sub .nav-add:hover { background: rgba(0,0,0,.08); }
+        .type-chooser { display: none; padding: 2px 0 6px 26px; }
+        .type-chooser.show { display: block; }
+        .type-chooser button { display: block; width: 100%; text-align: left; padding: 6px 10px; margin-bottom: 2px; border: none; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+        .type-chooser button:hover { background: rgba(0,0,0,.06); }
         .nav-item {
             padding: 8px 12px;
             margin-bottom: 2px;
@@ -2079,6 +2087,23 @@
 
             /* --- Bottom nav --- */
             .mobile-bottom-nav-index { display: flex !important; }
+            /* --- En-tête : recherche pleine largeur, actions secondaires masquées --- */
+            .dash-top-right { width: 100%; flex-wrap: wrap; gap: 8px; }
+            .dash-top-right .dossier-loader { display: none; }
+            .dash-top-right .search-box { flex: 1 1 auto; min-width: 0; }
+            .dash-top-right .search-box input { width: 100%; min-width: 0; }
+            .mobile-filter { display: block !important; width: 100%; padding: 8px 10px; border: 1px solid #E5E7EB; border-radius: 8px; background: #fff; font: inherit; font-size: 14px; }
+        }
+        .mobile-filter { display: none; }
+        /* Menu « Plus » de la barre mobile */
+        .mobile-more { display: none; position: fixed; right: 8px; bottom: 64px; z-index: 600; background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 6px; min-width: 200px; }
+        .mobile-more.show { display: block; }
+        .mobile-more a, .mobile-more button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px; border: none; background: none; font: inherit; font-size: 15px; color: #333; text-decoration: none; border-radius: 8px; cursor: pointer; text-align: left; }
+        .mobile-more .danger { color: #b91c1c; }
+        @media (max-width: 768px) {
+            .iframe-nav-tabs { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; -webkit-overflow-scrolling: touch; min-width: 0; }
+            .iframe-nav-tabs::-webkit-scrollbar { display: none; }
+            .iframe-nav-tabs .nav-tab { flex: 0 0 auto; white-space: nowrap; }
         }
 
         /* Bottom nav (masquée sur desktop) */
@@ -2106,6 +2131,7 @@
             gap: 2px;
         }
         .mobile-bottom-nav-index a.active { color: #1B4332; }
+        .mobile-bottom-nav-index a.nav-new span.nav-icon { width: 30px; height: 30px; border-radius: 50%; background: #1B4332; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; }
         .mobile-bottom-nav-index a span.nav-icon { font-size: 18px; }
 
         /* ========== ANIMATIONS ========== */
@@ -2285,18 +2311,39 @@
                 <span>Ménage</span>
             </a>
             <div class="nav-section-title">Gestion</div>
-            <li class="nav-item active" id="nav-dossiers" onclick="showDossiers(this)">
+            <li class="nav-item" style="cursor:default;">
                 <i class="fa-regular fa-folder-open"></i>
+                <span>Dossiers</span>
+            </li>
+            <li class="nav-item nav-sub active" id="nav-dossiers" onclick="showSegment('seminaire', this)">
+                <i class="fa-solid fa-briefcase"></i>
                 <span>Séminaires</span>
+                <button class="nav-add" title="Nouveau séminaire" onclick="event.stopPropagation(); openNewDossier(document.getElementById('nav-client-new'), 'seminaire')"><i class="fa-solid fa-plus"></i></button>
+            </li>
+            <li class="nav-item nav-sub" id="nav-groupes" onclick="showSegment('groupe', this)">
+                <i class="fa-solid fa-people-group"></i>
+                <span>Groupes</span>
+                <button class="nav-add" title="Nouveau groupe" onclick="event.stopPropagation(); openNewDossier(document.getElementById('nav-client-new'), 'groupe')"><i class="fa-solid fa-plus"></i></button>
+            </li>
+            <li class="nav-item nav-sub" id="nav-mariages" onclick="showSegment('mariage', this)">
+                <i class="fa-solid fa-ring"></i>
+                <span>Mariages</span>
+                <button class="nav-add" title="Nouveau mariage" onclick="event.stopPropagation(); openNewDossier(document.getElementById('nav-client-new'), 'mariage')"><i class="fa-solid fa-plus"></i></button>
             </li>
 
             <div class="nav-divider"></div>
             <div class="nav-section-title">Outils</div>
 
-            <li class="nav-item" id="nav-client-new" onclick="openNewDossier(this)">
+            <li class="nav-item" id="nav-client-new" onclick="document.getElementById('type-chooser').classList.toggle('show')">
                 <i class="fa-solid fa-user-plus"></i>
                 <span>Nouveau client</span>
             </li>
+            <div class="type-chooser" id="type-chooser">
+                <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'seminaire')"><i class="fa-solid fa-briefcase"></i>&nbsp; Séminaire</button>
+                <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'groupe')"><i class="fa-solid fa-people-group"></i>&nbsp; Groupe</button>
+                <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'mariage')"><i class="fa-solid fa-ring"></i>&nbsp; Mariage</button>
+                <button onclick="location.href='questionnaire?admin=1'" title="Saisir une demande reçue (Cactus, téléphone, mail) : crée la fiche et l'estimation du devis"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp; Depuis le questionnaire</button>
+            </div>
 
             <div class="nav-divider"></div>
             <div class="nav-section-title">Filtres</div>
@@ -2369,9 +2416,18 @@
 
             <div class="dash-top">
                 <div class="dash-top-left">
-                    <h2>Séminaires</h2>
+                    <h2 id="dash-title">Séminaires</h2>
                     <div class="subtitle" id="dash-subtitle">Vue d'ensemble des séminaires</div>
                 </div>
+                <select class="mobile-filter" id="mobile-filter" onchange="setFilter(this.value)" aria-label="Filtrer par statut">
+                    <option value="all">Tous les statuts</option>
+                    <option value="à traiter">À traiter</option>
+                    <option value="devis envoyé">Devis envoyé</option>
+                    <option value="confirmé">Confirmé</option>
+                    <option value="effectué">Effectués</option>
+                    <option value="annulé">Refusés</option>
+                    <option value="archived">Archivés</option>
+                </select>
                 <div class="dash-top-right">
                     <div class="dossier-loader">
                         <input type="text" id="dev-id-input" placeholder="ID Dossier…">
@@ -2394,7 +2450,7 @@
                 <div class="kpi-card">
                     <div class="kpi-icon"><i class="fa-regular fa-folder-open"></i></div>
                     <div class="kpi-content">
-                        <div class="kpi-label">Séminaires</div>
+                        <div class="kpi-label" id="kpi-total-label">Séminaires</div>
                         <div class="kpi-value" id="kpi-total">—</div>
                         <div class="kpi-sub">Total des événements</div>
                     </div>
@@ -2730,6 +2786,14 @@
         // =====================================================================
         let allRecords = [];
         let currentFilter = 'all';
+        // Espace affiché : 'seminaire' | 'groupe' | 'mariage'
+        let currentSegment = 'seminaire';
+        const SEGMENTS = {
+            seminaire: { titre: 'Séminaires', sousTitre: "Vue d'ensemble des séminaires", typeDossier: 'séminaire professionnel', typePlanning: 'Séminaire' },
+            groupe:    { titre: 'Groupes',    sousTitre: "Vue d'ensemble des week-ends de groupe", typeDossier: 'séjour de groupe', typePlanning: 'Week-end privé' },
+            mariage:   { titre: 'Mariages',   sousTitre: "Vue d'ensemble des mariages", typeDossier: 'mariage', typePlanning: 'Mariage' },
+        };
+        const segRecords = () => allRecords.filter(r => r.segment === currentSegment);
         let searchQuery = '';
         let activeIframeId = null;
         let sortMode = 'date-desc'; // date-desc, date-asc, amount-desc
@@ -2836,8 +2900,24 @@
             activeRecordId = null;
         }
 
-        async function openNewDossier(navEl) {
+        function showSegment(seg, navEl) {
+            currentSegment = seg;
+            const S = SEGMENTS[seg];
+            document.getElementById('dash-title').innerText = S.titre;
+            document.getElementById('dash-subtitle').innerText = S.sousTitre;
+            document.getElementById('kpi-total-label').innerText = S.titre;
+            document.querySelectorAll('.mobile-bottom-nav-index a[data-seg]').forEach(a => a.classList.toggle('active', a.dataset.seg === seg));
+            showDossiers(navEl);
+            updateKPIs();
+            updateFilters();
+            if (currentViewMode === 'list') renderTable(); else renderCalendar();
+        }
+
+        async function openNewDossier(navEl, seg) {
             if (navEl.disabled) return;
+            document.getElementById('type-chooser')?.classList.remove('show');
+            // Bascule dans l'espace du type choisi avant de créer le dossier
+            if (seg && seg !== currentSegment) showSegment(seg, document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[seg]));
 
             // Désactiver le bouton pendant la création pour éviter les doubles soumissions
             navEl.disabled = true;
@@ -2849,7 +2929,7 @@
                 const defaultFields = {
                     [SesquierRecords.FIELDS.NOM]: "Nouveau Dossier " + new Date().toLocaleDateString('fr-FR'),
                     [SesquierRecords.FIELDS.STATUT]: ["à traiter"],
-                    [SesquierRecords.FIELDS.TYPE]: ["séminaire professionnel"]
+                    [SesquierRecords.FIELDS.TYPE]: [SEGMENTS[currentSegment].typeDossier]
                 };
 
                 const res = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
@@ -2914,7 +2994,7 @@
                 document.getElementById('iframe-layer').classList.add('hidden');
                 document.getElementById('dossier-overlay').classList.add('show');
             } else {
-                showDossiers(document.getElementById('nav-dossiers'));
+                showDossiers(document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[currentSegment]));
                 refreshData(); // Refresh list when coming back
             }
         }
@@ -3188,8 +3268,9 @@
                     } else {
                         renderCalendar();
                     }
+                    const nSeg = segRecords().length;
                     document.getElementById('dash-subtitle').textContent =
-                        `${allRecords.length} réservation${allRecords.length > 1 ? 's' : ''} au total`;
+                        `${nSeg} dossier${nSeg > 1 ? 's' : ''} au total`;
                 } else {
                     showEmptyState('Aucune donnée', 'Impossible de récupérer les événements');
                 }
@@ -3247,7 +3328,7 @@
             let caTotal = 0, caPending = 0, caSigne = 0, caEffectue = 0;
             const STATUTS_PENDING = new Set(['à traiter', 'devis envoyé']);
 
-            allRecords.forEach(r => {
+            segRecords().forEach(r => {
                 if (r.estArchive) return; // Exclure les archives
                 const s = (r.statut || '').toLowerCase();
                 caTotal += r.totalHT;
@@ -3256,7 +3337,7 @@
                 if (s === 'effectué')       caEffectue += r.totalHT;  // séjour réalisé
             });
 
-            animateValue('kpi-total', allRecords.filter(r => !r.estArchive).length);
+            animateValue('kpi-total', segRecords().filter(r => !r.estArchive).length);
             document.getElementById('kpi-ca-pending').innerText   = SesquierUtils.formatEuro(caPending);
             document.getElementById('kpi-ca-signe').innerText     = SesquierUtils.formatEuro(caSigne);
             document.getElementById('kpi-ca-effectue').innerText  = SesquierUtils.formatEuro(caEffectue);
@@ -3280,8 +3361,8 @@
         // FILTERS
         // =====================================================================
         function updateFilters() {
-            const nonArchived = allRecords.filter(r => !r.estArchive);
-            const archived = allRecords.filter(r => r.estArchive);
+            const nonArchived = segRecords().filter(r => !r.estArchive);
+            const archived = segRecords().filter(r => r.estArchive);
             const counts = { all: nonArchived.length };
             nonArchived.forEach(r => {
                 counts[r.statut] = (counts[r.statut] || 0) + 1;
@@ -3291,7 +3372,7 @@
             document.getElementById('count-confirme').innerText = counts['confirmé'] || 0;
             document.getElementById('count-devis').innerText = counts['devis envoyé'] || 0;
             // Refusé : compter tous les refusés (archivés inclus), cohérent avec son filtre
-            document.getElementById('count-annule').innerText = allRecords.filter(r => r.statut === 'annulé').length || 0;
+            document.getElementById('count-annule').innerText = segRecords().filter(r => r.statut === 'annulé').length || 0;
             document.getElementById('count-effectue').innerText = counts['effectué'] || 0;
             document.getElementById('count-archived').innerText = archived.length || 0;
         }
@@ -3299,6 +3380,7 @@
         function setFilter(f) {
             currentFilter = f;
             document.querySelectorAll('.sidebar-filter').forEach(p => p.classList.toggle('active', p.dataset.filter === f));
+            const mf = document.getElementById('mobile-filter'); if (mf) mf.value = f;
             if (currentViewMode === 'list') {
                 renderTable();
             } else {
@@ -3372,7 +3454,7 @@
                 // Find events for this day
                 let dayEvents = '';
                 
-                let recordsToDisplay = allRecords;
+                let recordsToDisplay = segRecords();
                 if (currentFilter === 'archived') {
                     recordsToDisplay = recordsToDisplay.filter(r => r.estArchive);
                 } else if (currentFilter === 'annulé') {
@@ -3427,7 +3509,7 @@
         // =====================================================================
         function renderTable() {
             const body = document.getElementById('table-body');
-            let records = allRecords;
+            let records = segRecords();
 
             // Filtre archive
             if (currentFilter === 'archived') {
@@ -3687,7 +3769,11 @@
 
             const planningFields = {
                 'Nom':          f['Nom client'] || '',
-                'Type':         'Séminaire',
+                'Type':         (() => {
+                    const t = String(Array.isArray(f['Type']) ? f['Type'][0] : (f['Type'] || '')).toLowerCase();
+                    return t.includes('mariage') ? 'Mariage'
+                        : (!t || t.includes('séminaire') || t.includes('professionnel')) ? 'Séminaire' : 'Week-end privé';
+                })(),
                 'Date arrivée': arrivee,
                 'Date départ':  depart,
                 'Statut':       statut,
@@ -3787,14 +3873,37 @@
     </script>
 
 <!-- MOBILE BOTTOM NAV -->
+<div class="mobile-more" id="mobile-more">
+    <a href="questionnaire?admin=1"><i class="fa-solid fa-wand-magic-sparkles"></i> Saisir une demande</a>
+    <a href="menage.html"><i class="fa-solid fa-broom"></i> Ménage</a>
+    <button onclick="toggleTheme(); this.parentNode.classList.remove('show')"><i class="fa-regular fa-moon"></i> Mode sombre / clair</button>
+    <button class="danger" onclick="window.SesquierAuth && window.SesquierAuth.logout()"><i class="fa-solid fa-right-from-bracket"></i> Se déconnecter</button>
+</div>
+<script>document.addEventListener('click', e => { if (!e.target.closest('#mobile-more')) document.getElementById('mobile-more')?.classList.remove('show'); });</script>
 <nav class="mobile-bottom-nav-index">
     <a href="planning.html">
-        <span class="nav-icon">📋</span>
+        <span class="nav-icon"><i class="fa-regular fa-calendar-days"></i></span>
         Planning
     </a>
-    <a href="index.html" class="active">
-        <span class="nav-icon">📁</span>
+    <a href="#" class="active" data-seg="seminaire" onclick="event.preventDefault(); document.getElementById('nav-dossiers').click()">
+        <span class="nav-icon"><i class="fa-solid fa-briefcase"></i></span>
         Séminaires
+    </a>
+    <a href="#" data-seg="groupe" onclick="event.preventDefault(); document.getElementById('nav-groupes').click()">
+        <span class="nav-icon"><i class="fa-solid fa-people-group"></i></span>
+        Groupes
+    </a>
+    <a href="#" data-seg="mariage" onclick="event.preventDefault(); document.getElementById('nav-mariages').click()">
+        <span class="nav-icon"><i class="fa-solid fa-ring"></i></span>
+        Mariages
+    </a>
+    <a href="#" onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('mobile-more').classList.toggle('show')">
+        <span class="nav-icon"><i class="fa-solid fa-ellipsis"></i></span>
+        Plus
+    </a>
+    <a href="#" class="nav-new" onclick="event.preventDefault(); openNewDossier(document.getElementById('nav-client-new'), currentSegment)">
+        <span class="nav-icon"><i class="fa-solid fa-plus"></i></span>
+        Nouveau
     </a>
 </nav>
 </body>

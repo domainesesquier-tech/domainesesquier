@@ -1,0 +1,449 @@
+{
+  "version": "2027-3",
+  "source": "grille_tarifs_2027.md, validée le 2026-10-17",
+  "entites": {
+    "seminaire": "foudre",
+    "groupe": "ozza",
+    "mariage": "ozza"
+  },
+  "basse_saison": {
+    "debut": "11-01",
+    "fin": "03-31",
+    "exclusion_debut": "12-20",
+    "exclusion_fin": "01-03",
+    "remise": 0.15,
+    "segments": [
+      "groupe",
+      "mariage"
+    ]
+  },
+  "agence": {
+    "remise": 0.1,
+    "segments": [
+      "seminaire"
+    ],
+    "categories": [
+      "hebergement",
+      "lieu"
+    ]
+  },
+  "groupe": {
+    "prix": "TTC",
+    "capacite_base": 35,
+    "nuit": {
+      "label": "Privatisation du domaine (8 gîtes, Champs d'olivier, piscine, jardins)",
+      "pu": 1750,
+      "tva": 10,
+      "cat": "hebergement"
+    },
+    "nuit_basse_saison": 1500,
+    "menage": {
+      "label": "Ménage de fin de séjour",
+      "pu": 500,
+      "tva": 10,
+      "cat": "hebergement"
+    },
+    "options": {
+      "draps": {
+        "label": "Draps",
+        "pu": 10,
+        "unite": "pers",
+        "tva": 10,
+        "cat": "hebergement"
+      },
+      "lit_appoint": {
+        "label": "Lit d'appoint (36e à 40e)",
+        "pu": 20,
+        "unite": "pers_nuit",
+        "tva": 10,
+        "cat": "hebergement"
+      },
+      "archipel": {
+        "label": "Salle Archipel (200 m²)",
+        "pu": 1250,
+        "unite": "sejour",
+        "tva": 20,
+        "cat": "lieu"
+      },
+      "cuisine_pro": {
+        "label": "Cuisine professionnelle",
+        "pu": 600,
+        "unite": "sejour",
+        "tva": 20,
+        "cat": "lieu"
+      }
+    },
+    "nuits_min": 2,
+    "acompte": 0.3,
+    "caution": 1000
+  },
+  "seminaire": {
+    "prix": "HT",
+    "min_facturable": 10,
+    "hebergement": [
+      {
+        "min": 10,
+        "max": 19,
+        "premiere": 1650,
+        "suivante": 1350
+      },
+      {
+        "min": 20,
+        "max": 29,
+        "premiere": 2400,
+        "suivante": 1800
+      },
+      {
+        "min": 30,
+        "max": 35,
+        "premiere": 2700,
+        "suivante": 2000
+      }
+    ],
+    "hebergement_formule": {
+      "fixe": 1000,
+      "par_pers": 55,
+      "note": "Validé le 2026-10-19 : calé sur les devis signés (±5 %), remplace les paliers ci-dessus"
+    },
+    "hebergement_label": "Hébergement en gîtes tout confort (lits faits, draps, serviettes, plan d'occupation, ménage de fin de séjour)",
+    "hebergement_tva": 10,
+    "lit_appoint": {
+      "label": "Lit d'appoint (36e à 40e)",
+      "pu": 30,
+      "tva": 10
+    },
+    "lieu": [
+      {
+        "min": 10,
+        "max": 19,
+        "premier": 1200,
+        "suivant": 400
+      },
+      {
+        "min": 20,
+        "max": 999,
+        "premier": 1500,
+        "suivant": 500
+      }
+    ],
+    "lieu_formule": {
+      "fixe": 750,
+      "inclus": 15,
+      "par_pers": 30,
+      "jour_suivant": 1,
+      "coordinateur_jour": 0,
+      "note": "Validé le 2026-10-19 : salle + privatisation + coordinateur absorbé (coût 250 €/j) = 750 € jusqu'à 15 pers puis +30 €/pers  ; plein tarif chaque jour (remises à la main) ; par jour de travail (jours - 1), +1 si journées complètes (arrivée matin et départ soir). Aligné Mas Neuf, stratégie volume"
+    },
+    "lieu_label": "Salle de travail équipée, privatisation du domaine & coordinateur dédié sur place (espaces communs, piscine, jardins)",
+    "lieu_tva": 20,
+    "archipel": {
+      "label": "Salle Archipel (200 m², au-delà de 35 pers.)",
+      "pu": 1041.67,
+      "tva": 20,
+      "seuil": 35
+    },
+    "coordination": {
+      "label": "Conception pédagogique & animation des activités (déroulé, prestataires, animation)",
+      "pu": 250,
+      "tva": 20
+    },
+    "max_auto": 40,
+    "acompte": 0.3,
+    "catalogue": {
+      "accueil_cafe": {
+        "label": "Accueil café & mignardises",
+        "pu": 10,
+        "tva": 10,
+        "cat": "repas"
+      },
+      "petit_dej": {
+        "label": "Petit-déjeuner buffet",
+        "pu": 20,
+        "tva": 10,
+        "cat": "repas"
+      },
+      "collation": {
+        "label": "Collation",
+        "pu": 10,
+        "tva": 10,
+        "cat": "repas"
+      },
+      "dejeuner": {
+        "label": "Déjeuner — buffet ou grande tablée conviviale",
+        "pu": 35,
+        "tva": 10,
+        "cat": "repas"
+      },
+      "diner": {
+        "label": "Dîner — buffet ou grande tablée conviviale",
+        "pu": 35,
+        "tva": 10,
+        "cat": "repas"
+      },
+      "supplement_vin": {
+        "label": "Supplément vin au repas",
+        "pu": 10,
+        "tva": 20,
+        "cat": "boisson"
+      },
+      "brunch": {
+        "label": "Brunch du Domaine",
+        "pu": 35,
+        "tva": 10,
+        "cat": "repas"
+      },
+      "grillade": {
+        "label": "Repas grillade en plein air",
+        "pu": 40,
+        "tva": 10,
+        "cat": "repas"
+      },
+      "brasucade": {
+        "label": "Brasucade de moules",
+        "pu": 15,
+        "tva": 10,
+        "cat": "repas"
+      },
+      "panier_depart": {
+        "label": "Petit-déjeuner + panier repas départ",
+        "pu": 32.5,
+        "tva": 10,
+        "cat": "repas"
+      },
+      "aperitif": {
+        "label": "Apéritif réception",
+        "pu": 20,
+        "tva": 20,
+        "cat": "boisson"
+      },
+      "pack_soiree": {
+        "label": "Pack soirée libre-service",
+        "pu": 20,
+        "tva": 20,
+        "cat": "boisson"
+      },
+      "bouteille_vin": {
+        "label": "Bouteille de vin local",
+        "pu": 16.67,
+        "tva": 20,
+        "cat": "boisson",
+        "unite": "unite"
+      },
+      "fut_20": {
+        "label": "Fût bière Kisswing 20 L",
+        "pu": 135,
+        "tva": 20,
+        "cat": "boisson",
+        "unite": "unite"
+      },
+      "fut_30": {
+        "label": "Fût bière Kisswing 30 L",
+        "pu": 180,
+        "tva": 20,
+        "cat": "boisson",
+        "unite": "unite"
+      },
+      "formule_soiree": {
+        "label": "Formule apéritif soirée complète",
+        "pu": 500,
+        "tva": 20,
+        "cat": "boisson",
+        "unite": "unite"
+      },
+      "velos": {
+        "label": "Vélos + visite guidée (demi-journée)",
+        "pu": 45,
+        "tva": 20,
+        "cat": "activite"
+      },
+      "blind_test": {
+        "label": "Blind-test territoire (1h30)",
+        "pu": 30,
+        "tva": 20,
+        "cat": "activite"
+      },
+      "workshop": {
+        "label": "Workshop intelligence collective (2 × 1h)",
+        "pu": 750,
+        "tva": 20,
+        "cat": "activite",
+        "unite": "unite"
+      },
+      "olympiades": {
+        "label": "Olympiades du Domaine",
+        "pu": 1500,
+        "tva": 20,
+        "cat": "activite",
+        "unite": "unite"
+      },
+      "bateau": {
+        "label": "Sortie bateau coucher de soleil (2h)",
+        "pu": 1000,
+        "tva": 20,
+        "cat": "activite",
+        "unite": "unite"
+      },
+      "kayak": {
+        "label": "Kayak guidé étang de Thau (2h)",
+        "pu": 1000,
+        "tva": 20,
+        "cat": "activite",
+        "unite": "unite"
+      },
+      "navette_vtc": {
+        "label": "Navette VTC Montpellier (7 pers., A/R)",
+        "pu": 140,
+        "tva": 20,
+        "cat": "transport",
+        "unite": "unite"
+      },
+      "navette_car": {
+        "label": "Navette autocar gare SNCF (A/R)",
+        "pu": 1000,
+        "tva": 20,
+        "cat": "transport",
+        "unite": "unite"
+      },
+      "archery_tag": {
+        "label": "Archery tag",
+        "pu": 900,
+        "tva": 20,
+        "cat": "activite",
+        "unite": "unite"
+      },
+      "murder_party": {
+        "label": "Murder party au cœur du domaine",
+        "pu": 500,
+        "tva": 20,
+        "cat": "activite",
+        "unite": "unite"
+      }
+    }
+  },
+  "mariage": {
+    "prix": "TTC",
+    "base": [
+      {
+        "label": "Domaine 2 nuits (gîtes, Champs d'olivier, oliveraie, guinguette, piscine, jardins), ménage de fin de séjour",
+        "pu": 4000,
+        "tva": 10,
+        "cat": "hebergement"
+      },
+      {
+        "label": "Linge de lit, 40 couchages",
+        "pu": 400,
+        "tva": 10,
+        "cat": "hebergement"
+      },
+      {
+        "label": "Arrivée dès 12h le vendredi",
+        "pu": 300,
+        "tva": 20,
+        "cat": "lieu"
+      },
+      {
+        "label": "Départ 16h le dimanche",
+        "pu": 500,
+        "tva": 20,
+        "cat": "lieu"
+      },
+      {
+        "label": "Remise en état après réception",
+        "pu": 600,
+        "tva": 20,
+        "cat": "lieu"
+      },
+      {
+        "label": "Accompagnement : 3 visites + visite technique, référent installation et départ",
+        "pu": 900,
+        "tva": 20,
+        "cat": "lieu"
+      }
+    ],
+    "packs": {
+      "champs_olivier": {
+        "label": "Pack réception Champs d'olivier (mobilier, mise en place, son et lumière)",
+        "pu": 1250,
+        "tva": 20,
+        "max": 40
+      },
+      "archipel": {
+        "label": "Pack réception Archipel (salle, scène, son, lumière, bar + mobilier)",
+        "pu": 2500,
+        "tva": 20
+      }
+    },
+    "seconde_soiree_archipel": 1250,
+    "convive_sup": {
+      "label": "Convives sur site au-delà de 40",
+      "pu": 20,
+      "tva": 20,
+      "seuil": 40
+    },
+    "nuit_sup": 1750,
+    "traiteur_exterieur": {
+      "label": "Usage de la cuisine professionnelle (traiteur extérieur)",
+      "pu": 600,
+      "tva": 20
+    },
+    "acompte": 0.3,
+    "caution": 2000,
+    "catalogue": {
+      "vin_honneur_garrigue": {
+        "label": "Vin d'honneur Garrigue",
+        "pu": 20,
+        "tva": 20,
+        "cat": "boisson"
+      },
+      "vin_honneur_terre_mer": {
+        "label": "Vin d'honneur Terre & Mer",
+        "pu": 25,
+        "tva": 20,
+        "cat": "boisson"
+      },
+      "vin_honneur_huitres": {
+        "label": "Vin d'honneur Terre & Mer + bar à huîtres",
+        "pu": 35,
+        "tva": 20,
+        "cat": "boisson"
+      },
+      "diner_buffet": {
+        "label": "Dîner buffet",
+        "pu": 60,
+        "tva": 10,
+        "cat": "repas"
+      },
+      "diner_tablee": {
+        "label": "Dîner grande tablée conviviale",
+        "pu": 70,
+        "tva": 10,
+        "cat": "repas"
+      },
+      "fromages": {
+        "label": "Plateau de fromages",
+        "pu": 10,
+        "tva": 10,
+        "cat": "repas"
+      },
+      "brunch": {
+        "label": "Brunch du lendemain",
+        "pu": 38.5,
+        "tva": 10,
+        "cat": "repas"
+      },
+      "art_table": {
+        "label": "Art de la table",
+        "pu": 5,
+        "tva": 20,
+        "cat": "lieu"
+      },
+      "bouteille_vin": {
+        "label": "Bouteille de vin local",
+        "pu": 20,
+        "tva": 20,
+        "cat": "boisson",
+        "unite": "unite"
+      }
+    }
+  }
+}

@@ -2,16 +2,38 @@ name = "domainesesquier-api"
 main = "worker/index.js"
 compatibility_date = "2025-01-01"
 
+# Le guide de ton (docs/*.md) est importé tel quel par worker/redaction.js
+[[rules]]
+type = "Text"
+globs = ["**/*.md"]
+fallthrough = true
+
 # Origines autorisées (CORS) — séparées par des virgules
 [vars]
 ALLOWED_ORIGINS = "https://admin.domainesesquier.com,https://www.domainesesquier.com,https://domainesesquier.com"
 ENVIRONMENT = "production"
+
+# Adresse de test V2 (npx wrangler deploy --env staging) → worker séparé « domainesesquier-api-v2 »
+# La prod (domainesesquier-api) n'est pas touchée. READ_ONLY=true : lectures réelles, écritures en bac à sable.
+# Passer READ_ONLY à "false" seulement quand la V2 est validée.
+[env.staging]
+name = "domainesesquier-api-v2"
+
+[[env.staging.kv_namespaces]]
+binding = "SANDBOX_KV"
+id = "11c179706b8e4084848ee0dd142a3cca"
+
+[env.staging.vars]
+ALLOWED_ORIGINS = "https://v2.domainesesquier.com,https://domainesesquier-v2.pages.dev,https://www.domainesesquier.com,https://domainesesquier.com"
+ENVIRONMENT = "staging"
+READ_ONLY = "true"
 
 # Environnement de développement local (npx wrangler dev --env dev)
 # Ajoute localhost pour permettre les tests en local sans toucher à la prod
 [env.dev.vars]
 ALLOWED_ORIGINS = "https://admin.domainesesquier.com,https://www.domainesesquier.com,https://domainesesquier.com,http://localhost:8080,http://localhost:3000"
 ENVIRONMENT = "development"
+READ_ONLY = "true"
 
 # SUPABASE_URL et SUPABASE_ANON_KEY sont des secrets Cloudflare.
 # Ne jamais les mettre ici en clair.

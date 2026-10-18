@@ -113,8 +113,12 @@ const SesquierRecords = {
         // Type
         let tRaw = f[F.TYPE];
         if (Array.isArray(tRaw)) tRaw = tRaw[0];
+        if (typeof tRaw === 'string' && tRaw.startsWith('[')) tRaw = this._safeParse(tRaw)?.[0] ?? tRaw;
         const type = tRaw || '';
         const isPro = type.toLowerCase().includes('séminaire') || type.toLowerCase().includes('professionnel');
+        // Espace du tableau de bord : type vide = séminaire (historique)
+        const segment = type.toLowerCase().includes('mariage') ? 'mariage'
+            : (isPro || !type) ? 'seminaire' : 'groupe';
 
         // Financiers : Garantir des nombres
         const mH = parseFloat(f[F.MONTANT_HEBERG]) || 0;
@@ -164,6 +168,7 @@ const SesquierRecords = {
 
             type: type,
             isPro: isPro,
+            segment: segment,
             estArchive: !!f[F.EST_ARCHIVE],
 
             // JSON complexes
