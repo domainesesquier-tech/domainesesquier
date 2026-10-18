@@ -252,7 +252,12 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
 (function () {
   const API_BASE = location.hostname === 'localhost'
     ? 'http://localhost:8788'
-    : 'https://domainesesquier-api.domainesesquier.workers.dev';
+    : (location.hostname.startsWith('v2.') || location.hostname.endsWith('.pages.dev'))
+      ? 'https://domainesesquier-api-v2.domainesesquier.workers.dev'
+      : 'https://domainesesquier-api.domainesesquier.workers.dev';
+  // Saisie interne depuis le tableau de bord (?admin=1) : pas d'anti-robot ni de case RGPD,
+  // pré-remplissage possible via #prefill=<JSON encodé> (clés = attributs name du formulaire).
+  const ADMIN = new URLSearchParams(location.search).get('admin') === '1';
   const ACTIVITES = [
     ['velos', 'L\'étang à vélo', 'Balade guidée, demi-journée'],
     ['bateau', 'Sortie bateau', 'Coucher de soleil sur l\'étang de Thau'],
@@ -355,7 +360,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
       if (!form.prenom.value.trim()) ok = erreur('prenom', 'Champ requis.') && ok;
       if (!form.nom.value.trim()) ok = erreur('nom', 'Champ requis.') && ok;
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.value.trim())) ok = erreur('email', 'Adresse e-mail invalide.') && ok;
-      if (form.telephone.value.replace(/\D/g, '').length < 9) ok = erreur('telephone', 'Numéro de téléphone invalide.') && ok;
+      if ((!ADMIN || form.telephone.value.trim()) && form.telephone.value.replace(/\D/g, '').length < 9) ok = erreur('telephone', 'Numéro de téléphone invalide.') && ok;
       if (!document.getElementById('rgpd').checked) ok = erreur('rgpd', 'Merci de cocher la case pour envoyer votre demande.') && ok;
     }
     return ok;
@@ -375,7 +380,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
   }
 
   async function envoyer() {
-    if (form.website.value || Date.now() - debut < 4000) return; // anti-robot
+    if (!ADMIN && (form.website.value || Date.now() - debut < 4000)) return; // anti-robot
     btnNext.disabled = true;
     estimer();
     const q = reponses();
@@ -389,7 +394,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
       },
       estimation: derniere ? { ht: derniere.resultat.totaux.ht, ttc: derniere.resultat.totaux.ttc, par_personne_ht: derniere.resultat.par_personne.ht } : null,
       planning: derniere ? derniere.jours : null,
-      origine: document.referrer || location.href
+      origine: ADMIN ? 'Tableau de bord (saisie interne)' : (document.referrer || location.href)
     };
     let envoye = false, test = false;
     try {
@@ -402,6 +407,14 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
     } catch (e) {
       document.getElementById('err-envoi').textContent = 'L\'envoi a échoué. Réessayez, ou écrivez-nous à contact@domainesesquier.com.';
       btnNext.disabled = false;
+      return;
+    }
+    if (ADMIN) {
+      form.innerHTML = `<div class="merci"><h2>Demande créée pour ${payload.contact.prenom} ${payload.contact.nom}</h2>
+        <p>Le dossier est dans le tableau de bord, statut « à traiter », avec l'estimation jointe pour préparer le devis.</p>
+        ${test ? '<p class="note-type">Copie de test V2 : dossier créé dans le bac à sable, pas dans ta base.</p>' : ''}
+        <p><a class="btn" href="index.html">Retour au tableau de bord</a> &nbsp; <a href="questionnaire?admin=1">Saisir une autre demande</a></p></div>`;
+      window.__derniereDemande = payload;
       return;
     }
     form.innerHTML = `<div class="merci"><h2>Merci ${payload.contact.prenom}, c'est noté.</h2>
@@ -433,6 +446,26 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
   const params = new URLSearchParams(location.search);
   if (params.get('type')) { const t = form.querySelector(`input[name="type"][value="${params.get('type')}"]`); if (t) t.checked = true; }
   if (params.get('format') === 'etude') form.querySelector('input[name="format"][value="etude"]').checked = true;
+
+  if (ADMIN) {
+    document.title = 'Saisie d\'une demande — Domaine Sesquier';
+    form.telephone.required = false; const rg = document.getElementById('rgpd'); rg.required = false; rg.checked = true; rg.closest('label').hidden = true;
+    const bandeau = document.createElement('p'); bandeau.className = 'note-type';
+    bandeau.innerHTML = 'Saisie interne : tu remplis la demande à la place du client (Cactus, téléphone, mail…). Elle crée le dossier comme une demande du site. <a href="index.html">← Tableau de bord</a>';
+    form.parentNode.insertBefore(bandeau, form);
+    try {
+      const m = location.hash.match(/^#prefill=(.+)$/);
+      const pre = m ? JSON.parse(decodeURIComponent(m[1])) : null;
+      if (pre) Object.entries(pre).forEach(([k, v]) => {
+        const els = [...form.querySelectorAll(`[name="${k}"]`)];
+        if (!els.length || v == null) return;
+        if (els[0].type === 'radio') els.forEach(e => { e.checked = e.value === String(v); });
+        else if (els[0].type === 'checkbox' && Array.isArray(v)) els.forEach(e => { e.checked = v.includes(e.value); });
+        else if (els[0].type === 'checkbox') els[0].checked = v === true || v === '1' || v === 1;
+        else els[0].value = v;
+      });
+    } catch (e) { console.warn('[prefill] ignoré :', e.message); }
+  }
 
   majFormat();
   afficher(0);

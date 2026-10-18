@@ -2342,6 +2342,7 @@
                 <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'seminaire')"><i class="fa-solid fa-briefcase"></i>&nbsp; Séminaire</button>
                 <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'groupe')"><i class="fa-solid fa-people-group"></i>&nbsp; Groupe</button>
                 <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'mariage')"><i class="fa-solid fa-ring"></i>&nbsp; Mariage</button>
+                <button onclick="location.href='questionnaire?admin=1'" title="Saisir une demande reçue (Cactus, téléphone, mail) : crée la fiche et l'estimation du devis"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp; Depuis le questionnaire</button>
             </div>
 
             <div class="nav-divider"></div>
@@ -3873,6 +3874,7 @@
 
 <!-- MOBILE BOTTOM NAV -->
 <div class="mobile-more" id="mobile-more">
+    <a href="questionnaire?admin=1"><i class="fa-solid fa-wand-magic-sparkles"></i> Saisir une demande</a>
     <a href="menage.html"><i class="fa-solid fa-broom"></i> Ménage</a>
     <button onclick="toggleTheme(); this.parentNode.classList.remove('show')"><i class="fa-regular fa-moon"></i> Mode sombre / clair</button>
     <button class="danger" onclick="window.SesquierAuth && window.SesquierAuth.logout()"><i class="fa-solid fa-right-from-bracket"></i> Se déconnecter</button>
