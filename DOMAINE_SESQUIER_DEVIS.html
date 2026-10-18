@@ -545,9 +545,9 @@
         <div style="display:flex;align-items:center;gap:3px;padding:3px 8px;background:#f0ede6;border-radius:8px;border:1px solid #d1cec7;">
             <span style="font-size:11px;color:#6b7280;font-weight:500;margin-right:4px;white-space:nowrap;">Société :</span>
             <button id="prof-btn-ozza" onclick="setCompanyProfile('ozza')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:#3a5538;color:white;">OZZA</button>
-            <button id="btn-grille-2027" onclick="applyGrille2027()" title="Recalcule hébergement et espaces avec la grille 2027" style="padding:4px 10px;border:1px solid #8b3a1e;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;background:#fff;color:#8b3a1e;margin-right:6px;">Grille 2027</button>
             <button id="prof-btn-foudre" onclick="setCompanyProfile('foudre')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:transparent;color:#3a5538;">FOUDRE SOCIETY</button>
         </div>
+        <button class="btn" id="btn-grille-2027" onclick="recalculerGrille2027()" title="Remplace les lignes du devis par le calcul de la grille 2027">Recalculer (grille 2027)</button>
         <span id="unsaved-badge" style="display:none; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; align-self:center; animation: pulse 2s infinite;">
             <i class="fas fa-circle-exclamation" style="margin-right:4px;"></i> Modifications non enregistrées
         </span>
@@ -2015,6 +2015,14 @@
                 tr = prev;
             }
             return subTr;
+        }
+
+        function recalculerGrille2027() {
+            const msg = "Recalculer le devis avec la grille 2027 ?\n\n"
+                + "Les sections hébergement et salle (et repas, boissons, activités si la demande vient du questionnaire) "
+                + "seront vidées puis remplies à nouveau : tes ajustements manuels dans ces sections seront perdus, "
+                + "et la société sera remise selon la grille.";
+            if (confirm(msg)) applyGrille2027();
         }
 
         async function applyGrille2027(opts = {}) {
