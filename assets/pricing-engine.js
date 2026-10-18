@@ -75,10 +75,13 @@
             // Salle équipée + privatisation : prix minimum puis par personne, sans palier ; jours suivants à un % du 1er jour
             // Coordinateur sur place inclus chaque jour de travail, jamais remisé
             const f = s.lieu_formule, j1 = Math.round(f.fixe + f.par_pers * Math.max(0, n - f.inclus)), co = f.coordinateur_jour || 0;
-            L.push(ligne(base, `${s.lieu_label} — 1er jour`, 1, j1 + co, s.lieu_tva, 'lieu'));
-            // Facturé par jour de travail (jours du séjour - 1, au moins 1) : 2j/1n = 1 jour, 3j/2n = 2 jours
             const travail = Math.max(1, jours - 1 + (d.journeesCompletes && jours > 1 ? 1 : 0));
-            if (travail > 1) L.push(ligne(base, `${s.lieu_label} — jours de travail suivants`, travail - 1, Math.round(j1 * f.jour_suivant) + co, s.lieu_tva, 'lieu'));
+            // Plein tarif × jours de travail, puis la remise des jours consécutifs sur une ligne dédiée (plus simple à ajuster dans le devis)
+            L.push(ligne(base, `${s.lieu_label} — par jour de travail`, travail, j1 + co, s.lieu_tva, 'lieu'));
+            if (travail > 1 && f.jour_suivant < 1) {
+                const pct = Math.round((1 - f.jour_suivant) * 100);
+                L.push(ligne(base, `Remise jours consécutifs (–${pct} % dès le 2e jour de salle)`, travail - 1, -Math.round(j1 * (1 - f.jour_suivant)), s.lieu_tva, 'lieu'));
+            }
         } else {
             const l = tranche(s.lieu, n);
             L.push(ligne(base, `${s.lieu_label} — 1er jour`, 1, l.premier, s.lieu_tva, 'lieu'));

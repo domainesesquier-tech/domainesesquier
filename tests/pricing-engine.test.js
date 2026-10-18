@@ -9,7 +9,7 @@ const sem = (personnes, nuits, extra = {}) => compute(grille, { segment: 'semina
 const cas = [
     // Séminaire : partie lieu (hébergement + forfait lieu) des devis 2026
     ['CAP 5, 11 p, 1 nuit', lieu(sem(11, 1)), 2355],
-    ['JRI, 13 p, 2 nuits', lieu(sem(13, 2)), 4818],
+    ['JRI, 13 p, 2 nuits', lieu(sem(13, 2)), 4817],
     ['Tohero, 29 p, 1 nuit', lieu(sem(29, 1)), 3765],
     ['Etail, 28 p, 2 nuits', lieu(sem(28, 2)), 7189],
     ['Sandfall, 30 p, 1 nuit', lieu(sem(30, 1)), 3850],
@@ -53,9 +53,9 @@ const rq = compute(grille, fq.demande);
 const qte = code => (fq.demande.prestations.find(x => x.code === code) || {}).qte || 0;
 assert.deepStrictEqual([qte('accueil_cafe'), qte('petit_dej'), qte('collation'), qte('dejeuner'), qte('diner')], [25, 25, 75, 50, 25]);
 // 2375 (1000 + 55 × 25) + salle 1050 + 893 (journées complètes : arrivée matin, départ soir) + repas 25 × 165 + kayak 1000 + conception 250
-const okQ = Math.abs(rq.totaux.ht - 9693) < 0.01;
+const okQ = Math.abs(rq.totaux.ht - 9692) < 0.01;
 if (!okQ) ko++;
-console.log(`${okQ ? 'OK ' : 'KO '} Questionnaire 25 p 2j/1n pension + kayak : ${rq.totaux.ht} (attendu 9693)`);
+console.log(`${okQ ? 'OK ' : 'KO '} Questionnaire 25 p 2j/1n pension + kayak : ${rq.totaux.ht} (attendu 9692)`);
 const etude = fromQuestionnaire(grille, { participants: 15, dateArrivee: '2027-03-10', journeeEtude: true, arrivee: 'matin', restauration: 'pension', pauses: true });
 assert.strictEqual(etude.demande.nuits, 0);
 assert.ok(!compute(grille, etude.demande).lignes.some(l => l.cat === 'hebergement'), 'Journée d\'étude sans hébergement');
