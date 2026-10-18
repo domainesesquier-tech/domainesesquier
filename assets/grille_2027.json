@@ -1,5 +1,5 @@
 {
-  "version": "2027-1",
+  "version": "2027-2",
   "source": "grille_tarifs_2027.md, validée le 2026-10-17",
   "entites": {
     "seminaire": "foudre",
@@ -100,6 +100,11 @@
         "suivante": 2000
       }
     ],
+    "hebergement_formule": {
+      "fixe": 1000,
+      "par_pers": 55,
+      "note": "Validé le 2026-10-19 : calé sur les devis signés (±5 %), remplace les paliers ci-dessus"
+    },
     "hebergement_label": "Hébergement en gîtes tout confort (lits faits, draps, serviettes, plan d'occupation, ménage de fin de séjour)",
     "hebergement_tva": 10,
     "lit_appoint": {

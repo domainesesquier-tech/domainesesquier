@@ -59,9 +59,15 @@
         const nuits = d.nuits, jours = nuits + 1;
 
         if (nuits > 0) {
-            const h = tranche(s.hebergement, Math.min(n, 35));
-            L.push(ligne(base, `${s.hebergement_label} — 1re nuit`, 1, h.premiere, s.hebergement_tva, 'hebergement'));
-            if (nuits > 1) L.push(ligne(base, `${s.hebergement_label} — nuits suivantes`, nuits - 1, h.suivante, s.hebergement_tva, 'hebergement'));
+            if (s.hebergement_formule) {
+                // Prix continu, sans palier : fixe + prix par personne, chaque nuit (couchages plafonnés à 35)
+                const f = s.hebergement_formule, pu = f.fixe + f.par_pers * Math.min(n, 35);
+                L.push(ligne(base, `${s.hebergement_label} — ${nuits} nuit${nuits > 1 ? 's' : ''}`, nuits, pu, s.hebergement_tva, 'hebergement'));
+            } else {
+                const h = tranche(s.hebergement, Math.min(n, 35));
+                L.push(ligne(base, `${s.hebergement_label} — 1re nuit`, 1, h.premiere, s.hebergement_tva, 'hebergement'));
+                if (nuits > 1) L.push(ligne(base, `${s.hebergement_label} — nuits suivantes`, nuits - 1, h.suivante, s.hebergement_tva, 'hebergement'));
+            }
             if (n > 35) L.push(ligne(base, s.lit_appoint.label, (Math.min(n, 40) - 35) * nuits, s.lit_appoint.pu, s.lit_appoint.tva, 'hebergement'));
         }
         const l = tranche(s.lieu, n);
