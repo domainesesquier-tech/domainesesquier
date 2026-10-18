@@ -681,14 +681,17 @@ export default {
           estimation_ht: p.estimation?.ht ? Math.round(p.estimation.ht) : null,
         };
         await sbFetch(env, `/rpc/public_demande`, { method: "POST", body: JSON.stringify({ p: row }) });
-        // Alerte mail via Google Apps Script (NOTIF_URL = URL du déploiement web, secret Worker).
+        // Alerte à Waël + accusé de réception au client via Google Apps Script (NOTIF_URL = URL du déploiement web, secret Worker ; code : docs/alerte_demande_sesquier.gs).
         // Envoyée après l'enregistrement, sans bloquer la réponse ; un échec n'annule jamais la demande.
-        if (env.NOTIF_URL && env.READ_ONLY !== "true") {
+        // Saisie interne (Cactus, téléphone…) : Waël est déjà en contact, ni alerte ni accusé de réception.
+        const interne = txt(p.origine, 300) === "Tableau de bord (saisie interne)";
+        if (env.NOTIF_URL && env.READ_ONLY !== "true" && !interne) {
           const alerte = fetch(env.NOTIF_URL, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               id: row.id, segment: seg, type: row.type, nom_client: row.nom_client,
-              contact: `${txt(c.prenom)} ${txt(c.nom)}`.trim(), email: row.email, telephone: row.telephone,
+              contact: `${txt(c.prenom)} ${txt(c.nom)}`.trim(), prenom: row.prenom_contact, organisation: row.entreprise,
+              email: row.email, telephone: row.telephone, journee_etude: !!q.journeeEtude,
               date_arrivee: row.date_arrivee, date_depart: row.date_depart, personnes: nb,
               estimation_ht: row.estimation_ht, message: row.message, source: row.suivi_source, origine: txt(p.origine, 300),
             }),
