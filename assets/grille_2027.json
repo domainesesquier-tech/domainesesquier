@@ -1,5 +1,5 @@
 {
-  "version": "2027-2",
+  "version": "2027-3",
   "source": "grille_tarifs_2027.md, validée le 2026-10-17",
   "entites": {
     "seminaire": "foudre",
@@ -126,7 +126,14 @@
         "suivant": 500
       }
     ],
-    "lieu_label": "Mise à disposition du domaine privatisé (salle équipée, espaces communs, piscine, jardins, référent joignable chaque jour)",
+    "lieu_formule": {
+      "fixe": 750,
+      "inclus": 10,
+      "par_pers": 37.5,
+      "jour_suivant": 0.5,
+      "note": "Validé le 2026-10-19 : 750 € jusqu'à 10 pers puis +37,50 €/pers (1 500 € à 30 p), jours suivants 50 % du 1er jour"
+    },
+    "lieu_label": "Salle de travail équipée & privatisation du domaine (espaces communs, piscine, jardins, référent joignable chaque jour)",
     "lieu_tva": 20,
     "archipel": {
       "label": "Salle Archipel (200 m², au-delà de 35 pers.)",

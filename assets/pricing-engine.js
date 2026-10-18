@@ -70,9 +70,16 @@
             }
             if (n > 35) L.push(ligne(base, s.lit_appoint.label, (Math.min(n, 40) - 35) * nuits, s.lit_appoint.pu, s.lit_appoint.tva, 'hebergement'));
         }
-        const l = tranche(s.lieu, n);
-        L.push(ligne(base, `${s.lieu_label} — 1er jour`, 1, l.premier, s.lieu_tva, 'lieu'));
-        if (jours > 1) L.push(ligne(base, `${s.lieu_label} — jours suivants`, jours - 1, l.suivant, s.lieu_tva, 'lieu'));
+        if (s.lieu_formule) {
+            // Salle équipée + privatisation : prix minimum puis par personne, sans palier ; jours suivants à un % du 1er jour
+            const f = s.lieu_formule, j1 = Math.round(f.fixe + f.par_pers * Math.max(0, n - f.inclus));
+            L.push(ligne(base, `${s.lieu_label} — 1er jour`, 1, j1, s.lieu_tva, 'lieu'));
+            if (jours > 1) L.push(ligne(base, `${s.lieu_label} — jours suivants`, jours - 1, Math.round(j1 * f.jour_suivant), s.lieu_tva, 'lieu'));
+        } else {
+            const l = tranche(s.lieu, n);
+            L.push(ligne(base, `${s.lieu_label} — 1er jour`, 1, l.premier, s.lieu_tva, 'lieu'));
+            if (jours > 1) L.push(ligne(base, `${s.lieu_label} — jours suivants`, jours - 1, l.suivant, s.lieu_tva, 'lieu'));
+        }
         if (n > s.archipel.seuil) L.push(ligne(base, s.archipel.label, 1, s.archipel.pu, s.archipel.tva, 'lieu'));
 
         catalogue(g, 'seminaire', d, base, L);
