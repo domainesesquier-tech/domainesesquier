@@ -131,9 +131,10 @@
       "inclus": 10,
       "par_pers": 37.5,
       "jour_suivant": 0.75,
+      "coordinateur_jour": 250,
       "note": "Validé le 2026-10-19 : 750 € jusqu'à 10 pers puis +37,50 €/pers (1 500 € à 30 p), par jour de travail (jours du séjour - 1), jours suivants -25 % (75 % du 1er jour) (MAJ 19/10)"
     },
-    "lieu_label": "Salle de travail équipée & privatisation du domaine (espaces communs, piscine, jardins, référent joignable chaque jour)",
+    "lieu_label": "Salle de travail équipée, privatisation du domaine & coordinateur dédié sur place (espaces communs, piscine, jardins)",
     "lieu_tva": 20,
     "archipel": {
       "label": "Salle Archipel (200 m², au-delà de 35 pers.)",
@@ -142,15 +143,9 @@
       "seuil": 35
     },
     "coordination": {
-      "label": "Conception & animation des activités (déroulé, prestataires, animation sur place)",
-      "pu": 500,
+      "label": "Conception pédagogique & animation des activités (déroulé, prestataires, animation)",
+      "pu": 250,
       "tva": 20
-    },
-    "coordination_sur_place": {
-      "label": "Coordinateur dédié sur place (logistique, enchaînement du programme, lien prestataires)",
-      "pu": 350,
-      "tva": 20,
-      "note": "Option, jours sans conception d'activités ; coût interne 250 €/jour"
     },
     "max_auto": 40,
     "acompte": 0.3,

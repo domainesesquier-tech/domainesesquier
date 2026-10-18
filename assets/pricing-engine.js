@@ -12,7 +12,6 @@
  *   prestations: [{ code: 'diner', qte: 30 }],      // catalogue du segment
  *   joursAnimation: 1,                              // séminaire : jours avec activité
  *   options: { draps: 35, archipel: true, cuisine_pro: false },   // groupe
- *   coordinationSurPlace: true | nombre de jours,                  // séminaire, option 350 €/jour
  *   mariage: { vinHonneur: 100, diner: 80, pack: 'archipel',
  *              secondeSoiree: false, traiteurExterieur: false, nuitsSup: 0 }
  * }
@@ -73,11 +72,12 @@
         }
         if (s.lieu_formule) {
             // Salle équipée + privatisation : prix minimum puis par personne, sans palier ; jours suivants à un % du 1er jour
-            const f = s.lieu_formule, j1 = Math.round(f.fixe + f.par_pers * Math.max(0, n - f.inclus));
-            L.push(ligne(base, `${s.lieu_label} — 1er jour`, 1, j1, s.lieu_tva, 'lieu'));
+            // Coordinateur sur place inclus chaque jour de travail, jamais remisé
+            const f = s.lieu_formule, j1 = Math.round(f.fixe + f.par_pers * Math.max(0, n - f.inclus)), co = f.coordinateur_jour || 0;
+            L.push(ligne(base, `${s.lieu_label} — 1er jour`, 1, j1 + co, s.lieu_tva, 'lieu'));
             // Facturé par jour de travail (jours du séjour - 1, au moins 1) : 2j/1n = 1 jour, 3j/2n = 2 jours
             const travail = Math.max(1, jours - 1);
-            if (travail > 1) L.push(ligne(base, `${s.lieu_label} — jours de travail suivants`, travail - 1, Math.round(j1 * f.jour_suivant), s.lieu_tva, 'lieu'));
+            if (travail > 1) L.push(ligne(base, `${s.lieu_label} — jours de travail suivants`, travail - 1, Math.round(j1 * f.jour_suivant) + co, s.lieu_tva, 'lieu'));
         } else {
             const l = tranche(s.lieu, n);
             L.push(ligne(base, `${s.lieu_label} — 1er jour`, 1, l.premier, s.lieu_tva, 'lieu'));
@@ -90,12 +90,6 @@
         const aActivite = (d.prestations || []).some(p => (s.catalogue[p.code] || {}).cat === 'activite');
         const joursAnim = d.joursAnimation != null ? d.joursAnimation : (aActivite ? 1 : 0);
         if (joursAnim > 0) L.push(ligne(base, s.coordination.label, joursAnim, s.coordination.pu, s.coordination.tva, 'service'));
-        // Option coordinateur sur place (true = tous les jours de travail) ; pas de double facturation les jours d'animation
-        if (d.coordinationSurPlace && s.coordination_sur_place) {
-            const c = s.coordination_sur_place, demande = d.coordinationSurPlace === true ? Math.max(1, jours - 1) : d.coordinationSurPlace;
-            const q = Math.max(0, demande - joursAnim);
-            if (q > 0) L.push(ligne(base, c.label, q, c.pu, c.tva, 'service'));
-        }
 
         if (d.agence) {
             const a = g.agence;
