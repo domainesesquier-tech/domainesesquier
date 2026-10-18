@@ -12,6 +12,7 @@
  *   prestations: [{ code: 'diner', qte: 30 }],      // catalogue du segment
  *   joursAnimation: 1,                              // séminaire : jours avec activité
  *   options: { draps: 35, archipel: true, cuisine_pro: false },   // groupe
+ *   coordinationSurPlace: true | nombre de jours,                  // séminaire, option 350 €/jour
  *   mariage: { vinHonneur: 100, diner: 80, pack: 'archipel',
  *              secondeSoiree: false, traiteurExterieur: false, nuitsSup: 0 }
  * }
@@ -89,6 +90,12 @@
         const aActivite = (d.prestations || []).some(p => (s.catalogue[p.code] || {}).cat === 'activite');
         const joursAnim = d.joursAnimation != null ? d.joursAnimation : (aActivite ? 1 : 0);
         if (joursAnim > 0) L.push(ligne(base, s.coordination.label, joursAnim, s.coordination.pu, s.coordination.tva, 'service'));
+        // Option coordinateur sur place (true = tous les jours de travail) ; pas de double facturation les jours d'animation
+        if (d.coordinationSurPlace && s.coordination_sur_place) {
+            const c = s.coordination_sur_place, demande = d.coordinationSurPlace === true ? Math.max(1, jours - 1) : d.coordinationSurPlace;
+            const q = Math.max(0, demande - joursAnim);
+            if (q > 0) L.push(ligne(base, c.label, q, c.pu, c.tva, 'service'));
+        }
 
         if (d.agence) {
             const a = g.agence;
