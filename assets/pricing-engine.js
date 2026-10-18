@@ -72,7 +72,7 @@
             if (n > 35) L.push(ligne(base, s.lit_appoint.label, (Math.min(n, 40) - 35) * nuits, s.lit_appoint.pu, s.lit_appoint.tva, 'hebergement'));
         }
         if (s.lieu_formule) {
-            // Salle équipée + privatisation : prix minimum puis par personne, sans palier ; jours suivants à un % du 1er jour
+            // Salle équipée + accès au domaine + coordinateur : prix minimum puis par personne, sans palier ; jours suivants à un % du 1er jour
             // Coordinateur sur place inclus chaque jour de travail, jamais remisé
             const f = s.lieu_formule, j1 = Math.round(f.fixe + f.par_pers * Math.max(0, n - f.inclus)), co = f.coordinateur_jour || 0;
             const travail = Math.max(1, jours - 1 + (d.journeesCompletes && jours > 1 ? 1 : 0));

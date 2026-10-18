@@ -31,7 +31,7 @@
     "prix": "TTC",
     "capacite_base": 35,
     "nuit": {
-      "label": "Privatisation du domaine (8 gîtes, Champs d'olivier, piscine, jardins)",
+      "label": "Le domaine pour votre groupe (8 gîtes, Champs d'olivier, piscine, jardins)",
       "pu": 1750,
       "tva": 10,
       "cat": "hebergement"
@@ -132,9 +132,9 @@
       "par_pers": 30,
       "jour_suivant": 1,
       "coordinateur_jour": 0,
-      "note": "Validé le 2026-10-19 : salle + privatisation + coordinateur absorbé (coût 250 €/j) = 750 € jusqu'à 15 pers puis +30 €/pers  ; plein tarif chaque jour (remises à la main) ; par jour de travail (jours - 1), +1 si journées complètes (arrivée matin et départ soir). Aligné Mas Neuf, stratégie volume"
+      "note": "Validé le 2026-10-19 : salle + accès au domaine + coordinateur absorbé (coût 250 €/j) = 750 € jusqu'à 15 pers puis +30 €/pers  ; plein tarif chaque jour (remises à la main) ; par jour de travail (jours - 1), +1 si journées complètes (arrivée matin et départ soir). Aligné Mas Neuf, stratégie volume"
     },
-    "lieu_label": "Salle de travail équipée, privatisation du domaine & coordinateur dédié sur place (espaces communs, piscine, jardins)",
+    "lieu_label": "Salle de travail équipée, accès à tout le domaine & coordinateur dédié sur place (espaces communs, piscine, jardins)",
     "lieu_tva": 20,
     "archipel": {
       "label": "Salle Archipel (200 m², au-delà de 35 pers.)",
