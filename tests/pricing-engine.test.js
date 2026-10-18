@@ -8,14 +8,14 @@ const sem = (personnes, nuits, extra = {}) => compute(grille, { segment: 'semina
 
 const cas = [
     // Séminaire : partie lieu (hébergement + forfait lieu) des devis 2026
-    ['CAP 5, 11 p, 1 nuit', lieu(sem(11, 1)), 2787],
-    ['JRI, 13 p, 2 nuits', lieu(sem(13, 2)), 5157],
-    ['Tohero, 29 p, 1 nuit', lieu(sem(29, 1)), 4790],
-    ['Etail, 28 p, 2 nuits', lieu(sem(28, 2)), 7931],
-    ['Sandfall, 30 p, 1 nuit', lieu(sem(30, 1)), 4900],
-    ['greenmyvoyage, 30 p, 4 nuits', lieu(sem(30, 4)), 15100],
-    ['Tohero tarif agence', lieu(sem(29, 1, { agence: true })), 4311],
-    ['Séminaire 8 p facturé 10', lieu(sem(8, 1)), 2675],
+    ['CAP 5, 11 p, 1 nuit', lieu(sem(11, 1)), 2393],
+    ['JRI, 13 p, 2 nuits', lieu(sem(13, 2)), 4983],
+    ['Tohero, 29 p, 1 nuit', lieu(sem(29, 1)), 4058],
+    ['Etail, 28 p, 2 nuits', lieu(sem(28, 2)), 7645],
+    ['Sandfall, 30 p, 1 nuit', lieu(sem(30, 1)), 4150],
+    ['greenmyvoyage, 30 p, 4 nuits', lieu(sem(30, 4)), 15700],
+    ['Tohero tarif agence', lieu(sem(29, 1, { agence: true })), 3652.2],
+    ['Séminaire 8 p facturé 10', lieu(sem(8, 1)), 2300],
     // Groupe : exemples publiés sur la grille groupe
     ['Groupe 35 p, 2 nuits, draps', compute(grille, { segment: 'groupe', dateArrivee: '2027-06-11', personnes: 35, nuits: 2, options: { draps: 35 } }).totaux.ttc, 4350],
     ['Groupe pont 3 nuits, draps', compute(grille, { segment: 'groupe', dateArrivee: '2027-05-06', personnes: 35, nuits: 3, options: { draps: 35 } }).totaux.ttc, 6100],
@@ -52,10 +52,10 @@ const fq = fromQuestionnaire(grille, { participants: 25, dateArrivee: '2027-09-0
 const rq = compute(grille, fq.demande);
 const qte = code => (fq.demande.prestations.find(x => x.code === code) || {}).qte || 0;
 assert.deepStrictEqual([qte('accueil_cafe'), qte('petit_dej'), qte('collation'), qte('dejeuner'), qte('diner')], [25, 25, 75, 50, 25]);
-// 2375 (1000 + 55 × 25) + salle 1313 + 657 + repas 25 × 165 + kayak 1000 + coordination 400
-const okQ = Math.abs(rq.totaux.ht - 9870) < 0.01;
+// 2375 (1000 + 55 × 25) + salle 1313 (1 jour de travail) + repas 25 × 165 + kayak 1000 + coordination 400
+const okQ = Math.abs(rq.totaux.ht - 9213) < 0.01;
 if (!okQ) ko++;
-console.log(`${okQ ? 'OK ' : 'KO '} Questionnaire 25 p 2j/1n pension + kayak : ${rq.totaux.ht} (attendu 9870)`);
+console.log(`${okQ ? 'OK ' : 'KO '} Questionnaire 25 p 2j/1n pension + kayak : ${rq.totaux.ht} (attendu 9213)`);
 const etude = fromQuestionnaire(grille, { participants: 15, dateArrivee: '2027-03-10', journeeEtude: true, arrivee: 'matin', restauration: 'pension', pauses: true });
 assert.strictEqual(etude.demande.nuits, 0);
 assert.ok(!compute(grille, etude.demande).lignes.some(l => l.cat === 'hebergement'), 'Journée d\'étude sans hébergement');
