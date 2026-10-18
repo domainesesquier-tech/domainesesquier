@@ -9,11 +9,11 @@ const sem = (personnes, nuits, extra = {}) => compute(grille, { segment: 'semina
 const cas = [
     // Séminaire : partie lieu (hébergement + forfait lieu) des devis 2026
     ['CAP 5, 11 p, 1 nuit', lieu(sem(11, 1)), 2355],
-    ['JRI, 13 p, 2 nuits', lieu(sem(13, 2)), 4817],
+    ['JRI, 13 p, 2 nuits', lieu(sem(13, 2)), 4930],
     ['Tohero, 29 p, 1 nuit', lieu(sem(29, 1)), 3765],
-    ['Etail, 28 p, 2 nuits', lieu(sem(28, 2)), 7189],
+    ['Etail, 28 p, 2 nuits', lieu(sem(28, 2)), 7360],
     ['Sandfall, 30 p, 1 nuit', lieu(sem(30, 1)), 3850],
-    ['greenmyvoyage, 30 p, 4 nuits', lieu(sem(30, 4)), 14860],
+    ['greenmyvoyage, 30 p, 4 nuits', lieu(sem(30, 4)), 15400],
     ['Tohero tarif agence', lieu(sem(29, 1, { agence: true })), 3388.5],
     ['Séminaire 8 p facturé 10', lieu(sem(8, 1)), 2300],
     // Groupe : exemples publiés sur la grille groupe
@@ -52,10 +52,10 @@ const fq = fromQuestionnaire(grille, { participants: 25, dateArrivee: '2027-09-0
 const rq = compute(grille, fq.demande);
 const qte = code => (fq.demande.prestations.find(x => x.code === code) || {}).qte || 0;
 assert.deepStrictEqual([qte('accueil_cafe'), qte('petit_dej'), qte('collation'), qte('dejeuner'), qte('diner')], [25, 25, 75, 50, 25]);
-// 2375 (1000 + 55 × 25) + salle 1050 + 893 (journées complètes : arrivée matin, départ soir) + repas 25 × 165 + kayak 1000 + conception 250
-const okQ = Math.abs(rq.totaux.ht - 9692) < 0.01;
+// 2375 (1000 + 55 × 25) + salle 2 × 1050 (journées complètes : arrivée matin, départ soir) + repas 25 × 165 + kayak 1000 + conception 250
+const okQ = Math.abs(rq.totaux.ht - 9850) < 0.01;
 if (!okQ) ko++;
-console.log(`${okQ ? 'OK ' : 'KO '} Questionnaire 25 p 2j/1n pension + kayak : ${rq.totaux.ht} (attendu 9692)`);
+console.log(`${okQ ? 'OK ' : 'KO '} Questionnaire 25 p 2j/1n pension + kayak : ${rq.totaux.ht} (attendu 9850)`);
 const etude = fromQuestionnaire(grille, { participants: 15, dateArrivee: '2027-03-10', journeeEtude: true, arrivee: 'matin', restauration: 'pension', pauses: true });
 assert.strictEqual(etude.demande.nuits, 0);
 assert.ok(!compute(grille, etude.demande).lignes.some(l => l.cat === 'hebergement'), 'Journée d\'étude sans hébergement');
@@ -64,9 +64,9 @@ console.log(ko ? `\n${ko} cas en échec` : '\nTous les cas passent');
 process.exit(ko ? 1 : 0);
 
 
-// Salle + privatisation + coordinateur : 750 € jusqu'à 15 p puis +30 €/pers, jours suivants -15 %
+// Salle + privatisation + coordinateur : 750 € jusqu'à 15 p puis +30 €/pers, plein tarif chaque jour (remises à la main)
 const sal = sem(20, 2).lignes.filter(l => l.cat === 'lieu').reduce((t, l) => t + l.total, 0);
-assert.strictEqual(sal, 900 + 765, 'Salle 20 p 3j/2n = 2 jours de travail, 2e à -15 %, coordinateur absorbé');
+assert.strictEqual(sal, 1800, 'Salle 20 p 3j/2n = 2 jours de travail à plein tarif, coordinateur absorbé');
 const s21 = (jc) => sem(20, 1, { journeesCompletes: jc }).lignes.filter(l => l.cat === 'lieu').reduce((t, l) => t + l.total, 0);
 assert.strictEqual(s21(false), 900, '2j/1n = 1 jour de salle');
-assert.strictEqual(s21(true), 1665, '2j/1n en journées complètes = 2 jours de salle');
+assert.strictEqual(s21(true), 1800, '2j/1n en journées complètes = 2 jours de salle');
