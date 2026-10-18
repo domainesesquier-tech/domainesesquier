@@ -280,6 +280,8 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
 
   const today = new Date().toISOString().slice(0, 10);
   form.dateArrivee.min = today; form.dateDepart.min = today;
+  const dateMax = (new Date().getFullYear() + 3) + '-12-31';
+  form.dateArrivee.max = dateMax; form.dateDepart.max = dateMax;
 
   const val = name => (form.querySelector(`input[name="${name}"]:checked`) || {}).value;
   const eur = n => n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -352,9 +354,11 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
     if (i === 0) {
       if (!q.participants || q.participants < 1) ok = erreur('participants', 'Indiquez le nombre de participants.') && ok;
       if (!q.dateArrivee) ok = erreur('dateArrivee', 'Indiquez une date.') && ok;
+      else if (q.dateArrivee > dateMax) ok = erreur('dateArrivee', 'Date invalide (vérifiez l\'année).') && ok;
+      if (q.dateDepart && q.dateDepart > dateMax) ok = erreur('dateDepart', 'Date invalide (vérifiez l\'année).') && ok;
       if (!q.journeeEtude && (!q.dateDepart || q.dateDepart <= q.dateArrivee)) ok = erreur('dateDepart', 'La date de départ doit suivre la date d\'arrivée.') && ok;
     }
-    if (i === 0 && q.segment !== 'seminaire' && q.dateDepart && (new Date(q.dateDepart) - new Date(q.dateArrivee)) / 86400000 < 2)
+    if (i === 0 && !ADMIN && q.segment !== 'seminaire' && q.dateDepart && (new Date(q.dateDepart) - new Date(q.dateArrivee)) / 86400000 < 2)
       ok = erreur('dateDepart', 'Deux nuits minimum pour accueillir votre groupe.') && ok;
     if (i === 3) {
       if (!form.prenom.value.trim()) ok = erreur('prenom', 'Champ requis.') && ok;

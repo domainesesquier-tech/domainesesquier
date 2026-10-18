@@ -397,7 +397,7 @@ async function verifyUser(token, env) {
 // ============================================================
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url           = new URL(request.url);
     const method        = request.method.toUpperCase();
     const requestOrigin = request.headers.get("Origin") || "";
@@ -681,6 +681,20 @@ export default {
           estimation_ht: p.estimation?.ht ? Math.round(p.estimation.ht) : null,
         };
         await sbFetch(env, `/rpc/public_demande`, { method: "POST", body: JSON.stringify({ p: row }) });
+        // Alerte mail via Google Apps Script (NOTIF_URL = URL du déploiement web, secret Worker).
+        // Envoyée après l'enregistrement, sans bloquer la réponse ; un échec n'annule jamais la demande.
+        if (env.NOTIF_URL && env.READ_ONLY !== "true") {
+          const alerte = fetch(env.NOTIF_URL, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: row.id, segment: seg, type: row.type, nom_client: row.nom_client,
+              contact: `${txt(c.prenom)} ${txt(c.nom)}`.trim(), email: row.email, telephone: row.telephone,
+              date_arrivee: row.date_arrivee, date_depart: row.date_depart, personnes: nb,
+              estimation_ht: row.estimation_ht, message: row.message, source: row.suivi_source, origine: txt(p.origine, 300),
+            }),
+          }).catch(e => console.error("Alerte mail :", e.message));
+          if (ctx && ctx.waitUntil) ctx.waitUntil(alerte); else await alerte;
+        }
         return json({ ok: true }, 201, env, requestOrigin);
       }
 

@@ -484,6 +484,7 @@
             <input type="text" id="lib-search-input" placeholder="Rechercher une prestation..." oninput="renderLibrary(this.value)">
         </div>
         <div class="lib-chips" id="lib-chips"></div>
+        <button class="lib-remise-btn" onclick="addRemise()" title="Ajoute une ligne de remise juste avant les totaux" style="margin:0 16px 8px;padding:8px 12px;border:1px dashed #3a5538;border-radius:6px;background:#fff;color:#3a5538;font-size:12px;font-weight:600;cursor:pointer;text-align:left;">+ Remise commerciale</button>
         <div class="lib-body" id="lib-body">
             <div class="lib-empty">Chargement...</div>
         </div>
@@ -544,10 +545,9 @@
         <div style="display:flex;align-items:center;gap:3px;padding:3px 8px;background:#f0ede6;border-radius:8px;border:1px solid #d1cec7;">
             <span style="font-size:11px;color:#6b7280;font-weight:500;margin-right:4px;white-space:nowrap;">Société :</span>
             <button id="prof-btn-ozza" onclick="setCompanyProfile('ozza')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:#3a5538;color:white;">OZZA</button>
-            <button id="btn-remise" onclick="addRemise()" title="Ajoute une ligne de remise juste avant les totaux" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;background:#fff;color:#3a5538;margin-right:6px;">+ Remise</button>
-            <button id="btn-grille-2027" onclick="applyGrille2027()" title="Recalcule hébergement et espaces avec la grille 2027" style="padding:4px 10px;border:1px solid #8b3a1e;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;background:#fff;color:#8b3a1e;margin-right:6px;">Grille 2027</button>
             <button id="prof-btn-foudre" onclick="setCompanyProfile('foudre')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:transparent;color:#3a5538;">FOUDRE SOCIETY</button>
         </div>
+        <button class="btn" id="btn-grille-2027" onclick="recalculerGrille2027()" title="Remplace les lignes du devis par le calcul de la grille 2027">Recalculer (grille 2027)</button>
         <span id="unsaved-badge" style="display:none; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; align-self:center; animation: pulse 2s infinite;">
             <i class="fas fa-circle-exclamation" style="margin-right:4px;"></i> Modifications non enregistrées
         </span>
@@ -559,8 +559,6 @@
             </svg>
             Enregistrer (Airtable)
         </button>
-        <button class="btn" onclick="copierPourClaude('devis')" title="Copie le dossier pour Claude Code : mot d'accueil + mail d'envoi">✨ Rédiger</button>
-        <button class="btn" onclick="copierPourClaude('relance')" title="Copie le dossier pour Claude Code : relance">✨ Relance</button>
         <button class="btn btn-primary" onclick="generatePDF()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -568,6 +566,7 @@
             </svg>
             Générer PDF
         </button>
+        <button class="btn" onclick="ouvrirMailClient()" title="Préparer le mail d'envoi du devis ou une relance avec Claude Code">✉ Mail client</button>
         <button class="btn" style="background: var(--primary); color: white;"
             onclick="SesquierUtils.broadcast('SWITCH_TAB', { tab: 'facture-finale', recordId: currentRequestId })">
             Facture Finale
@@ -2018,6 +2017,14 @@
             return subTr;
         }
 
+        function recalculerGrille2027() {
+            const msg = "Recalculer le devis avec la grille 2027 ?\n\n"
+                + "Les sections hébergement et salle (et repas, boissons, activités si la demande vient du questionnaire) "
+                + "seront vidées puis remplies à nouveau : tes ajustements manuels dans ces sections seront perdus, "
+                + "et la société sera remise selon la grille.";
+            if (confirm(msg)) applyGrille2027();
+        }
+
         async function applyGrille2027(opts = {}) {
             const fields = window._liveFields || (typeof currentRecord !== 'undefined' && currentRecord?.fields) || {};
             const segment = segmentFromType(fields["Type"]);
@@ -3112,6 +3119,31 @@
     </script>
 <style>#mot-accueil:empty::before { content: attr(data-placeholder); color: #aaa; font-style: italic; } @media print { #mot-accueil:empty { display: none !important; } }</style>
 <!-- Rédaction assistée (Claude) — panneau non imprimé -->
+<div id="mail-panel" class="no-print" style="display:none; position:fixed; top:0; right:0; bottom:0; width:min(400px,100%); background:#fff; box-shadow:-8px 0 24px rgba(0,0,0,.15); z-index:2000; padding:20px; overflow-y:auto; font-family:system-ui,sans-serif; font-size:14px; color:#1f2937;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <strong style="font-size:16px;">✉ Mail client</strong>
+        <button onclick="document.getElementById('mail-panel').style.display='none'" style="border:none;background:none;font-size:22px;cursor:pointer;">×</button>
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:6px;">
+        <button id="mail-choix-devis" class="btn" style="flex:1;" onclick="preparerMail('devis')">Envoi du devis</button>
+        <button id="mail-choix-relance" class="btn" style="flex:1;" onclick="preparerMail('relance')">Relance</button>
+    </div>
+    <p id="mail-relance-note" style="display:none; color:#92400e; font-size:12px; margin:0 0 10px;">Relance disponible une fois la date d'envoi du devis renseignée dans le suivi.</p>
+    <div id="mail-etapes" style="display:none; margin-top:14px; background:#f6f4ef; border-radius:8px; padding:14px 16px; line-height:1.55;">
+        <div style="color:#3a5538; font-weight:600; margin-bottom:8px;">✓ <span id="mail-etape-titre"></span> copié</div>
+        <ol style="margin:0; padding-left:18px;">
+            <li>Dans Claude Code, colle (⌘V) puis Entrée.</li>
+            <li>Claude rédige et crée un <strong>brouillon Gmail</strong> ; il te le confirme dans Claude Code.</li>
+            <li id="mail-etape-accueil">Il te donne aussi le mot d'accueil : colle-le dans le cadre en tête du devis, puis Enregistrer.</li>
+            <li>Relis le brouillon, joins le PDF si besoin, et envoie.</li>
+        </ol>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+            <a class="btn btn-primary" href="https://mail.google.com/mail/?authuser=domainesesquier@gmail.com#drafts" target="_blank" rel="noopener" style="text-decoration:none;">Ouvrir mes brouillons Gmail</a>
+            <button class="btn" id="mail-recopier">Recopier</button>
+        </div>
+    </div>
+    <p style="color:#888; font-size:12px; margin-top:14px;">Rien n'est envoyé automatiquement : le mail reste en brouillon jusqu'à ce que tu l'envoies.</p>
+</div>
 <div id="ia-panel" class="no-print" style="display:none; position:fixed; top:0; right:0; bottom:0; width:min(440px,100%); background:#fff; box-shadow:-8px 0 24px rgba(0,0,0,.15); z-index:2000; padding:18px; overflow-y:auto; font-family:system-ui,sans-serif; font-size:14px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <strong id="ia-titre">Rédaction</strong>
@@ -3158,14 +3190,34 @@
         };
     }
 
+    // Panneau « Mail client » : choix envoi / relance, puis étapes visibles
+    function ouvrirMailClient() {
+        const f = window._liveFields || currentRecord?.fields || {};
+        const envoye = !!f['Suivi Date devis'];
+        document.getElementById('mail-choix-relance').disabled = !envoye;
+        document.getElementById('mail-choix-relance').style.opacity = envoye ? '1' : '.45';
+        document.getElementById('mail-relance-note').style.display = envoye ? 'none' : 'block';
+        document.getElementById('mail-etapes').style.display = 'none';
+        document.getElementById('mail-panel').style.display = 'block';
+    }
+    async function preparerMail(mode) {
+        const ok = await copierPourClaude(mode);
+        document.getElementById('mail-etape-titre').textContent = mode === 'relance' ? 'Contexte de la relance' : "Contexte de l'envoi du devis";
+        document.getElementById('mail-etape-accueil').style.display = mode === 'devis' ? 'list-item' : 'none';
+        const re = document.getElementById('mail-recopier');
+        re.textContent = ok ? 'Recopier' : 'Copier';
+        re.onclick = async () => { if (await copierPourClaude(mode)) re.textContent = 'Recopié ✓'; };
+        document.getElementById('mail-etapes').style.display = 'block';
+    }
+
     // Usage perso : copie le contexte à coller dans Claude Code (/sesquier-redaction), sans clé API
     async function copierPourClaude(mode) {
         const texte = `/sesquier-redaction ${mode}\n${JSON.stringify(contexteIA(mode))}`;
-        try { await navigator.clipboard.writeText(texte); } catch (e) { prompt('Copie ce texte :', texte); }
+        let ok = true;
+        try { await navigator.clipboard.writeText(texte); } catch (e) { ok = false; prompt('Copie ce texte :', texte); }
         const ma = document.getElementById('mot-accueil');
         if (mode === 'devis' && ma && !ma.innerText.trim()) { ma.style.display = 'block'; ma.dataset.placeholder = "Colle ici le mot d'accueil rédigé par Claude"; }
-        if (typeof showToast === 'function') showToast('Copié : colle-le dans Claude Code');
-        else alert("Copié : colle-le dans Claude Code. Le mail arrivera en brouillon dans Gmail.");
+        return ok;
     }
 
     // Usage client (plus tard) : appel direct au Worker, qui interroge l'API Claude avec la clé du domaine
