@@ -15,14 +15,16 @@ declare
   v_pid planning.id%type;
 begin
   -- 1) Calendrier : la date passe en « Demandé » (affichée « sur demande » sur le calendrier public)
-  insert into planning (nom, type, date_arrivee, date_depart, statut, nb_personnes, montant, notes, contact_tel)
+  -- logements obligatoire : une demande bloque l'ensemble du domaine (liste habituelle des réservations de groupe)
+  insert into planning (nom, type, date_arrivee, date_depart, statut, nb_personnes, montant, notes, contact_tel, logements)
   values (
     left(p->>'nom_client', 200),
     case p->>'segment' when 'groupe' then 'Week-end privé' when 'mariage' then 'Mariage' else 'Séminaire' end,
     (p->>'date_arrivee')::date, (p->>'date_depart')::date, 'Demandé',
     least(greatest(coalesce((p->>'nombre_de_personnes')::int, 0), 0), 500),
     nullif(p->>'estimation_ht', '')::numeric,
-    'Demande reçue via le questionnaire du site', left(p->>'telephone', 40)
+    'Demande reçue via le questionnaire du site', left(p->>'telephone', 40),
+    array['Acacia','Hibiscus','Pivoine','Belle de nuit','Iris','Rose','Figuier','Jasmin','Clos Josette','Sous les toits','Champs d''Olivier','Archipel']
   )
   returning id into v_pid;
 
