@@ -29,8 +29,8 @@ update bibliotheque_prestations set nom = 'Repas grillade en plein air — menu 
 update bibliotheque_prestations set nom = 'Bouteille de vin local (rouge ou blanc)', prix_ht = 16.67, unite = 'unite' where id = 14;
 update bibliotheque_prestations set nom = 'Accueil café & mignardises', prix_ht = 10, unite = 'pers',
   description = 'Café, thé et infusions accompagnés d''une sélection de mignardises sucrées et salées, fruits et jus, servis dès votre arrivée.' where id = 15;
-update bibliotheque_prestations set nom = 'Coordination des animations', prix_ht = 400, unite = 'jour',
-  description = 'Conception et conduite des activités : déroulé, coordination des prestataires, animation des temps forts, coordinateur dédié présent les jours d''animation.' where id = 18;
+update bibliotheque_prestations set nom = 'Conception pédagogique & animation des activités', prix_ht = 250, unite = 'jour',
+  description = 'Conception et conduite des activités : déroulé, choix et coordination des prestataires, animation des temps forts. Le coordinateur sur place est inclus dans le forfait salle & privatisation.' where id = 18;
 update bibliotheque_prestations set prix_ht = 20, unite = 'pers' where id = 19;
 update bibliotheque_prestations set nom = 'Workshop intelligence collective — ouverture & clôture (2 × 1h)', prix_ht = 750, unite = 'forfait',
   description = 'Séquence d''ouverture le premier jour et de clôture le dernier jour : conception sur mesure, fil conducteur, animation et matériel fournis.' where id = 21;
