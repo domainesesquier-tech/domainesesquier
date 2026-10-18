@@ -128,11 +128,11 @@
     ],
     "lieu_formule": {
       "fixe": 750,
-      "inclus": 10,
-      "par_pers": 37.5,
-      "jour_suivant": 0.75,
-      "coordinateur_jour": 250,
-      "note": "Validé le 2026-10-19 : 750 € jusqu'à 10 pers puis +37,50 €/pers (1 500 € à 30 p), par jour de travail (jours du séjour - 1), jours suivants -25 % (75 % du 1er jour) (MAJ 19/10)"
+      "inclus": 15,
+      "par_pers": 30,
+      "jour_suivant": 0.85,
+      "coordinateur_jour": 0,
+      "note": "Validé le 2026-10-19 : salle + privatisation + coordinateur absorbé (coût 250 €/j) = 750 € jusqu'à 15 pers puis +30 €/pers ; jours suivants -15 % ; par jour de travail (jours - 1), +1 si journées complètes (arrivée matin et départ soir). Aligné Mas Neuf, stratégie volume"
     },
     "lieu_label": "Salle de travail équipée, privatisation du domaine & coordinateur dédié sur place (espaces communs, piscine, jardins)",
     "lieu_tva": 20,

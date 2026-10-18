@@ -11,6 +11,7 @@
  *   dateArrivee: 'YYYY-MM-DD', nuits: 2, personnes: 30, agence: false,
  *   prestations: [{ code: 'diner', qte: 30 }],      // catalogue du segment
  *   joursAnimation: 1,                              // séminaire : jours avec activité
+ *   journeesCompletes: true,                        // séminaire : arrivée matin + départ soir → salle aussi le dernier jour
  *   options: { draps: 35, archipel: true, cuisine_pro: false },   // groupe
  *   mariage: { vinHonneur: 100, diner: 80, pack: 'archipel',
  *              secondeSoiree: false, traiteurExterieur: false, nuitsSup: 0 }
@@ -76,7 +77,7 @@
             const f = s.lieu_formule, j1 = Math.round(f.fixe + f.par_pers * Math.max(0, n - f.inclus)), co = f.coordinateur_jour || 0;
             L.push(ligne(base, `${s.lieu_label} — 1er jour`, 1, j1 + co, s.lieu_tva, 'lieu'));
             // Facturé par jour de travail (jours du séjour - 1, au moins 1) : 2j/1n = 1 jour, 3j/2n = 2 jours
-            const travail = Math.max(1, jours - 1);
+            const travail = Math.max(1, jours - 1 + (d.journeesCompletes && jours > 1 ? 1 : 0));
             if (travail > 1) L.push(ligne(base, `${s.lieu_label} — jours de travail suivants`, travail - 1, Math.round(j1 * f.jour_suivant) + co, s.lieu_tva, 'lieu'));
         } else {
             const l = tranche(s.lieu, n);
@@ -266,7 +267,8 @@
                 nuits,
                 agence: !!q.agence,
                 prestations,
-                joursAnimation: Math.min(nbActivites, jours.length)
+                joursAnimation: Math.min(nbActivites, jours.length),
+                journeesCompletes: q.arrivee === 'matin' && q.depart === 'soir'
             }
         };
     }
