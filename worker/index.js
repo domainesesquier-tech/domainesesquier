@@ -43,12 +43,38 @@ const SANDBOX = {
   numero: 900,
 };
 
+// Sur Cloudflare, la mémoire n'est pas partagée entre requêtes : si le KV SANDBOX_KV est lié
+// (worker de test), l'état du bac à sable y est relu et réécrit à chaque appel.
+async function loadSandbox(env) {
+  if (!env.SANDBOX_KV) return;
+  const st = await env.SANDBOX_KV.get("state", "json");
+  if (!st) return;
+  SANDBOX.reservations = new Map(st.reservations); SANDBOX.planning = new Map(st.planning);
+  SANDBOX.deleted = { reservations: new Set(st.deleted.reservations), planning: new Set(st.deleted.planning) };
+  SANDBOX.numero = st.numero;
+}
+async function saveSandbox(env) {
+  if (!env.SANDBOX_KV) return;
+  await env.SANDBOX_KV.put("state", JSON.stringify({
+    reservations: [...SANDBOX.reservations], planning: [...SANDBOX.planning],
+    deleted: { reservations: [...SANDBOX.deleted.reservations], planning: [...SANDBOX.deleted.planning] },
+    numero: SANDBOX.numero,
+  }));
+}
+
 async function sbFetch(env, path, init = {}) {
   return env.READ_ONLY === "true" ? sandboxFetch(env, path, init) : sbFetchReal(env, path, init);
 }
 
 async function sandboxFetch(env, path, init = {}) {
   const method = (init.method || "GET").toUpperCase();
+  await loadSandbox(env);
+  const res = await sandboxFetchMem(env, path, init, method);
+  if (method !== "GET") await saveSandbox(env);
+  return res;
+}
+
+async function sandboxFetchMem(env, path, init, method) {
   if (path.startsWith("/rpc/next_doc_number")) return ++SANDBOX.numero;
   if (path.startsWith("/rpc/public_demande")) {
     const p = JSON.parse(init.body || "{}").p || {};

@@ -19,6 +19,10 @@ ENVIRONMENT = "production"
 [env.staging]
 name = "domainesesquier-api-v2"
 
+[[env.staging.kv_namespaces]]
+binding = "SANDBOX_KV"
+id = "11c179706b8e4084848ee0dd142a3cca"
+
 [env.staging.vars]
 ALLOWED_ORIGINS = "https://v2.domainesesquier.com,https://domainesesquier-v2.pages.dev,https://www.domainesesquier.com,https://domainesesquier.com"
 ENVIRONMENT = "staging"
