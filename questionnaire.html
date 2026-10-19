@@ -86,6 +86,12 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--v
 .note-type { background: var(--tendre); border-radius: 14px; padding: 14px 18px; font-size: 14px; margin-top: 12px; }
 .note-type a { color: var(--vert); font-weight: 600; }
 .merci { text-align: left; }
+.dispo { display: flex; align-items: flex-start; gap: 10px; margin: -4px 0 20px; padding: 10px 14px; border-radius: 12px; font-size: 14px; font-weight: 500; line-height: 1.45; }
+.dispo::before { content: ''; flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: currentColor; }
+.dispo.attente { background: transparent; padding: 0 2px; color: var(--doux); font-weight: 400; }
+.dispo.ok { background: var(--tendre); color: var(--olive); }
+.dispo.option { background: #F1EADF; color: #7A5B2E; }
+.dispo.non { background: #F4E4DC; color: var(--erreur); }
 @media (max-width: 860px) {
   .wrap { padding: 36px 16px 56px; }
   .card { padding: 22px 18px; border-radius: 18px; }
@@ -167,6 +173,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
             <div class="err" data-err="dateDepart"></div>
           </fieldset>
         </div>
+        <p class="dispo" id="dispo" role="status" aria-live="polite" hidden></p>
         <fieldset id="bloc-profil">
           <legend>Vous êtes</legend>
           <div class="choices">
@@ -466,6 +473,42 @@ html.embed .wrap { padding: 12px 16px 32px; }
     document.getElementById('lab-arrivee').textContent = etude ? 'Date de la journée' : 'Date d\'arrivée';
   }
 
+  // Disponibilités : même source et même règle que le calendrier public (statut seul, le domaine se loue en entier) :
+  // confirmé / bloqué = pris ; tout autre statut actif (option, à traiter, demandé…) = sur demande ; annulé / archivé = ignoré.
+  const STATUTS_PRIS = ['confirmé', 'bloqué'], STATUTS_IGNORES = ['annulé', 'archivé'];
+  const cacheMois = {};
+  const moisDispo = m => cacheMois[m] || (cacheMois[m] = fetch(`${API_BASE}/api/public/disponibilites?mois=${m}`)
+    .then(r => r.ok ? r.json() : Promise.reject(r.status)).then(d => d.records || [])
+    .catch(e => { delete cacheMois[m]; throw e; }));
+  const decaler = (ymd, n) => { const d = new Date(ymd + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  let jetonDispo = 0, minuterieDispo = null;
+  async function verifierDispo() {
+    const el = document.getElementById('dispo'), q = reponses(), n = ++jetonDispo;
+    const fin = q.journeeEtude ? (q.dateArrivee && decaler(q.dateArrivee, 1)) : q.dateDepart;
+    if (!q.dateArrivee || !fin || fin <= q.dateArrivee || q.dateArrivee < today || q.dateArrivee > dateMax) { el.hidden = true; return; }
+    const nuits = [];
+    for (let d = q.dateArrivee; d < fin && nuits.length < 62; d = decaler(d, 1)) nuits.push(d);
+    el.hidden = false; el.className = 'dispo attente'; el.textContent = 'Vérification des disponibilités…';
+    try {
+      const lots = await Promise.all([...new Set(nuits.map(d => d.slice(0, 7)))].map(moisDispo));
+      if (n !== jetonDispo) return;
+      const etat = {};
+      lots.flat().forEach(r => {
+        const f = r.fields || r, st = (f['Statut'] || '').trim().toLowerCase();
+        const a = (f['Date arrivée'] || '').slice(0, 10), dp = (f['Date départ'] || '').slice(0, 10);
+        if (!st || STATUTS_IGNORES.includes(st) || !a || !dp) return;
+        nuits.forEach(d => { if (d >= a && d < dp) etat[d] = Math.max(etat[d] || 0, STATUTS_PRIS.includes(st) ? 2 : 1); });
+      });
+      const pris = nuits.filter(d => etat[d] === 2).length, surDemande = nuits.some(d => etat[d] === 1);
+      const [cls, txt] = pris === nuits.length ? ['non', `${q.journeeEtude ? 'Cette date n’est' : 'Ces dates ne sont'} plus disponible${q.journeeEtude ? '' : 's'}. Essayez d’autres dates, ou envoyez votre demande : nous vous proposerons des dates proches.`]
+        : pris ? ['non', 'Une partie de ces dates n’est plus disponible. Essayez d’autres dates, ou envoyez votre demande : nous vous proposerons des dates proches.']
+        : surDemande ? ['option', `${q.journeeEtude ? 'Cette date est' : 'Ces dates sont'} sur demande : un autre projet est à l’étude. Envoyez votre demande, nous vous répondons rapidement.`]
+        : ['ok', `Bonne nouvelle : ${q.journeeEtude ? 'cette date est encore disponible' : 'ces dates sont encore disponibles'} !`];
+      el.className = 'dispo ' + cls; el.textContent = txt;
+    } catch (e) { if (n === jetonDispo) el.hidden = true; } // service indisponible : on n'affiche rien
+  }
+  const planifierDispo = () => { clearTimeout(minuterieDispo); minuterieDispo = setTimeout(verifierDispo, 350); };
+
   // Estimation interne : jamais affichée au client, jointe à la demande pour le devis.
   function estimer() {
     derniere = null;
@@ -611,8 +654,9 @@ html.embed .wrap { padding: 12px 16px 32px; }
       form.querySelector('[data-err="dateDepart"]').textContent = '';
     }
     majFormat(); estimer();
+    if (['dateArrivee', 'dateDepart'].includes(e.target.name)) planifierDispo();
   });
-  form.addEventListener('change', () => { majFormat(); estimer(); });
+  form.addEventListener('change', e => { majFormat(); estimer(); if (['dateArrivee', 'dateDepart', 'format'].includes(e.target.name)) planifierDispo(); });
 
   const params = new URLSearchParams(location.search);
   // Parcours déjà connu (lien du site ?type=, ou pré-remplissage interne) : on saute l'écran de départ
@@ -649,6 +693,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
   if (parcoursConnu) afficher(0); else choisirProjet();
   window.scrollTo(0, 0);
   pret = true;
+  if (form.dateArrivee.value) planifierDispo();
   // En iframe : la page parente ajuste la hauteur de l'iframe (pas de barre de défilement interne)
   if (EMBED) {
     const main = document.querySelector('main');
