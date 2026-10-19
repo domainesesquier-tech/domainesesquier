@@ -59,7 +59,7 @@
         "cat": "hebergement"
       },
       "archipel": {
-        "label": "Salle Archipel (200 m²)",
+        "label": "Salle Archipel (200 m², cuisine professionnelle incluse)",
         "pu": 1250,
         "unite": "sejour",
         "tva": 20,
@@ -67,7 +67,7 @@
       },
       "cuisine_pro": {
         "label": "Cuisine professionnelle",
-        "pu": 600,
+        "pu": 650,
         "unite": "sejour",
         "tva": 20,
         "cat": "lieu"

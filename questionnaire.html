@@ -248,13 +248,17 @@ html.embed .wrap { padding: 12px 16px 32px; }
       <section data-step="4" hidden>
         <h2>Vos envies</h2>
         <div id="envies-groupe">
-          <p class="note-type" style="margin:0 0 22px"><b>Compris dans votre séjour</b><br>8 gîtes (jusqu’à 40 couchages) · salle Champs d’olivier (90 m²) pour les repas et les soirées · piscine et jardins · ménage de fin de séjour · taxe de séjour</p>
+          <p class="note-type" style="margin:0 0 22px"><b>Compris dans votre séjour</b><br>8 gîtes (jusqu’à 40 couchages) · salle Champs d’olivier (100 m²) pour les repas et les soirées · accès aux espaces extérieurs, piscine et jardins · ménage de fin de séjour · taxe de séjour<br>Idéal jusqu’à 40 personnes.</p>
           <fieldset><legend>Draps et linge de lit (10 € par personne)</legend><div class="choices">
             <label class="choice"><input type="radio" name="draps" value="1" checked><span>Oui</span></label>
             <label class="choice"><input type="radio" name="draps" value="0"><span>Nous apportons les nôtres</span></label></div></fieldset>
-          <fieldset><legend>Un traiteur ou un chef viendra cuisiner sur place</legend><div class="choices">
-            <label class="choice"><input type="radio" name="cuisine_pro" value="1"><span>Oui</span></label>
-            <label class="choice"><input type="radio" name="cuisine_pro" value="0" checked><span>Non</span></label></div></fieldset>
+          <fieldset><legend>Options</legend>
+            <p class="hint">Pour une réception à plus de 40 personnes, ou pour faire venir un traiteur ou un chef.</p>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="salle" value="" checked><span>Rien de plus</span></label>
+              <label class="choice"><input type="radio" name="salle" value="archipel"><span>Salle Archipel (200 m²), cuisine pro incluse · + 1 250 €</span></label>
+              <label class="choice"><input type="radio" name="salle" value="cuisine"><span>Cuisine professionnelle seule · + 650 €</span></label>
+            </div></fieldset>
         </div>
         <div id="envies-mariage" hidden>
           <fieldset><legend>Lieu de la réception</legend><div class="choices">
@@ -428,7 +432,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
       objectif: val('type') === 'seminaire' ? form.objectif.value : '', budget: form.budget.value.trim().slice(0, 120),
       activites: [], animations: val('animations') === '1', activitesSouhaitees: val('animations') === '1' ? souhaits : [],
       segment: val('type'),
-      draps: val('draps') === '1', archipel: val('archipel') === '1', cuisine_pro: val('cuisine_pro') === '1',
+      draps: val('draps') === '1', archipel: val('salle') === 'archipel', cuisine_pro: val('salle') === 'cuisine',
       pack: val('pack') || '', secondeSoiree: val('secondeSoiree') === '1', traiteurExterieur: val('traiteurExterieur') === '1'
     };
   }
@@ -628,6 +632,8 @@ html.embed .wrap { padding: 12px 16px 32px; }
       const pre = m ? JSON.parse(decodeURIComponent(m[1])) : null;
       if (pre && pre.type) parcoursConnu = true;
       if (pre && Array.isArray(pre.activites)) noterSouhaits(pre.activites);
+      // anciennes clés oui / non (archipel, cuisine_pro) -> choix unique « salle »
+      if (pre && (pre.archipel || pre.cuisine_pro)) pre.salle = [true, 1, '1'].includes(pre.archipel) ? 'archipel' : [true, 1, '1'].includes(pre.cuisine_pro) ? 'cuisine' : '';
       if (pre) Object.entries(pre).forEach(([k, v]) => {
         const els = [...form.querySelectorAll(`[name="${k}"]`)];
         if (!els.length || v == null) return;
