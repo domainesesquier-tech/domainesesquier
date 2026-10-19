@@ -51,7 +51,7 @@ function envoyerAccuse(d) {
   const type = d.segment === 'mariage' ? 'Mariage' : d.segment === 'groupe' ? 'Séjour de groupe'
     : d.journee_etude ? 'Journée d’étude' : 'Séminaire';
   const points = [
-    `${type} pour ${d.personnes} personne${d.personnes > 1 ? 's' : ''}`,
+    `${type} pour ${d.personnes} ${d.segment === 'mariage' ? 'invité' : 'personne'}${d.personnes > 1 ? 's' : ''}`,
     periode(d),
     d.organisation || '',
   ].filter(Boolean);

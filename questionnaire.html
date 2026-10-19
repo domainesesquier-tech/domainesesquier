@@ -226,9 +226,9 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
           <fieldset><label class="lab" for="prenom">Prénom</label><input type="text" id="prenom" name="prenom" autocomplete="given-name" required><div class="err" data-err="prenom"></div></fieldset>
           <fieldset><label class="lab" for="nom">Nom</label><input type="text" id="nom" name="nom" autocomplete="family-name" required><div class="err" data-err="nom"></div></fieldset>
         </div>
-        <fieldset><label class="lab" for="organisation">Entreprise ou agence</label><input type="text" id="organisation" name="organisation" autocomplete="organization"></fieldset>
+        <fieldset id="bloc-organisation"><label class="lab" id="lab-organisation" for="organisation">Entreprise ou agence</label><input type="text" id="organisation" name="organisation" autocomplete="organization"></fieldset>
         <div class="row">
-          <fieldset><label class="lab" for="email">E-mail professionnel</label><input type="email" id="email" name="email" autocomplete="email" required><div class="err" data-err="email"></div></fieldset>
+          <fieldset><label class="lab" id="lab-email" for="email">E-mail professionnel</label><input type="email" id="email" name="email" autocomplete="email" required><div class="err" data-err="email"></div></fieldset>
           <fieldset><label class="lab" for="telephone">Téléphone</label><input type="tel" id="telephone" name="telephone" autocomplete="tel" required><div class="err" data-err="telephone"></div></fieldset>
         </div>
         <fieldset><label class="lab" for="message">Votre projet</label><textarea id="message" name="message" placeholder="Objectifs, contraintes, envies particulières…"></textarea></fieldset>
@@ -356,6 +356,10 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
     document.getElementById('bloc-profil').hidden = !sem;
     if (!sem) form.querySelector('input[name="format"][value="residentiel"]').checked = true;
     document.getElementById('envies-groupe').hidden = seg !== 'groupe';
+    document.getElementById('bloc-organisation').hidden = seg === 'mariage';
+    document.getElementById('lab-organisation').textContent = sem ? 'Entreprise ou agence' : 'Association, club ou entreprise (facultatif)';
+    document.getElementById('lab-email').textContent = sem ? 'E-mail professionnel' : 'E-mail';
+    form.message.placeholder = { seminaire: 'Objectifs, contraintes, envies particulières…', groupe: 'L’occasion (anniversaire, cousinade, retraite…), vos envies, vos questions…', mariage: 'Cérémonie sur place ou non, vos envies, vos questions…' }[seg];
     document.getElementById('envies-mariage').hidden = seg !== 'mariage';
     document.getElementById('lab-participants').textContent = seg === 'mariage' ? 'Nombre d\'invités' : (sem ? 'Nombre de participants' : 'Nombre de personnes');
     document.getElementById('hint-participants').textContent = seg === 'mariage' ? 'Réception jusqu\'à 40 invités au Champs d\'olivier, davantage en salle Archipel. 40 couchages sur place.'
@@ -402,7 +406,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
       if (!q.journeeEtude && (!q.dateDepart || q.dateDepart <= q.dateArrivee)) ok = erreur('dateDepart', 'La date de départ doit suivre la date d\'arrivée.') && ok;
     }
     if (i === 0 && !ADMIN && q.segment !== 'seminaire' && q.dateDepart && (new Date(q.dateDepart) - new Date(q.dateArrivee)) / 86400000 < 2)
-      ok = erreur('dateDepart', 'Deux nuits minimum pour accueillir votre groupe.') && ok;
+      ok = erreur('dateDepart', q.segment === 'mariage' ? 'Deux nuits minimum pour un mariage au domaine.' : 'Deux nuits minimum pour accueillir votre groupe.') && ok;
     if (i === 3) {
       if (!form.prenom.value.trim()) ok = erreur('prenom', 'Champ requis.') && ok;
       if (!form.nom.value.trim()) ok = erreur('nom', 'Champ requis.') && ok;
