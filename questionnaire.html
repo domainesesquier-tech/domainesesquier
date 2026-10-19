@@ -69,16 +69,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
 .choice input:checked + span { background: var(--vert); border-color: var(--vert); color: var(--carte); }
 .choice input:checked + span::before { content: ''; width: 12px; height: 12px; background: var(--coche) center / contain no-repeat; }
 .choice input:disabled + span { opacity: .45; cursor: not-allowed; }
-.acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.act { position: relative; display: block; border: 1px solid var(--ligne); border-radius: 12px; padding: 10px 40px 10px 14px; cursor: pointer; background: #fff; transition: border-color .2s, background-color .2s; }
-.act:hover { border-color: var(--sauge); }
-.act input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-.act::after { content: ''; position: absolute; right: 12px; top: 12px; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--sauge); background: #fff; }
-.act b { display: block; font-size: 14px; font-weight: 600; color: var(--vert); }
-.act small { color: var(--doux); font-size: 12.5px; line-height: 1.4; display: block; }
-.act:has(input:checked) { border-color: var(--vert); background: var(--tendre); }
-.act:has(input:checked)::after { border-color: var(--vert); background: var(--vert) var(--coche) center / 11px no-repeat; }
-.act:has(input:focus-visible) { outline: 2px solid var(--vert); outline-offset: 2px; }
 .nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--ligne); }
 .btn { font: inherit; font-size: 14px; font-weight: 600; padding: 10px 22px; border-radius: 100px; border: 1px solid var(--sauge); background: transparent; color: var(--vert); cursor: pointer; transition: background-color .2s, border-color .2s, color .2s; }
 .btn:hover { border-color: var(--vert); }
@@ -97,7 +87,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
 @media (max-width: 860px) {
   .wrap { padding: 36px 16px 56px; }
   .card { padding: 22px 18px; border-radius: 18px; }
-  .row, .acts { grid-template-columns: 1fr; }
+  .row { grid-template-columns: 1fr; }
   .projet { gap: 12px; padding: 12px 14px 12px 12px; }
   .projet .fleche { display: none; }
   .steps span { font-size: 11px; letter-spacing: 0; }
@@ -184,6 +174,20 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
       <section data-step="1" hidden>
         <h2>Le programme</h2>
         <fieldset>
+          <legend>Objectif du séminaire</legend>
+          <p class="hint">Facultatif, plusieurs choix possibles.</p>
+          <div class="choices">
+            <label class="choice"><input type="checkbox" name="objectifs" value="Séjour team building"><span>Séjour team building</span></label>
+            <label class="choice"><input type="checkbox" name="objectifs" value="Réunion commerciale"><span>Réunion commerciale</span></label>
+            <label class="choice"><input type="checkbox" name="objectifs" value="Séminaire annuel"><span>Séminaire annuel</span></label>
+            <label class="choice"><input type="checkbox" name="objectifs" value="Comité de direction (CODIR)"><span>Comité de direction (CODIR)</span></label>
+            <label class="choice"><input type="checkbox" name="objectifs" value="Lancement de projet"><span>Lancement de projet</span></label>
+            <label class="choice"><input type="checkbox" name="objectifs" value="Formation"><span>Formation</span></label>
+            <label class="choice"><input type="checkbox" name="objectifs" value="Récompense d&#39;équipe (incentive)"><span>Récompense d'équipe (incentive)</span></label>
+            <label class="choice"><input type="checkbox" name="objectifs" value="Autre"><span>Autre</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
           <legend>Arrivée le premier jour</legend>
           <div class="choices">
             <label class="choice"><input type="radio" name="arrivee" value="matin" checked><span>Le matin</span></label>
@@ -268,15 +272,18 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
         <h2>Activités et accès</h2>
         <fieldset>
           <legend>Activités de cohésion</legend>
-          <p class="hint">Facultatif. Nous coordonnons les activités sur place.</p>
-          <div class="acts" id="acts"></div>
+          <p class="hint">Olympiades, sortie en bateau, kayak, murder party… Nous vous faisons des propositions avec votre devis.</p>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="animations" value="1"><span>Oui, faites-nous des propositions</span></label>
+            <label class="choice"><input type="radio" name="animations" value="0" checked><span>Non merci</span></label>
+          </div>
         </fieldset>
         <fieldset>
           <legend>Venir au domaine</legend>
           <div class="choices">
             <label class="choice"><input type="radio" name="transport" value="aucun" checked><span>Par nos propres moyens</span></label>
-            <label class="choice"><input type="radio" name="transport" value="vtc"><span>Navette VTC depuis Montpellier</span></label>
-            <label class="choice"><input type="radio" name="transport" value="autocar"><span>Autocar depuis la gare</span></label>
+            <label class="choice"><input type="radio" name="transport" value="vtc"><span>En VTC depuis les gares de Montpellier</span></label>
+            <label class="choice"><input type="radio" name="transport" value="autre"><span>Autre</span></label>
           </div>
         </fieldset>
       </section>
@@ -379,8 +386,13 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
   }
   let etape = 0, grille = null, derniere = null;
 
-  document.getElementById('acts').innerHTML = ACTIVITES.map(([code, titre, desc]) =>
-    `<label class="act"><input type="checkbox" name="activites" value="${code}"><b>${titre}</b><small>${desc}</small></label>`).join('');
+  // Activités : simple oui / non, propositions faites avec le devis. L'estimation n'en compte aucune.
+  // Une activité connue d'avance (?activite= du site, pré-remplissage interne) est notée comme souhait.
+  let souhaits = [];
+  const noterSouhaits = codes => {
+    souhaits = [...new Set(codes)].filter(c => ACTIVITES.some(([code]) => code === c));
+    if (souhaits.length) form.querySelector('input[name="animations"][value="1"]').checked = true;
+  };
 
   const today = new Date().toISOString().slice(0, 10);
   form.dateArrivee.min = today; form.dateDepart.min = today;
@@ -401,7 +413,8 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
       restauration: val('restauration'),
       pauses: val('pauses') === '1', vin: val('vin') === '1',
       soiree: val('soiree'), transport: val('transport'),
-      activites: [...form.querySelectorAll('input[name="activites"]:checked')].map(i => i.value),
+      objectifs: val('type') === 'seminaire' ? [...form.querySelectorAll('input[name="objectifs"]:checked')].map(i => i.value) : [],
+      activites: [], animations: val('animations') === '1', activitesSouhaitees: val('animations') === '1' ? souhaits : [],
       segment: val('type'),
       draps: val('draps') === '1', archipel: val('archipel') === '1', cuisine_pro: val('cuisine_pro') === '1',
       pack: val('pack') || '', secondeSoiree: val('secondeSoiree') === '1', traiteurExterieur: val('traiteurExterieur') === '1'
@@ -521,7 +534,9 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
       contact: {
         prenom: form.prenom.value.trim(), nom: form.nom.value.trim(),
         organisation: val('type') === 'seminaire' ? form.organisation.value.trim() : '', email: form.email.value.trim(),
-        telephone: form.telephone.value.trim(), message: form.message.value.trim()
+        telephone: form.telephone.value.trim(),
+        message: [q.objectifs.length ? `Objectif du séminaire : ${q.objectifs.join(', ')}.` : '', q.animations ? `Activités de cohésion : oui, propositions souhaitées${q.activitesSouhaitees.length ? ' (intérêt : ' + q.activitesSouhaitees.map(c => ACTIVITES.find(a => a[0] === c)[1]).join(', ') + ')' : ''}.` : '',
+          val('type') === 'seminaire' && q.transport === 'autre' ? 'Venir au domaine : autre moyen (à préciser).' : '', form.message.value.trim()].filter(Boolean).join('\n\n')
       },
       estimation: derniere ? { ht: derniere.resultat.totaux.ht, ttc: derniere.resultat.totaux.ttc, par_personne_ht: derniere.resultat.par_personne.ht } : null,
       planning: derniere ? derniere.jours : null,
@@ -587,7 +602,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
   let parcoursConnu = false;
   if (params.get('type')) { const t = form.querySelector(`input[name="type"][value="${CSS.escape(params.get('type'))}"]`); if (t) { t.checked = true; parcoursConnu = true; } }
   if (params.get('format') === 'etude') form.querySelector('input[name="format"][value="etude"]').checked = true;
-  params.getAll('activite').forEach(a => { const c = form.querySelector(`input[name="activites"][value="${CSS.escape(a)}"]`); if (c) c.checked = true; });
+  noterSouhaits(params.getAll('activite'));
 
   if (ADMIN) {
     document.title = 'Saisie d\'une demande — Domaine Sesquier';
@@ -599,6 +614,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
       const m = location.hash.match(/^#prefill=(.+)$/);
       const pre = m ? JSON.parse(decodeURIComponent(m[1])) : null;
       if (pre && pre.type) parcoursConnu = true;
+      if (pre && Array.isArray(pre.activites)) noterSouhaits(pre.activites);
       if (pre) Object.entries(pre).forEach(([k, v]) => {
         const els = [...form.querySelectorAll(`[name="${k}"]`)];
         if (!els.length || v == null) return;
