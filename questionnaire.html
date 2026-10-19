@@ -241,7 +241,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
         <button type="button" class="btn" id="prev" hidden>Retour</button>
         <button type="button" class="btn plein" id="next">Continuer</button>
       </div>
-      <div id="turnstile" style="margin:14px 0 0"></div>
+      <div id="widget-turnstile" style="margin:14px 0 0"></div>
       <div class="err" id="err-envoi" role="alert"></div>
     </form>
 
@@ -303,7 +303,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
   // En local : clé de test Cloudflare qui passe toujours.
   const TURNSTILE_SITEKEY = location.hostname === 'localhost' ? '1x00000000000000000000AA' : '';
   if (!ADMIN && TURNSTILE_SITEKEY) {
-    window.onTurnstile = () => turnstile.render('#turnstile', { sitekey: TURNSTILE_SITEKEY, language: 'fr' });
+    window.onTurnstile = () => turnstile.render('#widget-turnstile', { sitekey: TURNSTILE_SITEKEY, language: 'fr' });
     const s = document.createElement('script');
     s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstile&render=explicit';
     s.async = true; document.head.append(s);
@@ -446,7 +446,8 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
       origine: ADMIN ? 'Tableau de bord (saisie interne)'
         : params.get('depuis') ? `domainesesquier.com · ${params.get('depuis').slice(0, 60)}` : (document.referrer || location.href),
       hp: form.website.value, duree: Date.now() - debut,
-      turnstile: window.turnstile ? turnstile.getResponse() || '' : ''
+      // window.turnstile = l'API Cloudflare seulement si son script est chargé (pas un élément HTML homonyme)
+      turnstile: typeof window.turnstile?.getResponse === 'function' ? turnstile.getResponse() || '' : ''
     };
     const headers = { 'Content-Type': 'application/json' };
     if (ADMIN && window.SesquierAuth) { const t = await SesquierAuth.getToken(); if (t) headers.Authorization = `Bearer ${t}`; }
