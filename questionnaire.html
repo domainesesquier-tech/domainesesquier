@@ -6,84 +6,147 @@
 <title>Demande de devis — Domaine Sesquier</title>
 <meta name="description" content="Séminaire, week-end en groupe ou mariage au Domaine Sesquier : décrivez votre projet et recevez votre devis sous 24 h.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --vert: #2D4A30; --nuit: #131E13; --fond: #F4F2EE; --creme: #F7F3EF;
-  --sauge: #9BAA90; --texte: #333; --doux: #6b6b63; --blanc: #fff; --erreur: #a3412a;
+  --vert: #2C4226; --nuit: #243219; --fond: #EDF0E4; --carte: #FBFCF7; --tendre: #E3E8D6;
+  --ligne: #DDE5CC; --sauge: #A9B499; --olive: #4C6B32; --texte: #45503C; --doux: #6E7766; --erreur: #8C4A2E;
+  --titre: 'Newsreader', Georgia, serif; --corps: 'Hanken Grotesk', system-ui, sans-serif;
+  --coche: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FBFCF7' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--fond); color: var(--texte); font: 15px/1.6 'Libre Baskerville', Georgia, serif; }
-.wrap { max-width: 1024px; margin: 0 auto; padding: 40px 16px 120px; }
-.surtitre { font-size: 15px; color: var(--texte); margin: 0 0 8px; }
-h1 { font-weight: 400; color: var(--vert); font-size: clamp(32px, 6vw, 52px); line-height: 1.05; margin: 0 0 12px; }
-.chapo { font-size: 18px; color: var(--nuit); margin: 0 0 32px; max-width: 640px; }
-.grid { max-width: 760px; }
-.card { background: var(--blanc); border: 1px solid var(--texte); border-radius: 16px; padding: 32px; }
-.steps { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
-.steps span { font-size: 13px; padding: 4px 12px; border-radius: 100px; border: 1px solid #c9c5bc; color: var(--doux); }
-.steps span.on { border-color: var(--vert); color: var(--vert); }
-.steps span.done { background: var(--vert); border-color: var(--vert); color: #fff; }
-h2 { font-weight: 400; color: var(--vert); font-size: 26px; margin: 0 0 20px; }
-fieldset { border: 0; padding: 0; margin: 0 0 22px; }
-legend, .lab { display: block; font-weight: 700; font-size: 14px; color: var(--nuit); margin-bottom: 8px; }
-.hint { font-size: 13px; color: var(--doux); margin: -4px 0 8px; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.6 var(--corps); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1024px; margin: 0 auto; padding: 48px 16px 120px; }
+.surtitre { font-size: 12px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--olive); margin: 0 0 14px; }
+h1 { font-family: var(--titre); font-weight: 500; letter-spacing: -.01em; color: var(--vert); font-size: clamp(36px, 6vw, 58px); line-height: 1.04; margin: 0 0 14px; }
+.chapo { font-size: 18px; color: var(--texte); margin: 0 0 36px; max-width: 620px; }
+.grid { max-width: 780px; }
+.card { background: var(--carte); border: 1px solid var(--ligne); border-radius: 24px; padding: 40px; }
+h2 { font-family: var(--titre); font-weight: 500; letter-spacing: -.01em; color: var(--vert); font-size: 30px; line-height: 1.15; margin: 0 0 26px; }
+h2:focus { outline: none; }
+
+/* Écran de départ : choix du parcours */
+.projets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.projet { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; text-align: left; font: inherit; color: var(--texte);
+  background: #fff; border: 1px solid var(--ligne); border-radius: 20px; padding: 24px 22px 20px; cursor: pointer;
+  transition: border-color .2s, transform .2s, background-color .2s; }
+.projet:hover { border-color: var(--vert); transform: translateY(-3px); }
+.projet:focus-visible { outline: 2px solid var(--vert); outline-offset: 3px; }
+.projet .ico { width: 52px; height: 52px; border-radius: 50%; background: var(--tendre); color: var(--vert); display: grid; place-items: center; transition: background-color .2s, color .2s; }
+.projet:hover .ico { background: var(--vert); color: var(--carte); }
+.projet svg { width: 26px; height: 26px; }
+.projet b { display: block; font-family: var(--titre); font-weight: 500; font-size: 23px; line-height: 1.15; color: var(--vert); margin-bottom: 6px; }
+.projet small { display: block; font-size: 14px; line-height: 1.5; color: var(--doux); }
+.projet .fleche { margin-top: auto; font-size: 14px; font-weight: 600; color: var(--olive); }
+.projet .fleche::after { content: ' →'; display: inline-block; transition: transform .2s; }
+.projet:hover .fleche::after { transform: translateX(4px); }
+
+/* Progression */
+.steps { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; margin-bottom: 32px; }
+.steps span { font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--sauge); padding-top: 10px; border-top: 3px solid var(--ligne); border-radius: 2px; }
+.steps span.on { color: var(--vert); border-top-color: var(--vert); }
+.steps span.done { color: var(--olive); border-top-color: var(--olive); }
+
+fieldset { border: 0; padding: 0; margin: 0 0 26px; min-width: 0; }
+legend, .lab { display: block; font-weight: 600; font-size: 15px; color: var(--vert); margin-bottom: 10px; padding: 0; }
+.hint { font-size: 14px; color: var(--doux); margin: -6px 0 10px; }
 input[type=text], input[type=email], input[type=tel], input[type=number], input[type=date], textarea {
-  width: 100%; font: inherit; padding: 10px 14px; border: 1px solid #b9b5ac; border-radius: 10px; background: var(--blanc); color: var(--texte);
+  width: 100%; font: inherit; font-size: 16px; padding: 12px 16px; min-height: 50px; border: 1px solid var(--ligne); border-radius: 14px; background: #fff; color: var(--texte);
+  transition: border-color .2s, box-shadow .2s;
 }
-textarea { min-height: 110px; resize: vertical; }
-input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px solid var(--vert); outline-offset: 2px; }
-.row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+input::placeholder, textarea::placeholder { color: #9AA191; }
+input:hover, textarea:hover { border-color: var(--sauge); }
+textarea { min-height: 120px; resize: vertical; }
+input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shadow: 0 0 0 3px rgba(44, 66, 38, .14); }
+.choice input:focus-visible + span { outline: 2px solid var(--vert); outline-offset: 2px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .choices { display: flex; flex-wrap: wrap; gap: 8px; }
 .choice { position: relative; }
-.choice input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
-.choice span { display: inline-block; padding: 8px 16px; border: 1px solid var(--nuit); border-radius: 100px; font-size: 14px; cursor: pointer; background: var(--blanc); }
-.choice input:checked + span { background: var(--vert); border-color: var(--vert); color: #fff; }
+.choice input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.choice span { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border: 1px solid var(--ligne); border-radius: 100px; font-size: 15px; font-weight: 500; cursor: pointer; background: #fff; color: var(--texte); transition: border-color .2s, background-color .2s, color .2s; }
+.choice:hover span { border-color: var(--sauge); }
+.choice input:checked + span { background: var(--vert); border-color: var(--vert); color: var(--carte); }
+.choice input:checked + span::before { content: ''; width: 14px; height: 14px; background: var(--coche) center / contain no-repeat; }
 .choice input:disabled + span { opacity: .45; cursor: not-allowed; }
 .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.act { position: relative; border: 1px solid #b9b5ac; border-radius: 12px; padding: 12px 14px 12px 40px; cursor: pointer; background: var(--blanc); }
-.act input { position: absolute; left: 14px; top: 16px; accent-color: var(--vert); width: 16px; height: 16px; }
-.act b { display: block; font-size: 14px; color: var(--nuit); }
-.act small { color: var(--doux); font-size: 12px; }
-.act:has(input:checked) { border-color: var(--vert); background: var(--creme); }
-.nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 28px; }
-.btn { font: inherit; font-size: 15px; padding: 12px 24px; border-radius: 100px; border: 1px solid var(--nuit); background: transparent; color: var(--nuit); cursor: pointer; }
-.btn.plein { background: var(--vert); border-color: var(--vert); color: #fff; }
+.act { position: relative; display: block; border: 1px solid var(--ligne); border-radius: 16px; padding: 16px 52px 16px 18px; cursor: pointer; background: #fff; transition: border-color .2s, background-color .2s; }
+.act:hover { border-color: var(--sauge); }
+.act input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.act::after { content: ''; position: absolute; right: 18px; top: 18px; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--sauge); background: #fff; }
+.act b { display: block; font-size: 15px; font-weight: 600; color: var(--vert); }
+.act small { color: var(--doux); font-size: 13px; }
+.act:has(input:checked) { border-color: var(--vert); background: var(--tendre); }
+.act:has(input:checked)::after { border-color: var(--vert); background: var(--vert) var(--coche) center / 13px no-repeat; }
+.act:has(input:focus-visible) { outline: 2px solid var(--vert); outline-offset: 2px; }
+.nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 34px; padding-top: 26px; border-top: 1px solid var(--ligne); }
+.btn { font: inherit; font-size: 15px; font-weight: 600; padding: 13px 26px; border-radius: 100px; border: 1px solid var(--sauge); background: transparent; color: var(--vert); cursor: pointer; transition: background-color .2s, border-color .2s, color .2s; }
+.btn:hover { border-color: var(--vert); }
+.btn.plein { background: var(--vert); border-color: var(--vert); color: var(--carte); margin-left: auto; }
+.btn.plein::after { content: ' →'; }
+.btn.plein:hover { background: var(--nuit); border-color: var(--nuit); }
 .btn:disabled { opacity: .5; cursor: wait; }
-.err { color: var(--erreur); font-size: 13px; margin-top: 6px; min-height: 1em; }
+.err { color: var(--erreur); font-size: 13px; font-weight: 500; margin-top: 6px; min-height: 1em; }
 .hp { position: absolute; left: -9999px; }
-.check { display: flex; gap: 10px; font-size: 13px; color: var(--doux); align-items: flex-start; }
-.check input { margin-top: 4px; accent-color: var(--vert); }
-.note-type { background: var(--creme); border-radius: 12px; padding: 14px 16px; font-size: 14px; margin-top: 12px; }
-.note-type a { color: var(--vert); }
+.check { display: flex; gap: 10px; font-size: 14px; color: var(--doux); align-items: flex-start; }
+.check input { margin-top: 4px; accent-color: var(--vert); width: 16px; height: 16px; }
+.note-type { background: var(--tendre); border-radius: 14px; padding: 14px 18px; font-size: 14px; margin-top: 12px; }
+.note-type a { color: var(--vert); font-weight: 600; }
 .merci { text-align: left; }
 @media (max-width: 860px) {
-  .card { padding: 22px 18px; }
+  .card { padding: 26px 20px; border-radius: 20px; }
   .row, .acts { grid-template-columns: 1fr; }
+  .projets { grid-template-columns: 1fr; }
+  .projet { flex-direction: row; align-items: center; padding: 18px; gap: 16px; }
+  .projet .ico { flex: none; }
+  .projet .fleche { display: none; }
+  .projet:hover { transform: none; }
+  .steps span { font-size: 11px; letter-spacing: 0; }
 }
 </style>
 </head>
 <body>
 <main class="wrap">
-  <p class="surtitre">— Demande de devis</p>
-  <h1 id="titre">Composez votre séminaire</h1>
-  <p class="chapo" id="chapo">Quatre étapes pour décrire votre projet. Nous étudions votre demande et vous envoyons votre devis détaillé par e-mail sous 24 h.</p>
+  <p class="surtitre">Demande de devis</p>
+  <h1 id="titre">Parlons de votre projet</h1>
+  <p class="chapo" id="chapo">Choisissez votre parcours : quelques questions, puis nous vous envoyons votre devis détaillé par e-mail sous 24 h.</p>
 
   <div class="grid">
     <form id="form" class="card" novalidate>
-      <div class="steps" aria-hidden="true"><span>1. Le séjour</span><span>2. Le programme</span><span>3. Activités</span><span>4. Vos coordonnées</span></div>
+      <!-- Parcours choisi sur l'écran de départ (ou par ?type= / pré-remplissage) -->
+      <div hidden>
+        <input type="radio" name="type" value="seminaire" checked>
+        <input type="radio" name="type" value="groupe">
+        <input type="radio" name="type" value="mariage">
+      </div>
+
+      <!-- Écran de départ : choix du parcours -->
+      <section id="ecran-projet">
+        <h2>Que souhaitez-vous organiser ?</h2>
+        <div class="projets">
+          <button type="button" class="projet" data-type="seminaire">
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8.5 7V5.5a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2V7M3 13h18M11 13v2h2v-2"/></svg></span>
+            <span><b>Un séminaire</b><small>Séminaire résidentiel ou journée d'étude, de 10 à 40 personnes.</small></span>
+            <span class="fleche">Commencer</span>
+          </button>
+          <button type="button" class="projet" data-type="groupe">
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.1c.3-.1.7-.1 1-.1 2.8 0 4.5 2.2 4.5 5"/></svg></span>
+            <span><b>Un week-end en groupe</b><small>Famille, amis, associations : 35 couchages, deux nuits minimum.</small></span>
+            <span class="fleche">Commencer</span>
+          </button>
+          <button type="button" class="projet" data-type="mariage">
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="14.5" r="5"/><circle cx="15" cy="14.5" r="5"/><path d="M10.5 5.5 12 3.5l1.5 2L12 7.5z"/></svg></span>
+            <span><b>Un mariage</b><small>Réception au Champs d'olivier ou en salle Archipel, vos invités logés sur place.</small></span>
+            <span class="fleche">Commencer</span>
+          </button>
+        </div>
+      </section>
+
+      <div class="steps" aria-hidden="true"><span>Le séjour</span><span>Le programme</span><span>Activités</span><span>Vos coordonnées</span></div>
 
       <!-- Étape 1 -->
       <section data-step="0">
         <h2>Le séjour</h2>
-        <fieldset>
-          <legend>Type de séjour</legend>
-          <div class="choices">
-            <label class="choice"><input type="radio" name="type" value="seminaire" checked><span>Séminaire</span></label>
-            <label class="choice"><input type="radio" name="type" value="groupe"><span>Week-end en groupe</span></label>
-            <label class="choice"><input type="radio" name="type" value="mariage"><span>Mariage</span></label>
-          </div>
-        </fieldset>
         <fieldset id="bloc-format">
           <legend>Format</legend>
           <div class="choices">
@@ -367,7 +430,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
     document.getElementById('titre').textContent = { seminaire: 'Composez votre séminaire', groupe: 'Votre week-end en groupe', mariage: 'Votre mariage au domaine' }[seg];
     document.getElementById('chapo').textContent = `${sem ? 'Quatre' : 'Trois'} étapes pour décrire votre projet. Nous étudions votre demande et vous envoyons votre devis détaillé par e-mail sous 24 h.`;
     const noms = PILLS[sem ? 'seminaire' : 'autre'];
-    pills.forEach((p, k) => { p.hidden = k >= noms.length; if (noms[k]) p.textContent = `${k + 1}. ${noms[k]}`; });
+    pills.forEach((p, k) => { p.hidden = k >= noms.length; if (noms[k]) p.textContent = noms[k]; });
     const etude = val('format') === 'etude';
     document.getElementById('bloc-depart').hidden = etude;
     document.getElementById('bloc-depart-heure').hidden = etude;
@@ -418,12 +481,30 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
   }
 
   // i = position dans ordre()
+  // Écran de départ : choix du parcours (séminaire, groupe, mariage)
+  const ecranProjet = document.getElementById('ecran-projet');
+  const barre = document.querySelector('.steps'), nav = document.querySelector('.nav'), robot = document.getElementById('widget-turnstile');
+  function choisirProjet() {
+    steps.forEach(s => s.hidden = true);
+    ecranProjet.hidden = false; barre.hidden = nav.hidden = robot.hidden = true;
+    document.getElementById('titre').textContent = 'Parlons de votre projet';
+    document.getElementById('chapo').textContent = 'Choisissez votre parcours : quelques questions, puis nous vous envoyons votre devis détaillé par e-mail sous 24 h.';
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  ecranProjet.querySelectorAll('.projet').forEach(b => b.addEventListener('click', () => {
+    form.querySelector(`input[name="type"][value="${b.dataset.type}"]`).checked = true;
+    suivre('parcours_choisi', { segment: b.dataset.type });
+    majFormat(); estimer(); afficher(0);
+  }));
+
   function afficher(i) {
     etape = i;
     const o = ordre(), cur = section(o[i]);
+    ecranProjet.hidden = true; barre.hidden = nav.hidden = robot.hidden = false;
     steps.forEach(s => s.hidden = s !== cur);
     pills.forEach((p, k) => { p.className = k < i ? 'done' : (k === i ? 'on' : ''); });
-    btnPrev.hidden = i === 0;
+    btnPrev.hidden = false;
+    btnPrev.textContent = i === 0 ? '← Changer de projet' : '← Retour';
     btnNext.textContent = i === o.length - 1 ? 'Envoyer ma demande' : 'Continuer';
     const h = cur.querySelector('h2');
     if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
@@ -487,7 +568,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
     if (!valider(ordre()[etape])) return;
     if (etape < ordre().length - 1) afficher(etape + 1); else envoyer();
   });
-  btnPrev.addEventListener('click', () => afficher(etape - 1));
+  btnPrev.addEventListener('click', () => etape === 0 ? choisirProjet() : afficher(etape - 1));
   form.addEventListener('input', e => {
     const el = form.querySelector(`[data-err="${e.target.name}"]`);
     if (el) el.textContent = '';
@@ -504,7 +585,9 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
   form.addEventListener('change', () => { majFormat(); estimer(); });
 
   const params = new URLSearchParams(location.search);
-  if (params.get('type')) { const t = form.querySelector(`input[name="type"][value="${params.get('type')}"]`); if (t) t.checked = true; }
+  // Parcours déjà connu (lien du site ?type=, ou pré-remplissage interne) : on saute l'écran de départ
+  let parcoursConnu = false;
+  if (params.get('type')) { const t = form.querySelector(`input[name="type"][value="${CSS.escape(params.get('type'))}"]`); if (t) { t.checked = true; parcoursConnu = true; } }
   if (params.get('format') === 'etude') form.querySelector('input[name="format"][value="etude"]').checked = true;
   params.getAll('activite').forEach(a => { const c = form.querySelector(`input[name="activites"][value="${CSS.escape(a)}"]`); if (c) c.checked = true; });
 
@@ -517,6 +600,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
     try {
       const m = location.hash.match(/^#prefill=(.+)$/);
       const pre = m ? JSON.parse(decodeURIComponent(m[1])) : null;
+      if (pre && pre.type) parcoursConnu = true;
       if (pre) Object.entries(pre).forEach(([k, v]) => {
         const els = [...form.querySelectorAll(`[name="${k}"]`)];
         if (!els.length || v == null) return;
@@ -529,7 +613,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
   }
 
   majFormat();
-  afficher(0);
+  if (parcoursConnu) afficher(0); else choisirProjet();
   window.scrollTo(0, 0);
   fetch('assets/grille_2027.json').then(r => r.json()).then(g => { grille = g; estimer(); });
 })();
