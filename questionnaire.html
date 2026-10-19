@@ -419,8 +419,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
     document.getElementById('bloc-profil').hidden = !sem;
     if (!sem) form.querySelector('input[name="format"][value="residentiel"]').checked = true;
     document.getElementById('envies-groupe').hidden = seg !== 'groupe';
-    document.getElementById('bloc-organisation').hidden = seg === 'mariage';
-    document.getElementById('lab-organisation').textContent = sem ? 'Entreprise ou agence' : 'Association, club ou entreprise (facultatif)';
+    document.getElementById('bloc-organisation').hidden = !sem;
     document.getElementById('lab-email').textContent = sem ? 'E-mail professionnel' : 'E-mail';
     form.message.placeholder = { seminaire: 'Objectifs, contraintes, envies particulières…', groupe: 'L’occasion (anniversaire, cousinade, retraite…), vos envies, vos questions…', mariage: 'Cérémonie sur place ou non, vos envies, vos questions…' }[seg];
     document.getElementById('envies-mariage').hidden = seg !== 'mariage';
@@ -522,7 +521,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
       reponses: q,
       contact: {
         prenom: form.prenom.value.trim(), nom: form.nom.value.trim(),
-        organisation: form.organisation.value.trim(), email: form.email.value.trim(),
+        organisation: val('type') === 'seminaire' ? form.organisation.value.trim() : '', email: form.email.value.trim(),
         telephone: form.telephone.value.trim(), message: form.message.value.trim()
       },
       estimation: derniere ? { ht: derniere.resultat.totaux.ht, ttc: derniere.resultat.totaux.ttc, par_personne_ht: derniere.resultat.par_personne.ht } : null,
