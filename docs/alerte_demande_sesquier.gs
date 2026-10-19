@@ -9,6 +9,8 @@
 // L'URL du déploiement sert de clé : ne la partage pas.
 
 const DESTINATAIRE = 'contact@domainesesquier.com';
+// Copie de l'alerte : contact@ arrive dans ce même Gmail, qui range alors l'alerte dans « Envoyés » seulement.
+const COPIE_ALERTE = 'smali.w05@gmail.com';
 const TABLEAU_DE_BORD = 'https://admin.domainesesquier.com/';
 const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -115,6 +117,7 @@ function envoyerAlerte(d, accuse) {
 
   MailApp.sendEmail({
     to: DESTINATAIRE,
+    cc: COPIE_ALERTE,
     replyTo: d.email || DESTINATAIRE,
     subject: `Nouvelle demande ${type} — ${d.nom_client} (${d.personnes} pers., ${date(d.date_arrivee)})`,
     htmlBody: html,
@@ -122,11 +125,11 @@ function envoyerAlerte(d, accuse) {
   });
 }
 
-// Pour tester depuis l'éditeur (bouton Exécuter sur cette fonction) : alerte + accusé envoyés à DESTINATAIRE.
+// Pour tester depuis l'éditeur (bouton Exécuter sur cette fonction) : alerte à DESTINATAIRE (copie COPIE_ALERTE), accusé à COPIE_ALERTE.
 function testAlerte() {
   doPost({ postData: { contents: JSON.stringify({
     id: 'recTEST', segment: 'seminaire', nom_client: 'Test H2M Events', organisation: 'Test H2M Events',
-    contact: 'Marjorie Test', prenom: 'Marjorie', email: DESTINATAIRE, date_arrivee: '2026-11-26', date_depart: '2026-11-27',
+    contact: 'Marjorie Test', prenom: 'Marjorie', email: COPIE_ALERTE, date_arrivee: '2026-11-26', date_depart: '2026-11-27',
     personnes: 14, estimation_ht: 3678, message: 'Ceci est un mail de test.', source: 'questionnaire',
   }) } });
 }
