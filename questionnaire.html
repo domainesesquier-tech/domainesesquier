@@ -132,7 +132,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
           </button>
           <button type="button" class="projet" data-type="groupe">
             <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.1c.3-.1.7-.1 1-.1 2.8 0 4.5 2.2 4.5 5"/></svg></span>
-            <span><b>Un week-end en groupe</b><small>Famille, amis, associations : 40 couchages, deux nuits minimum.</small></span>
+            <span><b>Un week-end en groupe</b><small>Famille, amis, associations : 40 couchages maximum, deux nuits minimum.</small></span>
             <span class="fleche">Commencer</span>
           </button>
           <button type="button" class="projet" data-type="mariage">
@@ -460,7 +460,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
     document.getElementById('envies-mariage').hidden = seg !== 'mariage';
     document.getElementById('lab-participants').textContent = seg === 'mariage' ? 'Nombre d\'invités' : (sem ? 'Nombre de participants' : 'Nombre de personnes');
     document.getElementById('hint-participants').textContent = seg === 'mariage' ? 'Réception jusqu\'à 40 invités au Champs d\'olivier, davantage en salle Archipel. 40 couchages sur place.'
-      : seg === 'groupe' ? '40 couchages. Deux nuits minimum.' : 'De 10 à 35 couchages. Au-delà, nous construisons votre devis sur mesure.';
+      : seg === 'groupe' ? '40 couchages maximum (plus de monde possible pour la réception sur place). Deux nuits minimum.' : 'De 10 à 35 couchages. Au-delà, nous construisons votre devis sur mesure.';
     document.getElementById('titre').textContent = { seminaire: 'Composez votre séminaire', groupe: 'Votre week-end en groupe', mariage: 'Votre mariage au domaine' }[seg];
     document.getElementById('chapo').textContent = `${sem ? 'Quatre' : 'Trois'} étapes pour décrire votre projet. Nous étudions votre demande et vous envoyons votre devis détaillé par e-mail sous 24 h.`;
     const noms = PILLS[sem ? 'seminaire' : 'autre'];
