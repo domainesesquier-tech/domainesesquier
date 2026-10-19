@@ -241,6 +241,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
         <button type="button" class="btn" id="prev" hidden>Retour</button>
         <button type="button" class="btn plein" id="next">Continuer</button>
       </div>
+      <div id="turnstile" style="margin:14px 0 0"></div>
       <div class="err" id="err-envoi" role="alert"></div>
     </form>
 
@@ -258,6 +259,29 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
   // Saisie interne depuis le tableau de bord (?admin=1) : pas d'anti-robot ni de case RGPD,
   // pré-remplissage possible via #prefill=<JSON encodé> (clés = attributs name du formulaire).
   const ADMIN = new URLSearchParams(location.search).get('admin') === '1';
+
+  // ── Mesure GA4 : événements envoyés UNIQUEMENT avec le consentement « statistiques » de WPConsent.
+  // Le questionnaire est affiché en iframe sur le site WordPress (où GA4 G-8KF8YV3TW5 est chargé derrière WPConsent) :
+  // le consentement est lu dans le cookie WPConsent (même domaine) ou reçu du parent par postMessage
+  // ({type:'wpconsent', statistics:true}) ; l'événement est ensuite transmis au parent, qui possède gtag.
+  // Sans consentement, ou en saisie interne : rien n'est envoyé.
+  let consentStats = false;
+  try {
+    const m = document.cookie.match(/(?:^|;\s*)wpconsent_preferences=([^;]+)/);
+    if (m) consentStats = JSON.parse(decodeURIComponent(m[1])).statistics === true;
+  } catch (e) { /* cookie absent ou illisible : pas de consentement */ }
+  window.addEventListener('message', e => {
+    if (e.data && e.data.type === 'wpconsent') consentStats = e.data.statistics === true;
+  });
+  const dejaVu = {};
+  function suivre(nom, params, unefois) {
+    if (ADMIN || !consentStats || (unefois && dejaVu[nom])) return;
+    dejaVu[nom] = true;
+    try {
+      if (typeof window.gtag === 'function') window.gtag('event', nom, params || {});
+      else if (window.parent !== window) window.parent.postMessage({ type: 'sesquier_event', nom, params: params || {} }, '*');
+    } catch (e) { /* la mesure ne doit jamais gêner le formulaire */ }
+  }
   const ACTIVITES = [
     ['velos', 'L\'étang à vélo', 'Balade guidée, demi-journée'],
     ['bateau', 'Sortie bateau', 'Coucher de soleil sur l\'étang de Thau'],
@@ -273,6 +297,24 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
   const pills = [...document.querySelectorAll('.steps span')];
   const btnNext = document.getElementById('next'), btnPrev = document.getElementById('prev');
   const debut = Date.now();
+
+  // Anti-robot Cloudflare Turnstile (clé publique du widget créé dans le tableau de bord Cloudflare).
+  // Vide = désactivé. Le Worker l'exige dès que son secret TURNSTILE_SECRET est posé : mettre la clé ici AVANT le secret.
+  // En local : clé de test Cloudflare qui passe toujours.
+  const TURNSTILE_SITEKEY = location.hostname === 'localhost' ? '1x00000000000000000000AA' : '';
+  if (!ADMIN && TURNSTILE_SITEKEY) {
+    window.onTurnstile = () => turnstile.render('#turnstile', { sitekey: TURNSTILE_SITEKEY, language: 'fr' });
+    const s = document.createElement('script');
+    s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstile&render=explicit';
+    s.async = true; document.head.append(s);
+  }
+  // Saisie interne : la session admin (auth.js) signe la demande, le Worker la reconnaît sans anti-robot
+  if (ADMIN) {
+    const sb = document.createElement('script');
+    sb.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    sb.onload = () => { const a = document.createElement('script'); a.src = 'assets/auth.js'; document.head.append(a); };
+    document.head.append(sb);
+  }
   let etape = 0, grille = null, derniere = null;
 
   document.getElementById('acts').innerHTML = ACTIVITES.map(([code, titre, desc]) =>
@@ -339,6 +381,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
     if (!q.participants || (q.participants > 40 && q.segment !== 'mariage') || !dateOk) return;
     const { demande, jours } = PricingEngine.fromQuestionnaire(grille, q);
     derniere = { demande, jours, resultat: PricingEngine.compute(grille, demande) };
+    suivre('simulateur_vu', { segment: q.segment, personnes: q.participants }, true);
   }
 
   function erreur(champ, msg) {
@@ -388,6 +431,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
     btnNext.disabled = true;
     estimer();
     const q = reponses();
+    suivre('devis_demande', { segment: q.segment, personnes: q.participants, value: derniere ? Math.round(derniere.resultat.totaux.ht) : 0, currency: 'EUR' }, true);
     const payload = {
       segment: q.segment,
       reponses: q,
@@ -398,12 +442,18 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
       },
       estimation: derniere ? { ht: derniere.resultat.totaux.ht, ttc: derniere.resultat.totaux.ttc, par_personne_ht: derniere.resultat.par_personne.ht } : null,
       planning: derniere ? derniere.jours : null,
-      origine: ADMIN ? 'Tableau de bord (saisie interne)' : (document.referrer || location.href)
+      // Lien du site vitrine : ?depuis=<page> (le navigateur ne transmet que le domaine en référent)
+      origine: ADMIN ? 'Tableau de bord (saisie interne)'
+        : params.get('depuis') ? `domainesesquier.com · ${params.get('depuis').slice(0, 60)}` : (document.referrer || location.href),
+      hp: form.website.value, duree: Date.now() - debut,
+      turnstile: window.turnstile ? turnstile.getResponse() || '' : ''
     };
+    const headers = { 'Content-Type': 'application/json' };
+    if (ADMIN && window.SesquierAuth) { const t = await SesquierAuth.getToken(); if (t) headers.Authorization = `Bearer ${t}`; }
     let envoye = false, test = false;
     try {
       const res = await fetch(`${API_BASE}/api/public/demande`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        method: 'POST', headers, body: JSON.stringify(payload)
       });
       envoye = res.ok;
       test = res.status === 403 || location.hostname === 'localhost';
@@ -413,6 +463,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
       btnNext.disabled = false;
       return;
     }
+    if (!test) suivre('generate_lead', { segment: q.segment, personnes: q.participants, value: derniere ? Math.round(derniere.resultat.totaux.ht) : 0, currency: 'EUR' }, true);
     if (ADMIN) {
       form.innerHTML = `<div class="merci"><h2>Demande créée pour ${payload.contact.prenom} ${payload.contact.nom}</h2>
         <p>Le dossier est dans le tableau de bord, statut « à traiter », avec l'estimation jointe pour préparer le devis.</p>
@@ -450,6 +501,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
   const params = new URLSearchParams(location.search);
   if (params.get('type')) { const t = form.querySelector(`input[name="type"][value="${params.get('type')}"]`); if (t) t.checked = true; }
   if (params.get('format') === 'etude') form.querySelector('input[name="format"][value="etude"]').checked = true;
+  params.getAll('activite').forEach(a => { const c = form.querySelector(`input[name="activites"][value="${CSS.escape(a)}"]`); if (c) c.checked = true; });
 
   if (ADMIN) {
     document.title = 'Saisie d\'une demande — Domaine Sesquier';

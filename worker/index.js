@@ -647,6 +647,23 @@ export default {
         const txt = (v, n = 200) => String(v ?? "").trim().slice(0, n);
         const iso = v => /^\d{4}-\d{2}-\d{2}$/.test(v || "") ? v : null;
         const nb = Math.max(0, Math.min(500, parseInt(q.participants, 10) || 0));
+        // Saisie depuis le tableau de bord (Cactus, téléphone…) : reconnue à la session admin, pas à l'URL
+        const interne = !!user;
+        if (!interne) {
+          // Anti-robot côté serveur : pot de miel et durée de remplissage (rejet silencieux),
+          // puis Cloudflare Turnstile dès que le secret TURNSTILE_SECRET est posé.
+          if (p.hp || (typeof p.duree === "number" && p.duree < 4000)) return json({ ok: true }, 201, env, requestOrigin);
+          if (env.TURNSTILE_SECRET) {
+            const verif = new FormData();
+            verif.append("secret", env.TURNSTILE_SECRET);
+            verif.append("response", txt(p.turnstile, 2048));
+            const ip = request.headers.get("CF-Connecting-IP");
+            if (ip) verif.append("remoteip", ip);
+            const v = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: verif })
+              .then(r => r.json()).catch(() => ({}));
+            if (!v.success) return json({ error: { message: "Vérification anti-robot échouée, rechargez la page." } }, 400, env, requestOrigin);
+          }
+        }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(txt(c.email)) || !txt(c.nom) || !nb || !iso(q.dateArrivee)) {
           return json({ error: { message: "Champs requis manquants" } }, 400, env, requestOrigin);
         }
@@ -681,14 +698,16 @@ export default {
           estimation_ht: p.estimation?.ht ? Math.round(p.estimation.ht) : null,
         };
         await sbFetch(env, `/rpc/public_demande`, { method: "POST", body: JSON.stringify({ p: row }) });
-        // Alerte mail via Google Apps Script (NOTIF_URL = URL du déploiement web, secret Worker).
+        // Alerte à Waël + accusé de réception au client via Google Apps Script (NOTIF_URL = URL du déploiement web, secret Worker ; code : docs/alerte_demande_sesquier.gs).
         // Envoyée après l'enregistrement, sans bloquer la réponse ; un échec n'annule jamais la demande.
-        if (env.NOTIF_URL && env.READ_ONLY !== "true") {
+        // Saisie interne : Waël est déjà en contact, ni alerte ni accusé de réception.
+        if (env.NOTIF_URL && env.READ_ONLY !== "true" && !interne) {
           const alerte = fetch(env.NOTIF_URL, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               id: row.id, segment: seg, type: row.type, nom_client: row.nom_client,
-              contact: `${txt(c.prenom)} ${txt(c.nom)}`.trim(), email: row.email, telephone: row.telephone,
+              contact: `${txt(c.prenom)} ${txt(c.nom)}`.trim(), prenom: row.prenom_contact, organisation: row.entreprise,
+              email: row.email, telephone: row.telephone, journee_etude: !!q.journeeEtude,
               date_arrivee: row.date_arrivee, date_depart: row.date_depart, personnes: nb,
               estimation_ht: row.estimation_ht, message: row.message, source: row.suivi_source, origine: txt(p.origine, 300),
             }),
