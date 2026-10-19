@@ -10,6 +10,11 @@
 
 const DESTINATAIRE = 'contact@domainesesquier.com';
 const TABLEAU_DE_BORD = 'https://admin.domainesesquier.com/';
+const BROCHURES = {
+  seminaire: 'https://domainesesquier.com/wp-content/uploads/2026/10/brochure-seminaire-domaine-sesquier-2027-v2.pdf',
+  groupe: 'https://domainesesquier.com/wp-content/uploads/2026/10/brochure-groupe-domaine-sesquier-2027.pdf',
+  mariage: 'https://domainesesquier.com/wp-content/uploads/2026/10/brochure-mariage-domaine-sesquier-2027.pdf',
+};
 const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 
@@ -54,16 +59,20 @@ function envoyerAccuse(d) {
   const intro = 'Merci pour votre demande, elle est bien arrivée. Voici ce que nous avons noté :';
   const suite = 'Je prépare votre devis détaillé et vous l’envoie sous 24 h. Si un élément change d’ici là '
     + '(dates, nombre de personnes, envies), répondez simplement à ce mail.';
+  const brochure = BROCHURES[d.segment] || BROCHURES.seminaire;
+  const attente = 'En attendant votre devis, découvrez le domaine dans notre brochure :';
   const signature = ['Waël Smali · 06 83 96 80 56',
     'Domaine Sesquier — Gîtes, accueil de groupes, séminaires, événements',
     '4 plan du Sesquier, 34140 Mèze · domainesesquier.com'];
 
-  const texte = [bonjour, '', intro, ...points.map(p => '• ' + p), '', suite, '', 'Bien cordialement,', '', ...signature].join('\n');
+  const texte = [bonjour, '', intro, ...points.map(p => '• ' + p), '', suite, '', attente, brochure, '', 'Bien cordialement,', '', ...signature].join('\n');
   const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#1f2a1c">
     <p>${esc(bonjour)}</p>
     <p>${esc(intro)}</p>
     <ul>${points.map(p => `<li>${esc(p)}</li>`).join('')}</ul>
     <p>${esc(suite)}</p>
+    <p>${esc(attente)}</p>
+    <p><a href="${brochure}" style="display:inline-block;background:#2C4226;color:#ffffff;padding:10px 18px;border-radius:6px;text-decoration:none">Voir la brochure</a></p>
     <p>Bien cordialement,</p>
     <p style="color:#6b7280">${signature.slice(0, 2).map(esc).join('<br>')}<br>
       4 plan du Sesquier, 34140 Mèze · <a href="https://domainesesquier.com" style="color:#2C4226">domainesesquier.com</a></p>
