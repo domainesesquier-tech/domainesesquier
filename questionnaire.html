@@ -104,6 +104,11 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--v
 .dispo.ok { background: var(--tendre); color: var(--olive); }
 .dispo.option { background: #F1EADF; color: #7A5B2E; }
 .dispo.non { background: #F4E4DC; color: var(--erreur); }
+.dispo-alt { margin: -10px 0 20px; }
+.dispo-alt p { margin: 0 0 8px; font-size: 13px; color: var(--doux); }
+.dispo-alt .alt { font: inherit; font-size: 14px; font-weight: 500; padding: 7px 14px; margin: 0 6px 6px 0; border: 1px solid var(--ligne); border-radius: 100px; background: #fff; color: var(--vert); cursor: pointer; transition: border-color .2s; }
+.dispo-alt .alt:hover { border-color: var(--vert); }
+.note-option { margin: 18px 0 -8px; font-size: 13px; color: var(--olive); text-align: right; }
 @media (max-width: 860px) {
   .wrap { padding: 36px 16px 56px; }
   .card { padding: 22px 18px; border-radius: 18px; }
@@ -186,6 +191,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
           </fieldset>
         </div>
         <p class="dispo" id="dispo" role="status" aria-live="polite" hidden></p>
+        <div class="dispo-alt" id="dispo-alt" hidden></div>
         <fieldset id="bloc-profil">
           <legend>Vous êtes</legend>
           <div class="choices">
@@ -335,6 +341,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
         <div class="err" data-err="rgpd"></div>
       </section>
 
+      <p class="note-option" id="note-option" hidden>Gratuit et sans engagement : nous vous confirmons l’option et vous envoyons votre devis sous 24 h.</p>
       <div class="nav">
         <button type="button" class="btn" id="prev" hidden>Retour</button>
         <button type="button" class="btn plein" id="next">Continuer</button>
@@ -495,30 +502,65 @@ html.embed .wrap { padding: 12px 16px 32px; }
     .then(r => r.ok ? r.json() : Promise.reject(r.status)).then(d => d.records || [])
     .catch(e => { delete cacheMois[m]; throw e; }));
   const decaler = (ymd, n) => { const d = new Date(ymd + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
-  let jetonDispo = 0, minuterieDispo = null;
+  let jetonDispo = 0, minuterieDispo = null, etatDispo = null; // etatDispo : 'ok' | 'option' | 'non' | null
+  const nuitsDe = (debut, fin) => { const r = []; for (let d = debut; d < fin && r.length < 62; d = decaler(d, 1)) r.push(d); return r; };
+  async function etatsNuits(nuits) {
+    const lots = await Promise.all([...new Set(nuits.map(d => d.slice(0, 7)))].map(moisDispo));
+    const etat = {};
+    lots.flat().forEach(r => {
+      const f = r.fields || r, st = (f['Statut'] || '').trim().toLowerCase();
+      const a = (f['Date arrivée'] || '').slice(0, 10), dp = (f['Date départ'] || '').slice(0, 10);
+      if (!st || STATUTS_IGNORES.includes(st) || !a || !dp) return;
+      nuits.forEach(d => { if (d >= a && d < dp) etat[d] = Math.max(etat[d] || 0, STATUTS_PRIS.includes(st) ? 2 : 1); });
+    });
+    return nuits.map(d => etat[d] || 0);
+  }
+  // Dates prises : on propose les 3 périodes entièrement libres les plus proches (même jour de la semaine, même durée)
+  async function proposerDates(debut, duree, n) {
+    const box = document.getElementById('dispo-alt'), libres = [];
+    for (let k = 1; k <= 8 && libres.length < 3; k++) for (const sens of [k, -k]) {
+      const d = decaler(debut, 7 * sens);
+      if (libres.length >= 3 || d <= today || d > dateMax) continue;
+      try { if ((await etatsNuits(nuitsDe(d, decaler(d, duree)))).every(x => x === 0)) libres.push(d); } catch (e) { return; }
+      if (n !== jetonDispo) return;
+    }
+    if (!libres.length) return;
+    const jour = (d, o) => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', o);
+    const etude = val('format') === 'etude';
+    box.innerHTML = '<p>Dates libres les plus proches :</p>' + libres.sort().map(d => {
+      const f = decaler(d, duree), memeMois = d.slice(0, 7) === f.slice(0, 7);
+      const lib = etude ? jour(d, { weekday: 'short', day: 'numeric', month: 'long' })
+        : `${jour(d, memeMois ? { weekday: 'short', day: 'numeric' } : { weekday: 'short', day: 'numeric', month: 'short' })} → ${jour(f, { weekday: 'short', day: 'numeric', month: 'long' })}`;
+      return `<button type="button" class="alt" data-debut="${d}" data-fin="${f}">${lib}</button>`;
+    }).join('');
+    box.hidden = false;
+  }
+  document.getElementById('dispo-alt').addEventListener('click', e => {
+    const b = e.target.closest('button.alt');
+    if (!b) return;
+    form.dateArrivee.value = b.dataset.debut;
+    if (val('format') !== 'etude') { form.dateDepart.min = decaler(b.dataset.debut, 1); form.dateDepart.value = b.dataset.fin; }
+    form.dateDepart.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  // Groupe sur dates libres : la demande devient une demande d'option
+  const optionPossible = () => val('type') === 'groupe' && etatDispo === 'ok';
   async function verifierDispo() {
     const el = document.getElementById('dispo'), q = reponses(), n = ++jetonDispo;
+    etatDispo = null; document.getElementById('dispo-alt').hidden = true;
     const fin = q.journeeEtude ? (q.dateArrivee && decaler(q.dateArrivee, 1)) : q.dateDepart;
     if (!q.dateArrivee || !fin || fin <= q.dateArrivee || q.dateArrivee < today || q.dateArrivee > dateMax) { el.hidden = true; return; }
-    const nuits = [];
-    for (let d = q.dateArrivee; d < fin && nuits.length < 62; d = decaler(d, 1)) nuits.push(d);
+    const nuits = nuitsDe(q.dateArrivee, fin);
     el.hidden = false; el.className = 'dispo attente'; el.textContent = 'Vérification des disponibilités…';
     try {
-      const lots = await Promise.all([...new Set(nuits.map(d => d.slice(0, 7)))].map(moisDispo));
+      const etats = await etatsNuits(nuits);
       if (n !== jetonDispo) return;
-      const etat = {};
-      lots.flat().forEach(r => {
-        const f = r.fields || r, st = (f['Statut'] || '').trim().toLowerCase();
-        const a = (f['Date arrivée'] || '').slice(0, 10), dp = (f['Date départ'] || '').slice(0, 10);
-        if (!st || STATUTS_IGNORES.includes(st) || !a || !dp) return;
-        nuits.forEach(d => { if (d >= a && d < dp) etat[d] = Math.max(etat[d] || 0, STATUTS_PRIS.includes(st) ? 2 : 1); });
-      });
-      const pris = nuits.filter(d => etat[d] === 2).length, surDemande = nuits.some(d => etat[d] === 1);
+      const pris = etats.filter(x => x === 2).length, surDemande = etats.includes(1);
       const [cls, txt] = pris === nuits.length ? ['non', `${q.journeeEtude ? 'Cette date n’est' : 'Ces dates ne sont'} plus disponible${q.journeeEtude ? '' : 's'}. Essayez d’autres dates, ou envoyez votre demande : nous vous proposerons des dates proches.`]
         : pris ? ['non', 'Une partie de ces dates n’est plus disponible. Essayez d’autres dates, ou envoyez votre demande : nous vous proposerons des dates proches.']
         : surDemande ? ['option', `${q.journeeEtude ? 'Cette date est' : 'Ces dates sont'} sur demande : un autre projet est à l’étude. Envoyez votre demande, nous vous répondons rapidement.`]
         : ['ok', `Bonne nouvelle : ${q.journeeEtude ? 'cette date est encore disponible' : 'ces dates sont encore disponibles'} !`];
-      el.className = 'dispo ' + cls; el.textContent = txt;
+      el.className = 'dispo ' + cls; el.textContent = txt; etatDispo = cls;
+      if (cls === 'non') proposerDates(q.dateArrivee, nuits.length, n);
     } catch (e) { if (n === jetonDispo) el.hidden = true; } // service indisponible : on n'affiche rien
   }
   const planifierDispo = () => { clearTimeout(minuterieDispo); minuterieDispo = setTimeout(verifierDispo, 350); };
@@ -613,7 +655,8 @@ html.embed .wrap { padding: 12px 16px 32px; }
     pills.forEach((p, k) => { p.className = k < i ? 'done' : (k === i ? 'on' : ''); });
     btnPrev.hidden = false;
     btnPrev.textContent = i === 0 ? '← Changer de projet' : '← Retour';
-    btnNext.textContent = i === o.length - 1 ? 'Envoyer ma demande' : 'Continuer';
+    btnNext.textContent = i === o.length - 1 ? (optionPossible() ? 'Poser une option sur ces dates' : 'Envoyer ma demande') : 'Continuer';
+    document.getElementById('note-option').hidden = !(i === o.length - 1 && optionPossible());
     const h = cur.querySelector('h2');
     if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
     remonter();
@@ -622,6 +665,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
   async function envoyer() {
     if (!ADMIN && (form.website.value || Date.now() - debut < 4000)) return; // anti-robot
     btnNext.disabled = true;
+    const option = optionPossible();
     estimer();
     const q = reponses();
     suivre('devis_demande', { segment: q.segment, personnes: q.participants, value: derniere ? Math.round(derniere.resultat.totaux.ht) : 0, currency: 'EUR' }, true);
@@ -632,7 +676,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
         prenom: form.prenom.value.trim(), nom: form.nom.value.trim(),
         organisation: val('type') === 'seminaire' ? form.organisation.value.trim() : '', email: form.email.value.trim(),
         telephone: form.telephone.value.trim(),
-        message: [q.objectif ? `Objectif du séminaire : ${q.objectif}.` : '', q.budget ? `Budget approximatif : ${q.budget}.` : '', q.animations ? `Activités de cohésion : oui, propositions souhaitées${q.activitesSouhaitees.length ? ' (intérêt : ' + q.activitesSouhaitees.map(c => ACTIVITES.find(a => a[0] === c)[1]).join(', ') + ')' : ''}.` : '',
+        message: [option ? 'Option demandée sur ces dates (affichées libres au moment de la demande).' : '', q.objectif ? `Objectif du séminaire : ${q.objectif}.` : '', q.budget ? `Budget approximatif : ${q.budget}.` : '', q.animations ? `Activités de cohésion : oui, propositions souhaitées${q.activitesSouhaitees.length ? ' (intérêt : ' + q.activitesSouhaitees.map(c => ACTIVITES.find(a => a[0] === c)[1]).join(', ') + ')' : ''}.` : '',
           val('type') === 'seminaire' && q.transport === 'autre' ? 'Venir au domaine : autre moyen (à préciser).' : '', form.message.value.trim()].filter(Boolean).join('\n\n')
       },
       estimation: derniere ? { ht: derniere.resultat.totaux.ht, ttc: derniere.resultat.totaux.ttc, par_personne_ht: derniere.resultat.par_personne.ht } : null,
@@ -669,7 +713,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
       return;
     }
     form.innerHTML = `<div class="merci"><h2>Merci ${payload.contact.prenom}, c'est noté.</h2>
-      <p>Nous étudions votre projet et vous envoyons votre devis détaillé sous 24 h à <b>${payload.contact.email}</b>.</p>
+      <p>${option ? 'Votre demande d’option est bien enregistrée. Nous vous la confirmons avec votre devis détaillé' : 'Nous étudions votre projet et vous envoyons votre devis détaillé'} sous 24 h à <b>${payload.contact.email}</b>.</p>
       ${test ? '<p class="note-type">Copie de test V2 : la demande est créée dans le bac à sable (dossier « à traiter » et date « Demandé » au calendrier), pas dans ta base.</p>' : ''}</div>`;
     remonter();
     window.__derniereDemande = payload; // inspection en test
