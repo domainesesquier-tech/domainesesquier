@@ -115,12 +115,12 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
         <div class="projets">
           <button type="button" class="projet" data-type="seminaire">
             <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8.5 7V5.5a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2V7M3 13h18M11 13v2h2v-2"/></svg></span>
-            <span><b>Un séminaire</b><small>Séminaire résidentiel ou journée d'étude, de 10 à 40 personnes.</small></span>
+            <span><b>Un séminaire</b><small>Séminaire résidentiel ou journée d'étude, de 10 à 35 couchages.</small></span>
             <span class="fleche">Commencer</span>
           </button>
           <button type="button" class="projet" data-type="groupe">
             <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.1c.3-.1.7-.1 1-.1 2.8 0 4.5 2.2 4.5 5"/></svg></span>
-            <span><b>Un week-end en groupe</b><small>Famille, amis, associations : 35 couchages, deux nuits minimum.</small></span>
+            <span><b>Un week-end en groupe</b><small>Famille, amis, associations : 40 couchages, deux nuits minimum.</small></span>
             <span class="fleche">Commencer</span>
           </button>
           <button type="button" class="projet" data-type="mariage">
@@ -145,7 +145,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
         </fieldset>
         <fieldset>
           <label class="lab" for="participants" id="lab-participants">Nombre de participants</label>
-          <p class="hint" id="hint-participants">De 10 à 40 personnes. Au-delà, nous construisons votre devis sur mesure.</p>
+          <p class="hint" id="hint-participants">De 10 à 35 couchages. Au-delà, nous construisons votre devis sur mesure.</p>
           <input type="number" id="participants" name="participants" min="1" max="200" inputmode="numeric" required>
           <div class="err" data-err="participants"></div>
         </fieldset>
@@ -437,7 +437,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
     document.getElementById('envies-mariage').hidden = seg !== 'mariage';
     document.getElementById('lab-participants').textContent = seg === 'mariage' ? 'Nombre d\'invités' : (sem ? 'Nombre de participants' : 'Nombre de personnes');
     document.getElementById('hint-participants').textContent = seg === 'mariage' ? 'Réception jusqu\'à 40 invités au Champs d\'olivier, davantage en salle Archipel. 40 couchages sur place.'
-      : seg === 'groupe' ? '35 couchages, jusqu\'à 40 avec lits d\'appoint. 2 nuits minimum.' : 'De 10 à 40 personnes. Au-delà, nous construisons votre devis sur mesure.';
+      : seg === 'groupe' ? '40 couchages. Deux nuits minimum.' : 'De 10 à 35 couchages. Au-delà, nous construisons votre devis sur mesure.';
     document.getElementById('titre').textContent = { seminaire: 'Composez votre séminaire', groupe: 'Votre week-end en groupe', mariage: 'Votre mariage au domaine' }[seg];
     document.getElementById('chapo').textContent = `${sem ? 'Quatre' : 'Trois'} étapes pour décrire votre projet. Nous étudions votre demande et vous envoyons votre devis détaillé par e-mail sous 24 h.`;
     const noms = PILLS[sem ? 'seminaire' : 'autre'];
