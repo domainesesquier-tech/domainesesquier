@@ -171,6 +171,12 @@ const SesquierRecords = {
             segment: segment,
             estArchive: !!f[F.EST_ARCHIVE],
 
+            // Suivi commercial (posé par « ✓ Devis envoyé » / « ✓ Relance envoyée » du devis)
+            dateDevis: f['Suivi Date devis'] || null,
+            dateRelance: f['Suivi Date relance'] || null,
+            prochaineAction: f['Suivi Prochaine action'] || '',
+            creeLe: f['Created'] || raw.createdTime || null,
+
             // JSON complexes
             dossier: f[F.DOSSIER_JSON] ? this._safeParse(f[F.DOSSIER_JSON]) : null,
             timeline: f[F.TIMELINE_JSON] ? this._safeParse(f[F.TIMELINE_JSON]) : [],

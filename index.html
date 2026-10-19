@@ -1121,6 +1121,8 @@
             transform: translateX(4px);
         }
 
+        .badge-suivi { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; background: #FEF3C7; color: #92400E; vertical-align: middle; }
+        .badge-suivi.retard { background: #FEE2E2; color: #991B1B; }
         .row-client-org {
             font-size: 11px;
             color: var(--text-muted);
@@ -2368,6 +2370,10 @@
                         envoyé</span>
                     <span class="filter-count" id="count-devis">0</span>
                 </div>
+                <div class="sidebar-filter" data-filter="relancer" onclick="setFilter('relancer')">
+                    <span class="filter-label"><i class="fa-regular fa-bell" style="font-size:10px; margin-right:4px; color: var(--warning);"></i>À relancer</span>
+                    <span class="filter-count" id="count-relancer">0</span>
+                </div>
                 <div class="sidebar-filter" data-filter="annulé" onclick="setFilter('annulé')">
                     <span class="filter-label"><span class="filter-dot"
                             style="background: var(--danger);"></span>Refusé</span>
@@ -2423,6 +2429,7 @@
                     <option value="all">Tous les statuts</option>
                     <option value="à traiter">À traiter</option>
                     <option value="devis envoyé">Devis envoyé</option>
+                    <option value="relancer">À relancer</option>
                     <option value="confirmé">Confirmé</option>
                     <option value="effectué">Effectués</option>
                     <option value="annulé">Refusés</option>
@@ -3360,6 +3367,15 @@
         // =====================================================================
         // FILTERS
         // =====================================================================
+        // Suivi : devis envoyé dont la date de relance est arrivée ; demande « à traiter » reçue il y a plus de 24 h
+        const jourISO = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        function aRelancer(r) {
+            return !r.estArchive && r.statut === 'devis envoyé' && !!r.dateRelance && r.dateRelance <= jourISO();
+        }
+        function enRetard(r) {
+            return !r.estArchive && r.statut === 'à traiter' && !!r.creeLe && Date.now() - new Date(r.creeLe) > 86400000;
+        }
+
         function updateFilters() {
             const nonArchived = segRecords().filter(r => !r.estArchive);
             const archived = segRecords().filter(r => r.estArchive);
@@ -3369,6 +3385,7 @@
             });
             document.getElementById('count-all').innerText = counts.all || 0;
             document.getElementById('count-traiter').innerText = counts['à traiter'] || 0;
+            document.getElementById('count-relancer').innerText = nonArchived.filter(aRelancer).length;
             document.getElementById('count-confirme').innerText = counts['confirmé'] || 0;
             document.getElementById('count-devis').innerText = counts['devis envoyé'] || 0;
             // Refusé : compter tous les refusés (archivés inclus), cohérent avec son filtre
@@ -3463,7 +3480,7 @@
                 } else {
                     recordsToDisplay = recordsToDisplay.filter(r => !r.estArchive);
                     if (currentFilter !== 'all') {
-                        recordsToDisplay = recordsToDisplay.filter(r => r.statut === currentFilter);
+                        recordsToDisplay = recordsToDisplay.filter(currentFilter === 'relancer' ? aRelancer : r => r.statut === currentFilter);
                     }
                 }
                 
@@ -3520,7 +3537,7 @@
             } else {
                 records = records.filter(r => !r.estArchive);
                 if (currentFilter !== 'all') {
-                    records = records.filter(r => r.statut === currentFilter);
+                    records = records.filter(currentFilter === 'relancer' ? aRelancer : r => r.statut === currentFilter);
                 }
             }
 
@@ -3587,7 +3604,9 @@
                     <i class="fa-solid fa-plus"></i>
                 </div>
                 <div class="row-client">
-                    <span class="row-client-name link">${escapeHtml(r.nomClient)}</span>
+                    <span class="row-client-name link">${escapeHtml(r.nomClient)}</span>${aRelancer(r)
+                        ? `<span class="badge-suivi" title="${escapeHtml(r.prochaineAction || 'Relance')} prévue le ${r.dateRelance.split('-').reverse().join('/')}">À relancer</span>`
+                        : enRetard(r) ? '<span class="badge-suivi retard" title="Demande reçue il y a plus de 24 h, devis promis sous 24 h">+24 h</span>' : ''}
                     <div style="display:flex; align-items:center; gap:6px;">
                         <span class="row-client-org">${escapeHtml(r.entreprise || 'Particulier')}</span>
                         <a href="https://airtable.com/${SesquierUtils.AIRTABLE_BASE_ID}/${SesquierUtils.AIRTABLE_RESERVATIONS_TABLE}/${id}" 

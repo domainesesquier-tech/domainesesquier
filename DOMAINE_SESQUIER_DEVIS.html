@@ -2349,7 +2349,8 @@
                     meta: {
                         ...(currentDossier?.meta || {}),
                         airtableId: currentRequestId,
-                        statut: "devis envoyé",
+                        // Le statut ne change qu'à l'envoi réel (« ✓ Devis envoyé » du panneau Mail client)
+                        statut: (window._liveFields || currentRecord?.fields || {})['Statut'] || currentDossier?.meta?.statut || 'à traiter',
                         updatedAt: new Date().toISOString(),
                         typeLabel: currentDossier?.meta?.typeLabel || baseFields['Type'] || 'Séminaire professionnel',
                         mode: currentDossier?.meta?.mode || 'pro',
@@ -2392,7 +2393,6 @@
                     id: currentRequestId,
                     fields: {
                         "Nom client": fullName || org || currentDossier?.client?.fullName || '',
-                        "Statut": "devis envoyé",
                         "Montant Hébergement HT": sHeberg,
                         "Montant Repas HT": sRestau,
                         "Montant Options HT": sOpt + sActiv,
@@ -3135,11 +3135,18 @@
             <li>Dans Claude Code, colle (⌘V) puis Entrée.</li>
             <li>Claude rédige et crée un <strong>brouillon Gmail</strong> ; il te le confirme dans Claude Code.</li>
             <li id="mail-etape-accueil">Il te donne aussi le mot d'accueil : colle-le dans le cadre en tête du devis, puis Enregistrer.</li>
-            <li>Relis le brouillon, joins le PDF si besoin, et envoie.</li>
+            <li>Relis le brouillon, joins le PDF si besoin, et envoie. Puis clique <strong>✓ envoyé</strong> ci-dessous.</li>
         </ol>
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
             <a class="btn btn-primary" href="https://mail.google.com/mail/?authuser=domainesesquier@gmail.com#drafts" target="_blank" rel="noopener" style="text-decoration:none;">Ouvrir mes brouillons Gmail</a>
             <button class="btn" id="mail-recopier">Recopier</button>
+        </div>
+    </div>
+    <div style="margin-top:14px; border-top:1px solid #eee; padding-top:12px;">
+        <div id="mail-suivi-etat" style="color:#4b5563; font-size:13px; margin-bottom:8px;"></div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="marquerEnvoi('devis')">✓ Devis envoyé</button>
+            <button class="btn" id="mail-marquer-relance" onclick="marquerEnvoi('relance')">✓ Relance envoyée</button>
         </div>
     </div>
     <p style="color:#888; font-size:12px; margin-top:14px;">Rien n'est envoyé automatiquement : le mail reste en brouillon jusqu'à ce que tu l'envoies.</p>
@@ -3197,9 +3204,44 @@
         document.getElementById('mail-choix-relance').disabled = !envoye;
         document.getElementById('mail-choix-relance').style.opacity = envoye ? '1' : '.45';
         document.getElementById('mail-relance-note').style.display = envoye ? 'none' : 'block';
+        document.getElementById('mail-marquer-relance').disabled = !envoye;
+        const fr = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+        document.getElementById('mail-suivi-etat').textContent = envoye
+            ? `Devis envoyé le ${fr(f['Suivi Date devis'])}` + (f['Suivi Date relance'] ? ` · ${f['Suivi Prochaine action'] || 'Relance'} le ${fr(f['Suivi Date relance'])}` : (f['Suivi Prochaine action'] ? ` · ${f['Suivi Prochaine action']}` : ''))
+            : "Devis pas encore marqué comme envoyé.";
         document.getElementById('mail-etapes').style.display = 'none';
         document.getElementById('mail-panel').style.display = 'block';
     }
+    // Envoi réel : seul endroit qui passe le dossier en « devis envoyé » et programme les relances
+    // (J+3, puis tous les 7 jours, 3 relances au plus après le dernier envoi du devis)
+    async function marquerEnvoi(mode) {
+        if (!currentRequestId) return;
+        const f = window._liveFields || currentRecord?.fields || {};
+        const iso = (n = 0) => { const d = new Date(); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+        const journal = (f['Suivi Log'] || '').trim();
+        const relances = (journal.split('Devis envoyé').pop().match(/Relance envoyée/g) || []).length + (mode === 'relance' ? 1 : 0);
+        const evenement = mode === 'devis' ? 'Devis envoyé' : `Relance envoyée (${relances})`;
+        const fields = { 'Suivi Log': `${journal}\n${new Date().toLocaleDateString('fr-FR')} : ${evenement}`.trim() };
+        if (mode === 'devis') {
+            Object.assign(fields, { 'Suivi Date devis': iso(), 'Suivi Date relance': iso(3), 'Suivi Prochaine action': 'Relance 1' });
+            if (!['confirmé', 'effectué', 'annulé'].includes(f['Statut'])) fields['Statut'] = 'devis envoyé';
+        } else if (relances < 3) {
+            Object.assign(fields, { 'Suivi Date relance': iso(7), 'Suivi Prochaine action': `Relance ${relances + 1}` });
+        } else {
+            Object.assign(fields, { 'Suivi Date relance': null, 'Suivi Prochaine action': 'Sans réponse après 3 relances' });
+        }
+        try {
+            await SesquierUtils.fetchJson(API_RESERVATIONS_URL, {
+                method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: currentRequestId, fields })
+            });
+            window._liveFields = Object.assign(f, fields);
+            _ignoreSelfUpdate = true;
+            SesquierUtils.broadcast('RECORD_UPDATED', { id: currentRequestId, fields });
+            ouvrirMailClient();
+        } catch (e) { alert('❌ Suivi non enregistré : ' + e.message); }
+    }
+
     async function preparerMail(mode) {
         const ok = await copierPourClaude(mode);
         document.getElementById('mail-etape-titre').textContent = mode === 'relance' ? 'Contexte de la relance' : "Contexte de l'envoi du devis";

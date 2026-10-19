@@ -241,6 +241,7 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
         <button type="button" class="btn" id="prev" hidden>Retour</button>
         <button type="button" class="btn plein" id="next">Continuer</button>
       </div>
+      <div id="turnstile" style="margin:14px 0 0"></div>
       <div class="err" id="err-envoi" role="alert"></div>
     </form>
 
@@ -273,6 +274,24 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
   const pills = [...document.querySelectorAll('.steps span')];
   const btnNext = document.getElementById('next'), btnPrev = document.getElementById('prev');
   const debut = Date.now();
+
+  // Anti-robot Cloudflare Turnstile (clé publique du widget créé dans le tableau de bord Cloudflare).
+  // Vide = désactivé. Le Worker l'exige dès que son secret TURNSTILE_SECRET est posé : mettre la clé ici AVANT le secret.
+  // En local : clé de test Cloudflare qui passe toujours.
+  const TURNSTILE_SITEKEY = location.hostname === 'localhost' ? '1x00000000000000000000AA' : '';
+  if (!ADMIN && TURNSTILE_SITEKEY) {
+    window.onTurnstile = () => turnstile.render('#turnstile', { sitekey: TURNSTILE_SITEKEY, language: 'fr' });
+    const s = document.createElement('script');
+    s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstile&render=explicit';
+    s.async = true; document.head.append(s);
+  }
+  // Saisie interne : la session admin (auth.js) signe la demande, le Worker la reconnaît sans anti-robot
+  if (ADMIN) {
+    const sb = document.createElement('script');
+    sb.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    sb.onload = () => { const a = document.createElement('script'); a.src = 'assets/auth.js'; document.head.append(a); };
+    document.head.append(sb);
+  }
   let etape = 0, grille = null, derniere = null;
 
   document.getElementById('acts').innerHTML = ACTIVITES.map(([code, titre, desc]) =>
@@ -398,12 +417,16 @@ input:focus, textarea:focus, .choice input:focus-visible + span { outline: 2px s
       },
       estimation: derniere ? { ht: derniere.resultat.totaux.ht, ttc: derniere.resultat.totaux.ttc, par_personne_ht: derniere.resultat.par_personne.ht } : null,
       planning: derniere ? derniere.jours : null,
-      origine: ADMIN ? 'Tableau de bord (saisie interne)' : (document.referrer || location.href)
+      origine: ADMIN ? 'Tableau de bord (saisie interne)' : (document.referrer || location.href),
+      hp: form.website.value, duree: Date.now() - debut,
+      turnstile: window.turnstile ? turnstile.getResponse() || '' : ''
     };
+    const headers = { 'Content-Type': 'application/json' };
+    if (ADMIN && window.SesquierAuth) { const t = await SesquierAuth.getToken(); if (t) headers.Authorization = `Bearer ${t}`; }
     let envoye = false, test = false;
     try {
       const res = await fetch(`${API_BASE}/api/public/demande`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        method: 'POST', headers, body: JSON.stringify(payload)
       });
       envoye = res.ok;
       test = res.status === 403 || location.hostname === 'localhost';
