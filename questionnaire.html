@@ -92,7 +92,11 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
   .projet .fleche { display: none; }
   .steps span { font-size: 11px; letter-spacing: 0; }
 }
+/* Intégré en iframe sur domainesesquier.com/demande-de-devis/ : la page WordPress fournit le fond et les marges */
+html.embed body { background: transparent; }
+html.embed .wrap { padding: 12px 16px 32px; }
 </style>
+<script>if (window.self !== window.top) document.documentElement.classList.add('embed');</script>
 </head>
 <body>
 <main class="wrap">
@@ -328,6 +332,14 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
   // Saisie interne depuis le tableau de bord (?admin=1) : pas d'anti-robot ni de case RGPD,
   // pré-remplissage possible via #prefill=<JSON encodé> (clés = attributs name du formulaire).
   const ADMIN = new URLSearchParams(location.search).get('admin') === '1';
+  const EMBED = window.self !== window.top;
+  // Remonte en haut du questionnaire à chaque étape (en iframe, c'est la page WordPress qui défile)
+  let pret = false;
+  function remonter() {
+    if (!pret) return;
+    if (EMBED) parent.postMessage({ type: 'sesquier-questionnaire-top' }, '*');
+    else document.getElementById('form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   // ── Mesure GA4 : événements envoyés UNIQUEMENT avec le consentement « statistiques » de WPConsent.
   // Le questionnaire est affiché en iframe sur le site WordPress (où GA4 G-8KF8YV3TW5 est chargé derrière WPConsent) :
@@ -500,7 +512,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
     ecranProjet.hidden = false; barre.hidden = nav.hidden = robot.hidden = true;
     document.getElementById('titre').textContent = 'Parlons de votre projet';
     document.getElementById('chapo').textContent = 'Choisissez votre parcours : quelques questions, puis nous vous envoyons votre devis détaillé par e-mail sous 24 h.';
-    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    remonter();
   }
   ecranProjet.querySelectorAll('.projet').forEach(b => b.addEventListener('click', () => {
     form.querySelector(`input[name="type"][value="${b.dataset.type}"]`).checked = true;
@@ -519,7 +531,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
     btnNext.textContent = i === o.length - 1 ? 'Envoyer ma demande' : 'Continuer';
     const h = cur.querySelector('h2');
     if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
-    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    remonter();
   }
 
   async function envoyer() {
@@ -574,6 +586,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
     form.innerHTML = `<div class="merci"><h2>Merci ${payload.contact.prenom}, c'est noté.</h2>
       <p>Nous étudions votre projet et vous envoyons votre devis détaillé sous 24 h à <b>${payload.contact.email}</b>.</p>
       ${test ? '<p class="note-type">Copie de test V2 : la demande est créée dans le bac à sable (dossier « à traiter » et date « Demandé » au calendrier), pas dans ta base.</p>' : ''}</div>`;
+    remonter();
     window.__derniereDemande = payload; // inspection en test
   }
 
@@ -629,6 +642,13 @@ input:focus, textarea:focus { outline: none; border-color: var(--vert); box-shad
   majFormat();
   if (parcoursConnu) afficher(0); else choisirProjet();
   window.scrollTo(0, 0);
+  pret = true;
+  // En iframe : la page parente ajuste la hauteur de l'iframe (pas de barre de défilement interne)
+  if (EMBED) {
+    const main = document.querySelector('main');
+    const hauteur = () => parent.postMessage({ type: 'sesquier-questionnaire-height', h: Math.ceil(main.getBoundingClientRect().height) }, '*');
+    new ResizeObserver(hauteur).observe(main); hauteur();
+  }
   fetch('assets/grille_2027.json').then(r => r.json()).then(g => { grille = g; estimer(); });
 })();
 </script>
