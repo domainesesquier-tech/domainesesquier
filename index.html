@@ -56,7 +56,7 @@
         // ────────────────────────────────────────────────────────
 
         // Fenêtre « Motif du refus » → résout { categorie, detail } ou null si annulé
-        const MOTIFS_REFUS = ['Prix trop élevé', 'Dates indisponibles', 'Capacité / hébergement', 'Autre lieu choisi',
+        const MOTIFS_REFUS = ['Prix trop élevé', 'Budget pas suffisant / refus de notre part', 'Dates indisponibles', 'Capacité / hébergement', 'Autre lieu choisi',
             'Projet annulé ou reporté', 'Sans réponse du client', 'Refus de notre part', 'Autre'];
         function askRefusalReason(record) {
             return new Promise(resolve => {
