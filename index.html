@@ -55,6 +55,53 @@
         });
         // ────────────────────────────────────────────────────────
 
+        // Fenêtre « Motif du refus » → résout { categorie, detail } ou null si annulé
+        const MOTIFS_REFUS = ['Prix trop élevé', 'Dates indisponibles', 'Capacité / hébergement', 'Autre lieu choisi',
+            'Projet annulé ou reporté', 'Sans réponse du client', 'Refus de notre part', 'Autre'];
+        function askRefusalReason(record) {
+            return new Promise(resolve => {
+                const ov = document.createElement('div');
+                ov.style.cssText = 'position:fixed;inset:0;background:rgba(26,29,23,.45);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;';
+                const nom = SesquierUtils.escapeHtml ? SesquierUtils.escapeHtml(record.nomClient || '') : (record.nomClient || '').replace(/[<>&"]/g, '');
+                ov.innerHTML = `
+                    <div role="dialog" aria-modal="true" style="background:var(--bg-elevated,#fff);border-radius:14px;max-width:440px;width:100%;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.25);font-family:inherit;color:var(--text);">
+                        <h3 style="margin:0 0 4px;font-size:18px;">Motif du refus</h3>
+                        <p style="margin:0 0 16px;color:var(--text-secondary);font-size:13px;">${nom}</p>
+                        <div class="mr-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+                            ${MOTIFS_REFUS.map(m => `<button type="button" data-m="${m}" style="border:1px solid rgba(0,0,0,.15);background:none;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;color:inherit;">${m}</button>`).join('')}
+                        </div>
+                        <textarea class="mr-detail" rows="3" placeholder="Précisions (facultatif)" style="width:100%;box-sizing:border-box;border:1px solid rgba(0,0,0,.15);border-radius:8px;padding:10px;font:inherit;font-size:13px;resize:vertical;"></textarea>
+                        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+                            <button type="button" class="mr-cancel" style="border:none;background:none;padding:8px 14px;font:inherit;cursor:pointer;color:var(--text-secondary);">Annuler</button>
+                            <button type="button" class="mr-ok" disabled style="border:none;background:var(--danger,#C53030);color:#fff;border-radius:8px;padding:8px 16px;font:inherit;font-weight:600;cursor:pointer;opacity:.4;">Passer en refusé</button>
+                        </div>
+                    </div>`;
+                document.body.appendChild(ov);
+                let cat = null;
+                const ok = ov.querySelector('.mr-ok'), detail = ov.querySelector('.mr-detail');
+                const close = val => { ov.remove(); document.removeEventListener('keydown', onKey); resolve(val); };
+                const onKey = e => { if (e.key === 'Escape') close(null); };
+                document.addEventListener('keydown', onKey);
+                ov.addEventListener('click', e => { if (e.target === ov) close(null); });
+                ov.querySelectorAll('[data-m]').forEach(b => b.addEventListener('click', () => {
+                    cat = b.dataset.m;
+                    ov.querySelectorAll('[data-m]').forEach(x => {
+                        const on = x === b;
+                        x.style.background = on ? 'var(--danger,#C53030)' : 'none';
+                        x.style.color = on ? '#fff' : 'inherit';
+                        x.style.borderColor = on ? 'transparent' : 'rgba(0,0,0,.15)';
+                    });
+                    ok.disabled = false; ok.style.opacity = '1';
+                    if (cat === 'Autre') detail.focus();
+                }));
+                ov.querySelector('.mr-cancel').addEventListener('click', () => close(null));
+                ok.addEventListener('click', () => {
+                    if (cat === 'Autre' && !detail.value.trim()) { detail.focus(); detail.style.borderColor = 'var(--danger,#C53030)'; return; }
+                    close({ categorie: cat, detail: detail.value.trim() });
+                });
+            });
+        }
+
         async function fastUpdateRecord(id, field, value, element = null) {
             const record = allRecords.find(r => r.id === id);
             if (!record) return;
@@ -69,6 +116,15 @@
             const currentVal = Array.isArray(oldVal) ? oldVal[0] : oldVal;
 
             if (currentVal === newVal) return; 
+
+            // Passage en Refusé → demander le motif (annuler = on ne change rien)
+            let motif = null;
+            if (field === SesquierRecords.FIELDS.STATUT && String(newVal).toLowerCase() === 'annulé') {
+                motif = await askRefusalReason(record);
+                if (!motif) { if (element) element.value = currentVal; return; }
+                updatePayload['Motif refus'] = motif.categorie;
+                updatePayload['Motif refus détail'] = motif.detail || null;
+            }
 
             if (element) {
                 element.style.opacity = '0.5';
@@ -86,7 +142,8 @@
 
                 // Logs auto
                 if (field === SesquierRecords.FIELDS.STATUT) {
-                    await autoLogTimeline(id, `Statut changé : **${currentVal || 'Inconnu'}** → **${newVal}**`);
+                    await autoLogTimeline(id, `Statut changé : **${currentVal || 'Inconnu'}** → **${newVal}**`
+                        + (motif ? ` — motif : **${motif.categorie}**${motif.detail ? ' (' + motif.detail + ')' : ''}` : ''));
                     if (newVal.toLowerCase() === 'annulé') {
                         // Refusé/annulé → supprimer du planning (mais NE PAS re-synchroniser)
                         const planningId = record._raw?.fields?.['planning_id'];
@@ -3589,7 +3646,7 @@
 
             // --- Badge de Statut (Utilisant SesquierRecords) ---
             const statusBadgeHtml = `
-                <div class="badge" onclick="event.stopPropagation()" style="display:inline-flex; align-items:center; padding:0; height:26px; min-width:130px; overflow:hidden; border:1px solid rgba(0,0,0,0.05); background-color:${r.statutBg}; color:${r.statutColor};">
+                <div class="badge" onclick="event.stopPropagation()" title="${r.statut === 'annulé' && r._raw?.fields?.['Motif refus'] ? ('Motif : ' + r._raw.fields['Motif refus'] + (r._raw.fields['Motif refus détail'] ? ' — ' + r._raw.fields['Motif refus détail'] : '')).replace(/"/g, '&quot;') : ''}" style="display:inline-flex; align-items:center; padding:0; height:26px; min-width:130px; overflow:hidden; border:1px solid rgba(0,0,0,0.05); background-color:${r.statutBg}; color:${r.statutColor};">
                     <select onchange="fastUpdateRecord('${id}', 'Statut', this.value, this)" 
                             style="width:100%; height:100%; background:none; border:none; color:inherit; font-family:inherit; font-size:9px; font-weight:700; text-transform:uppercase; text-align:center; cursor:pointer; outline:none; -webkit-appearance:none; padding:0 12px; margin:0;">
                         ${Object.keys(SesquierRecords.STATUS_MAP).map(key => `
