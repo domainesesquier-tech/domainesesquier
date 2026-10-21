@@ -15,6 +15,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="assets/utils.js"></script>
+    <script src="assets/lecture-demande.js"></script>
     <script src="assets/records.js?v=3"></script>
     <script>
 
@@ -2403,6 +2404,10 @@
                 <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'mariage')"><i class="fa-solid fa-ring"></i>&nbsp; Mariage</button>
                 <button onclick="location.href='questionnaire?admin=1'" title="Saisir une demande reçue (Cactus, téléphone, mail) : crée la fiche et l'estimation du devis"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp; Depuis le questionnaire</button>
             </div>
+            <li class="nav-item" onclick="ouvrirCollerDemande()" title="Colle le mail ou le message du client : le questionnaire s'ouvre pré-rempli">
+                <i class="fa-solid fa-paste"></i>
+                <span>Coller une demande</span>
+            </li>
 
             <div class="nav-divider"></div>
             <div class="nav-section-title">Filtres</div>
@@ -3948,9 +3953,67 @@
         function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
     </script>
 
+<!-- ========== COLLER UNE DEMANDE (mail → questionnaire pré-rempli, lecture locale sans IA) ========== -->
+<style>
+    .coller-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); backdrop-filter: blur(10px); z-index: 1100; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; visibility: hidden; transition: all .25s ease; }
+    .coller-overlay.show { opacity: 1; visibility: visible; }
+    .coller-modal { position: relative; width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto; background: var(--surface); color: var(--text); border-radius: 24px; box-shadow: 0 30px 60px rgba(0,0,0,.2); padding: 28px; }
+    .coller-modal h3 { margin: 0 0 6px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+    .coller-modal h3 i { color: var(--primary); }
+    .coller-aide { margin: 0 0 14px; font-size: 13px; color: var(--text-secondary); }
+    .coller-fermer { position: absolute; top: 20px; right: 20px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: none; color: var(--text-secondary); cursor: pointer; }
+    #coller-texte { width: 100%; box-sizing: border-box; min-height: 200px; resize: vertical; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--text); font: inherit; font-size: 13px; line-height: 1.5; }
+    #coller-texte:focus { outline: none; border-color: var(--primary); }
+    .coller-resume { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin: 14px 0 0; }
+    .coller-resume div { padding: 8px 10px; border-radius: 10px; background: var(--primary-subtle); font-size: 13px; overflow-wrap: anywhere; }
+    .coller-resume span { display: block; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
+    .coller-resume em { color: var(--warning); font-style: normal; }
+    .coller-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+    .coller-btn { padding: 10px 18px; border-radius: 12px; border: 1px solid var(--border); background: none; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+    .coller-btn-ok { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
+    .coller-btn-ok:disabled { opacity: .4; cursor: not-allowed; }
+</style>
+<div class="coller-overlay" id="coller-overlay" onclick="if (event.target === this) fermerCollerDemande()">
+    <div class="coller-modal" role="dialog" aria-modal="true" aria-labelledby="coller-titre">
+        <button class="coller-fermer" onclick="fermerCollerDemande()" aria-label="Fermer"><i class="fa-solid fa-xmark"></i></button>
+        <h3 id="coller-titre"><i class="fa-solid fa-paste"></i> Coller une demande</h3>
+        <p class="coller-aide">Colle le mail, le message Cactus ou tes notes d'appel. Le questionnaire s'ouvre pré-rempli : tu vérifies, tu complètes, tu envoies.</p>
+        <textarea id="coller-texte" placeholder="Colle ici le message du client…" oninput="majCollerDemande()"></textarea>
+        <div class="coller-resume" id="coller-resume"></div>
+        <div class="coller-actions">
+            <button class="coller-btn" onclick="fermerCollerDemande()">Annuler</button>
+            <button class="coller-btn coller-btn-ok" id="coller-ok" onclick="validerCollerDemande()" disabled>Remplir le questionnaire →</button>
+        </div>
+    </div>
+</div>
+<script>
+    let collerLu = null;
+    function ouvrirCollerDemande() {
+        const t = document.getElementById('coller-texte');
+        t.value = ''; majCollerDemande();
+        document.getElementById('coller-overlay').classList.add('show');
+        setTimeout(() => t.focus(), 50);
+    }
+    function fermerCollerDemande() { document.getElementById('coller-overlay').classList.remove('show'); }
+    function majCollerDemande() {
+        const texte = document.getElementById('coller-texte').value;
+        collerLu = texte.trim() ? LectureDemande.lire(texte) : null;
+        document.getElementById('coller-ok').disabled = !collerLu;
+        document.getElementById('coller-resume').innerHTML = collerLu
+            ? collerLu.resume.map(([k, v]) => `<div><span>${k}</span>${v ? escapeHtml(v) : '<em>à compléter</em>'}</div>`).join('') : '';
+    }
+    function validerCollerDemande() {
+        if (collerLu) location.href = 'questionnaire?admin=1#prefill=' + encodeURIComponent(JSON.stringify(collerLu.prefill));
+    }
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && document.getElementById('coller-overlay').classList.contains('show')) fermerCollerDemande();
+    });
+</script>
+
 <!-- MOBILE BOTTOM NAV -->
 <div class="mobile-more" id="mobile-more">
     <a href="questionnaire?admin=1"><i class="fa-solid fa-wand-magic-sparkles"></i> Saisir une demande</a>
+    <button onclick="this.parentNode.classList.remove('show'); ouvrirCollerDemande()"><i class="fa-solid fa-paste"></i> Coller une demande</button>
     <a href="menage.html"><i class="fa-solid fa-broom"></i> Ménage</a>
     <button onclick="toggleTheme(); this.parentNode.classList.remove('show')"><i class="fa-regular fa-moon"></i> Mode sombre / clair</button>
     <button class="danger" onclick="window.SesquierAuth && window.SesquierAuth.logout()"><i class="fa-solid fa-right-from-bracket"></i> Se déconnecter</button>
