@@ -334,7 +334,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
           <fieldset><label class="lab" id="lab-email" for="email">E-mail professionnel</label><input type="email" id="email" name="email" autocomplete="email" required><div class="err" data-err="email"></div></fieldset>
           <fieldset><label class="lab" for="telephone">Téléphone</label><input type="tel" id="telephone" name="telephone" autocomplete="tel" required><div class="err" data-err="telephone"></div></fieldset>
         </div>
-        <fieldset><label class="lab" for="budget">Budget approximatif <span class="facultatif">(facultatif)</span></label><input type="text" id="budget" name="budget" maxlength="120" placeholder="Ex. 8 000 € au total ou 150 € par personne"></fieldset>
+        <fieldset id="bloc-budget"><label class="lab" for="budget">Budget approximatif <span class="facultatif">(facultatif)</span></label><input type="text" id="budget" name="budget" maxlength="120" placeholder="Ex. 8 000 € au total ou 150 € par personne"></fieldset>
         <fieldset><label class="lab" for="message">Votre projet</label><textarea id="message" name="message" placeholder="Objectifs, contraintes, envies particulières…"></textarea></fieldset>
         <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
         <label class="check"><input type="checkbox" id="rgpd" required><span>J'accepte que mes informations soient utilisées pour traiter ma demande de devis. Elles ne sont jamais transmises à des tiers.</span></label>
@@ -457,7 +457,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
       restauration: val('restauration'),
       pauses: val('pauses') === '1', vin: val('vin') === '1',
       soiree: val('soiree'), transport: val('transport'),
-      objectif: val('type') === 'seminaire' ? form.objectif.value : '', budget: form.budget.value.trim().slice(0, 120),
+      objectif: val('type') === 'seminaire' ? form.objectif.value : '', budget: val('type') === 'groupe' ? '' : form.budget.value.trim().slice(0, 120),
       activites: [], animations: val('animations') === '1', activitesSouhaitees: val('animations') === '1' ? souhaits : [],
       segment: val('type'),
       draps: val('draps') === '1', archipel: val('salle') === 'archipel', cuisine_pro: val('salle') === 'cuisine',
@@ -475,6 +475,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
     document.getElementById('bloc-profil').hidden = !sem;
     if (!sem) form.querySelector('input[name="format"][value="residentiel"]').checked = true;
     document.getElementById('envies-groupe').hidden = seg !== 'groupe';
+    document.getElementById('bloc-budget').hidden = seg === 'groupe';
     document.getElementById('bloc-organisation').hidden = !sem;
     document.getElementById('lab-email').textContent = sem ? 'E-mail professionnel' : 'E-mail';
     form.message.placeholder = { seminaire: 'Objectifs, contraintes, envies particulières…', groupe: 'L’occasion (anniversaire, cousinade, retraite…), vos envies, vos questions…', mariage: 'Cérémonie sur place ou non, vos envies, vos questions…' }[seg];
