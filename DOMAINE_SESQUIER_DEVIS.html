@@ -477,6 +477,45 @@
         .lib-btn-danger { background: #ef4444; color: #fff; border-color: #ef4444; }
         .lib-btn-danger:hover { background: #dc2626; border-color: #dc2626; }
     </style>
+<style>
+    /* ===== Téléphone : résumé du devis à la place de la page A4 (rien ne change au-dessus de 768 px) ===== */
+    #vue-tel, #retour-resume { display: none; }
+    @media (max-width: 768px) {
+        body:not(.voir-a4) { padding: 0 !important; background: #f6f4ef !important; }
+        body:not(.voir-a4) #pdf-wrapper, body:not(.voir-a4) .controls-bar, body:not(.voir-a4) #library-panel { display: none !important; }
+        body:not(.voir-a4) #vue-tel { display: block; }
+        body.voir-a4 .controls-bar, body.voir-a4 #library-panel { display: none !important; }
+        body.voir-a4 #pdf-wrapper { zoom: .46; }
+        body.voir-a4 #retour-resume { display: block; position: fixed; left: 12px; bottom: 12px; z-index: 1500; background: #3a5538; color: #fff; border: none; border-radius: 20px; padding: 10px 16px; font: inherit; font-size: 14px; font-weight: 600; }
+    }
+    #vue-tel { padding: 14px 14px 28px; font-family: Inter, system-ui, sans-serif; color: #1f2937; }
+    .vt-entete { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .vt-titre { font-size: 18px; font-weight: 700; }
+    .vt-ok { font-size: 12px; font-weight: 600; color: #3a5538; }
+    .vt-carte { background: #fff; border: 1px solid #e7e3da; border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+    .vt-label { font-size: 12px; color: #6b7280; }
+    .vt-total { font-size: 22px; font-weight: 700; margin: 2px 0; }
+    .vt-sous { font-size: 13px; color: #4b5563; }
+    .vt-synthese { font-size: 12px; color: #6b7280; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .vt-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .vt-btn { flex: 1; height: 42px; border-radius: 21px; border: 1.5px solid #3a5538; background: #fff; color: #3a5538; font: inherit; font-size: 14px; font-weight: 600; }
+    .vt-plein { background: #3a5538; color: #fff; }
+    .vt-entete .vt-btn { flex: 0 0 auto; height: 34px; padding: 0 14px; background: #d97706; border-color: #d97706; color: #fff; }
+    .vt-section { background: #fff; border: 1px solid #e7e3da; border-radius: 14px; margin-bottom: 8px; overflow: hidden; }
+    .vt-sec-tete { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; background: none; border: none; font: inherit; font-size: 14px; font-weight: 600; color: #1f2937; text-align: left; }
+    .vt-sec-tete span:last-child { color: #4b5563; font-weight: 600; white-space: nowrap; }
+    .vt-sec-tete i { font-size: 11px; margin-left: 6px; color: #9ca3af; }
+    .vt-ligne { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1px solid #f0ede6; }
+    .vt-option { opacity: .6; }
+    .vt-l-txt { flex: 1; min-width: 0; }
+    .vt-l-nom { font-size: 13px; font-weight: 500; }
+    .vt-l-sous { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .vt-tag { font-size: 10px; font-weight: 700; color: #92400e; background: #fef3c7; border-radius: 6px; padding: 0 5px; }
+    .vt-pas { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .vt-pas button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid #d6d1c4; background: #fff; font-size: 18px; color: #3a5538; line-height: 1; }
+    .vt-pas span { min-width: 30px; text-align: center; font-size: 14px; font-weight: 600; }
+    .vt-note { font-size: 12px; color: #9ca3af; text-align: center; margin: 14px 8px 0; }
+</style>
 </head>
 
 <body>
@@ -583,6 +622,8 @@
     </div>
 
     <!-- PDF Wrapper (les deux pages) -->
+    <div id="vue-tel" class="no-print"></div>
+    <button id="retour-resume" class="no-print" onclick="document.body.classList.remove('voir-a4'); window.scrollTo(0, 0)">← Résumé</button>
     <div id="pdf-wrapper">
 
     <!-- Page A4 -->
@@ -3300,6 +3341,87 @@
         const url = `mailto:${encodeURIComponent(f['Email'] || '')}?subject=${encodeURIComponent(document.getElementById('ia-objet').value)}&body=${encodeURIComponent(document.getElementById('ia-corps').value)}`;
         window.location.href = url;
     }
+</script>
+<script>
+    // ===== Téléphone : résumé du devis (lu dans le tableau A4, quantités modifiables) =====
+    const estTel = () => window.matchMedia('(max-width: 768px)').matches;
+    const sectionsOuvertesTel = new Set();
+    const nombreTel = t => parseFloat(String(t || '').replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+    const euroTel = v => Math.round(v).toLocaleString('fr-FR') + ' €';
+    const echapTel = t => String(t || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    function sectionsDuDevis() {
+        const sections = [];
+        let cur = null;
+        ['pricing-body', 'options-body', 'activities-body'].forEach(bid => {
+            document.querySelectorAll(`#${bid} > tr`).forEach(tr => {
+                if (tr.classList.contains('category-row')) { const t = (tr.querySelector('span')?.textContent || '').trim().toLowerCase(); cur = { titre: t.charAt(0).toUpperCase() + t.slice(1), lignes: [] }; sections.push(cur); return; }
+                const q = tr.querySelector('.qty');
+                if (!q) return;
+                if (!cur) { cur = { titre: 'Prestations', lignes: [] }; sections.push(cur); }
+                cur.lignes.push({ tr, label: (tr.querySelector('.row-label')?.textContent || '').trim(), qty: nombreTel(q.textContent),
+                    pu: nombreTel(tr.querySelector('.price')?.textContent), total: nombreTel(tr.querySelector('.row-total')?.textContent), option: tr.classList.contains('is-option') });
+            });
+        });
+        return sections.filter(sec => sec.lignes.length);
+    }
+
+    function renderVueTel() {
+        const box = document.getElementById('vue-tel');
+        if (!box || !estTel()) return;
+        const txt = id => (document.getElementById(id)?.innerText || '').trim();
+        const f = window._liveFields || (typeof currentRecord !== 'undefined' && currentRecord?.fields) || {};
+        const pp = txt('price-per-person');
+        box.innerHTML = `
+            <div class="vt-entete"><span class="vt-titre">Devis</span>${hasUnsavedChanges ? '<button class="vt-btn" onclick="saveToAirtable()">Enregistrer</button>' : '<span class="vt-ok">✓ Enregistré</span>'}</div>
+            <div class="vt-carte">
+                <div class="vt-label">Total</div>
+                <div class="vt-total">${echapTel(txt('display-total-ht'))} HT</div>
+                <div class="vt-sous">${echapTel(txt('display-total-ttc'))} TTC${pp ? ' · ' + echapTel(pp) : ''}</div>
+                ${txt('stay-synthesis') ? `<div class="vt-synthese">${echapTel(txt('stay-synthesis').replace(/\[?"([^"\]]*)"\]?/g, '$1'))}</div>` : ''}
+                <div class="vt-actions">
+                    <button class="vt-btn" onclick="document.body.classList.add('voir-a4'); window.scrollTo(0, 0)">Devis complet</button>
+                    <button class="vt-btn vt-plein" onclick="ouvrirMailClient()">✉ ${f['Suivi Date devis'] ? 'Relancer' : 'Envoyer'}</button>
+                </div>
+            </div>
+            ${sectionsDuDevis().map((sec, i) => {
+                const ouvert = sectionsOuvertesTel.has(i);
+                const tot = sec.lignes.filter(l => !l.option).reduce((a, l) => a + l.total, 0);
+                return `<div class="vt-section">
+                    <button class="vt-sec-tete" onclick="basculerSectionTel(${i})"><span>${echapTel(sec.titre)}</span><span>${euroTel(tot)}<i class="fa-solid fa-chevron-${ouvert ? 'up' : 'down'}"></i></span></button>
+                    ${ouvert ? sec.lignes.map((l, j) => `<div class="vt-ligne${l.option ? ' vt-option' : ''}">
+                        <div class="vt-l-txt"><div class="vt-l-nom">${echapTel(l.label)}${l.option ? ' <span class="vt-tag">option</span>' : ''}</div>
+                            <div class="vt-l-sous">${l.pu.toLocaleString('fr-FR')} € × ${l.qty.toLocaleString('fr-FR')} = ${euroTel(l.total)}</div></div>
+                        <div class="vt-pas"><button onclick="changerQteTel(${i}, ${j}, -1)" aria-label="Moins">−</button><span>${l.qty.toLocaleString('fr-FR')}</span><button onclick="changerQteTel(${i}, ${j}, 1)" aria-label="Plus">+</button></div>
+                    </div>`).join('') : ''}
+                </div>`;
+            }).join('')}
+            <p class="vt-note">Prix, libellés et mise en page se modifient sur ordinateur, ou dans « Devis complet ».</p>`;
+    }
+    function basculerSectionTel(i) {
+        if (sectionsOuvertesTel.has(i)) sectionsOuvertesTel.delete(i); else sectionsOuvertesTel.add(i);
+        renderVueTel();
+    }
+    function changerQteTel(i, j, delta) {
+        const l = sectionsDuDevis()[i]?.lignes[j];
+        if (!l) return;
+        const v = Math.max(0, l.qty + delta);
+        l.tr.querySelector('.qty').textContent = Number.isInteger(v) ? v : v.toFixed(1);
+        updateCalculations();
+        markDirty();
+        renderVueTel();
+    }
+    // Le résumé suit chaque recalcul, enregistrement et changement d'orientation
+    (function () {
+        const base = updateCalculations;
+        updateCalculations = function () { const r = base.apply(this, arguments); if (estTel()) renderVueTel(); return r; };
+        ['markDirty', 'markClean', 'majBoutonEnvoyer'].forEach(nom => {
+            const f = window[nom];
+            if (typeof f === 'function') window[nom] = function () { const r = f.apply(this, arguments); if (estTel()) renderVueTel(); return r; };
+        });
+        window.matchMedia('(max-width: 768px)').addEventListener('change', () => { if (estTel()) renderVueTel(); });
+        if (estTel()) renderVueTel();
+    })();
 </script>
 </body>
 
