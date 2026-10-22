@@ -73,8 +73,8 @@
 
     <!-- Controls -->
     <div class="controls-bar no-print">
-        <div style="display:flex;align-items:center;gap:3px;padding:3px 8px;background:#f0ede6;border-radius:8px;border:1px solid #d1cec7;">
-            <span style="font-size:11px;color:#6b7280;font-weight:500;margin-right:4px;white-space:nowrap;">Société :</span>
+        <div id="profil-box" style="display:flex;align-items:center;gap:3px;padding:3px 8px;background:#f0ede6;border-radius:8px;border:1px solid #d1cec7;">
+            <span style="font-size:11px;color:#6b7280;font-weight:500;margin-right:4px;white-space:nowrap;">Émetteur :</span>
             <button id="prof-btn-ozza" onclick="setCompanyProfile('ozza')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:#3a5538;color:white;">OZZA</button>
             <button id="prof-btn-foudre" onclick="setCompanyProfile('foudre')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:transparent;color:#3a5538;">FOUDRE SOCIETY</button>
         </div>
@@ -319,6 +319,8 @@
             ozza:   { name:'OZZA SASU',           siret:'903 246 478 00015', tva: null,             banque:'BNP Paribas', iban:'FR76 3000 4006 4000 0107 8926 886', bic:'BNPAFRPPXXX',  swift:null },
             foudre: { name:'FOUDRE SOCIETY SASU', siret:'10651345000010',    tva:'FR52106513450',   banque:'QONTO',       iban:'FR76 1695 8000 0151 7488 5807 771', bic:'QNTOFRP1XXX', swift:'TRWIBEB3XXX' },
         };
+        // Émetteur du dossier ouvert (localStorage = simple valeur par défaut, partagée entre onglets et dossiers)
+        var profilCourant = localStorage.getItem('ds_company_profile') || 'ozza';
         function setCompanyProfile(key) {
             const p = COMPANY_PROFILES[key]; if (!p) return;
             const hdr = document.getElementById('company-header-line');
@@ -334,6 +336,7 @@
             if (pen) pen.style.display = p.tva ? 'list-item' : 'none';
             // Profil mémorisé AVANT de recalculer le numéro (qui en dépend)
             localStorage.setItem('ds_company_profile', key);
+            profilCourant = key;
             if (typeof applyDocNumber === 'function') applyDocNumber();
             ['ozza','foudre'].forEach(k => {
                 const btn = document.getElementById(`prof-btn-${k}`);
@@ -352,7 +355,7 @@
             try { return JSON.parse(currentRecord?.fields?.['Numeros JSON'] || '{}'); } catch (e) { return {}; }
         }
         function applyDocNumber() {
-            const profile = localStorage.getItem('ds_company_profile') || 'ozza';
+            const profile = profilCourant;
             const numeros = _foudreNumeros();
             let ff, ref;
             if (profile === 'foudre') {
@@ -456,6 +459,12 @@
                         document.querySelectorAll('th.col-total').forEach(th => th.textContent = 'Total TTC');
                     }
                     console.log('[FF] Dossier JSON chargé —', dossier.financials?.lines?.length || 0, 'lignes');
+                    // Émetteur : celui du devis, choisi une seule fois pour tout le dossier
+                    if (dossier?.companyProfile && COMPANY_PROFILES[dossier.companyProfile]) {
+                        setCompanyProfile(dossier.companyProfile);
+                        const box = document.getElementById('profil-box');
+                        if (box) box.innerHTML = `<span style="font-size:11px;color:#6b7280;white-space:nowrap;">Émetteur : <strong style="color:#3a5538;">${COMPANY_PROFILES[dossier.companyProfile].name}</strong> · repris du devis</span>`;
+                    }
                 } catch (e) {
                     console.warn('[FF] DOSSIER JSON invalide, fallback…', e);
                 }
@@ -787,7 +796,7 @@
             // FOUDRE : figer un numéro de facture finale séquentiel avant impression.
             // Si l'attribution échoue, on bloque : une facture ne doit jamais
             // sortir avec un numéro provisoire.
-            if ((localStorage.getItem('ds_company_profile') || 'ozza') === 'foudre' && currentRecord?.id) {
+            if (profilCourant === 'foudre' && currentRecord?.id) {
                 const assigned = await SesquierUtils.ensureFoudreNumber(currentRecord.id, currentRecord.fields, 'ff');
                 applyDocNumber();
                 if (!assigned) {

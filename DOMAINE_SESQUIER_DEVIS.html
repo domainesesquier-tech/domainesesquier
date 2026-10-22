@@ -543,7 +543,7 @@
     <!-- Controls -->
     <div class="controls-bar no-print">
         <div style="display:flex;align-items:center;gap:3px;padding:3px 8px;background:#f0ede6;border-radius:8px;border:1px solid #d1cec7;">
-            <span style="font-size:11px;color:#6b7280;font-weight:500;margin-right:4px;white-space:nowrap;">Société :</span>
+            <span style="font-size:11px;color:#6b7280;font-weight:500;margin-right:4px;white-space:nowrap;">Émetteur :</span>
             <button id="prof-btn-ozza" onclick="setCompanyProfile('ozza')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:#3a5538;color:white;">OZZA</button>
             <button id="prof-btn-foudre" onclick="setCompanyProfile('foudre')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:transparent;color:#3a5538;">FOUDRE SOCIETY</button>
         </div>
@@ -566,14 +566,7 @@
             </svg>
             Télécharger PDF
         </button>
-        <button class="btn" onclick="ouvrirMailClient()" title="Préparer le mail d'envoi du devis ou une relance avec Claude Code">✉ Mail client</button>
-        <button class="btn" style="background: var(--primary); color: white;"
-            onclick="SesquierUtils.broadcast('SWITCH_TAB', { tab: 'facture-finale', recordId: currentRequestId })">
-            Facture Finale
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M5 12h14M12 5l7 7-7 7"></path>
-            </svg>
-        </button>
+        <button class="btn btn-primary" id="btn-envoyer" onclick="ouvrirMailClient()" title="Préparer le mail avec Claude Code (brouillon Gmail), puis marquer l'envoi">✉ Envoyer</button>
         <button id="library-toggle" class="btn no-print" onclick="toggleLibrary()">
             📋 Bibliothèque
         </button>
@@ -841,6 +834,8 @@
             },
         };
 
+        // Émetteur du dossier ouvert (localStorage = simple valeur par défaut, partagée entre onglets et dossiers)
+        var profilCourant = localStorage.getItem('ds_company_profile') || 'ozza';
         function setCompanyProfile(key) {
             const p = COMPANY_PROFILES[key];
             if (!p) return;
@@ -877,6 +872,7 @@
 
             // Profil mémorisé AVANT de recalculer le numéro (qui en dépend)
             localStorage.setItem('ds_company_profile', key);
+            profilCourant = key;
 
             // Numéro de document : recalculé selon le profil (séquentiel FOUDRE)
             if (typeof applyDevisNumber === 'function') applyDevisNumber();
@@ -895,7 +891,7 @@
         // sinon un libellé provisoire jusqu'à l'enregistrement.
         // OZZA : format historique (année-mois + fin d'ID).
         function getDevisNumberForDisplay() {
-            const profile = localStorage.getItem('ds_company_profile') || 'ozza';
+            const profile = profilCourant;
             const fields  = (typeof currentRecord !== 'undefined' && currentRecord?.fields) ? currentRecord.fields : {};
             if (profile === 'foudre') {
                 let numeros = {};
@@ -1380,6 +1376,7 @@
 
             // Restaurer le profil société si sauvegardé dans le dossier
             if (dossier.companyProfile) setCompanyProfile(dossier.companyProfile);
+            if (typeof majBoutonEnvoyer === 'function') majBoutonEnvoyer();
             setPrixTTC(!!dossier.prixTTC);
             const ma = document.getElementById('mot-accueil');
             if (ma) { ma.innerText = dossier.motAccueil || ''; ma.style.display = dossier.motAccueil ? 'block' : 'none'; }
@@ -2281,7 +2278,7 @@
                 if (btn) { btn.innerText = "Sauvegarde..."; btn.disabled = true; }
 
                 // 0. FOUDRE : attribuer (une seule fois) un numéro de devis séquentiel et le figer
-                if ((localStorage.getItem('ds_company_profile') || 'ozza') === 'foudre' && currentRecord?.fields) {
+                if (profilCourant === 'foudre' && currentRecord?.fields) {
                     await SesquierUtils.ensureFoudreNumber(currentRequestId, currentRecord.fields, 'devis');
                     applyDevisNumber();
                 }
@@ -2380,7 +2377,7 @@
                             ? Math.round(totalHT / (currentDossier?.sejour?.participants || 1) * 100) / 100 : 0,
                     },
                     mealsPlanning,
-                    companyProfile: localStorage.getItem('ds_company_profile') || 'ozza',
+                    companyProfile: profilCourant,
                     motAccueil: (document.getElementById('mot-accueil')?.innerText || '').trim(),
                     prixTTC: !!SesquierUtils.prixTTC,
                 };
@@ -2426,7 +2423,7 @@
             if (!numEl) { alert('Erreur : impossible de trouver le numéro de devis.'); return; }
 
             // FOUDRE : garantir un numéro séquentiel figé avant d'imprimer le PDF
-            if ((localStorage.getItem('ds_company_profile') || 'ozza') === 'foudre' && currentRecord?.fields) {
+            if (profilCourant === 'foudre' && currentRecord?.fields) {
                 await SesquierUtils.ensureFoudreNumber(currentRequestId, currentRecord.fields, 'devis');
                 applyDevisNumber();
             }
@@ -3120,35 +3117,18 @@
 <style>#mot-accueil:empty::before { content: attr(data-placeholder); color: #aaa; font-style: italic; } @media print { #mot-accueil:empty { display: none !important; } }</style>
 <!-- Rédaction assistée (Claude) — panneau non imprimé -->
 <div id="mail-panel" class="no-print" style="display:none; position:fixed; top:0; right:0; bottom:0; width:min(400px,100%); background:#fff; box-shadow:-8px 0 24px rgba(0,0,0,.15); z-index:2000; padding:20px; overflow-y:auto; font-family:system-ui,sans-serif; font-size:14px; color:#1f2937;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-        <strong style="font-size:16px;">✉ Mail client</strong>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <strong id="mail-panel-titre" style="font-size:16px;">✉ Envoyer le devis</strong>
         <button onclick="document.getElementById('mail-panel').style.display='none'" style="border:none;background:none;font-size:22px;cursor:pointer;">×</button>
     </div>
-    <div style="display:flex; gap:8px; margin-bottom:6px;">
-        <button id="mail-choix-devis" class="btn" style="flex:1;" onclick="preparerMail('devis')">Envoi du devis</button>
-        <button id="mail-choix-relance" class="btn" style="flex:1;" onclick="preparerMail('relance')">Relance</button>
-    </div>
-    <p id="mail-relance-note" style="display:none; color:#92400e; font-size:12px; margin:0 0 10px;">Relance disponible une fois la date d'envoi du devis renseignée dans le suivi.</p>
-    <div id="mail-etapes" style="display:none; margin-top:14px; background:#f6f4ef; border-radius:8px; padding:14px 16px; line-height:1.55;">
-        <div style="color:#3a5538; font-weight:600; margin-bottom:8px;">✓ <span id="mail-etape-titre"></span> copié</div>
-        <ol style="margin:0; padding-left:18px;">
-            <li>Dans Claude Code, colle (⌘V) puis Entrée.</li>
-            <li>Claude rédige et crée un <strong>brouillon Gmail</strong> ; il te le confirme dans Claude Code.</li>
-            <li id="mail-etape-accueil">Il te donne aussi le mot d'accueil : colle-le dans le cadre en tête du devis, puis Enregistrer.</li>
-            <li>Relis le brouillon, joins le PDF si besoin, et envoie. Puis clique <strong>✓ envoyé</strong> ci-dessous.</li>
-        </ol>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
-            <a class="btn btn-primary" href="https://mail.google.com/mail/?authuser=domainesesquier@gmail.com#drafts" target="_blank" rel="noopener" style="text-decoration:none;">Ouvrir mes brouillons Gmail</a>
-            <button class="btn" id="mail-recopier">Recopier</button>
-        </div>
-    </div>
-    <div style="margin-top:14px; border-top:1px solid #eee; padding-top:12px;">
-        <div id="mail-suivi-etat" style="color:#4b5563; font-size:13px; margin-bottom:8px;"></div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button class="btn btn-primary" onclick="marquerEnvoi('devis')">✓ Devis envoyé</button>
-            <button class="btn" id="mail-marquer-relance" onclick="marquerEnvoi('relance')">✓ Relance envoyée</button>
-        </div>
-    </div>
+    <div id="mail-suivi-etat" style="color:#4b5563; font-size:13px; margin-bottom:12px;"></div>
+    <ol style="margin:0; padding-left:20px; line-height:1.6; display:flex; flex-direction:column; gap:10px;">
+        <li><button class="btn btn-primary" id="mail-preparer">Préparer le mail</button><br><span style="color:#6b7280; font-size:12px;">Copie le contexte du dossier pour Claude Code.</span></li>
+        <li>Dans Claude Code, colle (⌘V) puis Entrée : Claude crée un <strong>brouillon Gmail</strong><span id="mail-etape-accueil"> et te donne le mot d'accueil à coller en tête du devis (puis Enregistrer)</span>.</li>
+        <li><a href="https://mail.google.com/mail/?authuser=domainesesquier@gmail.com#drafts" target="_blank" rel="noopener" style="color:#3a5538; font-weight:600;">Ouvre tes brouillons Gmail</a>, relis, joins le PDF si besoin, et envoie.</li>
+        <li><button class="btn btn-primary" id="mail-marquer">✓ Devis envoyé</button><br><span id="mail-marquer-note" style="color:#6b7280; font-size:12px;">Passe le dossier en « Envoyé » et programme la relance à J+3.</span></li>
+    </ol>
+    <button id="mail-autre-mode" style="display:none; margin-top:14px; background:none; border:none; padding:0; color:#6b7280; font:inherit; font-size:12px; text-decoration:underline; cursor:pointer;"></button>
     <p style="color:#888; font-size:12px; margin-top:14px;">Rien n'est envoyé automatiquement : le mail reste en brouillon jusqu'à ce que tu l'envoies.</p>
 </div>
 <div id="ia-panel" class="no-print" style="display:none; position:fixed; top:0; right:0; bottom:0; width:min(440px,100%); background:#fff; box-shadow:-8px 0 24px rgba(0,0,0,.15); z-index:2000; padding:18px; overflow-y:auto; font-family:system-ui,sans-serif; font-size:14px;">
@@ -3197,21 +3177,47 @@
         };
     }
 
-    // Panneau « Mail client » : choix envoi / relance, puis étapes visibles
-    function ouvrirMailClient() {
+    // Panneau « Envoyer » : envoi du devis, ou relance s'il est déjà envoyé (mode choisi selon le suivi)
+    let modeEnvoi = 'devis';
+    function majBoutonEnvoyer() {
+        const f = window._liveFields || currentRecord?.fields || {};
+        const btn = document.getElementById('btn-envoyer');
+        if (btn) btn.textContent = f['Suivi Date devis'] ? '✉ Relancer' : '✉ Envoyer';
+    }
+    function ouvrirMailClient(mode) {
         const f = window._liveFields || currentRecord?.fields || {};
         const envoye = !!f['Suivi Date devis'];
-        document.getElementById('mail-choix-relance').disabled = !envoye;
-        document.getElementById('mail-choix-relance').style.opacity = envoye ? '1' : '.45';
-        document.getElementById('mail-relance-note').style.display = envoye ? 'none' : 'block';
-        document.getElementById('mail-marquer-relance').disabled = !envoye;
+        modeEnvoi = mode || (envoye ? 'relance' : 'devis');
+        const relance = modeEnvoi === 'relance';
         const fr = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+        document.getElementById('mail-panel-titre').textContent = relance ? '✉ Relancer le client' : '✉ Envoyer le devis';
         document.getElementById('mail-suivi-etat').textContent = envoye
             ? `Devis envoyé le ${fr(f['Suivi Date devis'])}` + (f['Suivi Date relance'] ? ` · ${f['Suivi Prochaine action'] || 'Relance'} le ${fr(f['Suivi Date relance'])}` : (f['Suivi Prochaine action'] ? ` · ${f['Suivi Prochaine action']}` : ''))
-            : "Devis pas encore marqué comme envoyé.";
-        document.getElementById('mail-etapes').style.display = 'none';
+            : 'Devis pas encore envoyé.';
+        document.getElementById('mail-etape-accueil').style.display = relance ? 'none' : 'inline';
+        const prep = document.getElementById('mail-preparer');
+        prep.textContent = relance ? 'Préparer la relance' : 'Préparer le mail';
+        prep.onclick = async () => { if (await copierPourClaude(modeEnvoi)) prep.textContent = 'Copié ✓ (cliquer pour recopier)'; };
+        const marquer = document.getElementById('mail-marquer');
+        marquer.textContent = relance ? '✓ Relance envoyée' : '✓ Devis envoyé';
+        marquer.onclick = () => marquerEnvoi(modeEnvoi);
+        document.getElementById('mail-marquer-note').textContent = relance
+            ? 'Note la relance dans le suivi et programme la suivante (3 au plus).'
+            : 'Passe le dossier en « Envoyé » et programme la relance à J+3.';
+        const autre = document.getElementById('mail-autre-mode');
+        autre.style.display = envoye ? 'inline' : 'none';
+        autre.textContent = relance ? 'Renvoyer le devis plutôt qu\'une relance' : 'Faire une relance plutôt qu\'un nouvel envoi';
+        autre.onclick = () => ouvrirMailClient(relance ? 'devis' : 'relance');
         document.getElementById('mail-panel').style.display = 'block';
+        majBoutonEnvoyer();
     }
+    // Ouverture demandée par le tableau de bord (bouton « Envoyer le devis » de l'en-tête du dossier)
+    window.addEventListener('message', (e) => {
+        if (e.data?.type !== 'OUVRIR_ENVOI') return;
+        let n = 0;
+        const essai = () => (currentRecord || ++n > 20) ? ouvrirMailClient() : setTimeout(essai, 250);
+        essai();
+    });
     // Envoi réel : seul endroit qui passe le dossier en « devis envoyé » et programme les relances
     // (J+3, puis tous les 7 jours, 3 relances au plus après le dernier envoi du devis)
     async function marquerEnvoi(mode) {
@@ -3224,7 +3230,7 @@
         const fields = { 'Suivi Log': `${journal}\n${new Date().toLocaleDateString('fr-FR')} : ${evenement}`.trim() };
         if (mode === 'devis') {
             Object.assign(fields, { 'Suivi Date devis': iso(), 'Suivi Date relance': iso(3), 'Suivi Prochaine action': 'Relance 1' });
-            if (!['confirmé', 'effectué', 'annulé'].includes(f['Statut'])) fields['Statut'] = 'devis envoyé';
+            if (!['devis signé', 'acompte reçu', 'confirmé', 'effectué', 'annulé'].includes(String(f['Statut'] || '').toLowerCase())) fields['Statut'] = 'devis envoyé';
         } else if (relances < 3) {
             Object.assign(fields, { 'Suivi Date relance': iso(7), 'Suivi Prochaine action': `Relance ${relances + 1}` });
         } else {
@@ -3240,16 +3246,6 @@
             SesquierUtils.broadcast('RECORD_UPDATED', { id: currentRequestId, fields });
             ouvrirMailClient();
         } catch (e) { alert('❌ Suivi non enregistré : ' + e.message); }
-    }
-
-    async function preparerMail(mode) {
-        const ok = await copierPourClaude(mode);
-        document.getElementById('mail-etape-titre').textContent = mode === 'relance' ? 'Contexte de la relance' : "Contexte de l'envoi du devis";
-        document.getElementById('mail-etape-accueil').style.display = mode === 'devis' ? 'list-item' : 'none';
-        const re = document.getElementById('mail-recopier');
-        re.textContent = ok ? 'Recopier' : 'Copier';
-        re.onclick = async () => { if (await copierPourClaude(mode)) re.textContent = 'Recopié ✓'; };
-        document.getElementById('mail-etapes').style.display = 'block';
     }
 
     // Usage perso : copie le contexte à coller dans Claude Code (/sesquier-redaction), sans clé API

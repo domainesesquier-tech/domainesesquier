@@ -797,6 +797,8 @@
         .rooming-etapes a { color: var(--primary); font-weight: 600; }
         .rooming-form input { flex: 1; min-width: 240px; padding: 9px 14px; border: 1px solid var(--border-light); border-radius: 20px; font: inherit; font-size: 13px; background: var(--surface); color: var(--text); }
         .btn-secondaire { display: inline-flex; align-items: center; gap: 8px; background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary); border-radius: 20px; padding: 7px 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .emetteur-chip { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); border: 1px dashed var(--border); border-radius: 20px; padding: 3px 10px; cursor: pointer; white-space: nowrap; }
+        .emetteur-chip:hover { color: var(--primary); border-color: var(--primary); }
         .btn-lien { background: none; border: none; color: var(--text-muted); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
         .suivi-inner { display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
         .suivi-col .docs-panel { margin-top: 0; }
@@ -808,6 +810,34 @@
             .dossier-bar-actions { margin-left: auto; }
             #iframe-nav-tabs { padding: 8px 16px; }
             .suivi-inner { grid-template-columns: 1fr; padding: 20px 16px; }
+        }
+        /* Accueil « À faire » */
+        .af-section { background: var(--surface); border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; margin-bottom: 16px; }
+        .af-titre { font-size: 14px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .af-titre i { color: var(--primary); }
+        .af-nb { font-size: 11px; font-weight: 700; background: var(--primary-subtle); color: var(--primary); border-radius: 10px; padding: 1px 8px; }
+        .af-aide { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+        .af-row { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-top: 1px solid var(--border-light); cursor: pointer; border-radius: 8px; }
+        .af-row:hover { background: var(--primary-subtle); }
+        .af-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .af-nom { font-weight: 600; color: var(--text); }
+        .af-meta { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .af-tag { font-size: 11px; font-weight: 600; color: var(--text-secondary); background: var(--border-light); border-radius: 12px; padding: 3px 10px; white-space: nowrap; }
+        .af-tag.retard { color: #b42318; background: rgba(220, 38, 38, .08); }
+        .af-tag.ok { color: var(--success); background: rgba(45, 139, 86, .1); }
+        .af-vide { padding: 40px 16px; text-align: center; color: var(--text-muted); }
+        .type-chooser-sep { font-size: 11px; color: var(--text-muted); padding: 6px 10px 2px; }
+        .nav-nouveau { color: var(--primary); font-weight: 600; }
+        .seg-chips { display: none; gap: 6px; margin-bottom: 12px; overflow-x: auto; }
+        .seg-chips button { border: 1px solid var(--border-light); background: var(--surface); color: var(--text-secondary); border-radius: 20px; padding: 6px 14px; font: inherit; font-size: 13px; white-space: nowrap; }
+        .seg-chips button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .fab-nouveau { display: none; }
+        #mobile-new { bottom: 136px; }
+        @media (max-width: 768px) {
+            .seg-chips { display: flex; }
+            .fab-nouveau { display: flex; align-items: center; justify-content: center; position: fixed; right: 16px; bottom: 76px; width: 52px; height: 52px; border-radius: 50%; border: none; background: var(--primary); color: #fff; font-size: 20px; box-shadow: 0 6px 18px rgba(0,0,0,.2); z-index: 550; }
+            body.dossier-ouvert .fab-nouveau { display: none; }
+            .af-row { flex-wrap: wrap; }
         }
         .kpi-card[data-filter] { cursor: pointer; }
         .kpi-card.active:not([data-filter="all"]) { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
@@ -2423,38 +2453,41 @@
                 <span>Ménage</span>
             </a>
             <div class="nav-section-title">Gestion</div>
+            <li class="nav-item active" id="nav-afaire" onclick="showAFaire()">
+                <i class="fa-solid fa-list-check"></i>
+                <span>À faire</span>
+                <span class="filter-count" id="count-afaire" style="margin-left:auto;">0</span>
+            </li>
             <li class="nav-item" style="cursor:default;">
                 <i class="fa-regular fa-folder-open"></i>
                 <span>Dossiers</span>
             </li>
-            <li class="nav-item nav-sub active" id="nav-dossiers" onclick="showSegment('seminaire', this)">
+            <li class="nav-item nav-sub" id="nav-dossiers" onclick="showSegment('seminaire', this)">
                 <i class="fa-solid fa-briefcase"></i>
                 <span>Séminaires</span>
-                <button class="nav-add" title="Nouveau séminaire" onclick="event.stopPropagation(); openNewDossier(document.getElementById('nav-client-new'), 'seminaire')"><i class="fa-solid fa-plus"></i></button>
             </li>
             <li class="nav-item nav-sub" id="nav-groupes" onclick="showSegment('groupe', this)">
                 <i class="fa-solid fa-people-group"></i>
                 <span>Groupes</span>
-                <button class="nav-add" title="Nouveau groupe" onclick="event.stopPropagation(); openNewDossier(document.getElementById('nav-client-new'), 'groupe')"><i class="fa-solid fa-plus"></i></button>
             </li>
             <li class="nav-item nav-sub" id="nav-mariages" onclick="showSegment('mariage', this)">
                 <i class="fa-solid fa-ring"></i>
                 <span>Mariages</span>
-                <button class="nav-add" title="Nouveau mariage" onclick="event.stopPropagation(); openNewDossier(document.getElementById('nav-client-new'), 'mariage')"><i class="fa-solid fa-plus"></i></button>
             </li>
 
             <div class="nav-divider"></div>
             <div class="nav-section-title">Outils</div>
 
-            <li class="nav-item" id="nav-client-new" onclick="document.getElementById('type-chooser').classList.toggle('show')">
-                <i class="fa-solid fa-user-plus"></i>
-                <span>Nouveau client</span>
+            <li class="nav-item nav-nouveau" id="nav-client-new" onclick="document.getElementById('type-chooser').classList.toggle('show')">
+                <i class="fa-solid fa-plus"></i>
+                <span>Nouvelle demande</span>
             </li>
             <div class="type-chooser" id="type-chooser">
+                <button onclick="location.href='questionnaire?admin=1'" title="Demande reçue (Cactus, téléphone, mail) : crée la fiche et l'estimation du devis"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp; Saisir une demande</button>
+                <div class="type-chooser-sep">ou un dossier vide :</div>
                 <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'seminaire')"><i class="fa-solid fa-briefcase"></i>&nbsp; Séminaire</button>
                 <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'groupe')"><i class="fa-solid fa-people-group"></i>&nbsp; Groupe</button>
                 <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'mariage')"><i class="fa-solid fa-ring"></i>&nbsp; Mariage</button>
-                <button onclick="location.href='questionnaire?admin=1'" title="Saisir une demande reçue (Cactus, téléphone, mail) : crée la fiche et l'estimation du devis"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp; Depuis le questionnaire</button>
             </div>
 
             <div class="nav-divider"></div>
@@ -2522,8 +2555,24 @@
     <!-- ========== MAIN ========== -->
     <div class="main-content">
 
+        <!-- ===== À FAIRE (accueil) ===== -->
+        <div class="dossiers-panel" id="afaire-panel">
+            <div class="dash-top">
+                <div class="dash-top-left">
+                    <h2>À faire</h2>
+                    <div class="subtitle" id="afaire-date"></div>
+                </div>
+            </div>
+            <div id="afaire-contenu"><div class="af-vide">Chargement…</div></div>
+        </div>
+
         <!-- ===== DOSSIERS PANEL ===== -->
-        <div class="dossiers-panel" id="dossiers-panel">
+        <div class="dossiers-panel hidden" id="dossiers-panel">
+            <div class="seg-chips">
+                <button data-seg="seminaire" onclick="document.getElementById('nav-dossiers').click()">Séminaires</button>
+                <button data-seg="groupe" onclick="document.getElementById('nav-groupes').click()">Groupes</button>
+                <button data-seg="mariage" onclick="document.getElementById('nav-mariages').click()">Mariages</button>
+            </div>
 
             <div class="dash-top">
                 <div class="dash-top-left">
@@ -2940,7 +2989,13 @@
                 openDocForRecord(['facture', 'facture-finale', 'client'].includes(tabParam) ? tabParam : 'devis', recordId);
                 loadAllRecords(true);
             } else {
-                loadAllRecords();
+                const planningParam = urlParams.get('planning');
+                loadAllRecords().then(() => {
+                    if (!planningParam) return;
+                    const r = allRecords.find(x => x._raw?.fields?.['planning_id'] === planningParam);
+                    if (r) openDossier(r.id);
+                    else showSyncBanner('Aucun dossier lié à cette réservation du planning', true);
+                });
             }
         });
 
@@ -2968,10 +3023,38 @@
         // =====================================================================
         let activeRecordId = null;
 
+        // Vue d'où l'on ouvre un dossier : « afaire » (accueil) ou « dossiers » (liste d'un espace)
+        let vueRetour = 'afaire';
+        function marquerVue(vue) {
+            vueRetour = vue;
+            document.body.classList.remove('dossier-ouvert');
+            document.querySelectorAll('.mobile-bottom-nav-index a[data-vue]').forEach(a => a.classList.toggle('active', a.dataset.vue === vue));
+            const back = document.querySelector('.dossier-bar .btn-back span');
+            if (back) back.textContent = vue === 'afaire' ? 'À faire' : 'Dossiers';
+        }
+        function retourListe() {
+            if (vueRetour === 'afaire') showAFaire(); else showDossiers(navSegment());
+        }
+
+        function showAFaire() {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('nav-afaire').classList.add('active');
+            document.getElementById('afaire-panel').classList.remove('hidden');
+            document.getElementById('dossiers-panel').classList.add('hidden');
+            document.getElementById('iframe-layer').classList.add('hidden');
+            document.querySelectorAll('#iframe-layer iframe').forEach(f => f.style.display = 'none');
+            activeIframeId = null;
+            activeRecordId = null;
+            marquerVue('afaire');
+            renderAFaire();
+        }
+
         function showDossiers(navEl) {
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             if (navEl) navEl.classList.add('active');
 
+            document.getElementById('afaire-panel').classList.add('hidden');
+            marquerVue('dossiers');
             document.getElementById('dossiers-panel').classList.remove('hidden');
             document.getElementById('iframe-layer').classList.add('hidden');
             document.querySelectorAll('#iframe-layer iframe').forEach(f => f.style.display = 'none');
@@ -2985,7 +3068,7 @@
             document.getElementById('dash-title').innerText = S.titre;
             document.getElementById('dash-subtitle').innerText = S.sousTitre;
             document.getElementById('kpi-total-label').innerText = S.titre;
-            document.querySelectorAll('.mobile-bottom-nav-index a[data-seg]').forEach(a => a.classList.toggle('active', a.dataset.seg === seg));
+            document.querySelectorAll('.seg-chips button').forEach(b => b.classList.toggle('active', b.dataset.seg === seg));
             showDossiers(navEl);
             updateKPIs();
             updateFilters();
@@ -2995,6 +3078,7 @@
         async function openNewDossier(navEl, seg) {
             if (navEl.disabled) return;
             document.getElementById('type-chooser')?.classList.remove('show');
+            document.getElementById('mobile-new')?.classList.remove('show');
             // Bascule dans l'espace du type choisi avant de créer le dossier
             if (seg && seg !== currentSegment) showSegment(seg, document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[seg]));
 
@@ -3068,19 +3152,20 @@
         }
 
         function goBackToDossiers() {
-            showDossiers(navSegment());
+            retourListe();
             loadAllRecords(true);
         }
 
         // ── Page dossier : en-tête fixe (statut + étape suivante) et onglets groupés ──
         const ETAPE_SUIVANTE = {
-            'à traiter':    { label: 'Marquer envoyé',   statut: 'devis envoyé', icon: 'fa-paper-plane' },
+            'à traiter':    { label: 'Envoyer le devis', envoi: true,            icon: 'fa-paper-plane' },
             'devis envoyé': { label: 'Marquer validé',   statut: 'devis signé',  icon: 'fa-check' },
             'devis signé':  { label: 'Marquer effectué', statut: 'effectué',     icon: 'fa-flag-checkered', apresDepart: true }
         };
         let activeDocType = null;
 
         function navSegment() {
+            if (vueRetour === 'afaire') return document.getElementById('nav-afaire');
             return document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[currentSegment]);
         }
 
@@ -3131,6 +3216,9 @@
                     </div>
                 </div>
             `;
+            let emetteur = '';
+            try { emetteur = JSON.parse(f['DOSSIER JSON'] || '{}').companyProfile || ''; } catch (_) {}
+            if (emetteur) header.insertAdjacentHTML('beforeend', `<span class="emetteur-chip" title="Émetteur du devis et des factures (se choisit dans le devis)" onclick="openDocForRecord('devis', '${id}')">${emetteur === 'foudre' ? 'Foudre Society' : 'OZZA'}</span>`);
             const S = SesquierRecords.STATUS_MAP[record.statut] || {};
             let etape = ETAPE_SUIVANTE[record.statut] || null;
             if (record.statut === 'à traiter' && !(f["Total TTC"] > 0)) etape = { label: 'Préparer le devis', doc: 'devis', icon: 'fa-file-pen' };
@@ -3152,13 +3240,25 @@
             const etape = document.getElementById('dossier-bar-actions')._etape;
             if (!etape) return;
             if (etape.doc) return openDocForRecord(etape.doc, id);
+            if (etape.envoi) return ouvrirEnvoiDevis(id);
             await fastUpdateRecord(id, 'Statut', etape.statut, document.querySelector('#dossier-bar-actions .btn-etape'));
+        }
+
+        // Ouvre le devis puis son panneau « Envoyer » (envoi : brouillon Gmail via Claude Code, puis « ✓ Devis envoyé »)
+        function ouvrirEnvoiDevis(id) {
+            const fr = document.getElementById('iframe-devis');
+            const dejaCharge = (fr.getAttribute('src') || '').includes('id=' + id);
+            openDocForRecord('devis', id);
+            const go = () => fr.contentWindow && fr.contentWindow.postMessage({ type: 'OUVRIR_ENVOI' }, '*');
+            if (dejaCharge) go(); else fr.addEventListener('load', go, { once: true });
         }
 
         function showPanel(panelId) {
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             const nav = navSegment(); if (nav) nav.classList.add('active');
             document.getElementById('dossiers-panel').classList.add('hidden');
+            document.getElementById('afaire-panel').classList.add('hidden');
+            document.body.classList.add('dossier-ouvert');
             document.getElementById('iframe-layer').classList.remove('hidden');
             document.querySelectorAll('#iframe-layer iframe').forEach(fr => fr.style.display = 'none');
             document.querySelectorAll('.dossier-panel').forEach(p => p.style.display = p.id === panelId ? 'block' : 'none');
@@ -3310,7 +3410,7 @@
 
 
         function closeDossier() {
-            showDossiers(navSegment());
+            retourListe();
         }
 
         async function duplicateDossier() {
@@ -3423,6 +3523,7 @@
                     sortRecords();
                     updateKPIs();
                     updateFilters();
+                    majCompteurAFaire();
                     if (activeRecordId && !document.getElementById('iframe-layer').classList.contains('hidden')) renderDossierBar(activeRecordId);
                     if (currentViewMode === 'list') {
                         renderTable();
@@ -3545,6 +3646,63 @@
         }
         function enRetard(r) {
             return !r.estArchive && r.statut === 'à traiter' && !!r.creeLe && Date.now() - new Date(r.creeLe) > 86400000;
+        }
+
+        // ── Accueil « À faire » : ce qui attend une action, tous espaces confondus ──
+        const SEG_LABEL = { seminaire: 'Séminaire', groupe: 'Groupe', mariage: 'Mariage' };
+        function listesAFaire() {
+            const actifs = allRecords.filter(r => !r.estArchive);
+            const auj = new Date(); auj.setHours(0, 0, 0, 0);
+            const dans = d => Math.round((new Date(d + 'T00:00:00') - auj) / 86400000);
+            return {
+                traiter:  actifs.filter(r => r.statut === 'à traiter').sort((a, b) => new Date(a.creeLe || 0) - new Date(b.creeLe || 0)),
+                relances: actifs.filter(aRelancer).sort((a, b) => (a.dateRelance || '').localeCompare(b.dateRelance || '')),
+                acomptes: actifs.filter(r => r.statut === 'devis signé' && !r.fields?.['Acompte Payé'] && r.dateArrivee && dans(r.dateArrivee) >= 0)
+                                .sort((a, b) => a.dateArrivee.localeCompare(b.dateArrivee)),
+                sejours:  actifs.filter(r => r.statut === 'devis signé' && r.dateArrivee && dans(r.dateArrivee) >= 0 && dans(r.dateArrivee) <= 21)
+                                .sort((a, b) => a.dateArrivee.localeCompare(b.dateArrivee)),
+                dans
+            };
+        }
+        function majCompteurAFaire() {
+            const L = listesAFaire();
+            const el = document.getElementById('count-afaire');
+            if (el) el.innerText = L.traiter.length + L.relances.length + L.acomptes.length;
+            if (!document.getElementById('afaire-panel').classList.contains('hidden')) renderAFaire();
+        }
+        function renderAFaire() {
+            const box = document.getElementById('afaire-contenu');
+            document.getElementById('afaire-date').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+            if (!allRecords.length) return;
+            const L = listesAFaire();
+            const fmt = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—';
+            const ligne = (r, tag, tagCls = '') => `
+                <div class="af-row" onclick="openDossier('${r.id}')">
+                    <div class="af-main">
+                        <span class="af-nom">${escapeHtml(r.nomClient)}</span>
+                        <span class="af-meta">${escapeHtml(r.entreprise || '')}${r.entreprise ? ' · ' : ''}${SEG_LABEL[r.segment] || ''} · ${fmt(r.dateArrivee)} → ${fmt(r.dateDepart)} · ${r.nbPersonnes || '?'} pers.</span>
+                    </div>
+                    <span class="af-tag ${tagCls}">${tag}</span>
+                </div>`;
+            const depuis = r => {
+                if (!r.creeLe) return ['Reçue', ''];
+                const h = Math.floor((Date.now() - new Date(r.creeLe)) / 3600000);
+                return [h < 24 ? `Reçue il y a ${Math.max(h, 1)} h` : `Reçue il y a ${Math.floor(h / 24)} j`, h >= 24 ? 'retard' : ''];
+            };
+            const section = (titre, icone, items, rendu, aide) => items.length ? `
+                <div class="af-section">
+                    <div class="af-titre"><i class="fa-solid ${icone}"></i> ${titre} <span class="af-nb">${items.length}</span></div>
+                    ${aide ? `<div class="af-aide">${aide}</div>` : ''}
+                    ${items.map(rendu).join('')}
+                </div>` : '';
+            const html =
+                section('Demandes à traiter', 'fa-inbox', L.traiter, r => ligne(r, ...depuis(r)), 'Devis promis sous 24 h.') +
+                section('Relances du jour', 'fa-bell', L.relances, r => ligne(r, `${escapeHtml(r.prochaineAction || 'Relance')} · ${fmt(r.dateRelance)}`, 'retard')) +
+                section('Acomptes à demander', 'fa-file-invoice-dollar', L.acomptes, r => ligne(r, `Arrivée dans ${L.dans(r.dateArrivee)} j`)) +
+                section('Séjours des 3 prochaines semaines', 'fa-calendar-check', L.sejours, r => ligne(r,
+                    (L.dans(r.dateArrivee) === 0 ? "Aujourd'hui" : `J-${L.dans(r.dateArrivee)}`) + (lienRooming(r.fields) ? ' · rooming ✓' : ' · rooming à envoyer'),
+                    lienRooming(r.fields) ? 'ok' : ''));
+            box.innerHTML = html || '<div class="af-vide"><i class="fa-regular fa-face-smile"></i> Rien en attente. Les nouvelles demandes apparaîtront ici.</div>';
         }
 
         function updateFilters() {
@@ -3840,6 +3998,8 @@
             if (navEl) navEl.classList.add('active');
 
             document.getElementById('dossiers-panel').classList.add('hidden');
+            document.getElementById('afaire-panel').classList.add('hidden');
+            document.body.classList.add('dossier-ouvert');
             document.getElementById('iframe-layer').classList.remove('hidden');
             document.querySelectorAll('.dossier-panel').forEach(p => p.style.display = 'none');
 
@@ -4031,36 +4191,34 @@
 
 <!-- MOBILE BOTTOM NAV -->
 <div class="mobile-more" id="mobile-more">
-    <a href="questionnaire?admin=1"><i class="fa-solid fa-wand-magic-sparkles"></i> Saisir une demande</a>
     <a href="menage.html"><i class="fa-solid fa-broom"></i> Ménage</a>
     <button onclick="toggleTheme(); this.parentNode.classList.remove('show')"><i class="fa-regular fa-moon"></i> Mode sombre / clair</button>
     <button class="danger" onclick="window.SesquierAuth && window.SesquierAuth.logout()"><i class="fa-solid fa-right-from-bracket"></i> Se déconnecter</button>
 </div>
-<script>document.addEventListener('click', e => { if (!e.target.closest('#mobile-more')) document.getElementById('mobile-more')?.classList.remove('show'); });</script>
+<script>document.addEventListener('click', e => { if (!e.target.closest('.mobile-more')) document.querySelectorAll('.mobile-more').forEach(m => m.classList.remove('show')); });</script>
+<div class="mobile-more" id="mobile-new">
+    <a href="questionnaire?admin=1"><i class="fa-solid fa-wand-magic-sparkles"></i> Saisir une demande</a>
+    <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'seminaire')"><i class="fa-solid fa-briefcase"></i> Dossier séminaire vide</button>
+    <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'groupe')"><i class="fa-solid fa-people-group"></i> Dossier groupe vide</button>
+    <button onclick="openNewDossier(document.getElementById('nav-client-new'), 'mariage')"><i class="fa-solid fa-ring"></i> Dossier mariage vide</button>
+</div>
+<button class="fab-nouveau" aria-label="Nouvelle demande" onclick="event.stopPropagation(); document.getElementById('mobile-new').classList.toggle('show')"><i class="fa-solid fa-plus"></i></button>
 <nav class="mobile-bottom-nav-index">
+    <a href="#" class="active" data-vue="afaire" onclick="event.preventDefault(); showAFaire()">
+        <span class="nav-icon"><i class="fa-solid fa-list-check"></i></span>
+        À faire
+    </a>
+    <a href="#" data-vue="dossiers" onclick="event.preventDefault(); document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[currentSegment]).click()">
+        <span class="nav-icon"><i class="fa-regular fa-folder-open"></i></span>
+        Dossiers
+    </a>
     <a href="planning.html">
         <span class="nav-icon"><i class="fa-regular fa-calendar-days"></i></span>
         Planning
     </a>
-    <a href="#" class="active" data-seg="seminaire" onclick="event.preventDefault(); document.getElementById('nav-dossiers').click()">
-        <span class="nav-icon"><i class="fa-solid fa-briefcase"></i></span>
-        Séminaires
-    </a>
-    <a href="#" data-seg="groupe" onclick="event.preventDefault(); document.getElementById('nav-groupes').click()">
-        <span class="nav-icon"><i class="fa-solid fa-people-group"></i></span>
-        Groupes
-    </a>
-    <a href="#" data-seg="mariage" onclick="event.preventDefault(); document.getElementById('nav-mariages').click()">
-        <span class="nav-icon"><i class="fa-solid fa-ring"></i></span>
-        Mariages
-    </a>
     <a href="#" onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('mobile-more').classList.toggle('show')">
         <span class="nav-icon"><i class="fa-solid fa-ellipsis"></i></span>
         Plus
-    </a>
-    <a href="#" class="nav-new" onclick="event.preventDefault(); openNewDossier(document.getElementById('nav-client-new'), currentSegment)">
-        <span class="nav-icon"><i class="fa-solid fa-plus"></i></span>
-        Nouveau
     </a>
 </nav>
 </body>

@@ -2146,6 +2146,7 @@ function showDetailCard(res) {
       <button class="btn" onclick="confirmArchive('${res.id}')">Archiver</button>
       <button class="btn" onclick="hideDetailCard()">Fermer</button>
       <button class="btn btn-primary" onclick="openEditModal('${esc(res.id)}')">Modifier</button>
+      <a class="btn btn-primary" href="index.html?planning=${encodeURIComponent(res.id)}" style="text-decoration:none;">Ouvrir le dossier</a>
     </div>`;
 
   card.style.display = 'block';
