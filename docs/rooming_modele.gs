@@ -131,3 +131,43 @@ function celluleValeur(sh, r, c, lastCol) {
   }
   return sh.getRange(r, fin + 1);
 }
+
+// ===== Bouton « Créer le rooming » du tableau de bord =====
+// Web app : Déployer → Nouveau déploiement → Application Web, exécuter en tant que « moi » (domainesesquier), accès « Tout le monde ».
+// Pas de secret partagé : la requête porte la session du tableau de bord, vérifiée auprès de Supabase (clé anon publique),
+// et seuls les comptes ci-dessous peuvent créer une fiche.
+const SUPABASE_URL = 'https://ymwebdihbmzrcaivldxu.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inltd2ViZGloYm16cmNhaXZsZHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0ODkxMjMsImV4cCI6MjA5NDA2NTEyM30.htAc4nHjbv-yFHW-59i_1eBPUsNcfd8-DMq9D1igVPw';
+const COMPTES_AUTORISES = ['smali.w05@gmail.com', 'domainesesquier@gmail.com'];
+
+function doPost(e) {
+  let data = {};
+  try { data = JSON.parse((e && e.postData && e.postData.contents) || '{}'); } catch (err) {}
+  const email = emailSession(data.jeton);
+  if (!email || COMPTES_AUTORISES.indexOf(email.toLowerCase()) === -1) return reponseJson({ error: 'Session du tableau de bord non reconnue' });
+
+  const modele = DriveApp.getFileById(ID_MODELE);
+  const parents = modele.getParents();
+  const nom = ['Rooming', data.nom, data.dates].filter(Boolean).join(' — ').slice(0, 150);
+  const copie = modele.makeCopy(nom, parents.hasNext() ? parents.next() : DriveApp.getRootFolder());
+  const cel = SpreadsheetApp.openById(copie.getId()).getSheets()[0].createTextFinder('Date du séjour').findNext();
+  if (cel && data.dates) cel.setValue('Date du séjour : ' + String(data.dates).slice(0, 80));
+  copie.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT); // le client remplit les noms (cases non verrouillées)
+  return reponseJson({ url: copie.getUrl() });
+}
+
+function emailSession(jeton) {
+  if (!jeton) return null;
+  const r = UrlFetchApp.fetch(SUPABASE_URL + '/auth/v1/user', { headers: { Authorization: 'Bearer ' + jeton, apikey: SUPABASE_ANON_KEY }, muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) return null;
+  try { return JSON.parse(r.getContentText()).email || null; } catch (err) { return null; }
+}
+
+function reponseJson(o) {
+  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+}
+
+// À lancer une fois depuis l'éditeur pour autoriser l'appel à Supabase (vérification de la session)
+function autoriserAcces() {
+  UrlFetchApp.fetch(SUPABASE_URL + '/auth/v1/health', { headers: { apikey: SUPABASE_ANON_KEY }, muteHttpExceptions: true });
+}

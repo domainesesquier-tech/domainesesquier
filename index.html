@@ -793,6 +793,7 @@
         .rooming-actions, .rooming-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
         .rooming-actions a.btn-etape { text-decoration: none; }
         .rooming-url { font-size: 12px; color: var(--text-muted); word-break: break-all; }
+        .rooming-ou { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
         .rooming-etapes { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: var(--text-secondary); }
         .rooming-etapes a { color: var(--primary); font-weight: 600; }
         .rooming-form input { flex: 1; min-width: 240px; padding: 9px 14px; border: 1px solid var(--border-light); border-radius: 20px; font: inherit; font-size: 13px; background: var(--surface); color: var(--text); }
@@ -2517,7 +2518,7 @@
                 <span>À faire</span>
                 <span class="filter-count" id="count-afaire" style="margin-left:auto;">0</span>
             </li>
-            <li class="nav-item" style="cursor:default;">
+            <li class="nav-item" id="nav-dossiers-titre" onclick="showSegment('tous', this)" title="Liste des dossiers">
                 <i class="fa-regular fa-folder-open"></i>
                 <span>Dossiers</span>
             </li>
@@ -2628,6 +2629,7 @@
         <!-- ===== DOSSIERS PANEL ===== -->
         <div class="dossiers-panel" id="dossiers-panel">
             <div class="seg-chips">
+                <button data-seg="tous" onclick="showSegment('tous', document.getElementById('nav-dossiers-titre'))">Tous</button>
                 <button class="active" data-seg="seminaire" onclick="document.getElementById('nav-dossiers').click()">Séminaires</button>
                 <button data-seg="groupe" onclick="document.getElementById('nav-groupes').click()">Groupes</button>
                 <button data-seg="mariage" onclick="document.getElementById('nav-mariages').click()">Mariages</button>
@@ -2639,7 +2641,8 @@
                         <h2 id="dash-title">Séminaires</h2>
                         <i class="fa-solid fa-chevron-down titre-seg-icone"></i>
                         <select class="seg-select" id="seg-select" aria-label="Choisir l'espace"
-                                onchange="document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[this.value]).click()">
+                                onchange="document.getElementById({ tous: 'nav-dossiers-titre', seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[this.value]).click()">
+                            <option value="tous">Tous les dossiers</option>
                             <option value="seminaire">Séminaires</option>
                             <option value="groupe">Groupes</option>
                             <option value="mariage">Mariages</option>
@@ -2996,11 +2999,12 @@
         // Espace affiché : 'seminaire' | 'groupe' | 'mariage'
         let currentSegment = 'seminaire';
         const SEGMENTS = {
+            tous:      { titre: 'Tous les dossiers', sousTitre: "Séminaires, groupes et mariages", typeDossier: 'séminaire professionnel', typePlanning: 'Séminaire' },
             seminaire: { titre: 'Séminaires', sousTitre: "Vue d'ensemble des séminaires", typeDossier: 'séminaire professionnel', typePlanning: 'Séminaire' },
             groupe:    { titre: 'Groupes',    sousTitre: "Vue d'ensemble des week-ends de groupe", typeDossier: 'séjour de groupe', typePlanning: 'Week-end privé' },
             mariage:   { titre: 'Mariages',   sousTitre: "Vue d'ensemble des mariages", typeDossier: 'mariage', typePlanning: 'Mariage' },
         };
-        const segRecords = () => allRecords.filter(r => r.segment === currentSegment);
+        const segRecords = () => allRecords.filter(r => currentSegment === 'tous' || r.segment === currentSegment);
         let searchQuery = '';
         let activeIframeId = null;
         let sortMode = 'date-desc'; // date-desc, date-asc, amount-desc
@@ -3152,7 +3156,7 @@
             document.getElementById('type-chooser')?.classList.remove('show');
             document.getElementById('mobile-new')?.classList.remove('show');
             // Bascule dans l'espace du type choisi avant de créer le dossier
-            if (seg && seg !== currentSegment) showSegment(seg, document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[seg]));
+            if (seg && seg !== currentSegment) showSegment(seg, document.getElementById({ tous: 'nav-dossiers-titre', seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[seg]));
 
             // Désactiver le bouton pendant la création pour éviter les doubles soumissions
             navEl.disabled = true;
@@ -3238,7 +3242,7 @@
 
         function navSegment() {
             if (vueRetour === 'afaire') return document.getElementById('nav-afaire');
-            return document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[currentSegment]);
+            return document.getElementById({ tous: 'nav-dossiers-titre', seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[currentSegment]);
         }
 
         function docsDuDossier(f) {
@@ -3349,6 +3353,8 @@
 
         // ── Rooming : lien vers la copie Google Sheets du modèle, rangé dans « Rooming JSON » (clé lienSheet) ──
         const ROOMING_MODELE_COPIE = 'https://docs.google.com/spreadsheets/d/1UuQVAgCu5ZtFNi-ZbIpb9-J6_qADnP0CztAWVGfNyTI/copy';
+        // Web app Apps Script du compte domainesesquier (docs/rooming_modele.gs, doPost) : copie le modèle, date, partage, renvoie le lien
+        const ROOMING_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxnSRTXV0gbiyHZxuQRpGOXQty1Mx7lCCTOK_tss01tLNdFEwyFtAmQ86DVY5cAqfVaw/exec';
         function roomingData(f) {
             const raw = f && f["Rooming JSON"];
             if (!raw) return {};
@@ -3376,6 +3382,9 @@
                 return;
             }
             box.innerHTML = `<div class="rooming-card">${titre}
+                ${!url ? `<p class="rooming-texte">Crée la fiche du client en un clic : copie du modèle à son nom, dates du séjour, partagée en édition.</p>
+                <div class="rooming-actions"><button class="btn-etape" id="btn-creer-rooming" onclick="creerRooming('${id}')"><i class="fa-solid fa-wand-magic-sparkles"></i> Créer la fiche rooming</button></div>
+                <div class="rooming-ou">ou à la main :</div>` : ''}
                 <ol class="rooming-etapes">
                     <li><a href="${ROOMING_MODELE_COPIE}" target="_blank" rel="noopener">Créer une copie du modèle</a> et la nommer « Rooming — client — dates ».</li>
                     <li>La partager au client : Partager → « Tous les utilisateurs disposant du lien » → Éditeur.</li>
@@ -3404,6 +3413,31 @@
             if (!url) delete data.lienSheet;
             await fastUpdateRecord(id, 'Rooming JSON', JSON.stringify(data), input);
             if (activeRecordId === id && activeDocType === 'rooming') showRooming(id);
+        }
+
+        async function creerRooming(id) {
+            const record = allRecords.find(r => r.id === id);
+            const btn = document.getElementById('btn-creer-rooming');
+            if (!record || !btn) return;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création en cours…';
+            try {
+                const jeton = window.SesquierAuth ? await window.SesquierAuth.getToken() : null;
+                const fmt = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+                const dates = record.dateArrivee ? `${fmt(record.dateArrivee)} → ${fmt(record.dateDepart)}` : '';
+                // Requête « simple » (texte brut, sans en-tête) : pas de pré-vérification CORS côté Google
+                const rep = await fetch(ROOMING_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ jeton, nom: record.entreprise || record.nomClient, dates }) });
+                const out = await rep.json().catch(() => ({}));
+                if (!out.url) throw new Error(out.error || 'le script Google n\'a pas renvoyé de lien');
+                const data = { ...roomingData(record.fields), lienSheet: out.url };
+                await fastUpdateRecord(id, 'Rooming JSON', JSON.stringify(data));
+                if (activeRecordId === id && activeDocType === 'rooming') showRooming(id);
+                showSyncBanner('Fiche rooming créée et partagée');
+            } catch (e) {
+                alert('Création impossible : ' + e.message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Créer la fiche rooming';
+            }
         }
 
         function copierLienRooming(id) {
@@ -4338,7 +4372,7 @@
         <span class="nav-icon"><i class="fa-solid fa-list-check"></i></span>
         À faire
     </a>
-    <a href="#" class="active" data-vue="dossiers" onclick="event.preventDefault(); document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[currentSegment]).click()">
+    <a href="#" class="active" data-vue="dossiers" onclick="event.preventDefault(); document.getElementById({ tous: 'nav-dossiers-titre', seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[currentSegment]).click()">
         <span class="nav-icon"><i class="fa-regular fa-folder-open"></i></span>
         Dossiers
     </a>
