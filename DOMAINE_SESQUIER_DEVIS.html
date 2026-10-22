@@ -157,10 +157,20 @@
         }
 
         /* === BIBLIOTHÈQUE PANEL === */
-        #library-toggle {
-            background: #3A5538;
-        }
-        #library-toggle:hover { background: #2d4229; }
+        .lib-acces { margin: 0 0 8px; text-align: right; }
+        #library-toggle { background: none; border: 1px dashed #3A5538; color: #3A5538; border-radius: 8px; padding: 5px 12px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+        #library-toggle:hover { background: rgba(58, 85, 56, .08); }
+        .save-state { align-self: center; font-size: 12px; font-weight: 600; color: #3A5538; white-space: nowrap; margin-right: 4px; }
+        .controls-bar .btn-contour { background: #fff; color: #3A5538; border: 1.5px solid #3A5538; }
+        .controls-bar .btn-contour:hover { background: #f3f1ec; }
+        .menu-plus { position: relative; }
+        .menu-plus-liste { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: #fff; border: 1px solid #e5e2da; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.12); padding: 12px; width: 260px; z-index: 60; text-align: left; }
+        .menu-plus-liste.show { display: block; }
+        .menu-plus-label { font-size: 11px; color: #6b7280; margin-bottom: 6px; }
+        .menu-emetteur { display: flex; gap: 4px; margin-bottom: 12px; }
+        .menu-emetteur button { flex: 1; padding: 6px 8px; border: 1px solid #3a5538; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; background: transparent; color: #3a5538; }
+        .menu-plus-action { display: block; width: 100%; text-align: left; background: none; border: none; border-top: 1px solid #eee; padding: 10px 2px 2px; font: inherit; font-size: 13px; color: #374151; cursor: pointer; }
+        .menu-plus-action:hover { color: #3a5538; }
 
         #library-panel {
             position: fixed;
@@ -542,16 +552,8 @@
 
     <!-- Controls -->
     <div class="controls-bar no-print">
-        <div style="display:flex;align-items:center;gap:3px;padding:3px 8px;background:#f0ede6;border-radius:8px;border:1px solid #d1cec7;">
-            <span style="font-size:11px;color:#6b7280;font-weight:500;margin-right:4px;white-space:nowrap;">Émetteur :</span>
-            <button id="prof-btn-ozza" onclick="setCompanyProfile('ozza')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:#3a5538;color:white;">OZZA</button>
-            <button id="prof-btn-foudre" onclick="setCompanyProfile('foudre')" style="padding:4px 10px;border:1px solid #3a5538;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:transparent;color:#3a5538;">FOUDRE SOCIETY</button>
-        </div>
-        <button class="btn" id="btn-grille-2027" onclick="recalculerGrille2027()" title="Remplace les lignes du devis par le calcul de la grille 2027">Recalculer (grille 2027)</button>
-        <span id="unsaved-badge" style="display:none; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; align-self:center; animation: pulse 2s infinite;">
-            <i class="fas fa-circle-exclamation" style="margin-right:4px;"></i> Modifications non enregistrées
-        </span>
-        <button class="btn" id="btn-save-devis" onclick="saveToAirtable()">
+        <span id="save-state" class="save-state">✓ Enregistré</span>
+        <button class="btn" id="btn-save-devis" onclick="saveToAirtable()" style="display:none;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                 <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -559,7 +561,7 @@
             </svg>
             Enregistrer
         </button>
-        <button class="btn btn-primary" onclick="generatePDF()">
+        <button class="btn btn-contour" onclick="generatePDF()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                 <polyline points="14 2 14 8 20 8"></polyline>
@@ -567,9 +569,17 @@
             Télécharger PDF
         </button>
         <button class="btn btn-primary" id="btn-envoyer" onclick="ouvrirMailClient()" title="Préparer le mail avec Claude Code (brouillon Gmail), puis marquer l'envoi">✉ Envoyer</button>
-        <button id="library-toggle" class="btn no-print" onclick="toggleLibrary()">
-            📋 Bibliothèque
-        </button>
+        <div class="menu-plus">
+            <button class="btn btn-contour" onclick="event.stopPropagation(); document.getElementById('menu-plus-devis').classList.toggle('show')" title="Plus d'actions">⋯</button>
+            <div class="menu-plus-liste" id="menu-plus-devis" onclick="event.stopPropagation()">
+                <div class="menu-plus-label">Émetteur du devis et des factures</div>
+                <div class="menu-emetteur">
+                    <button id="prof-btn-ozza" onclick="setCompanyProfile('ozza'); markDirty()">OZZA</button>
+                    <button id="prof-btn-foudre" onclick="setCompanyProfile('foudre'); markDirty()">FOUDRE SOCIETY</button>
+                </div>
+                <button class="menu-plus-action" id="btn-grille-2027" onclick="document.getElementById('menu-plus-devis').classList.remove('show'); recalculerGrille2027()" title="Remplace les lignes du devis par le calcul de la grille 2027">↻ Recalculer avec la grille 2027</button>
+            </div>
+        </div>
     </div>
 
     <!-- PDF Wrapper (les deux pages) -->
@@ -652,6 +662,7 @@
         <div id="included-box" contenteditable="true" style="display:none; font-size:8.5pt; color:#555; background:rgba(58,85,56,0.05); border-radius:4px; padding:8px 12px; margin:-6px 0 15px;"></div>
 
         <!-- E. Pricing Table -->
+        <div class="no-print lib-acces"><button id="library-toggle" onclick="toggleLibrary()">📋 Ajouter depuis la bibliothèque</button></div>
         <section class="pricing-section">
             <table class="pricing-table">
                 <thead>
@@ -932,17 +943,17 @@
             if (suppressDirtyFlag) return;
             if (hasUnsavedChanges) return;
             hasUnsavedChanges = true;
-            const badge = document.getElementById('unsaved-badge');
+            const etat = document.getElementById('save-state');
             const btn = document.getElementById('btn-save-devis');
-            if (badge) badge.style.display = 'inline-flex';
-            if (btn) btn.classList.add('has-changes');
+            if (etat) etat.style.display = 'none';
+            if (btn) { btn.style.display = ''; btn.classList.add('has-changes'); }
         }
         function markClean() {
             hasUnsavedChanges = false;
-            const badge = document.getElementById('unsaved-badge');
+            const etat = document.getElementById('save-state');
             const btn = document.getElementById('btn-save-devis');
-            if (badge) badge.style.display = 'none';
-            if (btn) btn.classList.remove('has-changes');
+            if (etat) etat.style.display = '';
+            if (btn) { btn.style.display = 'none'; btn.classList.remove('has-changes'); }
         }
         // Capter tous les types de modifications dans le devis (édition, drag, ajout, suppression)
         document.addEventListener('input',  (e) => { if (e.target.closest('#pdf-wrapper')) markDirty(); }, true);
@@ -1062,10 +1073,7 @@
                 }
 
                 // Masquage du bouton de sauvegarde Airtable car pas d'ID
-                const controls = document.querySelector('.controls-bar');
-                if (controls && controls.firstElementChild) {
-                    controls.firstElementChild.style.display = 'none';
-                }
+                ['btn-save-devis', 'save-state'].forEach(k => { const el = document.getElementById(k); if (el) el.style.cssText += ';display:none !important;'; });
             } catch (e) {
                 console.error("Preview Draft err:", e);
             }
@@ -3008,6 +3016,7 @@
             setTimeout(() => { newRow.style.background = ''; }, 1000);
         }
 
+        document.addEventListener('click', () => document.getElementById('menu-plus-devis')?.classList.remove('show'));
         function toggleLibrary() {
             const panel = document.getElementById('library-panel');
             if (!panel) return;

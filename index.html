@@ -164,7 +164,7 @@
                 // Mise à jour locale (on repasse par normalize pour être sûr)
                 const rawResponse = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${id}`);
                 if (rawResponse && rawResponse.records && rawResponse.records[0]) {
-                    const updated = SesquierRecords.normalize(rawResponse.records[0]);
+                    const updated = normalizeRecord(rawResponse.records[0]); // même forme que la liste (avec .fields)
                     const idx = allRecords.findIndex(r => r.id === id);
                     if (idx !== -1) allRecords[idx] = updated;
                 }
@@ -803,29 +803,28 @@
         .suivi-inner { display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
         .suivi-col .docs-panel { margin-top: 0; }
         @media (max-width: 768px) {
-            .dossier-bar { flex-wrap: wrap; padding: 10px 16px; gap: 10px; }
             .dossier-bar .btn-back span { display: none; }
-            .dossier-bar .dossier-header { order: 3; flex-basis: 100%; }
-            .dossier-bar .dossier-client-title { font-size: 20px; }
-            .dossier-bar-actions { margin-left: auto; }
             #iframe-nav-tabs { padding: 8px 16px; }
             .suivi-inner { grid-template-columns: 1fr; padding: 20px 16px; }
         }
-        /* Accueil « À faire » */
-        .af-section { background: var(--surface); border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; margin-bottom: 16px; }
-        .af-titre { font-size: 14px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-        .af-titre i { color: var(--primary); }
-        .af-nb { font-size: 11px; font-weight: 700; background: var(--primary-subtle); color: var(--primary); border-radius: 10px; padding: 1px 8px; }
-        .af-aide { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
-        .af-row { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-top: 1px solid var(--border-light); cursor: pointer; border-radius: 8px; }
+        /* Accueil « À faire » : sections en grille, lignes compactes */
+        #afaire-contenu { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 12px; align-items: start; }
+        #afaire-contenu > * { min-width: 0; }
+        .af-section { background: var(--surface); border: 1px solid var(--border-light); border-radius: 12px; padding: 10px 12px 6px; }
+        .af-titre { font-size: 12.5px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; padding: 0 4px 6px; }
+        .af-titre i { color: var(--primary); font-size: 12px; }
+        .af-nb { font-size: 10.5px; font-weight: 700; background: var(--primary-subtle); color: var(--primary); border-radius: 10px; padding: 0 7px; }
+        .af-aide { font-size: 11px; font-weight: 400; color: var(--text-muted); margin-left: auto; }
+        .af-row { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-top: 1px solid var(--border-light); cursor: pointer; border-radius: 6px; }
         .af-row:hover { background: var(--primary-subtle); }
-        .af-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-        .af-nom { font-weight: 600; color: var(--text); }
-        .af-meta { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .af-tag { font-size: 11px; font-weight: 600; color: var(--text-secondary); background: var(--border-light); border-radius: 12px; padding: 3px 10px; white-space: nowrap; }
+        .af-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+        .af-nom { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .af-meta { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .af-tag { font-size: 10.5px; font-weight: 600; color: var(--text-secondary); background: var(--border-light); border-radius: 10px; padding: 2px 8px; white-space: nowrap; flex-shrink: 0; }
         .af-tag.retard { color: #b42318; background: rgba(220, 38, 38, .08); }
         .af-tag.ok { color: var(--success); background: rgba(45, 139, 86, .1); }
-        .af-vide { padding: 40px 16px; text-align: center; color: var(--text-muted); }
+        .af-vide { grid-column: 1 / -1; padding: 32px 16px; text-align: center; color: var(--text-muted); font-size: 13px; }
+        #afaire-panel .dash-top { margin-bottom: 12px; }
         .type-chooser-sep { font-size: 11px; color: var(--text-muted); padding: 6px 10px 2px; }
         .nav-nouveau { color: var(--primary); font-weight: 600; }
         .seg-chips { display: none; gap: 6px; margin-bottom: 12px; overflow-x: auto; }
@@ -837,7 +836,13 @@
             .seg-chips { display: flex; }
             .fab-nouveau { display: flex; align-items: center; justify-content: center; position: fixed; right: 16px; bottom: 76px; width: 52px; height: 52px; border-radius: 50%; border: none; background: var(--primary); color: #fff; font-size: 20px; box-shadow: 0 6px 18px rgba(0,0,0,.2); z-index: 550; }
             body.dossier-ouvert .fab-nouveau { display: none; }
-            .af-row { flex-wrap: wrap; }
+            #afaire-contenu { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+            .af-section { padding: 8px 10px 4px; }
+            .af-row { gap: 8px; padding: 6px 2px; }
+            .af-nom { font-size: 12.5px; }
+            .af-meta { font-size: 10.5px; }
+            .af-tag { font-size: 10px; padding: 1px 7px; }
+            .af-aide { display: none; }
         }
         .kpi-card[data-filter] { cursor: pointer; }
         .kpi-card.active:not([data-filter="all"]) { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
@@ -2431,6 +2436,60 @@
         }
         .doc-action-btn:hover { background: #F3F4F6; color: #111827; }
         .doc-action-btn.delete:hover { background: #FEE2E2; color: #DC2626; border-color: #FCA5A5; }
+
+        /* ===== Refonte téléphone (rien ne change au-dessus de 768 px) ===== */
+        .titre-seg { position: relative; display: inline-flex; align-items: center; gap: 8px; }
+        .titre-seg-icone, .seg-select, .btn-loupe, .statut-chips, .kpi-resume, .row-mobile, .mois-entete, .contact-rapide { display: none; }
+        @media (max-width: 768px) {
+            .seg-chips, #mobile-filter, .kpi-grid, .sort-bar, #dash-subtitle, .table-header { display: none !important; }
+            .dash-top { flex-direction: row !important; flex-wrap: wrap; align-items: center !important; justify-content: space-between; gap: 8px !important; }
+            .titre-seg-icone { display: inline-block; font-size: 13px; color: var(--text-muted); }
+            .seg-select { display: block; position: absolute; inset: 0; opacity: 0; width: 100%; font-size: 16px; }
+            .btn-loupe { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border-light); background: var(--surface); color: var(--text-secondary); font-size: 15px; }
+            .dash-top-right { display: none !important; }
+            body.recherche-ouverte .dash-top-right { display: flex !important; flex-basis: 100%; }
+            .statut-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 0 8px; }
+            .statut-chips::-webkit-scrollbar { display: none; }
+            .statut-chips button { flex: 0 0 auto; border: 1px solid var(--border-light); background: var(--surface); color: var(--text-secondary); border-radius: 18px; padding: 7px 12px; font: inherit; font-size: 13px; }
+            .statut-chips button span { font-weight: 700; margin-left: 2px; }
+            .statut-chips button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+            .kpi-resume { display: block; font-size: 12px; color: var(--text-muted); margin: 0 2px 10px; }
+            .table-container { border-radius: 12px; overflow: hidden; }
+            .mois-entete { display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); padding: 12px 14px 4px; }
+            .table-row { display: block !important; padding: 0 !important; min-height: 0 !important; grid-template-columns: none !important; }
+            #table-body .table-row > div:not(.row-mobile) { display: none !important; }
+            .table-container { margin-bottom: 76px; }
+            .row-mobile { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 14px; min-height: 52px; }
+            .rm-main { flex: 1; min-width: 0; }
+            .rm-nom { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .rm-sub { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+            .rm-side { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+            .rm-montant { font-size: 13px; font-weight: 600; color: var(--text); }
+            .rm-pill { font-size: 11px; font-weight: 600; border-radius: 8px; padding: 2px 8px; white-space: nowrap; }
+            .rm-alerte { color: #b42318; background: rgba(220, 38, 38, .08); }
+
+            /* Page dossier */
+            body.dossier-ouvert { padding-bottom: 0 !important; }
+            body.dossier-ouvert .mobile-bottom-nav-index { display: none !important; }
+            .dossier-bar { flex-wrap: nowrap; align-items: flex-start; padding: 10px 12px; gap: 8px; }
+            .dossier-bar .btn-back { flex-shrink: 0; padding: 8px 12px; }
+            .dossier-bar .dossier-header { order: 0; flex: 1; min-width: 0; flex-basis: auto; gap: 2px 10px; align-items: center; }
+            .dossier-bar .dossier-client-title { flex-basis: 100%; font-size: 19px; }
+            .dossier-bar .dossier-meta { gap: 10px; }
+            .dossier-bar .dossier-meta-item { padding: 0; border: none; background: none; font-size: 12px; }
+            .dossier-bar .emetteur-chip { border: none; padding: 0; font-size: 11px; }
+            .contact-rapide { display: flex; flex-basis: 100%; order: 10; gap: 6px; margin-top: 8px; }
+            .contact-rapide a { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; height: 38px; border: 1px solid var(--border-light); border-radius: 19px; color: var(--primary); font-size: 13px; font-weight: 600; text-decoration: none; background: var(--surface); }
+            .dossier-more { flex-shrink: 0; }
+            #dossier-bar-actions { position: fixed; left: 0; right: 0; bottom: 0; z-index: 600; display: flex; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--border-light); }
+            #dossier-bar-actions:empty { display: none; }
+            #dossier-bar-actions .statut-pill { padding: 11px 14px; font-size: 12px; }
+            #dossier-bar-actions .btn-etape { flex: 1; justify-content: center; padding: 12px 16px; font-size: 14px; }
+            .iframe-container { padding-bottom: 68px; }
+            .tab-group-title { display: none; }
+            .tab-group { border-right: none; padding-right: 0; margin-right: 0; gap: 2px; }
+            #iframe-nav-tabs .nav-tab { padding: 8px 12px; font-size: 13px; }
+        }
     </style>
 </head>
 
@@ -2453,7 +2512,7 @@
                 <span>Ménage</span>
             </a>
             <div class="nav-section-title">Gestion</div>
-            <li class="nav-item active" id="nav-afaire" onclick="showAFaire()">
+            <li class="nav-item" id="nav-afaire" onclick="showAFaire()">
                 <i class="fa-solid fa-list-check"></i>
                 <span>À faire</span>
                 <span class="filter-count" id="count-afaire" style="margin-left:auto;">0</span>
@@ -2462,7 +2521,7 @@
                 <i class="fa-regular fa-folder-open"></i>
                 <span>Dossiers</span>
             </li>
-            <li class="nav-item nav-sub" id="nav-dossiers" onclick="showSegment('seminaire', this)">
+            <li class="nav-item nav-sub active" id="nav-dossiers" onclick="showSegment('seminaire', this)">
                 <i class="fa-solid fa-briefcase"></i>
                 <span>Séminaires</span>
             </li>
@@ -2556,7 +2615,7 @@
     <div class="main-content">
 
         <!-- ===== À FAIRE (accueil) ===== -->
-        <div class="dossiers-panel" id="afaire-panel">
+        <div class="dossiers-panel hidden" id="afaire-panel">
             <div class="dash-top">
                 <div class="dash-top-left">
                     <h2>À faire</h2>
@@ -2567,18 +2626,28 @@
         </div>
 
         <!-- ===== DOSSIERS PANEL ===== -->
-        <div class="dossiers-panel hidden" id="dossiers-panel">
+        <div class="dossiers-panel" id="dossiers-panel">
             <div class="seg-chips">
-                <button data-seg="seminaire" onclick="document.getElementById('nav-dossiers').click()">Séminaires</button>
+                <button class="active" data-seg="seminaire" onclick="document.getElementById('nav-dossiers').click()">Séminaires</button>
                 <button data-seg="groupe" onclick="document.getElementById('nav-groupes').click()">Groupes</button>
                 <button data-seg="mariage" onclick="document.getElementById('nav-mariages').click()">Mariages</button>
             </div>
 
             <div class="dash-top">
                 <div class="dash-top-left">
-                    <h2 id="dash-title">Séminaires</h2>
+                    <div class="titre-seg">
+                        <h2 id="dash-title">Séminaires</h2>
+                        <i class="fa-solid fa-chevron-down titre-seg-icone"></i>
+                        <select class="seg-select" id="seg-select" aria-label="Choisir l'espace"
+                                onchange="document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[this.value]).click()">
+                            <option value="seminaire">Séminaires</option>
+                            <option value="groupe">Groupes</option>
+                            <option value="mariage">Mariages</option>
+                        </select>
+                    </div>
                     <div class="subtitle" id="dash-subtitle">Vue d'ensemble des séminaires</div>
                 </div>
+                <button class="btn-loupe" aria-label="Rechercher" onclick="document.body.classList.toggle('recherche-ouverte'); if (document.body.classList.contains('recherche-ouverte')) document.getElementById('search-input').focus()"><i class="fa-solid fa-magnifying-glass"></i></button>
                 <select class="mobile-filter" id="mobile-filter" onchange="setFilter(this.value)" aria-label="Filtrer par statut">
                     <option value="all">Tous les statuts</option>
                     <option value="à traiter">À traiter</option>
@@ -2600,6 +2669,8 @@
                 </div>
             </div>
 
+            <div class="statut-chips" id="statut-chips"></div>
+            <div class="kpi-resume" id="kpi-resume"></div>
             <!-- KPIs -->
             <div class="kpi-grid">
                 <div class="kpi-card" data-filter="all" onclick="setFilter('all')" title="Afficher ces dossiers">
@@ -3024,7 +3095,7 @@
         let activeRecordId = null;
 
         // Vue d'où l'on ouvre un dossier : « afaire » (accueil) ou « dossiers » (liste d'un espace)
-        let vueRetour = 'afaire';
+        let vueRetour = 'dossiers';
         function marquerVue(vue) {
             vueRetour = vue;
             document.body.classList.remove('dossier-ouvert');
@@ -3069,6 +3140,7 @@
             document.getElementById('dash-subtitle').innerText = S.sousTitre;
             document.getElementById('kpi-total-label').innerText = S.titre;
             document.querySelectorAll('.seg-chips button').forEach(b => b.classList.toggle('active', b.dataset.seg === seg));
+            const segSel = document.getElementById('seg-select'); if (segSel) segSel.value = seg;
             showDossiers(navEl);
             updateKPIs();
             updateFilters();
@@ -3186,7 +3258,7 @@
         }
 
         function renderDossierTabs(id, record) {
-            const f = record ? record.fields : {};
+            const f = (record && (record.fields || record._raw?.fields)) || {};
             const tab = d => `<div class="nav-tab ${d.type === activeDocType ? 'active' : ''}" onclick="openDocForRecord('${d.type}', '${id}')">
                     <i class="fa-solid ${d.icon}"></i><span>${d.label}</span>${d.done ? '<span class="tab-done" title="Rempli"></span>' : ''}
                 </div>`;
@@ -3200,7 +3272,7 @@
             const header = document.getElementById('dossier-header');
             const actions = document.getElementById('dossier-bar-actions');
             if (!record) { header.innerHTML = ''; actions.innerHTML = ''; actions._etape = null; renderDossierTabs(id, null); return; }
-            const f = record.fields;
+            const f = record.fields || record._raw?.fields || {};
             header.innerHTML = `
                 <h2 class="dossier-client-title inline-edit" title="Cliquer pour modifier" onclick="enableEdit(this, '${id}', 'Nom client')">${f["Nom client"] || 'Événement sans nom'}</h2>
                 <div class="dossier-meta">
@@ -3218,6 +3290,16 @@
             `;
             let emetteur = '';
             try { emetteur = JSON.parse(f['DOSSIER JSON'] || '{}').companyProfile || ''; } catch (_) {}
+            const tel = (record.phone || '').trim(), mail = (record.email || '').trim();
+            if (tel || mail) {
+                let wa = tel.replace(/\D/g, '');
+                if (wa.length === 10 && wa.startsWith('0')) wa = '33' + wa.slice(1);
+                header.insertAdjacentHTML('beforeend', `<div class="contact-rapide">
+                    ${tel ? `<a href="tel:${escapeHtml(tel.replace(/\s/g, ''))}" aria-label="Appeler"><i class="fa-solid fa-phone"></i> Appeler</a>` : ''}
+                    ${mail ? `<a href="mailto:${escapeHtml(mail)}" aria-label="Écrire"><i class="fa-regular fa-envelope"></i> Mail</a>` : ''}
+                    ${wa.length >= 10 ? `<a href="https://wa.me/${wa}" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : ''}
+                </div>`);
+            }
             if (emetteur) header.insertAdjacentHTML('beforeend', `<span class="emetteur-chip" title="Émetteur du devis et des factures (se choisit dans le devis)" onclick="openDocForRecord('devis', '${id}')">${emetteur === 'foudre' ? 'Foudre Society' : 'OZZA'}</span>`);
             const S = SesquierRecords.STATUS_MAP[record.statut] || {};
             let etape = ETAPE_SUIVANTE[record.statut] || null;
@@ -3311,9 +3393,13 @@
         async function enregistrerLienRooming(id) {
             const input = document.getElementById('rooming-url');
             const url = (input.value || '').trim();
-            if (url && !/^https:\/\/(docs|drive)\.google\.com\//.test(url)) { alert('Colle le lien d\'une fiche Google Sheets (https://docs.google.com/…).'); return; }
             const record = allRecords.find(r => r.id === id);
             if (!record) return;
+            const actuel = lienRooming(record.fields);
+            if (!url) {
+                if (!actuel) { alert('Colle d\'abord le lien de la fiche Google Sheets.'); return; }
+                if (!confirm('Retirer le lien du rooming de ce dossier ?')) return;
+            } else if (!/^https:\/\/(docs|drive)\.google\.com\//.test(url)) { alert('Colle le lien d\'une fiche Google Sheets (https://docs.google.com/…).'); return; }
             const data = { ...roomingData(record.fields), lienSheet: url };
             if (!url) delete data.lienSheet;
             await fastUpdateRecord(id, 'Rooming JSON', JSON.stringify(data), input);
@@ -3355,7 +3441,7 @@
             container.innerHTML = logs.sort((a, b) => new Date(b.date) - new Date(a.date)).map(l => `
                 <div class="timeline-item">
                     <div class="timeline-date">${new Date(l.date).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
-                    <div class="timeline-text">${l.text}</div>
+                    <div class="timeline-text">${escapeHtml(String(l.text || '')).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</div>
                 </div>
             `).join('');
         }
@@ -3612,6 +3698,9 @@
             document.getElementById('kpi-ca-pending').innerText   = SesquierUtils.formatEuro(caPending);
             document.getElementById('kpi-ca-signe').innerText     = SesquierUtils.formatEuro(caSigne);
             document.getElementById('kpi-ca-effectue').innerText  = SesquierUtils.formatEuro(caEffectue);
+            const euro = v => SesquierUtils.formatEuro(v).replace(/,00(\s*€)/, '$1');
+            const resume = document.getElementById('kpi-resume');
+            if (resume) resume.textContent = `Validé ${euro(caSigne)} · en attente ${euro(caPending)}` + (caEffectue ? ` · effectué ${euro(caEffectue)}` : '');
         }
 
         function animateValue(id, value) {
@@ -3676,11 +3765,13 @@
             if (!allRecords.length) return;
             const L = listesAFaire();
             const fmt = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—';
+            // Entreprise affichée seulement si elle n'est pas déjà dans le nom (« JRI (helle lorentzen) »)
+            const org = r => r.entreprise && !r.nomClient.toLowerCase().includes(r.entreprise.toLowerCase()) ? r.entreprise : '';
             const ligne = (r, tag, tagCls = '') => `
                 <div class="af-row" onclick="openDossier('${r.id}')">
                     <div class="af-main">
                         <span class="af-nom">${escapeHtml(r.nomClient)}</span>
-                        <span class="af-meta">${escapeHtml(r.entreprise || '')}${r.entreprise ? ' · ' : ''}${SEG_LABEL[r.segment] || ''} · ${fmt(r.dateArrivee)} → ${fmt(r.dateDepart)} · ${r.nbPersonnes || '?'} pers.</span>
+                        <span class="af-meta">${org(r) ? escapeHtml(org(r)) + ' · ' : ''}${SEG_LABEL[r.segment] || ''} · ${fmt(r.dateArrivee)} → ${fmt(r.dateDepart)} · ${r.nbPersonnes || '?'} pers.</span>
                     </div>
                     <span class="af-tag ${tagCls}">${tag}</span>
                 </div>`;
@@ -3691,15 +3782,14 @@
             };
             const section = (titre, icone, items, rendu, aide) => items.length ? `
                 <div class="af-section">
-                    <div class="af-titre"><i class="fa-solid ${icone}"></i> ${titre} <span class="af-nb">${items.length}</span></div>
-                    ${aide ? `<div class="af-aide">${aide}</div>` : ''}
+                    <div class="af-titre"><i class="fa-solid ${icone}"></i> ${titre} <span class="af-nb">${items.length}</span>${aide ? `<span class="af-aide">${aide}</span>` : ''}</div>
                     ${items.map(rendu).join('')}
                 </div>` : '';
             const html =
                 section('Demandes à traiter', 'fa-inbox', L.traiter, r => ligne(r, ...depuis(r)), 'Devis promis sous 24 h.') +
                 section('Relances du jour', 'fa-bell', L.relances, r => ligne(r, `${escapeHtml(r.prochaineAction || 'Relance')} · ${fmt(r.dateRelance)}`, 'retard')) +
                 section('Acomptes à demander', 'fa-file-invoice-dollar', L.acomptes, r => ligne(r, `Arrivée dans ${L.dans(r.dateArrivee)} j`)) +
-                section('Séjours des 3 prochaines semaines', 'fa-calendar-check', L.sejours, r => ligne(r,
+                section('Séjours à venir (3 semaines)', 'fa-calendar-check', L.sejours, r => ligne(r,
                     (L.dans(r.dateArrivee) === 0 ? "Aujourd'hui" : `J-${L.dans(r.dateArrivee)}`) + (lienRooming(r.fields) ? ' · rooming ✓' : ' · rooming à envoyer'),
                     lienRooming(r.fields) ? 'ok' : ''));
             box.innerHTML = html || '<div class="af-vide"><i class="fa-regular fa-face-smile"></i> Rien en attente. Les nouvelles demandes apparaîtront ici.</div>';
@@ -3721,12 +3811,28 @@
             document.getElementById('count-annule').innerText = segRecords().filter(r => r.statut === 'annulé').length || 0;
             document.getElementById('count-effectue').innerText = counts['effectué'] || 0;
             document.getElementById('count-archived').innerText = archived.length || 0;
+            renderStatutChips();
+        }
+
+        // Téléphone : puces de statut (mêmes compteurs que la barre latérale), les vides masquées sauf la puce active
+        const STATUT_CHIPS = [['all', 'Tous', 'count-all'], ['à traiter', 'À traiter', 'count-traiter'], ['devis envoyé', 'Envoyé', 'count-devis'],
+            ['relancer', 'À relancer', 'count-relancer'], ['devis signé', 'Validé', 'count-confirme'], ['effectué', 'Effectués', 'count-effectue'],
+            ['annulé', 'Refusés', 'count-annule'], ['archived', 'Archivés', 'count-archived']];
+        function renderStatutChips() {
+            const box = document.getElementById('statut-chips');
+            if (!box) return;
+            box.innerHTML = STATUT_CHIPS.map(([f, label, cid]) => {
+                const n = document.getElementById(cid)?.innerText || '0';
+                if (n === '0' && f !== 'all' && f !== currentFilter) return '';
+                return `<button class="${f === currentFilter ? 'active' : ''}" onclick="setFilter('${f}')">${label} <span>${n}</span></button>`;
+            }).join('');
         }
 
         function setFilter(f) {
             currentFilter = f;
             document.querySelectorAll('.sidebar-filter, .kpi-card[data-filter]').forEach(p => p.classList.toggle('active', p.dataset.filter === f));
             const mf = document.getElementById('mobile-filter'); if (mf) mf.value = f;
+            renderStatutChips();
             if (currentViewMode === 'list') {
                 renderTable();
             } else {
@@ -3881,7 +3987,30 @@
                 showEmptyState('Aucun événement trouvé', 'Essayez un autre filtre ou recherche');
                 return;
             }
-            body.innerHTML = records.map((r, i) => renderRow(r._n || r, i)).join('');
+            let moisPrec = null;
+            body.innerHTML = records.map((r, i) => {
+                const n = r._n || r;
+                let entete = '';
+                if (sortMode !== 'amount-desc') {
+                    const m = n.dateArrivee ? new Date(String(n.dateArrivee).slice(0, 10) + 'T12:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : 'Sans date';
+                    if (m !== moisPrec) { entete = `<div class="mois-entete">${m.charAt(0).toUpperCase() + m.slice(1)}</div>`; moisPrec = m; }
+                }
+                return entete + renderRow(n, i);
+            }).join('');
+        }
+
+        // Téléphone : nom, dates · personnes (· entreprise si différente), montant, statut ou relance
+        function ligneMobile(r, dArr, dDep) {
+            const nom = r.nomClient || '';
+            const org = r.entreprise && !nom.toLowerCase().includes(r.entreprise.toLowerCase()) ? ' · ' + escapeHtml(r.entreprise) : '';
+            const montant = r.totalHT ? SesquierUtils.formatEuro(r.totalHT).replace(/,00(\s*€)/, '$1') : '';
+            const lab = (r.statutLabel || '').toLowerCase();
+            const statut = `<span class="rm-pill" style="color:${r.statutColor}; background:${r.statutBg};">${lab.charAt(0).toUpperCase() + lab.slice(1)}</span>`;
+            const suivi = aRelancer(r) ? '<span class="rm-pill rm-alerte">À relancer</span>' : enRetard(r) ? '<span class="rm-pill rm-alerte">+24 h</span>' : '';
+            return `<div class="row-mobile">
+                    <div class="rm-main"><div class="rm-nom">${escapeHtml(nom)}</div><div class="rm-sub">${dArr} → ${dDep} · ${r.nbPersonnes || '?'} pers.${org}</div></div>
+                    <div class="rm-side"><div class="rm-montant">${montant}</div>${suivi || statut}</div>
+                </div>`;
         }
 
         function renderRow(r, i) {
@@ -3929,6 +4058,7 @@
             `;
             
             return `<div class="table-row" onclick="handleRowClick(event, '${id}')" style="display: grid; grid-template-columns: 50px 2.5fr 1.5fr 0.8fr 1.2fr 1.2fr; ${r.estArchive ? 'opacity:0.5;' : ''}">
+                ${ligneMobile(r, dArr, dDep)}
                 <div class="row-expand">
                     <i class="fa-solid fa-plus"></i>
                 </div>
@@ -4204,11 +4334,11 @@
 </div>
 <button class="fab-nouveau" aria-label="Nouvelle demande" onclick="event.stopPropagation(); document.getElementById('mobile-new').classList.toggle('show')"><i class="fa-solid fa-plus"></i></button>
 <nav class="mobile-bottom-nav-index">
-    <a href="#" class="active" data-vue="afaire" onclick="event.preventDefault(); showAFaire()">
+    <a href="#" data-vue="afaire" onclick="event.preventDefault(); showAFaire()">
         <span class="nav-icon"><i class="fa-solid fa-list-check"></i></span>
         À faire
     </a>
-    <a href="#" data-vue="dossiers" onclick="event.preventDefault(); document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[currentSegment]).click()">
+    <a href="#" class="active" data-vue="dossiers" onclick="event.preventDefault(); document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[currentSegment]).click()">
         <span class="nav-icon"><i class="fa-regular fa-folder-open"></i></span>
         Dossiers
     </a>
