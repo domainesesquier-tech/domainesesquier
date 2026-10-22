@@ -186,8 +186,9 @@
                     renderTable();
                 }
                 
-                if (typeof activeRecordId !== 'undefined' && activeRecordId === id && document.getElementById('dossier-overlay').classList.contains('show')) {
-                    openDossier(id);
+                if (typeof activeRecordId !== 'undefined' && activeRecordId === id && !document.getElementById('iframe-layer').classList.contains('hidden')) {
+                    renderDossierBar(id);
+                    if (activeDocType === 'suivi') renderTimeline(allRecords.find(r => r.id === id));
                 }
                 return true;
             } catch (e) {
@@ -761,6 +762,41 @@
             background: var(--primary-dark);
         }
 
+        /* Page dossier */
+        .dossier-bar { display: flex; align-items: center; gap: 16px; padding: 10px 24px; background: var(--surface); border-bottom: 1px solid var(--border-light); flex-shrink: 0; z-index: 101; }
+        .dossier-bar .dossier-header { flex: 1; min-width: 0; padding: 0; background: none; border: none; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .dossier-bar .dossier-client-title { font-size: 24px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+        .dossier-bar .dossier-meta { gap: 8px; }
+        .dossier-bar .dossier-meta-item { padding: 3px 10px; font-size: 12px; }
+        .dossier-bar-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .statut-pill { appearance: none; -webkit-appearance: none; border: 1.5px solid; border-radius: 20px; padding: 6px 14px; font: inherit; font-size: 11px; font-weight: 700; letter-spacing: .04em; cursor: pointer; }
+        .btn-etape { display: inline-flex; align-items: center; gap: 8px; background: var(--primary); color: #fff; border: none; border-radius: 20px; padding: 8px 16px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .btn-etape:hover { background: var(--primary-light); }
+        .dossier-more { position: relative; }
+        .btn-more { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-light); background: var(--surface); color: var(--text-muted); cursor: pointer; }
+        .dossier-menu { display: none; position: absolute; right: 0; top: 42px; background: var(--surface); border: 1px solid var(--border-light); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.12); padding: 6px; min-width: 170px; z-index: 200; }
+        .dossier-menu.show { display: block; }
+        .dossier-menu button { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: none; padding: 9px 12px; border-radius: 8px; font: inherit; font-size: 13px; color: var(--text); cursor: pointer; text-align: left; }
+        .dossier-menu button:hover { background: var(--primary-subtle); }
+        .dossier-menu button.danger { color: #dc2626; }
+        #iframe-nav-tabs { justify-content: flex-start; gap: 6px; padding: 8px 24px; border-bottom: 1px solid var(--border-light); background: var(--surface); flex-grow: 0; flex-shrink: 0; overflow-x: auto; scrollbar-width: none; }
+        .tab-group { display: flex; align-items: center; gap: 4px; padding-right: 10px; margin-right: 6px; border-right: 1px solid var(--border-light); }
+        .tab-group:last-child { border-right: none; }
+        .tab-group-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); opacity: .7; margin-right: 4px; white-space: nowrap; }
+        #iframe-nav-tabs .nav-tab { padding: 6px 12px; font-size: 12.5px; white-space: nowrap; position: relative; }
+        .tab-done { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+        .suivi-panel { height: 100%; overflow-y: auto; }
+        .suivi-inner { display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+        .suivi-col .docs-panel { margin-top: 0; }
+        @media (max-width: 768px) {
+            .dossier-bar { flex-wrap: wrap; padding: 10px 16px; gap: 10px; }
+            .dossier-bar .btn-back span { display: none; }
+            .dossier-bar .dossier-header { order: 3; flex-basis: 100%; }
+            .dossier-bar .dossier-client-title { font-size: 20px; }
+            .dossier-bar-actions { margin-left: auto; }
+            #iframe-nav-tabs { padding: 8px 16px; }
+            .suivi-inner { grid-template-columns: 1fr; padding: 20px 16px; }
+        }
         .kpi-card[data-filter] { cursor: pointer; }
         .kpi-card.active:not([data-filter="all"]) { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
         .inline-edit { cursor: text; border-radius: 4px; transition: background .15s; }
@@ -2422,7 +2458,7 @@
                     <span class="filter-count" id="count-traiter">0</span>
                 </div>
                 <div class="sidebar-filter" data-filter="devis envoyé" onclick="setFilter('devis envoyé')">
-                    <span class="filter-label"><span class="filter-dot" style="background: var(--info);"></span>Devis envoyé</span>
+                    <span class="filter-label"><span class="filter-dot" style="background: var(--info);"></span>Envoyé</span>
                     <span class="filter-count" id="count-devis">0</span>
                 </div>
                 <div class="sidebar-filter" data-filter="relancer" onclick="setFilter('relancer')">
@@ -2430,11 +2466,7 @@
                     <span class="filter-count" id="count-relancer">0</span>
                 </div>
                 <div class="sidebar-filter" data-filter="devis signé" onclick="setFilter('devis signé')">
-                    <span class="filter-label"><span class="filter-dot" style="background: #2563EB;"></span>Devis signé</span>
-                    <span class="filter-count" id="count-signe">0</span>
-                </div>
-                <div class="sidebar-filter" data-filter="confirmé" onclick="setFilter('confirmé')">
-                    <span class="filter-label"><span class="filter-dot" style="background: var(--success);"></span>Confirmé</span>
+                    <span class="filter-label"><span class="filter-dot" style="background: var(--success);"></span>Validé</span>
                     <span class="filter-count" id="count-confirme">0</span>
                 </div>
                 <div class="sidebar-filter" data-filter="effectué" onclick="setFilter('effectué')">
@@ -2489,15 +2521,13 @@
                 <select class="mobile-filter" id="mobile-filter" onchange="setFilter(this.value)" aria-label="Filtrer par statut">
                     <option value="all">Tous les statuts</option>
                     <option value="à traiter">À traiter</option>
-                    <option value="devis envoyé">Devis envoyé</option>
+                    <option value="devis envoyé">Envoyé</option>
                     <option value="relancer">À relancer</option>
-                    <option value="devis signé">Devis signé</option>
-                    <option value="confirmé">Confirmé</option>
+                    <option value="devis signé">Validé</option>
                     <option value="effectué">Effectués</option>
                     <option value="annulé">Refusés</option>
                     <option value="archived">Archivés</option>
                     <option value="attente" hidden>CA en attente</option>
-                    <option value="signe" hidden>CA signé</option>
                 </select>
                 <div class="dash-top-right">
                     <input type="hidden" id="dev-id-input">
@@ -2524,15 +2554,15 @@
                     <div class="kpi-content">
                         <div class="kpi-label">CA en attente</div>
                         <div class="kpi-value" id="kpi-ca-pending">—</div>
-                        <div class="kpi-sub">À traiter + Devis envoyé</div>
+                        <div class="kpi-sub">À traiter + envoyés</div>
                     </div>
                 </div>
-                <div class="kpi-card" data-filter="signe" onclick="setFilter('signe')" title="Afficher ces dossiers">
+                <div class="kpi-card" data-filter="devis signé" onclick="setFilter('devis signé')" title="Afficher ces dossiers">
                     <div class="kpi-icon"><i class="fa-solid fa-file-signature"></i></div>
                     <div class="kpi-content">
-                        <div class="kpi-label">CA signé</div>
+                        <div class="kpi-label">CA validé</div>
                         <div class="kpi-value" id="kpi-ca-signe">—</div>
-                        <div class="kpi-sub">Signés et confirmés, à venir</div>
+                        <div class="kpi-sub">Validés, à venir</div>
                     </div>
                 </div>
                 <div class="kpi-card" data-filter="effectué" onclick="setFilter('effectué')" title="Afficher ces dossiers">
@@ -2589,76 +2619,29 @@
 
         <!-- ===== IFRAME LAYER ===== -->
         <div class="iframe-layer hidden" id="iframe-layer">
-            <div class="iframe-nav-bar">
-                <button class="btn-back" onclick="goBackToDossiers()">
-                    <i class="fa-solid fa-arrow-left"></i> Retour
+            <div class="dossier-bar">
+                <button class="btn-back" onclick="goBackToDossiers()" title="Retour à la liste">
+                    <i class="fa-solid fa-arrow-left"></i> <span>Dossiers</span>
                 </button>
-                <div class="iframe-nav-tabs" id="iframe-nav-tabs">
-                    <!-- Dynamic tabs will be injected here -->
+                <div class="dossier-header" id="dossier-header"></div>
+                <div class="dossier-bar-actions" id="dossier-bar-actions"></div>
+                <div class="dossier-more">
+                    <button class="btn-more" onclick="event.stopPropagation(); document.getElementById('dossier-menu').classList.toggle('show')" title="Plus d'actions"><i class="fa-solid fa-ellipsis"></i></button>
+                    <div class="dossier-menu" id="dossier-menu" onclick="this.classList.remove('show')">
+                        <button id="btn-duplicate-dossier" onclick="duplicateDossier()"><i class="fa-solid fa-copy"></i> Dupliquer</button>
+                        <button id="btn-archive-dossier" onclick="toggleArchiveDossier()"><i class="fa-solid fa-box-archive"></i> <span id="archive-btn-label">Archiver</span></button>
+                        <button class="danger" onclick="confirmDeleteActiveDossier()"><i class="fa-solid fa-trash-can"></i> Supprimer</button>
+                    </div>
                 </div>
             </div>
+            <div class="iframe-nav-tabs" id="iframe-nav-tabs"></div>
             <div class="iframe-container">
-                <iframe id="iframe-client" src="about:blank" style="display:none;"></iframe>
-                <iframe id="iframe-devis" src="about:blank" style="display:none;"></iframe>
-                <iframe id="iframe-facture" src="about:blank" style="display:none;"></iframe>
-                <iframe id="iframe-facture-finale" src="about:blank" style="display:none;"></iframe>
-                <iframe id="iframe-rooming" src="about:blank" style="display:none;"></iframe>
-                <iframe id="iframe-cuisine" src="about:blank" style="display:none;"></iframe>
-                <iframe id="iframe-menu-client" src="about:blank" style="display:none;"></iframe>
-                <iframe id="iframe-deroule" src="about:blank" style="display:none;"></iframe>
-                <iframe id="iframe-menage" src="about:blank" style="display:none;"></iframe>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- ========== DOSSIER MODAL ========== -->
-    <div class="dossier-overlay" id="dossier-overlay">
-        <div class="dossier-modal">
-            <button class="dossier-close" onclick="closeDossier()">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-            <button id="btn-archive-dossier" onclick="toggleArchiveDossier()" title="Archiver / Désarchiver ce dossier"
-                style="position:absolute; top:24px; right:72px; height:36px; background:none; border:1px solid #cbd5e1; border-radius:18px; color:#94a3b8; cursor:pointer; padding:0 14px; font-size:11px; display:flex; align-items:center; gap:6px; transition:all 0.2s; z-index:10;">
-                <i class="fa-solid fa-box-archive"></i>
-                <span id="archive-btn-label">Archiver</span>
-            </button>
-            <button id="btn-duplicate-dossier" onclick="duplicateDossier()" title="Dupliquer ce dossier"
-                style="position:absolute; top:24px; right:210px; height:36px; background:none; border:1px solid #cbd5e1; border-radius:18px; color:#94a3b8; cursor:pointer; padding:0 14px; font-size:11px; display:flex; align-items:center; gap:6px; transition:all 0.2s; z-index:10;">
-                <i class="fa-solid fa-copy"></i>
-                <span>Dupliquer</span>
-            </button>
-            <div class="dossier-header" id="dossier-header">
-                <!-- Dynamic content -->
-            </div>
-            <div class="dossier-body">
+                <div class="suivi-panel" id="panel-suivi" style="display:none;">
+                    <div class="suivi-inner">
+                        <div class="suivi-col">
                 <div class="dossier-section">
-                    <span class="dossier-section-title">Actions & Documents</span>
-                    <div class="doc-grid" id="dossier-doc-grid">
-                        <!-- Dynamic vignettes -->
-                    </div>
-                </div>
-
-                <!-- Documents panel -->
-                <div class="docs-panel" id="docs-panel">
-                    <div class="docs-panel-header">
-                        <div class="docs-panel-title">
-                            <i class="fa-solid fa-folder-open"></i> Documents
-                        </div>
-                        <button class="btn-upload" id="btn-upload-doc" onclick="triggerFileUpload()">
-                            <i class="fa-solid fa-arrow-up-from-bracket"></i> Uploader
-                        </button>
-                        <input type="file" id="doc-file-input" accept=".pdf,.jpg,.jpeg,.png"
-                            style="display:none" onchange="handleFileUpload(this)">
-                    </div>
-                    <div class="docs-list" id="docs-list">
-                        <div class="docs-empty">Chargement…</div>
-                    </div>
-                </div>
-
-                <div class="dossier-section" style="margin-top: 40px;">
                     <div class="dossier-section-title">
-                        <span>Journal de Bord (Timeline)</span>
+                        <span>Journal</span>
                         <span id="log-count" style="opacity:0.5; font-weight:400;">0 entrée</span>
                     </div>
 
@@ -2675,13 +2658,39 @@
                         </button>
                     </div>
                 </div>
-            </div>
-            <div class="dossier-footer" style="padding: 20px 40px; border-top: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: flex-end;">
-                <button class="btn-secondary" style="color: #dc2626; border-color: #fecaca;" onclick="confirmDeleteActiveDossier()">
-                    <i class="fa-solid fa-trash-can"></i> Supprimer ce dossier
-                </button>
+                        </div>
+                        <div class="suivi-col">
+                <!-- Documents panel -->
+                <div class="docs-panel visible" id="docs-panel">
+                    <div class="docs-panel-header">
+                        <div class="docs-panel-title">
+                            <i class="fa-solid fa-folder-open"></i> Documents
+                        </div>
+                        <button class="btn-upload" id="btn-upload-doc" onclick="triggerFileUpload()">
+                            <i class="fa-solid fa-arrow-up-from-bracket"></i> Uploader
+                        </button>
+                        <input type="file" id="doc-file-input" accept=".pdf,.jpg,.jpeg,.png"
+                            style="display:none" onchange="handleFileUpload(this)">
+                    </div>
+                    <div class="docs-list" id="docs-list">
+                        <div class="docs-empty">Chargement…</div>
+                    </div>
+                </div>
+                        </div>
+                    </div>
+                </div>
+                <iframe id="iframe-client" src="about:blank" style="display:none;"></iframe>
+                <iframe id="iframe-devis" src="about:blank" style="display:none;"></iframe>
+                <iframe id="iframe-facture" src="about:blank" style="display:none;"></iframe>
+                <iframe id="iframe-facture-finale" src="about:blank" style="display:none;"></iframe>
+                <iframe id="iframe-rooming" src="about:blank" style="display:none;"></iframe>
+                <iframe id="iframe-cuisine" src="about:blank" style="display:none;"></iframe>
+                <iframe id="iframe-menu-client" src="about:blank" style="display:none;"></iframe>
+                <iframe id="iframe-deroule" src="about:blank" style="display:none;"></iframe>
+                <iframe id="iframe-menage" src="about:blank" style="display:none;"></iframe>
             </div>
         </div>
+
     </div>
 
     <!-- Toast -->
@@ -2762,7 +2771,6 @@
             panel.classList.add('visible');
             panel._recordId = recordId;
             list.innerHTML = '<div class="docs-empty">Chargement…</div>';
-            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             await refreshDocsList(recordId);
         }
 
@@ -2913,16 +2921,9 @@
             const tabParam = urlParams.get('tab');
 
             if (recordId) {
-                document.getElementById('dev-id-input').value = recordId;
-                if (tabParam === 'facture') {
-                    switchTab('iframe-facture', document.getElementById('nav-facture'), recordId);
-                } else if (tabParam === 'facture-finale') {
-                    switchTab('iframe-facture-finale', document.getElementById('nav-facture-finale'), recordId);
-                } else if (tabParam === 'client') {
-                    switchTab('iframe-client', document.getElementById('nav-client-new'), recordId);
-                } else {
-                    switchTab('iframe-devis', document.getElementById('nav-devis'), recordId);
-                }
+                // Lien direct (?id=…&tab=…) : ouvre la page dossier sur le bon onglet, l'en-tête se remplit au chargement
+                openDocForRecord(['facture', 'facture-finale', 'client'].includes(tabParam) ? tabParam : 'devis', recordId);
+                loadAllRecords(true);
             } else {
                 loadAllRecords();
             }
@@ -2958,7 +2959,6 @@
 
             document.getElementById('dossiers-panel').classList.remove('hidden');
             document.getElementById('iframe-layer').classList.add('hidden');
-            document.getElementById('dossier-overlay').classList.remove('show');
             document.querySelectorAll('#iframe-layer iframe').forEach(f => f.style.display = 'none');
             activeIframeId = null;
             activeRecordId = null;
@@ -3053,26 +3053,53 @@
         }
 
         function goBackToDossiers() {
-            if (activeRecordId) {
-                // If we were in a dossier, go back to it
-                document.getElementById('iframe-layer').classList.add('hidden');
-                document.getElementById('dossier-overlay').classList.add('show');
-            } else {
-                showDossiers(document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[currentSegment]));
-                refreshData(); // Refresh list when coming back
-            }
+            showDossiers(navSegment());
+            loadAllRecords(true);
         }
 
-        function openDossier(id) {
+        // ── Page dossier : en-tête fixe (statut + étape suivante) et onglets groupés ──
+        const ETAPE_SUIVANTE = {
+            'à traiter':    { label: 'Marquer envoyé',   statut: 'devis envoyé', icon: 'fa-paper-plane' },
+            'devis envoyé': { label: 'Marquer validé',   statut: 'devis signé',  icon: 'fa-check' },
+            'devis signé':  { label: 'Marquer effectué', statut: 'effectué',     icon: 'fa-flag-checkered', apresDepart: true }
+        };
+        let activeDocType = null;
+
+        function navSegment() {
+            return document.getElementById({ seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages' }[currentSegment]);
+        }
+
+        function docsDuDossier(f) {
+            return [
+                { groupe: '', docs: [{ type: 'suivi', label: 'Suivi', icon: 'fa-clipboard-list' }] },
+                { groupe: 'Vente', docs: [
+                    { type: 'client', label: 'Infos', icon: 'fa-address-card', done: !!f["Email"] },
+                    { type: 'devis', label: 'Devis', icon: 'fa-file-lines', done: f["Total TTC"] > 0 }] },
+                { groupe: 'Facturation', docs: [
+                    { type: 'facture', label: 'Acompte', icon: 'fa-file-invoice-dollar', done: !!f["Acompte Payé"] },
+                    { type: 'facture-finale', label: 'Facture', icon: 'fa-receipt' }] },
+                // Hébergement, Cuisine, Menus et Ménage retirés (non utilisés, à repenser) : pages conservées
+                { groupe: 'Organisation', docs: [
+                    { type: 'deroule', label: 'Déroulé', icon: 'fa-route', done: !!f["DEROULE JSON"] }] }
+            ];
+        }
+
+        function renderDossierTabs(id, record) {
+            const f = record ? record.fields : {};
+            const tab = d => `<div class="nav-tab ${d.type === activeDocType ? 'active' : ''}" onclick="openDocForRecord('${d.type}', '${id}')">
+                    <i class="fa-solid ${d.icon}"></i><span>${d.label}</span>${d.done ? '<span class="tab-done" title="Rempli"></span>' : ''}
+                </div>`;
+            document.getElementById('iframe-nav-tabs').innerHTML = docsDuDossier(f).map(g =>
+                `<div class="tab-group">${g.groupe ? `<span class="tab-group-title">${g.groupe}</span>` : ''}${g.docs.map(tab).join('')}</div>`
+            ).join('');
+        }
+
+        function renderDossierBar(id) {
             const record = allRecords.find(r => r.id === id);
-            if (!record) return;
-
-            activeRecordId = id;
-            const f = record.fields;
             const header = document.getElementById('dossier-header');
-            const grid = document.getElementById('dossier-doc-grid');
-
-            // Header info
+            const actions = document.getElementById('dossier-bar-actions');
+            if (!record) { header.innerHTML = ''; actions.innerHTML = ''; actions._etape = null; renderDossierTabs(id, null); return; }
+            const f = record.fields;
             header.innerHTML = `
                 <h2 class="dossier-client-title inline-edit" title="Cliquer pour modifier" onclick="enableEdit(this, '${id}', 'Nom client')">${f["Nom client"] || 'Événement sans nom'}</h2>
                 <div class="dossier-meta">
@@ -3088,54 +3115,45 @@
                     </div>
                 </div>
             `;
+            const S = SesquierRecords.STATUS_MAP[record.statut] || {};
+            let etape = ETAPE_SUIVANTE[record.statut] || null;
+            if (record.statut === 'à traiter' && !(f["Total TTC"] > 0)) etape = { label: 'Préparer le devis', doc: 'devis', icon: 'fa-file-pen' };
+            if (etape && etape.doc && activeDocType === 'devis') etape = null;
+            if (etape && etape.apresDepart && !(record.dateDepart && new Date(record.dateDepart) < new Date())) etape = null;
+            if (record.estArchive) etape = null;
+            actions._etape = etape;
+            actions.innerHTML = `
+                <select class="statut-pill" style="color:${S.color || 'inherit'}; background:${S.bg || 'transparent'}; border-color:${S.color || 'var(--border)'};"
+                        onchange="fastUpdateRecord('${id}', 'Statut', this.value, this)" title="Statut du dossier">
+                    ${Object.keys(SesquierRecords.STATUS_MAP).map(k => `<option value="${k}" ${record.statut === k ? 'selected' : ''}>${SesquierRecords.STATUS_MAP[k].label}</option>`).join('')}
+                </select>
+                ${etape ? `<button class="btn-etape" onclick="etapeSuivante('${id}')"><i class="fa-solid ${etape.icon}"></i> ${etape.label}</button>` : ''}`;
+            document.getElementById('archive-btn-label').innerText = record.estArchive ? 'Désarchiver' : 'Archiver';
+            renderDossierTabs(id, record);
+        }
 
-            // Vignettes grid (Premium Version with Config)
-            const docs = [
-                { type: 'client', label: 'Infos', sub: 'Contact & Entreprise', icon: 'fa-address-card', done: !!f["Email"] },
+        async function etapeSuivante(id) {
+            const etape = document.getElementById('dossier-bar-actions')._etape;
+            if (!etape) return;
+            if (etape.doc) return openDocForRecord(etape.doc, id);
+            await fastUpdateRecord(id, 'Statut', etape.statut, document.querySelector('#dossier-bar-actions .btn-etape'));
+        }
 
-                { type: 'devis', label: 'Devis', sub: 'Visualiser ou éditer', icon: 'fa-file-lines', done: (f["Total TTC"] > 0) },
-                { type: 'facture', label: 'Acompte', sub: 'Générer (30%)', icon: 'fa-file-invoice-dollar', done: !!f["Acompte Payé"] },
-                { type: 'facture-finale', label: 'Facture', sub: 'Solde et clôture', icon: 'fa-receipt', done: false },
-                { type: 'rooming', label: "Hébergement", sub: "Plan d'occupation", icon: 'fa-hotel', done: !!f["Rooming JSON"] },
-                { type: 'cuisine', label: 'Cuisine', sub: 'Logistique chef', icon: 'fa-utensils', done: !!f["Cuisine JSON"] },
-                { type: 'menu-client', label: 'Menus', sub: 'Carte élégante', icon: 'fa-wine-glass', done: !!f["Cuisine JSON"] },
-                { type: 'deroule', label: 'Déroulé', sub: 'Programme jour par jour', icon: 'fa-route', done: !!f["DEROULE JSON"] },
-                { type: 'menage',  label: 'Ménage',   sub: 'Remise en état & signalements', icon: 'fa-broom', done: !!f["Menage JSON"] },
-                { type: 'documents', label: 'Documents', sub: 'Fichiers & PDF', icon: 'fa-folder-open', done: false }
-            ];
+        function showSuivi(id) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            const nav = navSegment(); if (nav) nav.classList.add('active');
+            document.getElementById('dossiers-panel').classList.add('hidden');
+            document.getElementById('iframe-layer').classList.remove('hidden');
+            document.querySelectorAll('#iframe-layer iframe').forEach(fr => fr.style.display = 'none');
+            document.getElementById('panel-suivi').style.display = 'block';
+            activeIframeId = null;
+            const record = allRecords.find(r => r.id === id);
+            if (record) renderTimeline(record);
+            openDocsPanel(id);
+        }
 
-            grid.innerHTML = docs.map(d => `
-                <div class="doc-card" data-type="${d.type}" onclick="openDocFromDossier('${d.type}', '${id}')">
-                    <span class="status-dot ${d.done ? 'completed' : 'pending'}" title="${d.done ? 'Document complété' : 'Document vide'}"></span>
-                    <div class="doc-icon-box">
-                        <i class="fa-solid ${d.icon}"></i>
-                    </div>
-                    <div class="doc-card-content">
-                        <h4>${d.label}</h4>
-                        <p>${d.sub}</p>
-                    </div>
-                    <div class="arrow-hint"><i class="fa-solid fa-chevron-right"></i></div>
-                </div>
-            `).join('');
-
-            // Timeline / Journal de Bord
-            renderTimeline(record);
-
-            // Bouton archive
-            const archiveBtn = document.getElementById('btn-archive-dossier');
-            const archiveLabel = document.getElementById('archive-btn-label');
-            if (archiveBtn && archiveLabel) {
-                const isArchived = record.estArchive;
-                archiveLabel.innerText = isArchived ? 'Désarchiver' : 'Archiver';
-                archiveBtn.style.color = isArchived ? '#ef4444' : '#94a3b8';
-                archiveBtn.style.borderColor = isArchived ? '#fca5a5' : '#cbd5e1';
-            }
-
-            // Reset docs panel
-            const docsPanel = document.getElementById('docs-panel');
-            if (docsPanel) docsPanel.classList.remove('visible');
-
-            document.getElementById('dossier-overlay').classList.add('show');
+        function openDossier(id) {
+            openDocForRecord('suivi', id);
         }
 
         function renderTimeline(record) {
@@ -3210,8 +3228,7 @@
 
 
         function closeDossier() {
-            document.getElementById('dossier-overlay').classList.remove('show');
-            activeRecordId = null;
+            showDossiers(navSegment());
         }
 
         async function duplicateDossier() {
@@ -3286,11 +3303,6 @@
         }
 
         function openDocFromDossier(type, id) {
-            if (type === 'documents') {
-                openDocsPanel(id);
-                return;
-            }
-            document.getElementById('dossier-overlay').classList.remove('show');
             openDocForRecord(type, id);
         }
 
@@ -3329,6 +3341,7 @@
                     sortRecords();
                     updateKPIs();
                     updateFilters();
+                    if (activeRecordId && !document.getElementById('iframe-layer').classList.contains('hidden')) renderDossierBar(activeRecordId);
                     if (currentViewMode === 'list') {
                         renderTable();
                     } else {
@@ -3351,6 +3364,8 @@
         function refreshData() {
             loadAllRecords();
         }
+
+        document.addEventListener('click', () => document.getElementById('dossier-menu')?.classList.remove('show'));
 
         // Remplace le bouton « Actualiser » : recharge en silence au retour sur l'onglet (au plus une fois par minute)
         document.addEventListener('visibilitychange', () => {
@@ -3406,7 +3421,7 @@
                 const s = (r.statut || '').toLowerCase();
                 caTotal += r.totalHT;
                 if (STATUTS_PENDING.has(s)) caPending  += r.totalHT;
-                if (FILTER_GROUPS.signe.includes(s)) caSigne += r.totalHT;  // signé, à venir
+                if (s === 'devis signé')    caSigne    += r.totalHT;  // validé, à venir
                 if (s === 'effectué')       caEffectue += r.totalHT;  // séjour réalisé
             });
 
@@ -3435,11 +3450,9 @@
         // =====================================================================
         // Suivi : devis envoyé dont la date de relance est arrivée ; demande « à traiter » reçue il y a plus de 24 h
         const jourISO = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        // Filtres qui couvrent plusieurs statuts (KPI cliquables, Confirmé = acompte reçu + confirmé)
+        // Filtres qui couvrent plusieurs statuts (KPI « CA en attente »)
         const FILTER_GROUPS = {
-            'confirmé': ['acompte reçu', 'confirmé'],
-            'attente':  ['à traiter', 'devis envoyé'],
-            'signe':    ['devis signé', 'acompte reçu', 'confirmé']
+            'attente':  ['à traiter', 'devis envoyé']
         };
         function matchFilter(r) {
             if (currentFilter === 'relancer') return aRelancer(r);
@@ -3462,8 +3475,7 @@
             document.getElementById('count-all').innerText = counts.all || 0;
             document.getElementById('count-traiter').innerText = counts['à traiter'] || 0;
             document.getElementById('count-relancer').innerText = nonArchived.filter(aRelancer).length;
-            document.getElementById('count-confirme').innerText = (counts['acompte reçu'] || 0) + (counts['confirmé'] || 0);
-            document.getElementById('count-signe').innerText = counts['devis signé'] || 0;
+            document.getElementById('count-confirme').innerText = counts['devis signé'] || 0;
             document.getElementById('count-devis').innerText = counts['devis envoyé'] || 0;
             // Refusé : compter tous les refusés (archivés inclus), cohérent avec son filtre
             document.getElementById('count-annule').innerText = segRecords().filter(r => r.statut === 'annulé').length || 0;
@@ -3714,46 +3726,15 @@
         }
 
         function openDocForRecord(type, id) {
+            if (!id) return;
+            if (type === 'documents') type = 'suivi';
             document.getElementById('dev-id-input').value = id;
             sessionStorage.setItem('currentDossierId', id);
-
-            // Map type to its specific nav/tab
-            const navId = {
-                'client': 'nav-client',
-                'devis': 'nav-devis',
-                'facture': 'nav-facture',
-                'facture-finale': 'nav-facture-finale',
-                'rooming': 'nav-rooming',
-                'cuisine': 'nav-restauration',
-                'menu-client': 'nav-menu',
-                'deroule': 'nav-deroule',
-                'menage': 'nav-rooming'
-            }[type] || 'nav-devis';
-
-            const frameId = 'iframe-' + type;
-
-            // Build Quick Navigation Tabs
-            const tabsContainer = document.getElementById('iframe-nav-tabs');
-            const docTypes = [
-                { type: 'client', label: 'Infos', icon: 'fa-address-card' },
-                { type: 'devis', label: 'Devis', icon: 'fa-file-lines' },
-                { type: 'facture', label: 'Acompte', icon: 'fa-file-invoice-dollar' },
-                { type: 'facture-finale', label: 'Facture', icon: 'fa-receipt' },
-                { type: 'rooming', label: 'Hébergement', icon: 'fa-hotel' },
-                { type: 'cuisine', label: 'Cuisine', icon: 'fa-utensils' },
-                { type: 'menu-client', label: 'Menus', icon: 'fa-wine-glass' },
-                { type: 'deroule', label: 'Déroulé', icon: 'fa-route' },
-                { type: 'menage',  label: 'Ménage',   icon: 'fa-broom' }
-            ];
-
-            tabsContainer.innerHTML = docTypes.map(d => `
-                <div class="nav-tab ${d.type === type ? 'active' : ''}" onclick="openDocForRecord('${d.type}', '${id}')">
-                    <i class="fa-solid ${d.icon}"></i>
-                    <span>${d.label}</span>
-                </div>
-            `).join('');
-
-            switchTab(frameId, document.getElementById(navId), id);
+            activeRecordId = id;
+            activeDocType = type;
+            renderDossierBar(id);
+            if (type === 'suivi') return showSuivi(id);
+            switchTab('iframe-' + type, navSegment(), id);
         }
 
         // =====================================================================
@@ -3777,6 +3758,7 @@
 
             document.getElementById('dossiers-panel').classList.add('hidden');
             document.getElementById('iframe-layer').classList.remove('hidden');
+            document.getElementById('panel-suivi').style.display = 'none';
 
             document.querySelectorAll('#iframe-layer iframe').forEach(f => f.style.display = 'none');
             const targetFrame = document.getElementById(frameId);
@@ -3855,8 +3837,8 @@
             const statutRaw = Array.isArray(f['Statut']) ? f['Statut'][0] : (f['Statut'] || '');
             // Annulé → ne pas sync (ne doit pas apparaître dans le planning)
             if (statutRaw.toLowerCase() === 'annulé') return;
-            // Confirmé → "confirmé", tout le reste (à traiter, devis envoyé, effectué…) → "Option"
-            const statut = statutRaw.toLowerCase() === 'confirmé' ? 'confirmé' : 'Option';
+            // Validé (devis signé, ou ancien confirmé / acompte reçu) → "confirmé" au planning, le reste → "Option"
+            const statut = ['devis signé', 'confirmé', 'acompte reçu'].includes(statutRaw.toLowerCase()) ? 'confirmé' : 'Option';
             const planningId = f['planning_id'];
 
             const planningFields = {
@@ -3930,16 +3912,16 @@
                 document.getElementById('dev-id-input').value = newId;
                 const newUrl = window.location.pathname + '?id=' + newId;
                 window.history.pushState({}, '', newUrl);
+                activeRecordId = newId; activeDocType = 'devis';
                 refreshData(); // Auto-update the dossiers list in the background
-                switchTab('iframe-devis', document.getElementById('nav-devis'));
+                renderDossierBar(newId);
+                switchTab('iframe-devis', navSegment(), newId);
             }
             if (event.data.type === 'SWITCH_TAB') {
-                const map = { 'devis': 'nav-devis', 'facture': 'nav-facture', 'facture-finale': 'nav-facture-finale', 'client': 'nav-client-new' };
-                const navId = map[event.data.tab];
-                if (navId) {
-                    if (event.data.recordId) document.getElementById('dev-id-input').value = event.data.recordId;
-                    switchTab('iframe-' + event.data.tab, document.getElementById(navId), event.data.recordId);
-                }
+                const rid = event.data.recordId || activeRecordId;
+                if (!iframeSrcMap['iframe-' + event.data.tab]) return;
+                if (rid) openDocForRecord(event.data.tab, rid);
+                else switchTab('iframe-' + event.data.tab, navSegment());
             }
             if (event.data.type === 'RECORD_UPDATED') {
                 // 1. Mettre à jour le dashboard (liste) puis syncer le planning

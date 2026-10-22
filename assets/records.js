@@ -47,7 +47,7 @@ const SesquierRecords = {
             class: 'badge-traiter'
         },
         'devis envoyé': {
-            label: 'DEVIS ENVOYÉ',
+            label: 'ENVOYÉ',
             airtable: 'devis envoyé',
             color: '#7C3AED',
             bg: 'rgba(124, 58, 237, 0.1)',
@@ -55,24 +55,8 @@ const SesquierRecords = {
             class: 'badge-devis'
         },
         'devis signé': {
-            label: 'DEVIS SIGNÉ',
+            label: 'VALIDÉ',
             airtable: 'devis signé',
-            color: '#2563EB',
-            bg: 'rgba(37, 99, 235, 0.1)',
-            icon: 'fa-file-signature',
-            class: 'badge-devis'
-        },
-        'acompte reçu': {
-            label: 'ACOMPTE REÇU',
-            airtable: 'acompte reçu',
-            color: '#D4860A',
-            bg: 'rgba(212, 134, 10, 0.1)',
-            icon: 'fa-hand-holding-dollar',
-            class: 'badge-devis'
-        },
-        'confirmé': {
-            label: 'CONFIRMÉ',
-            airtable: 'confirmé',
             color: '#2D8B56',
             bg: 'rgba(45, 139, 86, 0.1)',
             icon: 'fa-check-circle',
@@ -107,7 +91,10 @@ const SesquierRecords = {
         // Statut : Gestion robuste Array vs String + Lowercase
         let sRaw = f[F.STATUT];
         if (Array.isArray(sRaw)) sRaw = sRaw[0];
-        const sKey = (sRaw || 'à traiter').toLowerCase().trim();
+        // Statuts utilisés : à traiter, envoyé (devis envoyé), validé (devis signé), effectué (+ refusé = annulé).
+        // « confirmé » est supprimé : avec « acompte reçu », il est lu comme validé.
+        const sKey0 = (sRaw || 'à traiter').toLowerCase().trim();
+        const sKey = { 'confirmé': 'devis signé', 'acompte reçu': 'devis signé' }[sKey0] || sKey0;
         const sInfo = this.STATUS_MAP[sKey] || this.STATUS_MAP['à traiter'];
 
         // Type
