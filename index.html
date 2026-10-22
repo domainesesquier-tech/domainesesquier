@@ -761,6 +761,11 @@
             background: var(--primary-dark);
         }
 
+        .kpi-card[data-filter] { cursor: pointer; }
+        .kpi-card.active:not([data-filter="all"]) { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+        .inline-edit { cursor: text; border-radius: 4px; transition: background .15s; }
+        .inline-edit:hover { background: var(--primary-subtle); }
+        .inline-edit:hover::after { content: "✎"; margin-left: 6px; font-size: .75em; opacity: .5; }
         .btn-refresh {
             padding: 8px 14px;
             background: var(--surface);
@@ -2413,33 +2418,32 @@
                     <span class="filter-count" id="count-all">0</span>
                 </div>
                 <div class="sidebar-filter" data-filter="à traiter" onclick="setFilter('à traiter')">
-                    <span class="filter-label"><span class="filter-dot" style="background: var(--warning);"></span>À
-                        traiter</span>
+                    <span class="filter-label"><span class="filter-dot" style="background: var(--warning);"></span>À traiter</span>
                     <span class="filter-count" id="count-traiter">0</span>
                 </div>
-                <div class="sidebar-filter" data-filter="confirmé" onclick="setFilter('confirmé')">
-                    <span class="filter-label"><span class="filter-dot"
-                            style="background: var(--success);"></span>Confirmé</span>
-                    <span class="filter-count" id="count-confirme">0</span>
-                </div>
                 <div class="sidebar-filter" data-filter="devis envoyé" onclick="setFilter('devis envoyé')">
-                    <span class="filter-label"><span class="filter-dot" style="background: var(--info);"></span>Devis
-                        envoyé</span>
+                    <span class="filter-label"><span class="filter-dot" style="background: var(--info);"></span>Devis envoyé</span>
                     <span class="filter-count" id="count-devis">0</span>
                 </div>
                 <div class="sidebar-filter" data-filter="relancer" onclick="setFilter('relancer')">
                     <span class="filter-label"><i class="fa-regular fa-bell" style="font-size:10px; margin-right:4px; color: var(--warning);"></i>À relancer</span>
                     <span class="filter-count" id="count-relancer">0</span>
                 </div>
-                <div class="sidebar-filter" data-filter="annulé" onclick="setFilter('annulé')">
-                    <span class="filter-label"><span class="filter-dot"
-                            style="background: var(--danger);"></span>Refusé</span>
-                    <span class="filter-count" id="count-annule">0</span>
+                <div class="sidebar-filter" data-filter="devis signé" onclick="setFilter('devis signé')">
+                    <span class="filter-label"><span class="filter-dot" style="background: #2563EB;"></span>Devis signé</span>
+                    <span class="filter-count" id="count-signe">0</span>
+                </div>
+                <div class="sidebar-filter" data-filter="confirmé" onclick="setFilter('confirmé')">
+                    <span class="filter-label"><span class="filter-dot" style="background: var(--success);"></span>Confirmé</span>
+                    <span class="filter-count" id="count-confirme">0</span>
                 </div>
                 <div class="sidebar-filter" data-filter="effectué" onclick="setFilter('effectué')">
-                    <span class="filter-label"><span class="filter-dot"
-                            style="background: #4338ca;"></span>Effectués</span>
+                    <span class="filter-label"><span class="filter-dot" style="background: #4338ca;"></span>Effectués</span>
                     <span class="filter-count" id="count-effectue">0</span>
+                </div>
+                <div class="sidebar-filter" data-filter="annulé" onclick="setFilter('annulé')">
+                    <span class="filter-label"><span class="filter-dot" style="background: var(--danger);"></span>Refusés</span>
+                    <span class="filter-count" id="count-annule">0</span>
                 </div>
             </div>
 
@@ -2487,31 +2491,27 @@
                     <option value="à traiter">À traiter</option>
                     <option value="devis envoyé">Devis envoyé</option>
                     <option value="relancer">À relancer</option>
+                    <option value="devis signé">Devis signé</option>
                     <option value="confirmé">Confirmé</option>
                     <option value="effectué">Effectués</option>
                     <option value="annulé">Refusés</option>
                     <option value="archived">Archivés</option>
+                    <option value="attente" hidden>CA en attente</option>
+                    <option value="signe" hidden>CA signé</option>
                 </select>
                 <div class="dash-top-right">
-                    <div class="dossier-loader">
-                        <input type="text" id="dev-id-input" placeholder="ID Dossier…">
-                        <button onclick="loadAirtableDevis()"><i class="fa-solid fa-arrow-right-to-bracket"></i>
-                            Ouvrir</button>
-                    </div>
+                    <input type="hidden" id="dev-id-input">
                     <div class="search-box">
                         <i class="fa-solid fa-magnifying-glass"></i>
                         <input type="text" id="search-input" placeholder="Rechercher une entreprise ou événement…"
                             oninput="handleSearch(this.value)">
                     </div>
-                    <button class="btn-refresh" id="btn-refresh" onclick="refreshData()">
-                        <i class="fa-solid fa-arrows-rotate"></i> Actualiser
-                    </button>
                 </div>
             </div>
 
             <!-- KPIs -->
             <div class="kpi-grid">
-                <div class="kpi-card">
+                <div class="kpi-card" data-filter="all" onclick="setFilter('all')" title="Afficher ces dossiers">
                     <div class="kpi-icon"><i class="fa-regular fa-folder-open"></i></div>
                     <div class="kpi-content">
                         <div class="kpi-label" id="kpi-total-label">Séminaires</div>
@@ -2519,7 +2519,7 @@
                         <div class="kpi-sub">Total des événements</div>
                     </div>
                 </div>
-<div class="kpi-card">
+<div class="kpi-card" data-filter="attente" onclick="setFilter('attente')" title="Afficher ces dossiers">
                     <div class="kpi-icon"><i class="fa-regular fa-hourglass-half"></i></div>
                     <div class="kpi-content">
                         <div class="kpi-label">CA en attente</div>
@@ -2527,15 +2527,15 @@
                         <div class="kpi-sub">À traiter + Devis envoyé</div>
                     </div>
                 </div>
-                <div class="kpi-card">
+                <div class="kpi-card" data-filter="signe" onclick="setFilter('signe')" title="Afficher ces dossiers">
                     <div class="kpi-icon"><i class="fa-solid fa-file-signature"></i></div>
                     <div class="kpi-content">
                         <div class="kpi-label">CA signé</div>
                         <div class="kpi-value" id="kpi-ca-signe">—</div>
-                        <div class="kpi-sub">Confirmés (à venir)</div>
+                        <div class="kpi-sub">Signés et confirmés, à venir</div>
                     </div>
                 </div>
-                <div class="kpi-card">
+                <div class="kpi-card" data-filter="effectué" onclick="setFilter('effectué')" title="Afficher ces dossiers">
                     <div class="kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
                     <div class="kpi-content">
                         <div class="kpi-label">CA effectué</div>
@@ -3074,15 +3074,15 @@
 
             // Header info
             header.innerHTML = `
-                <h2 class="dossier-client-title" title="Double-clic pour modifier" ondblclick="enableEdit(this, '${id}', 'Nom client')">${f["Nom client"] || 'Événement sans nom'}</h2>
+                <h2 class="dossier-client-title inline-edit" title="Cliquer pour modifier" onclick="enableEdit(this, '${id}', 'Nom client')">${f["Nom client"] || 'Événement sans nom'}</h2>
                 <div class="dossier-meta">
                     <div class="dossier-meta-item">
                         <i class="fa-regular fa-calendar"></i> 
-                        <span class="date-val" title="Double-clic pour modifier l'arrivée" ondblclick="editDate(this, '${id}', 'Date arrivée', '${f["Date arrivée"] || ''}')">${f["Date arrivée"] ? new Date(f["Date arrivée"]).toLocaleDateString('fr-FR') : '?'}</span>
+                        <span class="date-val inline-edit" title="Cliquer pour modifier l'arrivée" onclick="editDate(this, '${id}', 'Date arrivée', '${f["Date arrivée"] || ''}')">${f["Date arrivée"] ? new Date(f["Date arrivée"]).toLocaleDateString('fr-FR') : '?'}</span>
                         →
-                        <span class="date-val" title="Double-clic pour modifier le départ" ondblclick="editDate(this, '${id}', 'Date départ', '${f["Date départ"] || ''}')">${f["Date départ"] ? new Date(f["Date départ"]).toLocaleDateString('fr-FR') : '?'}</span>
+                        <span class="date-val inline-edit" title="Cliquer pour modifier le départ" onclick="editDate(this, '${id}', 'Date départ', '${f["Date départ"] || ''}')">${f["Date départ"] ? new Date(f["Date départ"]).toLocaleDateString('fr-FR') : '?'}</span>
                     </div>
-                    <div class="dossier-meta-item" title="Double-clic pour modifier" ondblclick="enableEdit(this.querySelector('.editable-val'), '${id}', 'Nb personnes')">
+                    <div class="dossier-meta-item inline-edit" title="Cliquer pour modifier" onclick="enableEdit(this.querySelector('.editable-val'), '${id}', 'Nb personnes')">
                         <i class="fa-solid fa-users"></i> 
                         <span class="editable-val">${f["Nb personnes"] || '?'}</span> <span style="opacity:0.7; margin-left:-4px;">pers.</span>
                     </div>
@@ -3091,13 +3091,13 @@
 
             // Vignettes grid (Premium Version with Config)
             const docs = [
-                { type: 'client', label: 'Infos client', sub: 'Contact & Entreprise', icon: 'fa-address-card', done: !!f["Email"] },
+                { type: 'client', label: 'Infos', sub: 'Contact & Entreprise', icon: 'fa-address-card', done: !!f["Email"] },
 
                 { type: 'devis', label: 'Devis', sub: 'Visualiser ou éditer', icon: 'fa-file-lines', done: (f["Total TTC"] > 0) },
-                { type: 'facture', label: 'Facture Acompte', sub: 'Générer (30%)', icon: 'fa-file-invoice-dollar', done: !!f["Acompte Payé"] },
-                { type: 'facture-finale', label: 'Facture Finale', sub: 'Solde et clôture', icon: 'fa-receipt', done: false },
+                { type: 'facture', label: 'Acompte', sub: 'Générer (30%)', icon: 'fa-file-invoice-dollar', done: !!f["Acompte Payé"] },
+                { type: 'facture-finale', label: 'Facture', sub: 'Solde et clôture', icon: 'fa-receipt', done: false },
                 { type: 'rooming', label: "Hébergement", sub: "Plan d'occupation", icon: 'fa-hotel', done: !!f["Rooming JSON"] },
-                { type: 'cuisine', label: 'Fiche Cuisine', sub: 'Logistique chef', icon: 'fa-utensils', done: !!f["Cuisine JSON"] },
+                { type: 'cuisine', label: 'Cuisine', sub: 'Logistique chef', icon: 'fa-utensils', done: !!f["Cuisine JSON"] },
                 { type: 'menu-client', label: 'Menus', sub: 'Carte élégante', icon: 'fa-wine-glass', done: !!f["Cuisine JSON"] },
                 { type: 'deroule', label: 'Déroulé', sub: 'Programme jour par jour', icon: 'fa-route', done: !!f["DEROULE JSON"] },
                 { type: 'menage',  label: 'Ménage',   sub: 'Remise en état & signalements', icon: 'fa-broom', done: !!f["Menage JSON"] },
@@ -3311,12 +3311,14 @@
             setTimeout(() => banner.classList.remove('show'), 3000);
         }
 
-        async function loadAllRecords() {
+        let dernierChargement = 0;
+        async function loadAllRecords(silent = false) {
+            dernierChargement = Date.now();
             if (typeof SesquierUtils === 'undefined') {
                 alert("ERREUR: SesquierUtils non chargé (vérifiez assets/utils.js)");
                 return;
             }
-            showSkeleton();
+            if (!silent) showSkeleton();
             const refreshBtn = document.getElementById('btn-refresh');
             if (refreshBtn) refreshBtn.classList.add('spinning');
 
@@ -3340,7 +3342,7 @@
                 }
             } catch (e) {
                 console.error("Erreur de chargement:", e);
-                showEmptyState('Erreur de chargement', e.message);
+                if (!silent) showEmptyState('Erreur de chargement', e.message);
             } finally {
                 if (refreshBtn) refreshBtn.classList.remove('spinning');
             }
@@ -3349,6 +3351,13 @@
         function refreshData() {
             loadAllRecords();
         }
+
+        // Remplace le bouton « Actualiser » : recharge en silence au retour sur l'onglet (au plus une fois par minute)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState !== 'visible' || Date.now() - dernierChargement < 60000) return;
+            if (!document.getElementById('iframe-layer').classList.contains('hidden')) return;
+            loadAllRecords(true);
+        });
 
         function showEmptyState(title, desc) {
             const body = document.getElementById('table-body');
@@ -3397,7 +3406,7 @@
                 const s = (r.statut || '').toLowerCase();
                 caTotal += r.totalHT;
                 if (STATUTS_PENDING.has(s)) caPending  += r.totalHT;
-                if (s === 'confirmé')       caSigne    += r.totalHT;  // signé, à venir
+                if (FILTER_GROUPS.signe.includes(s)) caSigne += r.totalHT;  // signé, à venir
                 if (s === 'effectué')       caEffectue += r.totalHT;  // séjour réalisé
             });
 
@@ -3426,6 +3435,16 @@
         // =====================================================================
         // Suivi : devis envoyé dont la date de relance est arrivée ; demande « à traiter » reçue il y a plus de 24 h
         const jourISO = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        // Filtres qui couvrent plusieurs statuts (KPI cliquables, Confirmé = acompte reçu + confirmé)
+        const FILTER_GROUPS = {
+            'confirmé': ['acompte reçu', 'confirmé'],
+            'attente':  ['à traiter', 'devis envoyé'],
+            'signe':    ['devis signé', 'acompte reçu', 'confirmé']
+        };
+        function matchFilter(r) {
+            if (currentFilter === 'relancer') return aRelancer(r);
+            return (FILTER_GROUPS[currentFilter] || [currentFilter]).includes(r.statut);
+        }
         function aRelancer(r) {
             return !r.estArchive && r.statut === 'devis envoyé' && !!r.dateRelance && r.dateRelance <= jourISO();
         }
@@ -3443,7 +3462,8 @@
             document.getElementById('count-all').innerText = counts.all || 0;
             document.getElementById('count-traiter').innerText = counts['à traiter'] || 0;
             document.getElementById('count-relancer').innerText = nonArchived.filter(aRelancer).length;
-            document.getElementById('count-confirme').innerText = counts['confirmé'] || 0;
+            document.getElementById('count-confirme').innerText = (counts['acompte reçu'] || 0) + (counts['confirmé'] || 0);
+            document.getElementById('count-signe').innerText = counts['devis signé'] || 0;
             document.getElementById('count-devis').innerText = counts['devis envoyé'] || 0;
             // Refusé : compter tous les refusés (archivés inclus), cohérent avec son filtre
             document.getElementById('count-annule').innerText = segRecords().filter(r => r.statut === 'annulé').length || 0;
@@ -3453,7 +3473,7 @@
 
         function setFilter(f) {
             currentFilter = f;
-            document.querySelectorAll('.sidebar-filter').forEach(p => p.classList.toggle('active', p.dataset.filter === f));
+            document.querySelectorAll('.sidebar-filter, .kpi-card[data-filter]').forEach(p => p.classList.toggle('active', p.dataset.filter === f));
             const mf = document.getElementById('mobile-filter'); if (mf) mf.value = f;
             if (currentViewMode === 'list') {
                 renderTable();
@@ -3537,7 +3557,7 @@
                 } else {
                     recordsToDisplay = recordsToDisplay.filter(r => !r.estArchive);
                     if (currentFilter !== 'all') {
-                        recordsToDisplay = recordsToDisplay.filter(currentFilter === 'relancer' ? aRelancer : r => r.statut === currentFilter);
+                        recordsToDisplay = recordsToDisplay.filter(matchFilter);
                     }
                 }
                 
@@ -3594,7 +3614,7 @@
             } else {
                 records = records.filter(r => !r.estArchive);
                 if (currentFilter !== 'all') {
-                    records = records.filter(currentFilter === 'relancer' ? aRelancer : r => r.statut === currentFilter);
+                    records = records.filter(matchFilter);
                 }
             }
 
@@ -3666,10 +3686,6 @@
                         : enRetard(r) ? '<span class="badge-suivi retard" title="Demande reçue il y a plus de 24 h, devis promis sous 24 h">+24 h</span>' : ''}
                     <div style="display:flex; align-items:center; gap:6px;">
                         <span class="row-client-org">${escapeHtml(r.entreprise || 'Particulier')}</span>
-                        <a href="https://airtable.com/${SesquierUtils.AIRTABLE_BASE_ID}/${SesquierUtils.AIRTABLE_RESERVATIONS_TABLE}/${id}" 
-                           target="_blank" class="airtable-link" onclick="event.stopPropagation()" title="Ouvrir le dossier">
-                           <i class="fa-solid fa-up-right-from-square" style="font-size:8px; opacity:0.5;"></i>
-                        </a>
                     </div>
                 </div>
                 <div class="row-dates">
