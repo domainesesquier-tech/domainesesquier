@@ -52,6 +52,23 @@
         });
     }
 
+    // Gîtes ouverts : ceux demandés (noms), sinon le moins de couchages possible pour loger n personnes,
+    // à égalité le moins de gîtes (8 gîtes → 256 combinaisons, on les essaie toutes)
+    function choixGites(gites, n, demandes) {
+        if (demandes && demandes.length) {
+            const voulus = demandes.map(x => String(x).toLowerCase());
+            return gites.filter(gi => voulus.includes(gi.nom.toLowerCase()));
+        }
+        let best = null;
+        for (let m = 1; m < (1 << gites.length); m++) {
+            const sel = gites.filter((_, i) => m & (1 << i));
+            const c = sel.reduce((t, gi) => t + gi.couchages, 0);
+            if (c < Math.min(n, 40)) continue;
+            if (!best || c < best.c || (c === best.c && sel.length < best.sel.length)) best = { c, sel };
+        }
+        return best ? best.sel : gites;
+    }
+
     function seminaire(g, d, out) {
         const s = g.seminaire, base = 'HT', L = out.lignes;
         const n = Math.max(d.personnes, s.min_facturable);
@@ -60,7 +77,14 @@
         const nuits = d.nuits, jours = nuits + 1;
 
         if (nuits > 0) {
-            if (s.hebergement_formule) {
+            if (s.hebergement_formule && s.hebergement_formule.gites) {
+                // Au gîte ouvert : exclusivité du domaine par nuit + chaque gîte au prix de ses couchages
+                const f = s.hebergement_formule;
+                L.push(ligne(base, f.exclusivite_label, nuits, f.fixe, s.hebergement_tva, 'hebergement'));
+                choixGites(f.gites, n, d.gites).forEach(gi => L.push(Object.assign(
+                    ligne(base, `Gîte ${gi.nom} · ${gi.couchages} couchages (${f.gite_label})`, nuits, f.par_pers * gi.couchages, s.hebergement_tva, 'hebergement'),
+                    { gite: gi.nom })));
+            } else if (s.hebergement_formule) {
                 // Prix continu, sans palier : fixe + prix par personne, chaque nuit (couchages plafonnés à 35)
                 const f = s.hebergement_formule, pu = f.fixe + f.par_pers * Math.min(n, 35);
                 L.push(ligne(base, `${s.hebergement_label} — ${nuits} nuit${nuits > 1 ? 's' : ''}`, nuits, pu, s.hebergement_tva, 'hebergement'));
@@ -69,7 +93,7 @@
                 L.push(ligne(base, `${s.hebergement_label} — 1re nuit`, 1, h.premiere, s.hebergement_tva, 'hebergement'));
                 if (nuits > 1) L.push(ligne(base, `${s.hebergement_label} — nuits suivantes`, nuits - 1, h.suivante, s.hebergement_tva, 'hebergement'));
             }
-            if (n > 35) L.push(ligne(base, s.lit_appoint.label, (Math.min(n, 40) - 35) * nuits, s.lit_appoint.pu, s.lit_appoint.tva, 'hebergement'));
+            if (n > 35 && !(s.hebergement_formule && s.hebergement_formule.gites)) L.push(ligne(base, s.lit_appoint.label, (Math.min(n, 40) - 35) * nuits, s.lit_appoint.pu, s.lit_appoint.tva, 'hebergement'));
         }
         if (s.lieu_formule) {
             // Salle équipée + accès au domaine + coordinateur : prix minimum puis par personne, sans palier ; jours suivants à un % du 1er jour
