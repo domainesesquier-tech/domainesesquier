@@ -257,8 +257,9 @@
         "cat": "activite"
       },
       "blind_test": {
-        "label": "Blind-test territoire (1h30)",
-        "pu": 30,
+        "label": "Blind-test territoire (1h30, forfait jusqu'à 35 pers.)",
+        "pu": 500,
+        "unite": "unite",
         "tva": 20,
         "cat": "activite"
       },
