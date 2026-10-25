@@ -103,19 +103,7 @@
     "hebergement_formule": {
       "fixe": 1000,
       "par_pers": 55,
-      "note": "Validé le 2026-10-19 : calé sur les devis signés (±5 %), remplace les paliers ci-dessus. 2026-10-25 : facturé au gîte ouvert (fixe = exclusivité par nuit, par_pers = par couchage du gîte), retour de Marie",
-      "exclusivite_label": "Exclusivité du domaine : aucun autre client sur place (espaces communs, piscine, jardins)",
-      "gite_label": "linge de lit et de toilette, ménage de fin de séjour",
-      "gites": [
-        { "nom": "Hibiscus", "couchages": 8 },
-        { "nom": "Acacia", "couchages": 6 },
-        { "nom": "Belle de nuit", "couchages": 6 },
-        { "nom": "Iris", "couchages": 6 },
-        { "nom": "Pivoine", "couchages": 4 },
-        { "nom": "Jasmin", "couchages": 4 },
-        { "nom": "Rose", "couchages": 3 },
-        { "nom": "Figuier", "couchages": 3 }
-      ]
+      "note": "Validé le 2026-10-19 : calé sur les devis signés (±5 %), remplace les paliers ci-dessus"
     },
     "hebergement_label": "Hébergement en gîtes tout confort (lits faits, draps, serviettes, plan d'occupation, ménage de fin de séjour)",
     "hebergement_tva": 10,
@@ -146,7 +134,7 @@
       "coordinateur_jour": 0,
       "note": "Validé le 2026-10-19 : salle + accès au domaine + coordinateur absorbé (coût 250 €/j) = 750 € jusqu'à 15 pers puis +30 €/pers  ; plein tarif chaque jour (remises à la main) ; par jour de travail (jours - 1), +1 si journées complètes (arrivée matin et départ soir). Aligné Mas Neuf, stratégie volume"
     },
-    "lieu_label": "Salle de travail équipée & coordinateur dédié sur place",
+    "lieu_label": "Salle de travail équipée, accès à tout le domaine & coordinateur dédié sur place (espaces communs, piscine, jardins)",
     "lieu_tva": 20,
     "archipel": {
       "label": "Salle Archipel (200 m², au-delà de 35 pers.)",

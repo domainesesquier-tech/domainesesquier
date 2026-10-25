@@ -46,15 +46,6 @@ const coord = sem(25, 1, { prestations: [{ code: 'kayak', qte: 1 }] }).lignes.so
 assert.ok(coord, 'Activité → coordination ajoutée');
 assert.ok(!sem(25, 1, { prestations: [{ code: 'diner', qte: 25 }] }).lignes.some(l => l.cat === 'service'), 'Sans activité → pas de coordination');
 
-// Hébergement au gîte ouvert : exclusivité + une ligne par gîte, au plus juste en couchages
-const gitesDe = r => r.lignes.filter(l => l.gite).map(l => l.gite);
-assert.deepStrictEqual(gitesDe(sem(20, 1)), ['Hibiscus', 'Acacia', 'Belle de nuit'], '20 p → 3 gîtes, 20 couchages');
-assert.strictEqual(gitesDe(sem(40, 1)).length, 8, '40 p → les 8 gîtes');
-assert.ok(!sem(38, 1).lignes.some(l => /appoint/i.test(l.label)), 'Plus de lit d\'appoint en séminaire');
-const manuel = sem(20, 2, { gites: ['Hibiscus', 'Acacia', 'Iris', 'Rose'] });
-assert.deepStrictEqual(gitesDe(manuel), ['Hibiscus', 'Acacia', 'Iris', 'Rose'], 'Gîtes choisis respectés');
-assert.strictEqual(manuel.lignes.filter(l => l.cat === 'hebergement').reduce((t, l) => t + l.total, 0), 4530, '2 × (1000 + 55 × 23)');
-
 // Questionnaire séminaire : 25 p, 2 jours / 1 nuit, arrivée matin, départ en fin de journée, pension, pauses
 const { fromQuestionnaire } = require('../assets/pricing-engine.js');
 const fq = fromQuestionnaire(grille, { participants: 25, dateArrivee: '2027-09-07', dateDepart: '2027-09-08', arrivee: 'matin', depart: 'soir', restauration: 'pension', pauses: true, activites: ['kayak'] });
