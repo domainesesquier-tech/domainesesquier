@@ -2027,7 +2027,7 @@
                 cc.style.display = '';
                 cc.innerHTML = `• <strong>Caution :</strong> ${seg === 'mariage' ? '2 000' : '1 000'} € demandée à l'arrivée, restituée après l'état des lieux.`;
             }
-            // Séminaire : effectif arrêté à J-15, solde réglé avant l'arrivée
+            // Séminaire : effectif arrêté à J-30, solde réglé avant l'arrivée
             const ef = document.getElementById('cond-effectif-def');
             if (ef) ef.style.display = seg === 'seminaire' ? '' : 'none';
             const rg = document.getElementById('cond-reglement');
@@ -2036,7 +2036,7 @@
             if (seg === 'seminaire') {
                 const arr = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null;
                 const jm = n => { if (!arr) return `J-${n}`; const d = new Date(arr); d.setDate(d.getDate() - n); return 'le ' + d.toLocaleDateString('fr-FR'); };
-                if (ef) ef.innerHTML = `• <strong>Effectif définitif :</strong> à confirmer par écrit au plus tard ${jm(15)} ; il sert de base à la facture de solde, toute absence ultérieure reste due.`;
+                if (ef) ef.innerHTML = `• <strong>Effectif définitif :</strong> à confirmer par écrit au plus tard ${jm(30)} ; il sert de base à la facture de solde, toute absence ultérieure reste due.`;
                 if (rg) rg.innerHTML = `• <strong>Règlement :</strong> acompte de 30 % à la signature · solde sur facture, à régler au plus tard ${jm(7)}, avant l'arrivée · consommations sur place facturées après le séjour.`;
             }
             renderEcheancier();
