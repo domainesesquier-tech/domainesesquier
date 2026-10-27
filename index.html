@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="assets/utils.js"></script>
     <script src="assets/lecture-demande.js"></script>
-    <script src="assets/records.js?v=3"></script>
+    <script src="assets/records.js?v=4"></script>
     <script>
 
         function escapeHtml(text) {
@@ -1181,6 +1181,7 @@
 
         .badge-suivi { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; background: #FEF3C7; color: #92400E; vertical-align: middle; }
         .badge-suivi.retard { background: #FEE2E2; color: #991B1B; }
+        .badge-suivi.pf { background: #E0E7FF; color: #3730A3; }
         .row-client-org {
             font-size: 11px;
             color: var(--text-muted);
@@ -2605,6 +2606,7 @@
             <div class="iframe-container">
                 <iframe id="iframe-client" src="about:blank" style="display:none;"></iframe>
                 <iframe id="iframe-devis" src="about:blank" style="display:none;"></iframe>
+                <iframe id="iframe-proforma" src="about:blank" style="display:none;"></iframe>
                 <iframe id="iframe-facture" src="about:blank" style="display:none;"></iframe>
                 <iframe id="iframe-facture-finale" src="about:blank" style="display:none;"></iframe>
                 <iframe id="iframe-rooming" src="about:blank" style="display:none;"></iframe>
@@ -3099,6 +3101,7 @@
                 { type: 'client', label: 'Infos client', sub: 'Contact & Entreprise', icon: 'fa-address-card', done: !!f["Email"] },
 
                 { type: 'devis', label: 'Devis', sub: 'Visualiser ou éditer', icon: 'fa-file-lines', done: (f["Total TTC"] > 0) },
+                { type: 'proforma', label: 'Proforma', sub: 'Facture proforma', icon: 'fa-file-invoice', done: /"pf"/.test(f["Numeros JSON"] || '') },
                 { type: 'facture', label: 'Facture Acompte', sub: 'Générer (30%)', icon: 'fa-file-invoice-dollar', done: !!f["Acompte Payé"] },
                 { type: 'facture-finale', label: 'Facture Finale', sub: 'Solde et clôture', icon: 'fa-receipt', done: false },
                 { type: 'rooming', label: "Hébergement", sub: "Plan d'occupation", icon: 'fa-hotel', done: !!f["Rooming JSON"] },
@@ -3668,7 +3671,8 @@
                 <div class="row-client">
                     <span class="row-client-name link">${escapeHtml(r.nomClient)}</span>${aRelancer(r)
                         ? `<span class="badge-suivi" title="${escapeHtml(r.prochaineAction || 'Relance')} prévue le ${r.dateRelance.split('-').reverse().join('/')}">À relancer</span>`
-                        : enRetard(r) ? '<span class="badge-suivi retard" title="Demande reçue il y a plus de 24 h, devis promis sous 24 h">+24 h</span>' : ''}
+                        : enRetard(r) ? '<span class="badge-suivi retard" title="Demande reçue il y a plus de 24 h, devis promis sous 24 h">+24 h</span>' : ''}${r.proforma
+                        ? `<span class="badge-suivi pf" title="Facture proforma ${escapeHtml(r.proforma)} émise">PROFORMA</span>` : ''}
                     <div style="display:flex; align-items:center; gap:6px;">
                         <span class="row-client-org">${escapeHtml(r.entreprise || 'Particulier')}</span>
                         <a href="https://airtable.com/${SesquierUtils.AIRTABLE_BASE_ID}/${SesquierUtils.AIRTABLE_RESERVATIONS_TABLE}/${id}" 
@@ -3710,6 +3714,7 @@
             const navId = {
                 'client': 'nav-client',
                 'devis': 'nav-devis',
+                'proforma': 'nav-facture',
                 'facture': 'nav-facture',
                 'facture-finale': 'nav-facture-finale',
                 'rooming': 'nav-rooming',
@@ -3726,6 +3731,7 @@
             const docTypes = [
                 { type: 'client', label: 'Infos', icon: 'fa-address-card' },
                 { type: 'devis', label: 'Devis', icon: 'fa-file-lines' },
+                { type: 'proforma', label: 'Proforma', icon: 'fa-file-invoice' },
                 { type: 'facture', label: 'Acompte', icon: 'fa-file-invoice-dollar' },
                 { type: 'facture-finale', label: 'Facture', icon: 'fa-receipt' },
                 { type: 'rooming', label: 'Hébergement', icon: 'fa-hotel' },
@@ -3751,6 +3757,7 @@
         const iframeSrcMap = {
             'iframe-client': 'CLIENT.html',
             'iframe-devis': 'DOMAINE_SESQUIER_DEVIS.html',
+            'iframe-proforma': 'DOMAINE_SESQUIER_FACTURE.html?mode=proforma',
             'iframe-facture': 'DOMAINE_SESQUIER_FACTURE_ACOMPTE.html',
             'iframe-facture-finale': 'DOMAINE_SESQUIER_FACTURE.html',
             'iframe-rooming': 'DOMAINE_SESQUIER_ROOMING.html',
@@ -3923,13 +3930,14 @@
                 switchTab('iframe-devis', document.getElementById('nav-devis'));
             }
             if (event.data.type === 'SWITCH_TAB') {
-                const map = { 'devis': 'nav-devis', 'facture': 'nav-facture', 'facture-finale': 'nav-facture-finale', 'client': 'nav-client-new' };
+                const map = { 'devis': 'nav-devis', 'proforma': 'nav-facture', 'facture': 'nav-facture', 'facture-finale': 'nav-facture-finale', 'client': 'nav-client-new' };
                 const navId = map[event.data.tab];
                 if (navId) {
                     if (event.data.recordId) document.getElementById('dev-id-input').value = event.data.recordId;
                     switchTab('iframe-' + event.data.tab, document.getElementById(navId), event.data.recordId);
                 }
             }
+            if (event.data.type === 'PROFORMA_EMISE') refreshData(); // badge PROFORMA dans la liste
             if (event.data.type === 'RECORD_UPDATED') {
                 // 1. Mettre à jour le dashboard (liste) puis syncer le planning
                 if (typeof loadAllRecords === 'function') {

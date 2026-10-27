@@ -175,6 +175,7 @@ const SesquierRecords = {
             dateDevis: f['Suivi Date devis'] || null,
             dateRelance: f['Suivi Date relance'] || null,
             prochaineAction: f['Suivi Prochaine action'] || '',
+            proforma: (f['Numeros JSON'] && this._safeParse(f['Numeros JSON'])?.pf) || null,
             creeLe: f['Created'] || raw.createdTime || null,
 
             // JSON complexes

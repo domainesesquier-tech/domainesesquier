@@ -346,6 +346,9 @@
 
         // Numérotation facture finale : séquentielle FOUDRE (FS-FF-2026-001)
         // ou format historique OZZA. Le numéro FOUDRE est figé à la génération.
+        // Mode pro forma (?mode=proforma) : même document, sans valeur comptable,
+        // numéro PF-… (jamais de numéro séquentiel FOUDRE).
+        const PROFORMA = new URLSearchParams(location.search).get('mode') === 'proforma';
         let _legacyFF = '';
         let _devisRefLegacy = '';
         function _foudreNumeros() {
@@ -363,6 +366,10 @@
                 ff  = _legacyFF;
                 ref = _devisRefLegacy;
             }
+            if (PROFORMA) {
+                if (!numeros.pf && !_legacyFF) return;
+                ff = numeros.pf || _legacyFF.replace(/^FF-/, 'PF-');
+            }
             const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
             set('doc-id', ff);
             set('ref-devis', ref);
@@ -375,7 +382,20 @@
         // =====================================================================
         // INIT
         // =====================================================================
+        function applyProformaMode() {
+            document.title = 'Facture proforma — Domaine Sesquier';
+            document.querySelector('.doc-type').innerText = 'FACTURE PROFORMA';
+            document.querySelectorAll('.fa-num-footer').forEach(n => n.parentNode.firstChild.nodeValue = 'Domaine Sesquier — FACTURE PROFORMA ');
+            const lis = document.querySelectorAll('.cond-list li');
+            lis[0].innerHTML = "• <strong>Objet :</strong> facture proforma établie d'après notre devis — document sans valeur comptable, ne vaut pas facture.";
+            lis[1].innerHTML = "• <strong>Règlement :</strong> selon l'échéancier prévu au devis.";
+            lis[2].innerHTML = '• <strong>Facture :</strong> une facture définitive sera émise à réception du paiement.';
+            // Pas d'acompte déduit : la proforma porte sur le total
+            document.querySelector('.acompte-box > .no-print').style.display = 'none';
+        }
+
         async function init() {
+            if (PROFORMA) applyProformaMode();
             const urlParams = new URLSearchParams(window.location.search);
             const recordId  = urlParams.get('id') || sessionStorage.getItem('currentDossierId');
 
@@ -627,7 +647,7 @@
         function renderTotals(dossier, fields) {
             const f            = dossier.financials || {};
             const set          = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
-            const acomptePaye  = !!(fields?.['Acompte Payé']);
+            const acomptePaye  = !PROFORMA && !!(fields?.['Acompte Payé']);
             // Montant personnalisé si saisi précédemment, sinon 30% par défaut
             const customMontant = (typeof fields?.['Acompte Montant'] === 'number' && fields['Acompte Montant'] > 0)
                 ? fields['Acompte Montant'] : null;
@@ -787,7 +807,7 @@
             // FOUDRE : figer un numéro de facture finale séquentiel avant impression.
             // Si l'attribution échoue, on bloque : une facture ne doit jamais
             // sortir avec un numéro provisoire.
-            if ((localStorage.getItem('ds_company_profile') || 'ozza') === 'foudre' && currentRecord?.id) {
+            if (!PROFORMA && (localStorage.getItem('ds_company_profile') || 'ozza') === 'foudre' && currentRecord?.id) {
                 const assigned = await SesquierUtils.ensureFoudreNumber(currentRecord.id, currentRecord.fields, 'ff');
                 applyDocNumber();
                 if (!assigned) {
@@ -800,7 +820,7 @@
             const client     = (currentRecord?.fields?.['Nom client'] || 'Client').trim();
             const safeClient = client.replace(/[^a-z0-9]/gi, '_').substring(0, 30);
             const safeNum    = num.replace(/[^a-z0-9]/gi, '_');
-            const fileName   = `FactureFinale_${safeClient}_${safeNum}.pdf`;
+            const fileName   = `${PROFORMA ? 'Proforma' : 'FactureFinale'}_${safeClient}_${safeNum}.pdf`;
 
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,0.96);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;font-size:14px;color:#3A5538;';
@@ -935,6 +955,24 @@
                 }
 
                 pdf.save(fileName);
+
+                // Proforma : numéro et date gardés dans le dossier (badge PROFORMA du tableau de bord)
+                if (PROFORMA && currentRecord?.id) {
+                    const numeros = _foudreNumeros();
+                    numeros.pf = num;
+                    numeros.pfDate = new Date().toISOString().slice(0, 10);
+                    try {
+                        await SesquierUtils.fetchJson(API_RESERVATIONS_URL, {
+                            method:  'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body:    JSON.stringify({ id: currentRecord.id, fields: { 'Numeros JSON': JSON.stringify(numeros) } })
+                        });
+                        currentRecord.fields['Numeros JSON'] = JSON.stringify(numeros);
+                        window.parent?.postMessage({ type: 'PROFORMA_EMISE', id: currentRecord.id }, '*');
+                    } catch (e) {
+                        console.warn('[PF] Numéro proforma non enregistré :', e);
+                    }
+                }
 
             } finally {
                 document.body.style.display    = origBodyDisplay;
