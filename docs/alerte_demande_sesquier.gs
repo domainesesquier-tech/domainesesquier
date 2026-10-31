@@ -1,4 +1,4 @@
-// Domaine Sesquier — à chaque nouvelle demande du questionnaire :
+// Domaine Sesquier — à chaque nouvelle demande du questionnaire (et à chaque lead du site, voir traiterLead) :
 //   1. accusé de réception au client, en copie cachée à contact@ (au plus 1 par adresse toutes les 6 h, 20 par tranche de 6 h)
 //   2. alerte à contact@domainesesquier.com (« Répondre » écrit directement au client)
 // À coller dans script.google.com (compte domainesesquier@gmail.com), puis :
@@ -28,6 +28,7 @@ const dateLongue = (v, annee) => {
 
 function doPost(e) {
   const d = JSON.parse(e.postData.contents || '{}');
+  if (d.lead) { traiterLead(d); return ContentService.createTextOutput('ok'); }
   const accuse = d.email ? envoyerAccuse(d) : false;
   envoyerAlerte(d, accuse);
   return ContentService.createTextOutput('ok');
@@ -139,4 +140,100 @@ function testAlerte() {
     contact: 'Marjorie Test', prenom: 'Marjorie', email: DESTINATAIRE, date_arrivee: '2026-11-26', date_depart: '2026-11-27',
     personnes: 14, estimation_ht: 3678, message: 'Ceci est un mail de test.', source: 'questionnaire',
   }) } });
+}
+
+// ─── Leads du site, avant la demande de devis (Worker /api/public/lead, secret NOTIF_LEADS = "true") ───
+//   brochure   : la brochure au client + alerte « à rappeler »
+//   estimation : la fourchette affichée au client + lien vers le questionnaire + alerte
+//   rappel     : alerte « à rappeler » (+ confirmation au client s'il a laissé un e-mail)
+const QUESTIONNAIRE = 'https://domainesesquier.com/demande-de-devis/?type=seminaire&depuis=';
+const euros = v => Math.round(Number(v) || 0).toLocaleString('fr-FR');
+
+function traiterLead(d) {
+  const brochure = BROCHURES[d.segment] || BROCHURES.seminaire;
+  const est = d.estimation || {};
+  const modeles = {
+    brochure: {
+      titre: 'Brochure demandée',
+      sujet: 'Votre brochure séminaire — Domaine Sesquier',
+      lignes: ['Merci pour votre intérêt. Voici notre brochure séminaire : le domaine, les deux salles, l’hébergement, la restauration et les activités.'],
+      bouton: ['Télécharger la brochure', brochure],
+      suite: 'Pour recevoir un devis détaillé, décrivez votre projet en 3 minutes (dates, effectif, programme) : '
+        + 'je vous réponds sous 24 h. ' + QUESTIONNAIRE + 'mail-brochure',
+    },
+    estimation: {
+      titre: 'Estimation faite sur le site',
+      sujet: 'Votre estimation de séminaire — Domaine Sesquier',
+      lignes: [
+        'Voici l’estimation que vous avez faite sur notre site' + (d.resume ? ` (${d.resume})` : '') + ' :',
+        est.min_pp ? `entre ${euros(est.min_pp)} et ${euros(est.max_pp)} € HT par personne, soit environ ${euros(est.min)} à ${euros(est.max)} € HT au total.` : '',
+        'C’est une fourchette indicative : votre devis ferme dépend de vos dates, de votre programme et de vos envies.',
+      ].filter(Boolean),
+      bouton: ['Recevoir mon devis détaillé', QUESTIONNAIRE + 'mail-estimation'],
+      suite: 'Notre brochure pour découvrir le domaine : ' + brochure,
+    },
+    rappel: {
+      titre: 'À RAPPELER',
+      sujet: 'Nous vous rappelons — Domaine Sesquier',
+      lignes: [`C’est noté : nous vous rappelons au ${d.telephone}${d.creneau ? ` (${String(d.creneau).toLowerCase()})` : ''}.`],
+      bouton: ['Découvrir la brochure', brochure],
+      suite: '',
+    },
+  };
+  const m = modeles[d.lead];
+  if (!m) return;
+  const client = d.email ? envoyerMailLead(d, m) : false;
+
+  const lignes = [
+    ['Type', m.titre], ['Contact', [d.prenom, d.organisation].filter(Boolean).join(' · ') || '—'],
+    ['E-mail', d.email || '—'], ['Téléphone', d.telephone || '—'],
+    ['Créneau', d.creneau || ''], ['Projet', d.resume || (d.personnes ? d.personnes + ' pers.' : '')],
+    ['Estimation', est.min_pp ? `${euros(est.min_pp)} à ${euros(est.max_pp)} € HT / pers.` : ''],
+    ['Origine', d.origine || ''], ['Mail au client', client ? 'envoyé' : 'non envoyé'],
+  ].filter(l => l[1]);
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1f2a1c">
+    <p><b>${esc(m.titre)}</b> — à rappeler sous 24 h, c'est le moment où le lead est chaud.</p>
+    <table cellpadding="6" style="border-collapse:collapse">${lignes.map(l => `<tr><td style="color:#6b7280">${esc(l[0])}</td><td>${esc(l[1])}</td></tr>`).join('')}</table>
+    <p><a href="${TABLEAU_DE_BORD}?id=${encodeURIComponent(d.id || '')}">Ouvrir le dossier dans le tableau de bord</a></p></div>`;
+  MailApp.sendEmail({
+    to: DESTINATAIRE,
+    replyTo: d.email || DESTINATAIRE,
+    subject: `${m.titre} — ${d.nom_client || d.email || d.telephone}`,
+    body: lignes.map(l => `${l[0]} : ${l[1]}`).join('\n'),
+    htmlBody: html,
+    name: 'Site Domaine Sesquier',
+  });
+}
+
+function envoyerMailLead(d, m) {
+  const cache = CacheService.getScriptCache();
+  const cle = 'lead:' + d.lead + ':' + String(d.email).trim().toLowerCase();
+  const total = Number(cache.get('accuses') || 0);
+  if (cache.get(cle) || total >= 20) return false;
+  const bonjour = d.prenom ? `Bonjour ${d.prenom},` : 'Bonjour,';
+  const signature = ['Waël Smali · 06 83 96 80 56', 'Domaine Sesquier — Gîtes, accueil de groupes, séminaires, événements',
+    '4 plan du Sesquier, 34140 Mèze · domainesesquier.com'];
+  const texte = [bonjour, '', ...m.lignes, '', m.bouton[0] + ' : ' + m.bouton[1], '', m.suite, '', 'Bien cordialement,', '', ...signature]
+    .filter((l, i, a) => l !== '' || a[i - 1] !== '').join('\n');
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#1f2a1c">
+    <p>${esc(bonjour)}</p>${m.lignes.map(l => `<p>${esc(l)}</p>`).join('')}
+    <p><a href="${m.bouton[1]}" style="display:inline-block;background:#2C4226;color:#ffffff;padding:10px 18px;border-radius:6px;text-decoration:none">${esc(m.bouton[0])}</a></p>
+    ${m.suite ? `<p>${esc(m.suite)}</p>` : ''}
+    <p>Bien cordialement,</p>
+    <p style="color:#6b7280">${signature.slice(0, 2).map(esc).join('<br>')}<br>
+      4 plan du Sesquier, 34140 Mèze · <a href="https://domainesesquier.com" style="color:#2C4226">domainesesquier.com</a></p></div>`;
+  try {
+    MailApp.sendEmail({ to: d.email, bcc: DESTINATAIRE, replyTo: DESTINATAIRE, subject: m.sujet, body: texte, htmlBody: html, name: 'Domaine Sesquier' });
+  } catch (err) {
+    console.error('Mail lead : ' + err.message);
+    return false;
+  }
+  cache.put(cle, '1', 21600);
+  cache.put('accuses', String(total + 1), 21600);
+  return true;
+}
+
+function testLead() {
+  traiterLead({ lead: 'estimation', id: 'recTEST', segment: 'seminaire', prenom: 'Test', email: DESTINATAIRE, nom_client: 'Test estimation',
+    personnes: 20, resume: '20 pers. · 2 jours / 1 nuit', estimation: { min_pp: 325, max_pp: 415, min: 6500, max: 8300 } });
 }

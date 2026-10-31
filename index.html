@@ -1269,6 +1269,7 @@
 
         .badge-suivi { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; background: #FEF3C7; color: #92400E; vertical-align: middle; }
         .badge-suivi.retard { background: #FEE2E2; color: #991B1B; }
+        .badge-suivi.lead { background: #E0E7FF; color: #3730A3; }
         .row-client-org {
             font-size: 11px;
             color: var(--text-muted);
@@ -2562,6 +2563,10 @@
                     <span class="filter-label"><span class="filter-dot" style="background: var(--warning);"></span>À traiter</span>
                     <span class="filter-count" id="count-traiter">0</span>
                 </div>
+                <div class="sidebar-filter" data-filter="leads" onclick="setFilter('leads')" title="Demandes commencées sur le questionnaire, brochures demandées, rappels demandés : pas encore de vraie demande">
+                    <span class="filter-label"><i class="fa-regular fa-user" style="font-size:10px; margin-right:4px; color: #4F46E5;"></i>Leads du site</span>
+                    <span class="filter-count" id="count-leads">0</span>
+                </div>
                 <div class="sidebar-filter" data-filter="devis envoyé" onclick="setFilter('devis envoyé')">
                     <span class="filter-label"><span class="filter-dot" style="background: var(--info);"></span>Envoyé</span>
                     <span class="filter-count" id="count-devis">0</span>
@@ -2654,6 +2659,7 @@
                 <select class="mobile-filter" id="mobile-filter" onchange="setFilter(this.value)" aria-label="Filtrer par statut">
                     <option value="all">Tous les statuts</option>
                     <option value="à traiter">À traiter</option>
+                    <option value="leads">Leads du site</option>
                     <option value="devis envoyé">Envoyé</option>
                     <option value="relancer">À relancer</option>
                     <option value="devis signé">Validé</option>
@@ -3762,13 +3768,22 @@
         };
         function matchFilter(r) {
             if (currentFilter === 'relancer') return aRelancer(r);
+            if (currentFilter === 'leads') return !!typeLead(r);
+            if (currentFilter === 'à traiter') return r.statut === 'à traiter' && !typeLead(r);
             return (FILTER_GROUPS[currentFilter] || [currentFilter]).includes(r.statut);
         }
         function aRelancer(r) {
             return !r.estArchive && r.statut === 'devis envoyé' && !!r.dateRelance && r.dateRelance <= jourISO();
         }
         function enRetard(r) {
-            return !r.estArchive && r.statut === 'à traiter' && !!r.creeLe && Date.now() - new Date(r.creeLe) > 86400000;
+            return !r.estArchive && r.statut === 'à traiter' && !typeLead(r) && !!r.creeLe && Date.now() - new Date(r.creeLe) > 86400000;
+        }
+        // Leads du site (Worker /api/public/lead) : dossier « à traiter » de source « lead · … », pas encore une vraie demande.
+        // Dès que le statut change (devis envoyé…), c'est un dossier comme les autres.
+        const LEAD_LIBELLE = { partiel: 'Demande commencée', brochure: 'Brochure', estimation: 'Estimation', rappel: 'À rappeler' };
+        function typeLead(r) {
+            const m = String(r.fields?.['Suivi Source'] || '').match(/^lead · (\w+)/);
+            return !r.estArchive && r.statut === 'à traiter' && m ? m[1] : '';
         }
 
         // ── Accueil « À faire » : ce qui attend une action, tous espaces confondus ──
@@ -3778,7 +3793,8 @@
             const auj = new Date(); auj.setHours(0, 0, 0, 0);
             const dans = d => Math.round((new Date(d + 'T00:00:00') - auj) / 86400000);
             return {
-                traiter:  actifs.filter(r => r.statut === 'à traiter').sort((a, b) => new Date(a.creeLe || 0) - new Date(b.creeLe || 0)),
+                traiter:  actifs.filter(r => r.statut === 'à traiter' && !typeLead(r)).sort((a, b) => new Date(a.creeLe || 0) - new Date(b.creeLe || 0)),
+                leads:    actifs.filter(r => typeLead(r)).sort((a, b) => (typeLead(b) === 'rappel') - (typeLead(a) === 'rappel') || new Date(b.creeLe || 0) - new Date(a.creeLe || 0)),
                 relances: actifs.filter(aRelancer).sort((a, b) => (a.dateRelance || '').localeCompare(b.dateRelance || '')),
                 acomptes: actifs.filter(r => r.statut === 'devis signé' && !r.fields?.['Acompte Payé'] && r.dateArrivee && dans(r.dateArrivee) >= 0)
                                 .sort((a, b) => a.dateArrivee.localeCompare(b.dateArrivee)),
@@ -3821,6 +3837,7 @@
                 </div>` : '';
             const html =
                 section('Demandes à traiter', 'fa-inbox', L.traiter, r => ligne(r, ...depuis(r)), 'Devis promis sous 24 h.') +
+                section('Leads du site', 'fa-user', L.leads, r => ligne(r, `${LEAD_LIBELLE[typeLead(r)] || 'Lead'} · ${depuis(r)[0].replace('Reçue ', '')}`, typeLead(r) === 'rappel' ? 'retard' : ''), 'Pas encore de demande : un appel ou un mail suffit.') +
                 section('Relances du jour', 'fa-bell', L.relances, r => ligne(r, `${escapeHtml(r.prochaineAction || 'Relance')} · ${fmt(r.dateRelance)}`, 'retard')) +
                 section('Acomptes à demander', 'fa-file-invoice-dollar', L.acomptes, r => ligne(r, `Arrivée dans ${L.dans(r.dateArrivee)} j`)) +
                 section('Séjours à venir (3 semaines)', 'fa-calendar-check', L.sejours, r => ligne(r,
@@ -3837,7 +3854,9 @@
                 counts[r.statut] = (counts[r.statut] || 0) + 1;
             });
             document.getElementById('count-all').innerText = counts.all || 0;
-            document.getElementById('count-traiter').innerText = counts['à traiter'] || 0;
+            const nbLeads = nonArchived.filter(typeLead).length;
+            document.getElementById('count-traiter').innerText = (counts['à traiter'] || 0) - nbLeads;
+            document.getElementById('count-leads').innerText = nbLeads;
             document.getElementById('count-relancer').innerText = nonArchived.filter(aRelancer).length;
             document.getElementById('count-confirme').innerText = counts['devis signé'] || 0;
             document.getElementById('count-devis').innerText = counts['devis envoyé'] || 0;
@@ -3849,7 +3868,7 @@
         }
 
         // Téléphone : puces de statut (mêmes compteurs que la barre latérale), les vides masquées sauf la puce active
-        const STATUT_CHIPS = [['all', 'Tous', 'count-all'], ['à traiter', 'À traiter', 'count-traiter'], ['devis envoyé', 'Envoyé', 'count-devis'],
+        const STATUT_CHIPS = [['all', 'Tous', 'count-all'], ['à traiter', 'À traiter', 'count-traiter'], ['leads', 'Leads', 'count-leads'], ['devis envoyé', 'Envoyé', 'count-devis'],
             ['relancer', 'À relancer', 'count-relancer'], ['devis signé', 'Validé', 'count-confirme'], ['effectué', 'Effectués', 'count-effectue'],
             ['annulé', 'Refusés', 'count-annule'], ['archived', 'Archivés', 'count-archived']];
         function renderStatutChips() {
@@ -4097,7 +4116,9 @@
                     <i class="fa-solid fa-plus"></i>
                 </div>
                 <div class="row-client">
-                    <span class="row-client-name link">${escapeHtml(r.nomClient)}</span>${aRelancer(r)
+                    <span class="row-client-name link">${escapeHtml(r.nomClient)}</span>${typeLead(r)
+                        ? `<span class="badge-suivi ${typeLead(r) === 'rappel' ? 'retard' : 'lead'}" title="${escapeHtml(r.message || '')}">${LEAD_LIBELLE[typeLead(r)] || 'Lead'}</span>`
+                        : aRelancer(r)
                         ? `<span class="badge-suivi" title="${escapeHtml(r.prochaineAction || 'Relance')} prévue le ${r.dateRelance.split('-').reverse().join('/')}">À relancer</span>`
                         : enRetard(r) ? '<span class="badge-suivi retard" title="Demande reçue il y a plus de 24 h, devis promis sous 24 h">+24 h</span>' : ''}
                     <div style="display:flex; align-items:center; gap:6px;">

@@ -31,7 +31,7 @@ READ_ONLY = "true"
 # Environnement de développement local (npx wrangler dev --env dev)
 # Ajoute localhost pour permettre les tests en local sans toucher à la prod
 [env.dev.vars]
-ALLOWED_ORIGINS = "https://admin.domainesesquier.com,https://www.domainesesquier.com,https://domainesesquier.com,http://localhost:8080,http://localhost:3000"
+ALLOWED_ORIGINS = "https://admin.domainesesquier.com,https://www.domainesesquier.com,https://domainesesquier.com,http://localhost:8080,http://localhost:3000,http://localhost:4470"
 ENVIRONMENT = "development"
 READ_ONLY = "true"
 
