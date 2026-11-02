@@ -165,7 +165,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
       <!-- Étape 1 -->
       <section data-step="0">
         <h2>Le séjour</h2>
-        <fieldset id="bloc-format">
+        <fieldset id="bloc-format" hidden><!-- format déduit des dates (0 nuit = journée d'étude) -->
           <legend>Format</legend>
           <div class="choices">
             <label class="choice"><input type="radio" name="format" value="residentiel" checked><span>Avec nuit(s) sur place</span></label>
@@ -190,6 +190,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
             <div class="err" data-err="dateDepart"></div>
           </fieldset>
         </div>
+        <p class="hint" id="hint-nuits"></p>
         <p class="dispo" id="dispo" role="status" aria-live="polite" hidden></p>
         <div class="dispo-alt" id="dispo-alt" hidden></div>
         <fieldset id="bloc-profil">
@@ -471,9 +472,12 @@ html.embed .wrap { padding: 12px 16px 32px; }
   const section = k => steps.find(s => +s.dataset.step === k);
   function majFormat() {
     const seg = val('type'), sem = seg === 'seminaire';
-    document.getElementById('bloc-format').hidden = !sem;
     document.getElementById('bloc-profil').hidden = !sem;
-    if (!sem) form.querySelector('input[name="format"][value="residentiel"]').checked = true;
+    // format déduit des dates : arrivée et départ le même jour = journée d'étude (0 nuit)
+    const da = form.dateArrivee.value, dd = form.dateDepart.value, n = da && dd ? Math.round((new Date(dd) - new Date(da)) / 864e5) : null;
+    form.querySelector(`input[name="format"][value="${sem && n === 0 ? 'etude' : 'residentiel'}"]`).checked = true;
+    const hn = document.getElementById('hint-nuits'); hn.hidden = !sem;
+    hn.textContent = n === 0 ? 'Journée d’étude, sans nuit sur place.' : n > 0 ? `${n} nuit${n > 1 ? 's' : ''} sur place. Même date d’arrivée et de départ : journée d’étude, sans nuit.` : 'Même date d’arrivée et de départ : journée d’étude, sans nuit.';
     document.getElementById('envies-groupe').hidden = seg !== 'groupe';
     document.getElementById('bloc-budget').hidden = seg === 'groupe';
     document.getElementById('bloc-organisation').hidden = !sem;
@@ -488,11 +492,9 @@ html.embed .wrap { padding: 12px 16px 32px; }
     const noms = PILLS[sem ? 'seminaire' : 'autre'];
     pills.forEach((p, k) => { p.hidden = k >= noms.length; if (noms[k]) p.textContent = noms[k]; });
     const etude = val('format') === 'etude';
-    document.getElementById('bloc-depart').hidden = etude;
     document.getElementById('bloc-depart-heure').hidden = etude;
     document.getElementById('bloc-vin').hidden = etude;
     document.getElementById('bloc-soiree').hidden = etude;
-    document.getElementById('lab-arrivee').textContent = etude ? 'Date de la journée' : 'Date d\'arrivée';
   }
 
   // Disponibilités : même source et même règle que le calendrier public (statut seul, le domaine se loue en entier) :
@@ -540,7 +542,9 @@ html.embed .wrap { padding: 12px 16px 32px; }
     const b = e.target.closest('button.alt');
     if (!b) return;
     form.dateArrivee.value = b.dataset.debut;
-    if (val('format') !== 'etude') { form.dateDepart.min = decaler(b.dataset.debut, 1); form.dateDepart.value = b.dataset.fin; }
+    form.dateDepart.min = b.dataset.debut;
+    form.dateDepart.value = val('format') === 'etude' ? b.dataset.debut : b.dataset.fin;
+    arriveePrec = b.dataset.debut;
     form.dateDepart.dispatchEvent(new Event('change', { bubbles: true }));
   });
   // Groupe sur dates libres : la demande devient une demande d'option
@@ -725,15 +729,17 @@ html.embed .wrap { padding: 12px 16px 32px; }
     if (etape < ordre().length - 1) afficher(etape + 1); else envoyer();
   });
   btnPrev.addEventListener('click', () => etape === 0 ? choisirProjet() : afficher(etape - 1));
+  let arriveePrec = '', prefEtude = false;
   form.addEventListener('input', e => {
     const el = form.querySelector(`[data-err="${e.target.name}"]`);
     if (el) el.textContent = '';
-    if (e.target.name === 'dateArrivee' && e.target.value) {
-      const lendemain = new Date(e.target.value + 'T12:00:00');
-      lendemain.setDate(lendemain.getDate() + 1);
-      const l = lendemain.toISOString().slice(0, 10);
-      form.dateDepart.min = l;
-      if (!form.dateDepart.value || form.dateDepart.value < l) form.dateDepart.value = l;
+    if (e.target.name === 'dateArrivee' && /^20\d\d-/.test(e.target.value)) {
+      // on garde le nombre de nuits quand l'arrivée bouge (0 = journée d'étude)
+      const a = e.target.value, dd = form.dateDepart.value;
+      const n = arriveePrec && dd ? Math.round((new Date(dd) - new Date(arriveePrec)) / 864e5) : (prefEtude ? 0 : 1);
+      form.dateDepart.min = a;
+      form.dateDepart.value = decaler(a, n >= 0 ? n : 1);
+      arriveePrec = a;
       form.querySelector('[data-err="dateDepart"]').textContent = '';
     }
     majFormat(); estimer();
@@ -772,6 +778,10 @@ html.embed .wrap { padding: 12px 16px 32px; }
     } catch (e) { console.warn('[prefill] ignoré :', e.message); }
   }
 
+  // ?format=etude ou pré-remplissage « journée d'étude » : départ = arrivée (0 nuit)
+  prefEtude = val('format') === 'etude';
+  if (prefEtude && form.dateArrivee.value && !form.dateDepart.value) form.dateDepart.value = form.dateArrivee.value;
+  arriveePrec = form.dateArrivee.value;
   majFormat();
   if (parcoursConnu) afficher(0); else choisirProjet();
   window.scrollTo(0, 0);
