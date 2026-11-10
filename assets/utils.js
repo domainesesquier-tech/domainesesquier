@@ -19,10 +19,6 @@ const SesquierUtils = {
         return `${this.API_BASE}/api/pricing`;
     },
 
-    get API_MENUS_URL() {
-        return `${this.API_BASE}/api/menus`;
-    },
-
     /**
      * Format numbers to Euro currency string
      * @param {number} amount 
@@ -45,7 +41,7 @@ const SesquierUtils = {
         try {
             // Attache le jeton de session courant (si une page d'auth est
             // chargée) à chaque appel vers le Worker. Les pages publiques
-            // sans auth.js (MENU_CLIENT, CALENDRIER_PUBLIC) n'ont pas
+            // sans auth.js (CALENDRIER_PUBLIC, questionnaire) n'ont pas
             // window.SesquierAuth : l'appel part simplement sans jeton,
             // ce qui convient aux routes /api/public/*.
             const opts = { ...options };
@@ -167,24 +163,6 @@ const SesquierUtils = {
             return Number.isFinite(n) ? n : null;
         }
         return null;
-    },
-
-    /**
-     * Parse date without time component
-     */
-    parseDateOnly(value) {
-        if (!value) return null;
-        const d = new Date(value);
-        if (Number.isNaN(d.getTime())) return null;
-        return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-    },
-
-    /**
-     * Convert date to YYYY-MM-DD key
-     */
-    toDateKey(date) {
-        if (!date) return null;
-        return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())).toISOString().slice(0, 10);
     },
 
     // --- Document UI Helpers ---

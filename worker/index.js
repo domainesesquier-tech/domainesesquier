@@ -359,20 +359,6 @@ function libraryRowToRecord(row) {
   };
 }
 
-function menuRowToRecord(row) {
-  return {
-    id: `menu_${row.id}`,
-    fields: {
-      'Type':    row.type || 'menu',
-      'Nom':     row.nom,
-      'Entree':  row.entree,
-      'Plat':    row.plat,
-      'Dessert': row.dessert,
-      'Ordre':   row.ordre,
-    },
-  };
-}
-
 // ── Authentification ────────────────────────────────────────
 // Routes accessibles sans session (liens publics ou pages publiques
 // du site). Tout le reste exige un JWT Supabase valide.
@@ -380,7 +366,6 @@ const PUBLIC_ROUTES = [
   { path: "/api/health",                methods: ["GET"] },
   { path: "/api/public/disponibilites", methods: ["GET"] },
   { path: "/api/public/disponibilites.ics", methods: ["GET"] },
-  { path: "/api/public/menu",           methods: ["GET"] },
   { path: "/api/public/demande",        methods: ["POST"] },
   { path: "/api/public/lead",           methods: ["POST"] },
 ];
@@ -855,29 +840,6 @@ export default {
         return json({ ok: true, id }, 201, env, requestOrigin);
       }
 
-      if (url.pathname === "/api/public/menu" && method === "GET") {
-        const id = url.searchParams.get("id");
-        if (!id) return json({ error: { message: "id requis" } }, 400, env, requestOrigin);
-        const row = await sbFetch(env, `/rpc/public_menu`, {
-          method: "POST",
-          body: JSON.stringify({ p_id: id }),
-        });
-        if (!row) return json({ error: { message: "Not found" } }, 404, env, requestOrigin);
-        // Même forme que GET /api/reservations?id= pour que la page
-        // MENU_CLIENT n'ait qu'à changer d'URL.
-        return json({
-          records: [{
-            id,
-            fields: {
-              'Nom client':    row.nom_client,
-              'Date arrivée':  row.date_arrivee,
-              'Date départ':   row.date_depart,
-              'Cuisine JSON':  row.cuisine_json,
-            },
-          }],
-        }, 200, env, requestOrigin);
-      }
-
       // ── LIBRARY ────────────────────────────────────────────
       if (url.pathname === "/api/library" && method === "GET") {
         const typeFilter = url.searchParams.get("type");
@@ -937,85 +899,6 @@ export default {
         const numId = String(rawId).replace(/^lib_/, '');
         await sbFetch(env, `/bibliotheque_prestations?id=eq.${numId}`, { method: "DELETE" });
         return json({ success: true, id: rawId }, 200, env, requestOrigin);
-      }
-
-      // ── BIBLIOTHÈQUE DE MENUS (onglet Cuisine) ──────────────
-      if (url.pathname === "/api/menus" && method === "GET") {
-        const typeFilter = url.searchParams.get("type");
-        const filter = typeFilter ? `type=eq.${typeFilter}&` : '';
-        const rows = await sbFetch(env, `/bibliotheque_menus?${filter}order=ordre.asc,id.asc`);
-        return json({ records: rows.map(menuRowToRecord) }, 200, env, requestOrigin);
-      }
-
-      if (url.pathname === "/api/menus" && method === "POST") {
-        const body = await request.json().catch(() => ({}));
-        if (!body.fields) return json({ error: { message: "{ fields } requis" } }, 400, env, requestOrigin);
-        const f = body.fields;
-        const row = {
-          type:    f.Type    || f.type    || "menu",
-          nom:     f.Nom     || f.nom     || "",
-          entree:  f.Entree  || f.entree  || null,
-          plat:    f.Plat    || f.plat    || null,
-          dessert: f.Dessert || f.dessert || null,
-          ordre:   f.Ordre   != null ? f.Ordre : (f.ordre || 0),
-        };
-        const result = await sbFetch(env, `/bibliotheque_menus`, { method: "POST", body: JSON.stringify(row) });
-        const saved = Array.isArray(result) ? result[0] : result;
-        if (!saved) return json({ error: { message: "Échec création menu" } }, 500, env, requestOrigin);
-        return json(menuRowToRecord(saved), 201, env, requestOrigin);
-      }
-
-      if (url.pathname === "/api/menus" && method === "PATCH") {
-        const body = await request.json().catch(() => ({}));
-        if (!body.id || !body.fields) return json({ error: { message: "{ id, fields } requis" } }, 400, env, requestOrigin);
-        const numId = String(body.id).replace(/^menu_/, '');
-        const f = body.fields;
-        const row = {};
-        if (f.Type    !== undefined) row.type    = f.Type;
-        if (f.Nom     !== undefined) row.nom     = f.Nom;
-        if (f.Entree  !== undefined) row.entree  = f.Entree;
-        if (f.Plat    !== undefined) row.plat    = f.Plat;
-        if (f.Dessert !== undefined) row.dessert = f.Dessert;
-        if (f.Ordre   !== undefined) row.ordre   = f.Ordre;
-        const result = await sbFetch(env, `/bibliotheque_menus?id=eq.${numId}`, {
-          method: "PATCH", body: JSON.stringify(row),
-        });
-        const saved = Array.isArray(result) ? result[0] : result;
-        if (!saved) return json({ error: { message: `Menu '${body.id}' introuvable` } }, 404, env, requestOrigin);
-        return json(menuRowToRecord(saved), 200, env, requestOrigin);
-      }
-
-      if (url.pathname === "/api/menus" && method === "DELETE") {
-        const body = await request.json().catch(() => ({}));
-        const rawId = body.id || url.searchParams.get("id");
-        if (!rawId) return json({ error: { message: "ID requis" } }, 400, env, requestOrigin);
-        const numId = String(rawId).replace(/^menu_/, '');
-        await sbFetch(env, `/bibliotheque_menus?id=eq.${numId}`, { method: "DELETE" });
-        return json({ success: true, id: rawId }, 200, env, requestOrigin);
-      }
-
-      // ── MENAGE ─────────────────────────────────────────────
-      if (url.pathname === "/api/menage" && method === "GET") {
-        const rows = await sbFetch(env, `/menage_logements?order=logement_id.asc`);
-        return json({ records: rows }, 200, env, requestOrigin);
-      }
-
-      if (url.pathname === "/api/menage" && method === "PATCH") {
-        const body = await request.json().catch(() => ({}));
-        if (!body.logement_id) return json({ error: { message: "logement_id requis" } }, 400, env, requestOrigin);
-        const { logement_id, ...fields } = body;
-        const allowed = ['note_permanente', 'protocole', 'signalements'];
-        const row = {};
-        for (const k of allowed) {
-          if (fields[k] !== undefined) row[k] = fields[k];
-        }
-        if (Object.keys(row).length === 0) return json({ error: { message: "Aucun champ valide" } }, 400, env, requestOrigin);
-        row.updated_at = new Date().toISOString();
-        const result = await sbFetch(env, `/menage_logements?logement_id=eq.${encodeURIComponent(logement_id)}`, {
-          method: "PATCH",
-          body: JSON.stringify(row),
-        });
-        return json({ ok: true, record: Array.isArray(result) ? result[0] : result }, 200, env, requestOrigin);
       }
 
       // ── NUMÉROTATION SÉQUENTIELLE ──────────────────────────

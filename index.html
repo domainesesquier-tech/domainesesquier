@@ -2071,16 +2071,6 @@
             color: #1565c0;
         }
 
-        .doc-card[data-type="cuisine"] .doc-icon-box {
-            background: #fce4ec;
-            color: #c2185b;
-        }
-
-        .doc-card[data-type="menu-client"] .doc-icon-box {
-            background: #e0f2f1;
-            color: #00796b;
-        }
-
         .doc-card:hover {
             transform: translateY(-8px) scale(1.02);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
@@ -2834,11 +2824,7 @@
                 <iframe id="iframe-proforma" src="about:blank" style="display:none;"></iframe>
                 <iframe id="iframe-facture" src="about:blank" style="display:none;"></iframe>
                 <iframe id="iframe-facture-finale" src="about:blank" style="display:none;"></iframe>
-                <iframe id="iframe-rooming" src="about:blank" style="display:none;"></iframe>
-                <iframe id="iframe-cuisine" src="about:blank" style="display:none;"></iframe>
-                <iframe id="iframe-menu-client" src="about:blank" style="display:none;"></iframe>
                 <iframe id="iframe-deroule" src="about:blank" style="display:none;"></iframe>
-                <iframe id="iframe-menage" src="about:blank" style="display:none;"></iframe>
             </div>
         </div>
 
@@ -3268,7 +3254,7 @@
                     { type: 'proforma', label: 'Proforma', icon: 'fa-file-invoice', done: /"pf"/.test(f["Numeros JSON"] || '') },
                     { type: 'facture', label: 'Acompte', icon: 'fa-file-invoice-dollar', done: !!f["Acompte Payé"] },
                     { type: 'facture-finale', label: 'Facture', icon: 'fa-receipt' }] },
-                // Hébergement, Cuisine, Menus et Ménage retirés (non utilisés) : pages conservées. Rooming = fiche Google Sheets partagée au client
+                // Hébergement, Cuisine, Menus et Ménage retirés (non utilisés), pages supprimées le 10/11/2026. Rooming = fiche Google Sheets partagée au client
                 { groupe: 'Organisation', docs: [
                     { type: 'rooming', label: 'Rooming', icon: 'fa-bed', done: !!lienRooming(f) },
                     { type: 'deroule', label: 'Déroulé', icon: 'fa-route', done: !!f["DEROULE JSON"] }] }
@@ -3616,10 +3602,6 @@
                 alert('Erreur archivage : ' + e.message);
                 if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
             }
-        }
-
-        function openDocFromDossier(type, id) {
-            openDocForRecord(type, id);
         }
 
         // Notification Helper
@@ -4181,11 +4163,7 @@
             'iframe-proforma': 'DOMAINE_SESQUIER_FACTURE.html?mode=proforma',
             'iframe-facture': 'DOMAINE_SESQUIER_FACTURE_ACOMPTE.html',
             'iframe-facture-finale': 'DOMAINE_SESQUIER_FACTURE.html',
-            'iframe-rooming': 'DOMAINE_SESQUIER_ROOMING.html',
-            'iframe-cuisine': 'DOMAINE_SESQUIER_CUISINE.html',
-            'iframe-menu-client': 'DOMAINE_SESQUIER_MENU_CLIENT.html',
-            'iframe-deroule': 'DOMAINE_SESQUIER_DEROULE.html',
-            'iframe-menage':  'DOMAINE_SESQUIER_MENAGE.html'
+            'iframe-deroule': 'DOMAINE_SESQUIER_DEROULE.html'
         };
 
         function switchTab(frameId, navEl, explicitId = null) {
@@ -4233,17 +4211,6 @@
             }
 
             showBanner();
-        }
-
-        function loadAirtableDevis() {
-            const val = document.getElementById('dev-id-input').value.trim();
-            if (!val) return alert("Veuillez saisir un ID de dossier.");
-
-            if (activeIframeId) {
-                switchTab(activeIframeId, document.querySelector('.nav-item.active'), val);
-            } else {
-                switchTab('iframe-devis', document.getElementById('nav-devis'), val);
-            }
         }
 
         function showBanner() {

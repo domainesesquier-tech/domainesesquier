@@ -799,11 +799,6 @@ function uid() {
     return 'id_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-function getRecordName() {
-    const f = currentRecord?.fields || {};
-    return f['Nom client'] || f['Entreprise'] || 'deroule';
-}
-
 // =====================================================================
 // FORMULE
 // =====================================================================

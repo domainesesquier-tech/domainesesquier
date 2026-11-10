@@ -1771,37 +1771,6 @@
 
         }
 
-        function captureTableRows(tbodyId) {
-            const rows = [];
-            const tbody = document.getElementById(tbodyId);
-            if (!tbody) return rows;
-            // Utiliser Array.from(tbody.children) au lieu de querySelectorAll('tr')
-            // pour éviter de capturer les lignes des tableaux imbriqués (comme le planning)
-            Array.from(tbody.children).forEach(tr => {
-                if (tr.tagName !== 'TR') return;
-                if (tr.classList.contains('category-row')) {
-                    rows.push({ type: 'category', title: tr.querySelector('td')?.innerText.trim() });
-                } else if (tr.classList.contains('subtotal-row')) {
-                    const label = tr.querySelector('span')?.innerText.replace('Sous-total ', '').replace(/ (HT|TTC)$/, '') || '';
-                    const id = tr.querySelector('.subtotal-val')?.id;
-                    rows.push({ type: 'subtotal', label, id });
-                } else if (tr.classList.contains('meal-grid-row')) {
-                    // Ignoré, géré par mealGridState
-                } else {
-                    rows.push({
-                        type: 'pricing',
-                        // On prend la première cellule (col-detail) quel que soit son nom de classe
-                        label: (tr.cells[0]?.innerHTML || "").trim(),
-                        qty: tr.querySelector('.qty')?.innerText || '0',
-                        price: tr.querySelector('.price')?.innerText || '0',
-                        tva: tr.querySelector('.tva-rate')?.innerText || '20%',
-                        mealKey: tr.getAttribute('data-meal-key') || null
-                    });
-                }
-            });
-            return rows;
-        }
-
         function captureMealGrid() {
             const grid = document.querySelector('.meal-check-grid');
             if (!grid) return null;
@@ -1905,11 +1874,6 @@
 
         function addCategoryRow(title, targetId) { return SesquierUtils.addCategoryRow(title, targetId, true); }
         function addPricingRow(label, qty, price, tva, mealKey, targetId) { return SesquierUtils.addPricingRow(label, qty, price, tva, mealKey, targetId); }
-
-        function addManualRow(targetId) {
-            SesquierUtils.addPricingRow('Prestation...', 1, 0, '10%', null, targetId);
-            updateCalculations();
-        }
 
         function createPricingRow(label, qty, price, tva, mealKey) { return SesquierUtils.createPricingRow(label, qty, price, tva, mealKey); }
         function removeRow(btn, event) { return SesquierUtils.removeRow(btn, event); }
@@ -3367,34 +3331,6 @@
         return ok;
     }
 
-    // Usage client (plus tard) : appel direct au Worker, qui interroge l'API Claude avec la clé du domaine
-    async function redigerIA(mode) {
-        const panel = document.getElementById('ia-panel');
-        const st = document.getElementById('ia-statut');
-        panel.style.display = 'block';
-        document.getElementById('ia-titre').textContent = mode === 'relance' ? 'Relance' : "Mot d'accueil et mail d'envoi";
-        st.textContent = 'Rédaction en cours (15 à 40 s)…';
-        const body = contexteIA(mode);
-        try {
-            const base = SesquierUtils.API_RESERVATIONS_URL.replace(/\/api\/reservations.*$/, '');
-            const r = await SesquierUtils.fetchJson(base + '/api/ia/redaction', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-            });
-            document.getElementById('ia-objet').value = r.mail_objet || '';
-            document.getElementById('ia-corps').value = r.mail_corps || '';
-            const pts = document.getElementById('ia-points');
-            pts.style.display = r.points_attention?.length ? 'block' : 'none';
-            pts.innerHTML = '<strong>À vérifier</strong><ul style="margin:6px 0 0 18px;padding:0;">' + (r.points_attention || []).map(p => `<li>${p.replace(/</g, '&lt;')}</li>`).join('') + '</ul>';
-            if (mode === 'devis' && r.mot_accueil) {
-                const ma = document.getElementById('mot-accueil');
-                ma.innerText = r.mot_accueil; ma.style.display = 'block';
-                if (typeof markDirty === 'function') markDirty();
-            }
-            st.textContent = mode === 'devis' ? "Mot d'accueil ajouté en tête du devis (modifiable). Pense à enregistrer." : '';
-        } catch (e) {
-            st.textContent = 'Échec : ' + e.message;
-        }
-    }
     function ouvrirMailIA() {
         const f = window._liveFields || currentRecord?.fields || {};
         const url = `mailto:${encodeURIComponent(f['Email'] || '')}?subject=${encodeURIComponent(document.getElementById('ia-objet').value)}&body=${encodeURIComponent(document.getElementById('ia-corps').value)}`;
