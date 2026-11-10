@@ -266,6 +266,7 @@
         .tag-btn:hover { border-color: #aaa; }
         .tag-btn.active-essentiel { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
         .tag-btn.active-immersion { background: var(--accent-light); border-color: #c87a30; color: var(--accent); }
+        .tag-btn.active-option { background: #f3f4f6; border-color: #9ca3af; color: #4b5563; }
         .btn-etape-delete {
             background: none; border: none; color: #d1d5db;
             cursor: pointer; padding: 3px 5px; border-radius: 4px;
@@ -397,6 +398,9 @@
         }
         .prev-badge.immersion {
             background: #FEF3E2; color: #92400E; border: 1px solid #c87a30;
+        }
+        .prev-badge.option {
+            background: #ffffff; color: #6b7280; border: 1px dashed #9ca3af;
         }
         .prev-empty {
             text-align: center; color: #b0a898;
@@ -619,6 +623,7 @@
                     <option value="">Aucun</option>
                     <option value="essentiel">✦ Essentiel</option>
                     <option value="immersion_complete">✦ Immersion complète</option>
+                    <option value="option">En option</option>
                 </select>
             </div>
         </div>
@@ -830,11 +835,13 @@ function buildEtapeRow(etape, jourId, eIdx) {
     const tagButtons = [
         { val: null,                 label: 'Aucun' },
         { val: 'essentiel',          label: '✦ Essentiel' },
-        { val: 'immersion_complete', label: '✦ Immersion complète' }
+        { val: 'immersion_complete', label: '✦ Immersion complète' },
+        { val: 'option',             label: 'En option' }
     ].map(t => {
         let cls = 'tag-btn';
         if (etape.tag === t.val && t.val === 'essentiel')          cls += ' active-essentiel';
         if (etape.tag === t.val && t.val === 'immersion_complete') cls += ' active-immersion';
+        if (etape.tag === t.val && t.val === 'option')             cls += ' active-option';
         if (etape.tag === t.val && t.val === null)                  cls += ' active-none';
         return `<button class="${cls}" onclick="setEtapeTag('${jourId}','${etape.id}','${t.val === null ? '__none__' : t.val}',this)">${t.label}</button>`;
     }).join('');
@@ -962,11 +969,13 @@ function setEtapeTag(jourId, etapeId, val, btn) {
         tagBtns.innerHTML = [
             { val: null,                 label: 'Aucun' },
             { val: 'essentiel',          label: '✦ Essentiel' },
-            { val: 'immersion_complete', label: '✦ Immersion complète' }
+            { val: 'immersion_complete', label: '✦ Immersion complète' },
+            { val: 'option',             label: 'En option' }
         ].map(t => {
             let cls = 'tag-btn';
             if (etape.tag === t.val && t.val === 'essentiel')          cls += ' active-essentiel';
             if (etape.tag === t.val && t.val === 'immersion_complete') cls += ' active-immersion';
+            if (etape.tag === t.val && t.val === 'option')             cls += ' active-option';
             return `<button class="${cls}" onclick="setEtapeTag('${jourId}','${etape.id}','${t.val === null ? '__none__' : t.val}',this)">${t.label}</button>`;
         }).join('');
     }
@@ -1060,9 +1069,8 @@ function renderPreview() {
                 html += `<div style="padding:8px 0; color:#b0a898; font-style:italic; font-size:12px; text-align:center;">Aucune étape</div>`;
             } else {
                 jour.etapes.forEach((etape, eIdx) => {
-                    const badgeHtml = etape.tag
-                        ? `<span class="prev-badge ${etape.tag === 'essentiel' ? 'essentiel' : 'immersion'}">✦ ${etape.tag === 'essentiel' ? 'Essentiel' : 'Immersion complète'}</span>`
-                        : '';
+                    const badge = BADGES_ETAPE[etape.tag];
+                    const badgeHtml = badge ? `<span class="prev-badge ${badge[0]}">${badge[1]}</span>` : '';
                     html += `
                         <div class="prev-etape">
                             <div class="prev-etape-num">${eIdx + 1}</div>
@@ -1148,6 +1156,13 @@ async function saveDeroule() {
 // =====================================================================
 // PDF EXPORT
 // =====================================================================
+// Badge affiché dans l'aperçu et le PDF : [classe CSS, libellé]
+const BADGES_ETAPE = {
+    essentiel:          ['essentiel', '✦ Essentiel'],
+    immersion_complete: ['immersion', '✦ Immersion complète'],
+    option:             ['option',    'En option']
+};
+
 async function exportPDF() {
     const btn = document.querySelector('.btn-toolbar.primary');
     const prevText = btn.innerHTML;
@@ -1249,7 +1264,7 @@ function renderLib(search = '') {
         <div class="lib-category">${cat}</div>
         ${groups[cat].map(item => {
             const iJ = JSON.stringify(item).replace(/"/g, '&quot;');
-            const tagLabel = item.tag === 'essentiel' ? '✦ Essentiel' : item.tag === 'immersion_complete' ? '✦ Immersion' : '';
+            const tagLabel = item.tag === 'essentiel' ? '✦ Essentiel' : item.tag === 'immersion_complete' ? '✦ Immersion' : item.tag === 'option' ? 'En option' : '';
             return `<div class="lib-item">
                 <div class="lib-item-row">
                     <div class="lib-item-main" onclick="addLibItem(${iJ})">
