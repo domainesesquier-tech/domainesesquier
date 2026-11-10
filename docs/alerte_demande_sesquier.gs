@@ -6,6 +6,8 @@
 //     Exécuter en tant que : Moi · Qui a accès : Tout le monde
 //   Mise à jour : Déployer > Gérer les déploiements > crayon > Version : Nouvelle version > Déployer
 //     (l'URL ne change pas, rien à modifier dans le Worker)
+//   Après l'ajout de versBoiteDeReception (09/11/2026) : lancer une fois testAlerte dans l'éditeur
+//     pour accepter la nouvelle autorisation Gmail, sinon les alertes restent dans « Envoyés ».
 // L'URL du déploiement sert de clé : ne la partage pas.
 
 const DESTINATAIRE = 'contact@domainesesquier.com';
@@ -124,13 +126,30 @@ function envoyerAlerte(d, accuse) {
     <p style="margin-top:16px"><a href="${esc(lien)}" style="color:#2C4226">Ouvrir le dossier</a> (statut « à traiter »)</p>
   </div>`;
 
+  const sujet = `Nouvelle demande ${type} — ${d.nom_client} (${d.personnes} pers., ${date(d.date_arrivee)})`;
   MailApp.sendEmail({
     to: DESTINATAIRE,
     replyTo: d.email || DESTINATAIRE,
-    subject: `Nouvelle demande ${type} — ${d.nom_client} (${d.personnes} pers., ${date(d.date_arrivee)})`,
+    subject: sujet,
     htmlBody: html,
     name: 'Domaine Sesquier — questionnaire',
   });
+  versBoiteDeReception(sujet);
+}
+
+// Le script envoie depuis domainesesquier@gmail.com vers contact@, qui revient dans ce même Gmail :
+// Gmail jette la copie reçue (doublon) et ne garde l'alerte que dans « Messages envoyés ».
+// On remet donc le fil dans la boîte de réception, non lu. Un échec ici ne bloque pas la demande.
+function versBoiteDeReception(sujet) {
+  try {
+    for (let essai = 0; essai < 5; essai++) {
+      Utilities.sleep(1500);
+      const fil = GmailApp.search('in:sent newer_than:1d', 0, 10).find(t => t.getFirstMessageSubject() === sujet);
+      if (fil) { fil.moveToInbox(); fil.markUnread(); return; }
+    }
+  } catch (err) {
+    console.error('versBoiteDeReception : ' + err);
+  }
 }
 
 // Pour tester depuis l'éditeur (bouton Exécuter sur cette fonction) : alerte + accusé envoyés à DESTINATAIRE.
@@ -195,14 +214,16 @@ function traiterLead(d) {
     <p><b>${esc(m.titre)}</b> — à rappeler sous 24 h, c'est le moment où le lead est chaud.</p>
     <table cellpadding="6" style="border-collapse:collapse">${lignes.map(l => `<tr><td style="color:#6b7280">${esc(l[0])}</td><td>${esc(l[1])}</td></tr>`).join('')}</table>
     <p><a href="${TABLEAU_DE_BORD}?id=${encodeURIComponent(d.id || '')}">Ouvrir le dossier dans le tableau de bord</a></p></div>`;
+  const sujet = `${m.titre} — ${d.nom_client || d.email || d.telephone}`;
   MailApp.sendEmail({
     to: DESTINATAIRE,
     replyTo: d.email || DESTINATAIRE,
-    subject: `${m.titre} — ${d.nom_client || d.email || d.telephone}`,
+    subject: sujet,
     body: lignes.map(l => `${l[0]} : ${l[1]}`).join('\n'),
     htmlBody: html,
     name: 'Site Domaine Sesquier',
   });
+  versBoiteDeReception(sujet);
 }
 
 function envoyerMailLead(d, m) {
