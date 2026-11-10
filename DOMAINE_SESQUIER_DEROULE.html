@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
     <script src="assets/utils.js"></script>
+    <script src="assets/deroule-devis.js"></script>
     <style>
         :root {
             --primary: #3A5538;
@@ -534,6 +535,26 @@
         .lib-btn-primary:hover { background: #2e4330; }
         .lib-btn-danger { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
 
+        /* Fenêtre cohérence déroulé ↔ devis */
+        #coh-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.4); z-index: 300;
+            align-items: center; justify-content: center;
+        }
+        #coh-overlay.open { display: flex; }
+        #coh-modal {
+            background: white; border-radius: 12px; padding: 22px 24px;
+            width: 560px; max-width: 92vw; max-height: 82vh; overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        }
+        .coh-resume { font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5; }
+        .coh-list { list-style: none; margin: 0; padding: 0; }
+        .coh-item { display: flex; gap: 10px; padding: 9px 0; border-top: 1px solid var(--border); font-size: 13px; line-height: 1.45; }
+        .coh-item i { margin-top: 3px; }
+        .coh-item.erreur i { color: #dc2626; }
+        .coh-item.attention i { color: #b45309; }
+        .coh-ok { font-size: 13.5px; color: var(--primary); padding: 10px 0; }
+
         /* ── PDF export ── */
         .is-exporting-pdf .preview-doc {
             box-shadow: none;
@@ -566,6 +587,12 @@
         </span>
     </div>
     <div class="toolbar-right">
+        <button class="btn-toolbar" onclick="genererDepuisDevis()" title="Crée les étapes à partir des lignes du devis (les étapes ajoutées à la main sont conservées)">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Générer depuis le devis
+        </button>
+        <button class="btn-toolbar" onclick="verifierCoherence()" title="Compare le déroulé et le devis">
+            <i class="fa-solid fa-list-check"></i> Vérifier la cohérence
+        </button>
         <button class="btn-toolbar" onclick="saveDeroule()">
             <i class="fa-solid fa-floppy-disk"></i> Enregistrer
         </button>
@@ -643,6 +670,19 @@
             <button class="lib-btn lib-btn-danger" id="lib-del-btn" style="display:none;margin-right:auto" onclick="confirmDeleteLibItem()">Supprimer</button>
             <button class="lib-btn" onclick="closeLibModal()">Annuler</button>
             <button class="lib-btn lib-btn-primary" onclick="saveLibItem()">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Cohérence déroulé ↔ devis ── -->
+<div id="coh-overlay" onclick="if(event.target===this)fermerCoherence()">
+    <div id="coh-modal">
+        <div class="lib-modal-title" id="coh-titre">Cohérence avec le devis</div>
+        <div class="coh-resume" id="coh-resume"></div>
+        <div id="coh-body"></div>
+        <div class="lib-modal-actions">
+            <button class="lib-btn" onclick="verifierCoherence()">Revérifier</button>
+            <button class="lib-btn lib-btn-primary" onclick="fermerCoherence()">Fermer</button>
         </div>
     </div>
 </div>
@@ -1151,6 +1191,83 @@ async function saveDeroule() {
         setSaveStatus('error');
         console.error('[DEROULE] Save failed:', e);
     }
+}
+
+// =====================================================================
+// DÉROULÉ ↔ DEVIS (assets/deroule-devis.js)
+// =====================================================================
+// Relit le dossier pour avoir le devis le plus récent (il peut avoir été
+// modifié dans un autre onglet depuis l'ouverture du déroulé)
+async function chargerDossierFrais() {
+    const data = await SesquierUtils.fetchJson(`${API_URL}?id=${currentId}`);
+    const rec = data.records?.[0] || data;
+    currentRecord = rec;
+    const f = rec.fields || {};
+    let dossier = null;
+    try { dossier = f['DOSSIER JSON'] ? JSON.parse(f['DOSSIER JSON']) : null; } catch (e) {}
+    return { f, dossier };
+}
+
+function nouveauJour(dossier, nbJours) {
+    return i => {
+        const jour = { id: uid(), titre: i === 0 ? 'Arrivée & mise en route' : i === nbJours - 1 ? 'Clôture & départ' : 'Journée complète', labelDate: '', etapes: [] };
+        if (dossier?.sejour?.dateArrivee) {
+            const d = new Date(dossier.sejour.dateArrivee + 'T12:00:00');
+            d.setDate(d.getDate() + i);
+            jour.labelDate = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+        }
+        return jour;
+    };
+}
+
+async function genererDepuisDevis() {
+    if (!currentId) return;
+    let f, dossier;
+    try { ({ f, dossier } = await chargerDossierFrais()); }
+    catch (e) { alert('Impossible de relire le dossier : ' + e.message); return; }
+    if (!dossier?.financials?.lines?.some(l => l.type === 'pricing')) {
+        alert("Ce dossier n'a pas encore de devis enregistré : ouvrez le devis et enregistrez-le d'abord.");
+        return;
+    }
+    const dejaRempli = (state.jours || []).some(j => j.etapes?.length);
+    if (dejaRempli && !confirm("Mettre le déroulé à jour depuis le devis ?\n\n• Les étapes issues du devis prennent le tag et le prix du devis.\n• Les étapes dont la ligne a disparu du devis sont retirées.\n• Les étapes ajoutées à la main sont conservées.")) return;
+
+    const gen = DerouleDevis.genererEtapes(dossier);
+    state.jours = state.jours || [];
+    const stats = DerouleDevis.fusionner(state.jours, gen, nouveauJour(dossier, gen.nbJours));
+    renderEditor();
+    renderPreview();
+    await saveDeroule();
+
+    const resume = `Déroulé mis à jour depuis le devis : ${stats.ajoutees} étape(s) ajoutée(s), ${stats.misesAJour} mise(s) à jour`
+        + (stats.retirees ? `, ${stats.retirees} retirée(s) (ligne absente du devis)` : '')
+        + `, ${stats.conservees} étape(s) ajoutée(s) à la main conservée(s). Vérifiez les horaires.`;
+    afficherCoherence(DerouleDevis.verifier(state, dossier, f), resume);
+}
+
+async function verifierCoherence() {
+    if (!currentId) return;
+    let f, dossier;
+    try { ({ f, dossier } = await chargerDossierFrais()); }
+    catch (e) { alert('Impossible de relire le dossier : ' + e.message); return; }
+    afficherCoherence(DerouleDevis.verifier(state, dossier || {}, f), '');
+}
+
+function afficherCoherence(ecarts, resume) {
+    const nbErr = ecarts.filter(x => x.niveau === 'erreur').length;
+    const nbAtt = ecarts.length - nbErr;
+    document.getElementById('coh-resume').textContent = resume
+        || (ecarts.length ? `${nbErr} écart(s) à corriger, ${nbAtt} point(s) à vérifier.` : '');
+    document.getElementById('coh-body').innerHTML = ecarts.length
+        ? `<ul class="coh-list">${ecarts.map(x => `<li class="coh-item ${x.niveau}">
+               <i class="fa-solid ${x.niveau === 'erreur' ? 'fa-circle-xmark' : 'fa-triangle-exclamation'}"></i>
+               <span>${esc(x.texte)}</span></li>`).join('')}</ul>`
+        : '<div class="coh-ok"><i class="fa-solid fa-circle-check"></i> Aucun écart : le déroulé et le devis concordent.</div>';
+    document.getElementById('coh-overlay').classList.add('open');
+}
+
+function fermerCoherence() {
+    document.getElementById('coh-overlay').classList.remove('open');
 }
 
 // =====================================================================
