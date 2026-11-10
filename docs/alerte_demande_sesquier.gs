@@ -6,8 +6,9 @@
 //     Exécuter en tant que : Moi · Qui a accès : Tout le monde
 //   Mise à jour : Déployer > Gérer les déploiements > crayon > Version : Nouvelle version > Déployer
 //     (l'URL ne change pas, rien à modifier dans le Worker)
-//   Après l'ajout de versBoiteDeReception (09/11/2026) : lancer une fois testAlerte dans l'éditeur
-//     pour accepter la nouvelle autorisation Gmail, sinon les alertes restent dans « Envoyés ».
+//   Alertes déposées directement dans la boîte de réception (10/11/2026) : activer le service avancé
+//     « Gmail API » (Éditeur > Services > + > Gmail API > Ajouter), lancer une fois testAlerte pour
+//     accepter l'autorisation, puis publier une nouvelle version du déploiement.
 // L'URL du déploiement sert de clé : ne la partage pas.
 
 const DESTINATAIRE = 'contact@domainesesquier.com';
@@ -127,14 +128,41 @@ function envoyerAlerte(d, accuse) {
   </div>`;
 
   const sujet = `Nouvelle demande ${type} — ${d.nom_client} (${d.personnes} pers., ${date(d.date_arrivee)})`;
-  MailApp.sendEmail({
-    to: DESTINATAIRE,
-    replyTo: d.email || DESTINATAIRE,
-    subject: sujet,
-    htmlBody: html,
-    name: 'Domaine Sesquier — questionnaire',
-  });
-  versBoiteDeReception(sujet);
+  deposerAlerte({ sujet, html, replyTo: d.email, nom: 'Site Domaine Sesquier' });
+}
+
+// Alerte déposée directement dans la boîte de réception (API Gmail, service avancé « Gmail ») :
+// pas d'envoi à soi-même, donc ni « moi » comme expéditeur ni copie dans « Envoyés », et toujours non lue.
+// « Répondre » écrit au client (Reply-To). Si le service n'est pas activé : repli sur l'ancien envoi.
+const EXPEDITEUR_ALERTES = 'alertes@domainesesquier.com';
+function deposerAlerte(a) {
+  try {
+    const b64 = s => Utilities.base64Encode(s || '', Utilities.Charset.UTF_8).replace(/.{76}/g, '$&\r\n');
+    const entete = s => '=?UTF-8?B?' + Utilities.base64Encode(s, Utilities.Charset.UTF_8) + '?=';
+    const frontiere = 'sesquier-' + Utilities.getUuid();
+    const mime = [
+      `From: ${entete(a.nom)} <${EXPEDITEUR_ALERTES}>`,
+      `To: ${DESTINATAIRE}`,
+      `Reply-To: ${a.replyTo || DESTINATAIRE}`,
+      `Subject: ${entete(a.sujet)}`,
+      `Date: ${new Date().toUTCString()}`,
+      'MIME-Version: 1.0',
+      `Content-Type: multipart/alternative; boundary="${frontiere}"`,
+      '',
+      `--${frontiere}`, 'Content-Type: text/plain; charset=UTF-8', 'Content-Transfer-Encoding: base64', '',
+      b64(a.texte || a.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()),
+      `--${frontiere}`, 'Content-Type: text/html; charset=UTF-8', 'Content-Transfer-Encoding: base64', '',
+      b64(a.html),
+      `--${frontiere}--`, '',
+    ].join('\r\n');
+    Gmail.Users.Messages.insert({ raw: Utilities.base64EncodeWebSafe(mime), labelIds: ['INBOX', 'UNREAD'] }, 'me');
+    return true;
+  } catch (err) {
+    console.error('deposerAlerte, repli sur l\'envoi : ' + err);
+    MailApp.sendEmail({ to: DESTINATAIRE, replyTo: a.replyTo || DESTINATAIRE, subject: a.sujet, body: a.texte || '', htmlBody: a.html, name: a.nom });
+    versBoiteDeReception(a.sujet);
+    return false;
+  }
 }
 
 // Le script envoie depuis domainesesquier@gmail.com vers contact@, qui revient dans ce même Gmail :
@@ -215,15 +243,7 @@ function traiterLead(d) {
     <table cellpadding="6" style="border-collapse:collapse">${lignes.map(l => `<tr><td style="color:#6b7280">${esc(l[0])}</td><td>${esc(l[1])}</td></tr>`).join('')}</table>
     <p><a href="${TABLEAU_DE_BORD}?id=${encodeURIComponent(d.id || '')}">Ouvrir le dossier dans le tableau de bord</a></p></div>`;
   const sujet = `${m.titre} — ${d.nom_client || d.email || d.telephone}`;
-  MailApp.sendEmail({
-    to: DESTINATAIRE,
-    replyTo: d.email || DESTINATAIRE,
-    subject: sujet,
-    body: lignes.map(l => `${l[0]} : ${l[1]}`).join('\n'),
-    htmlBody: html,
-    name: 'Site Domaine Sesquier',
-  });
-  versBoiteDeReception(sujet);
+  deposerAlerte({ sujet, html, texte: lignes.map(l => `${l[0]} : ${l[1]}`).join('\n'), replyTo: d.email, nom: 'Site Domaine Sesquier' });
 }
 
 function envoyerMailLead(d, m) {
