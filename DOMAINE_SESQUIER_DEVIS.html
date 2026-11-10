@@ -1572,12 +1572,18 @@
         /**
          * Construit la grille de repas depuis le planning du dossier
          */
+        // La grille repas est une table imbriquée dans #pricing-body (un tbody) : un
+        // querySelectorAll('tbody tr') relatif attrapait aussi la ligne d'en-tête « Jour »,
+        // enregistrée comme 1er jour (« JOUR ») → grille décalée d'un jour au rechargement.
+        // On ignore cette entrée parasite dans les dossiers déjà enregistrés.
+        function estEnTeteGrille(d) { return String(d?.label || '').trim().toUpperCase() === 'JOUR'; }
+
         function addMealGridFromDossier(dossier) {
             if (!dossier || !dossier.sejour) return;
 
             // Source de vérité : nuits depuis le séjour (dérivées des dates),
             // PAS depuis la longueur de planning sauvegardée.
-            const planning = dossier.mealsPlanning || [];
+            const planning = (dossier.mealsPlanning || []).filter(d => !estEnTeteGrille(d));
             const s = dossier.sejour;
             const nights = (s.nights > 0)
                 ? s.nights
@@ -1722,7 +1728,7 @@
             const grid = document.querySelector('.meal-check-grid');
             if (!grid) return null;
             const state = [];
-            grid.querySelectorAll('tbody tr').forEach(tr => {
+            grid.querySelectorAll(':scope > tbody > tr').forEach(tr => {
                 const dayState = {};
                 tr.querySelectorAll('.check-wrapper').forEach(wrap => {
                     const key = wrap.getAttribute('data-meal-key');
@@ -1798,11 +1804,12 @@
             const gridState = captureMealGrid();
             if (!gridState || gridState.length === 0) return currentDossier?.mealsPlanning || [];
             const labels = [];
-            document.querySelector('.meal-check-grid')?.querySelectorAll('tbody tr').forEach(tr => {
+            document.querySelector('.meal-check-grid')?.querySelectorAll(':scope > tbody > tr').forEach(tr => {
                 labels.push(tr.cells[0]?.innerText?.trim() || '');
             });
+            const prevPlanning = (currentDossier?.mealsPlanning || []).filter(d => !estEnTeteGrille(d));
             return gridState.map((day, i) => {
-                const prev = currentDossier?.mealsPlanning?.[i]?.meals || {};
+                const prev = prevPlanning[i]?.meals || {};
                 return {
                     label: labels[i] || `Jour ${i + 1}`,
                     meals: {
@@ -2223,7 +2230,7 @@
             const grid = document.querySelector('.meal-check-grid');
             if (!grid) { updateCalculations(); return; }
             let fullDays = 0;
-            grid.querySelectorAll('tbody tr').forEach(row => {
+            grid.querySelectorAll(':scope > tbody > tr').forEach(row => {
                 const allFive = mealKeys.every(key => {
                     const wrap = row.querySelector(`.check-wrapper[data-meal-key="${key}"]`);
                     return wrap && wrap.classList.contains('is-checked');
