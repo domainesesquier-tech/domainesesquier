@@ -12,6 +12,8 @@ fallthrough = true
 [vars]
 ALLOWED_ORIGINS = "https://admin.domainesesquier.com,https://www.domainesesquier.com,https://domainesesquier.com"
 ENVIRONMENT = "production"
+# Alertes leads du site (estimation, brochure, rappel) : mail à Waël + mail au client via le script Google (NOTIF_URL)
+NOTIF_LEADS = "true"
 
 # Adresse de test V2 (npx wrangler deploy --env staging) → worker séparé « domainesesquier-api-v2 »
 # La prod (domainesesquier-api) n'est pas touchée. READ_ONLY=true : lectures réelles, écritures en bac à sable.
