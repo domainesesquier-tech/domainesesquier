@@ -350,7 +350,12 @@
 <script>
 'use strict';
 
-const API_BASE  = 'https://domainesesquier-api.domainesesquier.workers.dev/api';
+// Même règle que assets/utils.js (SesquierUtils.API_BASE) : local → wrangler dev, v2./*.pages.dev → Worker de test, sinon prod
+const API_BASE = (typeof SesquierUtils !== 'undefined' ? SesquierUtils.API_BASE
+  : location.hostname === 'localhost' ? 'http://localhost:8788'
+  : (location.hostname.startsWith('v2.') || location.hostname.endsWith('.pages.dev'))
+    ? 'https://domainesesquier-api-v2.domainesesquier.workers.dev'
+    : 'https://domainesesquier-api.domainesesquier.workers.dev') + '/api';
 const AUTH_KEY  = 'planning_auth';
 const AUTH_CODE = '2026';
 
