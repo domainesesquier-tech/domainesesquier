@@ -200,6 +200,13 @@ html.embed .wrap { padding: 12px 16px 32px; }
             <label class="choice"><input type="radio" name="profil" value="agence"><span>Une agence (événementiel, voyage)</span></label>
           </div>
         </fieldset>
+        <div id="bloc-contact0">
+          <div class="row">
+            <fieldset><label class="lab" for="email0">E-mail professionnel</label><input type="email" id="email0" name="email0" autocomplete="email" inputmode="email"><div class="err" data-err="email0"></div></fieldset>
+            <fieldset><label class="lab" for="tel0">Téléphone (facultatif)</label><input type="tel" id="tel0" name="tel0" autocomplete="tel"></fieldset>
+          </div>
+          <p class="hint">Pour vous envoyer votre devis, et reprendre votre demande si vous êtes interrompu.</p>
+        </div>
       </section>
 
       <!-- Étape 2 -->
@@ -622,6 +629,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
       else if (q.dateArrivee > dateMax) ok = erreur('dateArrivee', 'Date invalide (vérifiez l\'année).') && ok;
       if (q.dateDepart && q.dateDepart > dateMax) ok = erreur('dateDepart', 'Date invalide (vérifiez l\'année).') && ok;
       if (!q.journeeEtude && (!q.dateDepart || q.dateDepart <= q.dateArrivee)) ok = erreur('dateDepart', 'La date de départ doit suivre la date d\'arrivée.') && ok;
+      if (!ADMIN && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email0.value.trim())) ok = erreur('email0', 'Indiquez un e-mail valide pour recevoir votre devis.') && ok;
     }
     if (i === 0 && !ADMIN && q.segment !== 'seminaire' && q.dateDepart && (new Date(q.dateDepart) - new Date(q.dateArrivee)) / 86400000 < 2)
       ok = erreur('dateDepart', q.segment === 'mariage' ? 'Deux nuits minimum pour un mariage au domaine.' : 'Deux nuits minimum pour accueillir votre groupe.') && ok;
@@ -665,6 +673,31 @@ html.embed .wrap { padding: 12px 16px 32px; }
     const h = cur.querySelector('h2');
     if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
     remonter();
+  }
+
+  // Demande commencée : l'e-mail est demandé dès l'étape 1 et la demande est enregistrée (« à traiter », source « lead · partiel »)
+  // pour pouvoir relancer en cas d'abandon ; le Worker la supprime quand la demande complète arrive avec le même e-mail.
+  let leadId = null, leadEmail = '';
+  function reporterContact() {
+    const e = form.email0.value.trim(), t = form.tel0.value.trim();
+    if (e && (!form.email.value.trim() || form.email.value.trim() === leadEmail)) form.email.value = e;
+    if (t && !form.telephone.value.trim()) form.telephone.value = t;
+  }
+  function envoyerPartiel() {
+    const email = form.email0.value.trim();
+    if (ADMIN || !email || email === leadEmail || form.website.value) return;
+    if (leadEmail) leadId = null; // nouvelle adresse : nouveau dossier
+    leadEmail = email;
+    const q = reponses();
+    fetch(`${API_BASE}/api/public/lead`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kind: 'partiel', id: leadId, email, telephone: form.tel0.value.trim(), segment: q.segment, reponses: q,
+        estimation: derniere ? { ht: derniere.resultat.totaux.ht, par_personne_ht: derniere.resultat.par_personne.ht } : null,
+        origine: params.get('depuis') ? `domainesesquier.com · ${params.get('depuis').slice(0, 60)}` : (document.referrer || location.href),
+        hp: form.website.value, duree: Date.now() - debut
+      })
+    }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.id) leadId = j.id; }).catch(() => {});
   }
 
   async function envoyer() {
@@ -726,6 +759,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
 
   btnNext.addEventListener('click', () => {
     if (!valider(ordre()[etape])) return;
+    if (ordre()[etape] === 0 && !ADMIN) { reporterContact(); envoyerPartiel(); }
     if (etape < ordre().length - 1) afficher(etape + 1); else envoyer();
   });
   btnPrev.addEventListener('click', () => etape === 0 ? choisirProjet() : afficher(etape - 1));
@@ -785,6 +819,14 @@ html.embed .wrap { padding: 12px 16px 32px; }
   majFormat();
   if (parcoursConnu) afficher(0); else choisirProjet();
   window.scrollTo(0, 0);
+  if (ADMIN) document.getElementById('bloc-contact0').hidden = true;
+  // Pré-remplissage public depuis l'estimateur du site : liste fermée, jamais de coordonnées dans l'URL
+  if (!ADMIN) {
+    const pn = parseInt(params.get('participants'), 10), pf = params.get('format');
+    if (pn > 0 && pn <= 200) form.participants.value = pn;
+    if (['residentiel', 'etude'].includes(pf)) form.querySelectorAll('input[name="format"]').forEach(e => { e.checked = e.value === pf; });
+    if (pn || pf) { majFormat(); estimer(); }
+  }
   pret = true;
   if (form.dateArrivee.value) planifierDispo();
   // En iframe : la page parente ajuste la hauteur de l'iframe (pas de barre de défilement interne)

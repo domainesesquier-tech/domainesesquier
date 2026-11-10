@@ -76,6 +76,21 @@ async function sandboxFetch(env, path, init = {}) {
 
 async function sandboxFetchMem(env, path, init, method) {
   if (path.startsWith("/rpc/next_doc_number")) return ++SANDBOX.numero;
+  if (path.startsWith("/rpc/public_lead_convertir")) {
+    const b = JSON.parse(init.body || "{}");
+    for (const [k, r] of SANDBOX.reservations) {
+      if (["lead · partiel", "lead · estimation"].includes(r.suivi_source) && String(r.email).toLowerCase() === String(b.p_email).toLowerCase()) SANDBOX.reservations.delete(k);
+    }
+    return null;
+  }
+  if (path.startsWith("/rpc/public_lead")) {
+    const p = JSON.parse(init.body || "{}").p || {};
+    const old = SANDBOX.reservations.get(String(p.id));
+    if (old && !(String(old.suivi_source).startsWith("lead · ") && String(old.email).toLowerCase() === String(p.email).toLowerCase())) return null;
+    const { estimation_ht, segment, ...row } = p;
+    SANDBOX.reservations.set(String(p.id), { ...(old || {}), ...row, statut: "à traiter", created_at: old?.created_at || new Date().toISOString(), __new: true });
+    return null;
+  }
   if (path.startsWith("/rpc/public_demande")) {
     const p = JSON.parse(init.body || "{}").p || {};
     const pid = crypto.randomUUID();
@@ -366,6 +381,7 @@ const PUBLIC_ROUTES = [
   { path: "/api/public/disponibilites", methods: ["GET"] },
   { path: "/api/public/menu",           methods: ["GET"] },
   { path: "/api/public/demande",        methods: ["POST"] },
+  { path: "/api/public/lead",           methods: ["POST"] },
 ];
 
 function isPublicRoute(pathname, method) {
@@ -432,7 +448,7 @@ export default {
 
     // Copie de travail V2 : READ_ONLY=true → dossiers et calendrier en bac à sable (mémoire),
     // toute autre écriture est refusée. Rien n'est jamais écrit dans la base de production.
-    const SANDBOX_ROUTES = ["/api/reservations", "/api/planning", "/api/next-number", "/api/public/demande", "/api/ia/redaction"];
+    const SANDBOX_ROUTES = ["/api/reservations", "/api/planning", "/api/next-number", "/api/public/demande", "/api/public/lead", "/api/ia/redaction"];
     if (env.READ_ONLY === "true" && method !== "GET" && method !== "OPTIONS" && !SANDBOX_ROUTES.some(r => url.pathname.startsWith(r))) {
       return json({ error: { message: "Copie V2 en lecture seule : aucune écriture en base." } }, 403, env, requestOrigin);
     }
@@ -702,6 +718,9 @@ export default {
           estimation_ht: p.estimation?.ht ? Math.round(p.estimation.ht) : null,
         };
         await sbFetch(env, `/rpc/public_demande`, { method: "POST", body: JSON.stringify({ p: row }) });
+        // Demande commencée ou estimation faite avec le même e-mail : remplacées par cette demande complète
+        if (!interne) await sbFetch(env, `/rpc/public_lead_convertir`, { method: "POST", body: JSON.stringify({ p_email: row.email }) })
+          .catch(e => console.error("Leads convertis :", e.message));
         // Alerte à Waël + accusé de réception au client via Google Apps Script (NOTIF_URL = URL du déploiement web, secret Worker ; code : docs/alerte_demande_sesquier.gs).
         // Envoyée après l'enregistrement, sans bloquer la réponse ; un échec n'annule jamais la demande.
         // Saisie interne : Waël est déjà en contact, ni alerte ni accusé de réception.
@@ -719,6 +738,65 @@ export default {
           if (ctx && ctx.waitUntil) ctx.waitUntil(alerte); else await alerte;
         }
         return json({ ok: true }, 201, env, requestOrigin);
+      }
+
+      // Leads du site, avant la demande de devis : demande commencée (questionnaire), brochure, estimation, rappel.
+      // Dossier « à traiter » sans entrée de calendrier (rpc public_lead, migrations/2026-10_public_lead.sql).
+      // Alerte à Waël + mail au client par le script Google seulement si NOTIF_LEADS = "true" (script mis à jour) ;
+      // jamais pour une demande commencée (elle devient souvent une demande complète quelques minutes après).
+      if (url.pathname === "/api/public/lead" && method === "POST") {
+        const raw = await request.text();
+        if (raw.length > 12000) return json({ error: { message: "Demande trop volumineuse" } }, 413, env, requestOrigin);
+        let p;
+        try { p = JSON.parse(raw); } catch { return json({ error: { message: "JSON invalide" } }, 400, env, requestOrigin); }
+        const txt = (v, n = 200) => String(v ?? "").trim().slice(0, n);
+        const iso = v => /^\d{4}-\d{2}-\d{2}$/.test(v || "") ? v : null;
+        const kind = ["partiel", "brochure", "estimation", "rappel"].includes(p?.kind) ? p.kind : null;
+        if (!kind) return json({ error: { message: "Type de demande inconnu" } }, 400, env, requestOrigin);
+        if (p.hp || (typeof p.duree === "number" && p.duree < 2500)) return json({ ok: true }, 201, env, requestOrigin);
+        const email = txt(p.email), tel = txt(p.telephone, 40);
+        const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        if (kind === "rappel" ? tel.replace(/\D/g, "").length < 9 : !emailOk) {
+          return json({ error: { message: "Champs requis manquants" } }, 400, env, requestOrigin);
+        }
+        const q = p.reponses && typeof p.reponses === "object" ? p.reponses : {};
+        const nb = Math.max(0, Math.min(500, parseInt(q.participants ?? p.participants, 10) || 0));
+        const seg = ["groupe", "mariage"].includes(p.segment) ? p.segment : "seminaire";
+        const est = p.estimation && typeof p.estimation === "object" ? p.estimation : null;
+        const creneau = txt(p.creneau, 60), resume = txt(p.resume, 120);
+        const message = [
+          { partiel: "Demande commencée sur le questionnaire, pas encore envoyée.", brochure: "Brochure séminaire demandée sur le site.",
+            estimation: "Estimation de budget faite sur le site.", rappel: "Demande de rappel téléphonique." }[kind],
+          est?.min_pp && est?.max_pp ? `Estimation affichée : ${Math.round(est.min_pp)} à ${Math.round(est.max_pp)} € HT / pers.${resume ? ` (${resume})` : ""}` : "",
+          creneau ? `Créneau souhaité : ${creneau}` : "",
+        ].filter(Boolean).join("\n");
+        const id = kind === "partiel" && /^rec[A-Za-z0-9]{14}$/.test(p.id || "") ? p.id : newRecId();
+        const row = {
+          id,
+          nom_client: txt(p.organisation) || `${txt(p.prenom)} ${txt(p.nom)}`.trim() || email || tel,
+          entreprise: txt(p.organisation) || null,
+          prenom_contact: txt(p.prenom, 100), nom_contact: txt(p.nom, 100),
+          email, telephone: tel, segment: seg,
+          type: { seminaire: "Séminaire", groupe: "séjour de groupe", mariage: "mariage" }[seg],
+          date_arrivee: iso(q.dateArrivee), date_depart: q.journeeEtude ? iso(q.dateArrivee) : iso(q.dateDepart),
+          nombre_de_personnes: nb, message,
+          budget_estime: est?.ht ? `${Math.round(est.ht)} € HT (estimation ${kind === "partiel" ? "questionnaire" : "site"})` : null,
+          suivi_source: `lead · ${kind}`,
+          details_json: JSON.stringify({ type: seg === "seminaire" ? "pro" : "prive", source: "lead", lead: { kind, reponses: q, estimation: est, creneau, origine: txt(p.origine, 300) } }),
+          estimation_ht: est?.ht ? Math.round(est.ht) : null,
+        };
+        await sbFetch(env, `/rpc/public_lead`, { method: "POST", body: JSON.stringify({ p: row }) });
+        if (kind !== "partiel" && env.NOTIF_URL && env.NOTIF_LEADS === "true" && env.READ_ONLY !== "true") {
+          const alerte = fetch(env.NOTIF_URL, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lead: kind, id, segment: seg, nom_client: row.nom_client, prenom: row.prenom_contact, organisation: row.entreprise,
+              email, telephone: tel, personnes: nb, creneau, resume, estimation: est, origine: txt(p.origine, 300),
+            }),
+          }).catch(e => console.error("Alerte lead :", e.message));
+          if (ctx && ctx.waitUntil) ctx.waitUntil(alerte); else await alerte;
+        }
+        return json({ ok: true, id }, 201, env, requestOrigin);
       }
 
       if (url.pathname === "/api/public/menu" && method === "GET") {
