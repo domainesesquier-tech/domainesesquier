@@ -203,12 +203,10 @@ function rowToRecord(row) {
       'Message':                  row.message,
       'Budget estimé':            row.budget_estime,
       'Details JSON':             row.details_json,
-      'JSON Snapshot':            row.json_snapshot,
       'DOSSIER JSON':             row.dossier_json,
       'Timeline JSON':            row.timeline_json,
       'Rooming JSON':             row.rooming_json,
       'DEROULE JSON':             row.deroule_json,
-      'Cuisine JSON':             row.cuisine_json,
       'Notes':                    row.notes,
       'Motif refus':              row.motif_refus,
       'Motif refus détail':       row.motif_refus_detail,
@@ -226,7 +224,6 @@ function rowToRecord(row) {
       'Updated':                  row.updated_at,
       'planning_id':              row.planning_id,
       'Température':              row.temperature,
-      'Menage JSON':              row.menage_json,
       'Numeros JSON':             row.numeros_json,
     },
   };
@@ -259,7 +256,6 @@ const FIELD_MAP = {
   'Message':                  'message',
   'Budget estimé':            'budget_estime',
   'Details JSON':             'details_json',
-  'JSON Snapshot':            'json_snapshot',
   'DOSSIER JSON':             'dossier_json',
   'Timeline JSON':            'timeline_json',
   'Rooming JSON':             'rooming_json',
@@ -279,9 +275,7 @@ const FIELD_MAP = {
   'Acompte Montant':          'acompte_montant',
   'planning_id':              'planning_id',
   'Température':              'temperature',
-  'Menage JSON':              'menage_json',
   'Numeros JSON':             'numeros_json',
-  'Cuisine JSON':             'cuisine_json',
 };
 
 function fieldsToRow(fields) {
@@ -605,7 +599,7 @@ export default {
       // Volontairement minimales : seuls les champs strictement
       // nécessaires à l'affichage public sont renvoyés — jamais de
       // nom, téléphone, montant ou notes internes. Elles passent par
-      // des fonctions SQL dédiées (public_disponibilites, public_menu)
+      // des fonctions SQL dédiées (public_disponibilites)
       // pour que les tables elles-mêmes restent fermées au rôle anon.
 
       // Calendrier public : disponibilités du mois, rien d'autre.
