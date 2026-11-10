@@ -65,6 +65,10 @@
             animation-iteration-count: 3;
         }
         #btn-save-devis.has-changes:hover { background: #b45309 !important; }
+        /* Textes d'aide (« Ajouter une description… ») : jamais dans le PDF ni à l'impression */
+        body.is-exporting-pdf .row-subtitle:empty:before,
+        body.is-exporting-pdf .separator-label:empty::before { content: none !important; }
+        @media print { .row-subtitle:empty:before, .separator-label:empty::before { content: none !important; } }
         .row-subtitle:empty:before {
             content: attr(data-placeholder);
             color: #ccc;
@@ -1000,6 +1004,13 @@
         // Capter tous les types de modifications dans le devis (édition, drag, ajout, suppression)
         document.addEventListener('input',  (e) => { if (e.target.closest('#pdf-wrapper')) markDirty(); }, true);
         document.addEventListener('change', (e) => { if (e.target.closest('#pdf-wrapper')) markDirty(); }, true);
+        // Coller en texte brut : pas de mise en forme parasite (couleur, police) dans les lignes
+        document.addEventListener('paste', (e) => {
+            const el = e.target.closest?.('[contenteditable="true"]');
+            if (!el || !el.closest('#pdf-wrapper')) return;
+            e.preventDefault();
+            document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain'));
+        }, true);
         document.addEventListener('drop',   (e) => { if (e.target.closest('#pdf-wrapper')) markDirty(); }, true);
         // Alerte avant de quitter / rafraîchir
         window.addEventListener('beforeunload', (e) => {
@@ -1411,7 +1422,28 @@
             }
         }
 
+        // Référent affiché : le contact (prénom + nom) plutôt que le nom de l'organisation
+        function referentNom(c, fields) {
+            const contact = [fields?.['Prénom contact'], fields?.['Nom contact']].filter(Boolean).join(' ').trim();
+            const nom = (c?.fullName || '').trim();
+            const orgs = [c?.organisation, fields?.['Entreprise'], fields?.['Organisation']].map(s => (s || '').trim()).filter(Boolean);
+            if (contact && (!nom || orgs.includes(nom))) return contact;
+            return nom || contact || '—';
+        }
+
+        // Date du devis : celle du dernier enregistrement (meta.dateDevis), pas celle de l'ouverture
+        let dateDevisISO = null;
+        function dateDevis() { return dateDevisISO ? new Date(dateDevisISO + 'T12:00:00') : new Date(); }
+        function afficherDateDevis() {
+            const t = dateDevis().toLocaleDateString('fr-FR');
+            const el = document.getElementById('today-date');
+            if (el) el.innerText = t;
+            document.querySelectorAll('.devis-date-footer').forEach(e => e.innerText = 'Date : ' + t);
+        }
+
         function renderFromDossier(dossier, fields) {
+            dateDevisISO = dossier?.meta?.dateDevis || null;
+            afficherDateDevis();
             window._liveFields = fields;
             if (!dossier || !dossier.financials) {
                 console.warn('[renderFromDossier] Dossier incomplet, rendu annulé');
@@ -1441,7 +1473,7 @@
                 clientInfoEl.innerHTML =
                     `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; line-height:1.8;">
                         <tr><td style="opacity:0.65; width:45%; white-space:nowrap;">Organisation :</td><td><strong>${c.organisation || '—'}</strong></td></tr>
-                        <tr><td style="opacity:0.65; white-space:nowrap;">Nom du référent :</td><td>${c.fullName || '—'}</td></tr>
+                        <tr><td style="opacity:0.65; white-space:nowrap;">Nom du référent :</td><td>${referentNom(c, fields)}</td></tr>
                         <tr><td style="opacity:0.65; white-space:nowrap;">Mail :</td><td>${c.email || '—'}</td></tr>
                         <tr><td style="opacity:0.65; white-space:nowrap;">Téléphone :</td><td>${c.phone || '—'}</td></tr>
                     </table>`;
@@ -1673,7 +1705,7 @@
             const clientInfoEl = document.querySelector('.client-info');
             if (clientInfoEl) {
                 const org = fields["Entreprise"] || fields["Organisation"] || fields["Société"] || "";
-                const ref = fields["Nom client"] || fields["Référent"] || "";
+                const ref = referentNom({ fullName: fields["Référent"] || fields["Nom client"] || "", organisation: org }, fields);
                 const mail = fields["Email"] || "";
                 const tel = fields["Téléphone"] || "";
                 clientInfoEl.innerHTML =
@@ -2024,7 +2056,7 @@
             }
             const li = document.getElementById('cond-option');
             if (li) {
-                const d = new Date();
+                const d = dateDevis();
                 d.setDate(d.getDate() + 15);
                 li.innerHTML = `• <strong>Option :</strong> vos dates sont réservées jusqu'au ${d.toLocaleDateString('fr-FR')}, date de validité de ce devis.`;
                 li.style.display = '';
@@ -2043,7 +2075,10 @@
             if (seg === 'seminaire') {
                 const arr = fields["Date arrivée"] ? new Date(fields["Date arrivée"]) : null;
                 const jm = n => { if (!arr) return `J-${n}`; const d = new Date(arr); d.setDate(d.getDate() - n); return 'le ' + d.toLocaleDateString('fr-FR'); };
-                if (ef) ef.innerHTML = `• <strong>Effectif définitif :</strong> à confirmer par écrit au plus tard ${jm(30)} ; il sert de base à la facture de solde, toute absence ultérieure reste due.`;
+                // Effectif à J-30, mais jamais avant la fin de l'option (sinon date déjà passée à la signature)
+                const finOption = dateDevis(); finOption.setDate(finOption.getDate() + 15);
+                const jmEffectif = () => { if (!arr) return 'J-30'; const d = new Date(arr); d.setDate(d.getDate() - 30); return 'le ' + (d < finOption ? finOption : d).toLocaleDateString('fr-FR'); };
+                if (ef) ef.innerHTML = `• <strong>Effectif définitif :</strong> à confirmer par écrit au plus tard ${jmEffectif()} ; il sert de base à la facture de solde, toute absence ultérieure reste due.`;
                 if (rg) rg.innerHTML = `• <strong>Règlement :</strong> acompte de 30 % à la signature · solde sur facture, à régler au plus tard ${jm(7)}, avant l'arrivée · consommations sur place facturées après le séjour.`;
             }
             renderEcheancier();
@@ -2418,6 +2453,7 @@
                         // Le statut ne change qu'à l'envoi réel (« ✓ Devis envoyé » du panneau Mail client)
                         statut: (window._liveFields || currentRecord?.fields || {})['Statut'] || currentDossier?.meta?.statut || 'à traiter',
                         updatedAt: new Date().toISOString(),
+                        dateDevis: new Date().toLocaleDateString('sv-SE'), // AAAA-MM-JJ local : date d'émission de cette version
                         typeLabel: currentDossier?.meta?.typeLabel || baseFields['Type'] || 'Séminaire professionnel',
                         mode: currentDossier?.meta?.mode || 'pro',
                     },
@@ -2476,6 +2512,9 @@
                 _ignoreSelfUpdate = true; // Ne pas recharger après notre propre sauvegarde
                 SesquierUtils.broadcast('RECORD_UPDATED', { id: currentRequestId, fields: payload.fields });
                 markClean(); // ✅ Plus de modifications non sauvegardées
+                // Nouvelle version enregistrée : date du devis et date d'option à jour
+                dateDevisISO = dossier.meta.dateDevis; afficherDateDevis();
+                if (window._liveFields) renderSeminaireExtras(window._liveFields);
                 if (btn) btn.style.background = '#2D8B56';
                 setTimeout(() => { if (btn) btn.style.background = ''; }, 2000);
                 if (btn) { btn.innerText = "✅ Sauvegardé !"; btn.disabled = false; }
