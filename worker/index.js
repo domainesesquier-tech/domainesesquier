@@ -379,6 +379,7 @@ function menuRowToRecord(row) {
 const PUBLIC_ROUTES = [
   { path: "/api/health",                methods: ["GET"] },
   { path: "/api/public/disponibilites", methods: ["GET"] },
+  { path: "/api/public/disponibilites.ics", methods: ["GET"] },
   { path: "/api/public/menu",           methods: ["GET"] },
   { path: "/api/public/demande",        methods: ["POST"] },
   { path: "/api/public/lead",           methods: ["POST"] },
@@ -644,6 +645,61 @@ export default {
           },
         }));
         return json({ records }, 200, env, requestOrigin);
+      }
+
+      // Flux iCal des séjours confirmés (abonnement Google Agenda, Airbnb,
+      // Booking…). Journées entières, DTEND exclusif = jour du départ ;
+      // aucun nom ni type, seulement « Réservé ».
+      if (url.pathname === "/api/public/disponibilites.ics" && method === "GET") {
+        const debut = new Date(Date.now() - 180 * 86400000).toISOString().split("T")[0];
+        const rows = await sbFetch(env, `/rpc/public_disponibilites`, {
+          method: "POST",
+          body: JSON.stringify({ p_from: debut, p_to: null }),
+        }) || [];
+        const sansAccent = s => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+        const icsDate = d => d.replace(/-/g, "");
+        const lendemain = d => new Date(Date.parse(d + "T00:00:00Z") + 86400000).toISOString().split("T")[0];
+        const stamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+        const vus = {};
+        const lignes = [
+          "BEGIN:VCALENDAR",
+          "VERSION:2.0",
+          "PRODID:-//Domaine Sesquier//Disponibilites//FR",
+          "CALSCALE:GREGORIAN",
+          "METHOD:PUBLISH",
+          "X-WR-CALNAME:Domaine Sesquier - Réservations",
+          "X-WR-TIMEZONE:Europe/Paris",
+        ];
+        for (const row of rows) {
+          if (sansAccent(row.statut) !== "confirme") continue;
+          const arrivee = String(row.date_arrivee || "").slice(0, 10);
+          let depart = String(row.date_depart || "").slice(0, 10);
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(arrivee)) continue;
+          // Journée d'étude (départ = arrivée) ou départ manquant : un jour
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(depart) || depart <= arrivee) depart = lendemain(arrivee);
+          const cle = `${icsDate(arrivee)}-${icsDate(depart)}`;
+          vus[cle] = (vus[cle] || 0) + 1;
+          lignes.push(
+            "BEGIN:VEVENT",
+            `UID:${cle}-${vus[cle]}@domainesesquier.com`,
+            `DTSTAMP:${stamp}`,
+            `DTSTART;VALUE=DATE:${icsDate(arrivee)}`,
+            `DTEND;VALUE=DATE:${icsDate(depart)}`,
+            "SUMMARY:Réservé",
+            "TRANSP:OPAQUE",
+            "END:VEVENT",
+          );
+        }
+        lignes.push("END:VCALENDAR");
+        return new Response(lignes.join("\r\n") + "\r\n", {
+          status: 200,
+          headers: {
+            "Content-Type": "text/calendar; charset=utf-8",
+            "Content-Disposition": 'inline; filename="domaine-sesquier.ics"',
+            "Cache-Control": "public, max-age=900",
+            ...corsHeaders(env, requestOrigin),
+          },
+        });
       }
 
       // Menu client : nom + dates + planning repas d'UN dossier précis
