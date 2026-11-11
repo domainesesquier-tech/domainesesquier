@@ -3378,19 +3378,36 @@
             return Array.from(octets, o => alpha[o % alpha.length]).join('');
         }
 
-        function showEspace(id) {
+        // Le devis s'enregistre dans son propre cadre : on recharge le dossier avant d'afficher l'onglet
+        // (sinon le total vu ici reste celui d'avant l'édition du devis).
+        async function showEspace(id) {
             showPanel('panel-espace');
+            const box = document.getElementById('espace-inner');
+            if (!box.innerHTML.trim()) box.innerHTML = '<div class="rooming-card"><p class="rooming-texte">Chargement…</p></div>';
+            try {
+                const rep = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${id}`);
+                const idx = allRecords.findIndex(r => r.id === id);
+                if (rep?.records?.[0] && idx !== -1) allRecords[idx] = normalizeRecord(rep.records[0]);
+            } catch (e) { console.warn('[espace] rechargement du dossier :', e.message); }
+            if (activeRecordId === id && activeDocType === 'espace') { renderDossierTabs(id, allRecords.find(r => r.id === id)); renderEspace(id); }
+        }
+        function devisPret(f) {
+            if (f["Total TTC"] > 0) return true;
+            try { const fin = JSON.parse(f["DOSSIER JSON"] || '{}').financials || {}; return Number(fin.totalTTC) > 0 || (fin.lines || []).some(l => l.type === 'pricing'); }
+            catch (_) { return false; }
+        }
+        function renderEspace(id) {
             const record = allRecords.find(r => r.id === id);
             const f = record ? record.fields : {};
             const box = document.getElementById('espace-inner');
             const titre = '<div class="rooming-titre"><i class="fa-solid fa-user-check"></i> Espace client</div>';
             const url = lienEspace(f);
             if (!url) {
-                const sansDevis = !(f["Total TTC"] > 0);
+                const sansDevis = !devisPret(f);
                 box.innerHTML = `<div class="rooming-card">${titre}
                     <p class="rooming-texte">Un lien privé pour le client : récapitulatif et prix du devis, signature en ligne, IBAN, répartition des gîtes et infos d'arrivée. Pas de compte à créer.</p>
                     ${sansDevis ? '<p class="rooming-texte" style="color:var(--warning)">Prépare d\'abord le devis : l\'espace client reprend ses lignes et ses montants.</p>' : ''}
-                    <div class="rooming-actions"><button class="btn-etape" onclick="creerEspace('${id}')" ${sansDevis ? 'disabled' : ''}><i class="fa-solid fa-link"></i> Créer le lien de l'espace client</button></div>
+                    <div class="rooming-actions"><button class="btn-etape" id="btn-creer-espace" onclick="creerEspace('${id}')"><i class="fa-solid fa-link"></i> Créer le lien de l'espace client</button></div>
                 </div>`;
                 return;
             }
@@ -3431,17 +3448,13 @@
         }
 
         async function creerEspace(id) {
+            const btn = document.getElementById('btn-creer-espace');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création du lien…'; }
             await fastUpdateRecord(id, 'Espace clé', nouvelleCleEspace());
             showEspace(id);
             renderDossierTabs(id, allRecords.find(r => r.id === id));
         }
-        async function rafraichirEspace(id) {
-            const rep = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${id}`);
-            const idx = allRecords.findIndex(r => r.id === id);
-            if (rep?.records?.[0] && idx !== -1) allRecords[idx] = normalizeRecord(rep.records[0]);
-            renderDossierBar(id);
-            showEspace(id);
-        }
+        function rafraichirEspace(id) { renderDossierBar(id); showEspace(id); }
         async function desactiverEspace(id) {
             if (!confirm('Désactiver ce lien ? Le client ne pourra plus ouvrir son espace (la signature reste enregistrée).')) return;
             await fastUpdateRecord(id, 'Espace clé', null);
