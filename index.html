@@ -3422,6 +3422,8 @@
                 </div>
                 <div class="rooming-url">${escapeHtml(url)}</div>
 
+                ${blocMessageEspace(record, url)}
+
                 <div class="rooming-titre" style="margin-top:8px"><i class="fa-solid fa-signature"></i> Signature</div>
                 ${sig ? `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
                         ${sig.image ? `<img src="${escapeHtml(sig.image)}" alt="Signature" style="max-width:180px;max-height:64px;border:1px solid var(--border);border-radius:8px;background:#fff">` : ''}
@@ -3445,6 +3447,43 @@
 
                 <div class="rooming-actions" style="margin-top:6px"><button class="btn-lien" onclick="desactiverEspace('${id}')">Désactiver le lien</button></div>
             </div>`;
+        }
+
+        // Message prêt à envoyer avec le lien (vouvoiement, signé par la bonne personne selon la société émettrice)
+        function messageEspace(record, url) {
+            const f = record.fields || {};
+            let d = {}; try { d = JSON.parse(f['DOSSIER JSON'] || '{}'); } catch (_) {}
+            const seminaire = record.segment === 'seminaire' || (d.companyProfile || '') === 'foudre';
+            const fmt = v => v ? new Date(String(v).slice(0, 10) + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '';
+            const annee = f["Date départ"] ? String(f["Date départ"]).slice(0, 4) : '';
+            const acompte = Number(f['Acompte Montant']) || Number(d.financials?.acompte30) || 0;
+            const prenom = (f['Prénom contact'] || '').trim();
+            const doc = seminaire ? 'le devis' : 'le contrat de location';
+            return [
+                `Bonjour${prenom ? ' ' + prenom : ''},`, '',
+                `Votre espace pour ${seminaire ? 'votre séminaire' : 'votre séjour'} au Domaine Sesquier${f["Date arrivée"] ? ` du ${fmt(f["Date arrivée"])} au ${fmt(f["Date départ"])} ${annee}` : ''} est prêt :`,
+                url, '',
+                `Vous y trouverez le récapitulatif et le prix, et vous pourrez signer ${doc} en ligne en deux minutes.`
+                + ` L'IBAN pour l'acompte${acompte ? ' de ' + acompte.toLocaleString('fr-FR') + ' €' : ''} y figure aussi, ainsi qu'un formulaire pour nous dire qui dort où et à quelle heure vous arrivez.`, '',
+                'Ce lien est personnel : gardez-le, il vous servira jusqu’à votre arrivée.', '',
+                'À très vite,',
+                seminaire ? 'Waël' : 'Najat et Noureddine',
+                'Domaine Sesquier',
+            ].join('\n');
+        }
+        function blocMessageEspace(record, url) {
+            const msg = messageEspace(record, url);
+            const mail = (record.email || '').trim();
+            let wa = (record.phone || '').replace(/\D/g, '');
+            if (wa.length === 10 && wa.startsWith('0')) wa = '33' + wa.slice(1);
+            return `<div class="rooming-titre" style="margin-top:8px"><i class="fa-regular fa-paper-plane"></i> Message pour le client</div>
+                <textarea id="espace-message" rows="9" style="width:100%;font:inherit;font-size:13px;padding:10px;border:1px solid var(--border);border-radius:10px;resize:vertical">${escapeHtml(msg)}</textarea>
+                <div class="rooming-actions">
+                    <button class="btn-secondaire" onclick="navigator.clipboard.writeText(document.getElementById('espace-message').value).then(() => showSyncBanner('Message copié'))"><i class="fa-regular fa-copy"></i> Copier le message</button>
+                    ${mail ? `<a class="btn-secondaire" href="mailto:${escapeHtml(mail)}?subject=${encodeURIComponent('Votre espace client — Domaine Sesquier')}&body=${encodeURIComponent(msg)}"><i class="fa-regular fa-envelope"></i> Ouvrir dans un mail</a>` : ''}
+                    ${wa.length >= 10 ? `<a class="btn-secondaire" href="https://wa.me/${wa}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : ''}
+                </div>
+                <p class="rooming-texte" style="font-size:12px">Tu peux modifier le texte avant de le copier. Le mail et WhatsApp s'ouvrent avec le message d'origine.</p>`;
         }
 
         async function creerEspace(id) {

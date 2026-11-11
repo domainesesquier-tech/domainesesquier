@@ -72,6 +72,14 @@
   .signe img { max-width: 220px; max-height: 80px; border: 1px solid var(--ligne); border-radius: 8px; background: #fff; }
   .gite { border-bottom: 1px solid var(--ligne); padding-bottom: 8px; }
   .etat { text-align: center; padding: 80px 16px; color: var(--doux); }
+  .prochaine { background: var(--nuit); color: #fff; border-radius: 16px; padding: 22px; margin-top: 16px; }
+  .prochaine .k { color: var(--sauge); }
+  .prochaine h2 { color: #fff; font-size: 24px; margin: 4px 0 6px; }
+  .prochaine p { margin: 0 0 14px; color: #E3E8D6; }
+  .prochaine .bouton { background: var(--sauge); border-color: #fff; color: #fff; }
+  .essentiel { margin: 0 0 12px; padding-left: 20px; }
+  .essentiel li { margin-bottom: 4px; }
+  .cap { font-weight: 400; color: var(--doux); }
   .pied { margin-top: 28px; font-size: 13px; color: var(--doux); text-align: center; }
   .imprimer-seul { display: none; }
   @media (max-width: 520px) { .ligne-2, .ligne-3 { grid-template-columns: 1fr; } .carte { padding: 18px; } }
@@ -111,6 +119,39 @@ const EMETTEURS = {
 };
 const ADRESSE = '4 plan du Sesquier, 34140 Mèze';
 const GITES = ['Acacia', 'Hibiscus', 'Pivoine', 'Belle de nuit', 'Iris', 'Rose', 'Figuier', 'Jasmin', 'Clos Josette', 'Sous les toits'];
+const CAPACITE = { 'Acacia': 'jusqu’à 6 personnes', 'Hibiscus': 'jusqu’à 8 personnes', 'Pivoine': 'jusqu’à 4 personnes',
+  'Belle de nuit': 'jusqu’à 6 personnes', 'Iris': 'jusqu’à 4 personnes', 'Rose': 'jusqu’à 4 personnes', 'Figuier': 'jusqu’à 2 personnes',
+  'Jasmin': 'jusqu’à 4 personnes', 'Clos Josette': 'jusqu’à 2 personnes', 'Sous les toits': 'la maison, 4 chambres' };
+
+// « Prochaine étape » : une seule chose à faire, selon l'avancement (signature → acompte → infos → arrivée)
+function blocProchaineEtape(s, doc, gites) {
+  const sig = s.espace?.signature, m = montants(s);
+  const fini = s.depart && dt(s.depart) < new Date(new Date().toDateString());
+  let k = 'Prochaine étape', titre, texte, lien, bouton;
+  if (fini) { k = 'Merci'; titre = 'Merci pour votre venue au domaine'; texte = 'Nous espérons vous revoir bientôt. Votre ' + doc + ' signé reste disponible sur cette page.'; }
+  else if (!sig) { titre = `Signer le ${doc}`; texte = `Relisez le récapitulatif ci-dessous, puis signez en bas de page : cela prend deux minutes. Vos dates sont bloquées dès la signature.`; lien = '#carte-signature'; bouton = 'Aller à la signature'; }
+  else if (!s.acompte_paye) { titre = `Virer l’acompte de ${eur(m.acompte)}`; texte = `Merci, le ${doc} est signé. Votre séjour est définitivement confirmé dès réception de l’acompte.`; lien = '#t-paiements'; bouton = 'Voir l’IBAN'; }
+  else if (!s.espace?.maj_client) { titre = gites.length ? 'Nous dire qui dort où' : 'Préparer votre arrivée'; texte = 'Tout est en ordre, merci ! Il nous manque juste quelques informations pour bien vous accueillir.'; lien = gites.length ? '#carte-repartition' : '#carte-infos'; bouton = 'Compléter'; }
+  else { k = 'Tout est prêt'; titre = `À bientôt, le ${dCourt(s.arrivee)} !`; texte = 'Tout est en ordre de votre côté. Vous pouvez encore modifier vos informations ci-dessous jusqu’à votre arrivée.'; }
+  return `<section class="prochaine ecran-seul" aria-labelledby="t-prochaine"><div class="k">${k}</div><h2 id="t-prochaine">${titre}</h2><p>${texte}</p>${lien ? `<a class="bouton" href="${lien}">${bouton}</a>` : ''}</section>`;
+}
+
+// L'essentiel des conditions, lisible sans rien déplier
+function blocEssentiel(s) {
+  const seg = segmentOf(s);
+  const items = seg === 'seminaire' ? [
+    `Effectif définitif à confirmer au plus tard le ${avant(s.arrivee, 30)}`,
+    `Acompte de 30 % à la signature, solde sur facture au plus tard le ${avant(s.arrivee, 7)}`,
+    'Annulation : acompte conservé, puis 50 % à J-29, 75 % à J-14 et 100 % à 7 jours ou moins',
+    'Chambres dès 15 h le jour d’arrivée, libérées à 11 h le jour du départ',
+  ] : [
+    'Arrivée dès 15 h, départ avant 11 h',
+    `Dépôt de garantie de ${eur(seg === 'mariage' ? 2000 : 1000)}, non encaissé, rendu après l’état des lieux`,
+    'Annulation plus de 15 jours avant : seul l’acompte est conservé ; ensuite, le total est dû',
+    'Pas de musique dehors après 22 h, gîtes non-fumeurs',
+  ];
+  return `<ul class="essentiel">${items.map(i => `<li>${i}</li>`).join('')}</ul>`;
+}
 
 // ── Outils ──
 const $ = s => document.querySelector(s);
@@ -178,7 +219,8 @@ function montants(s) {
 
 function blocPaiements(s, em) {
   const seg = segmentOf(s), m = montants(s);
-  const acompteTag = s.acompte_paye ? '<span class="tag ok">reçu, merci</span>' : '<span class="tag attente">à régler à la signature</span>';
+  const acompteTag = s.acompte_paye ? '<span class="tag ok">reçu, merci</span>'
+    : `<span class="tag attente">${s.espace?.signature ? 'à régler maintenant' : 'à régler à la signature'}</span>`;
   let lignes = `<tr><td>Acompte ${acompteTag}</td><td class="n">${eur(m.acompte)}</td></tr>`;
   if (seg === 'mariage' && m.total) {
     const deuxieme = Math.round(m.total * 40) / 100;
@@ -236,6 +278,8 @@ function rendre() {
     <p class="chapo">${s.arrivee ? `Votre séjour du ${dLong(s.arrivee)} au ${dLong(s.depart)}` : 'Votre séjour au Domaine Sesquier'}</p>
     <ul class="etapes ecran-seul" aria-label="Où en est votre réservation">${etapes.map(([t, ok]) => `<li class="${ok ? 'fait' : ''}">${t}</li>`).join('')}</ul>
 
+    ${blocProchaineEtape(s, doc, gites)}
+
     ${s.dossier?.motAccueil ? `<section class="carte"><p style="margin:0;white-space:pre-line">${esc(s.dossier.motAccueil)}</p></section>` : ''}
 
     <section class="carte" aria-labelledby="t-sejour">
@@ -245,7 +289,7 @@ function rendre() {
         <div><div class="k">Départ</div><div class="v">${s.depart ? dCourt(s.depart) : '—'}</div><div class="s">avant 11 h${nuits ? ` · ${nuits} nuit${nuits > 1 ? 's' : ''}` : ''}</div></div>
         <div><div class="k">Personnes</div><div class="v">${s.personnes || '—'}</div><div class="s">au maximum</div></div>
       </div>
-      ${gites.length ? `<h3>Gîtes</h3><p style="margin:0">${gites.map(esc).join(' · ')}</p>` : ''}
+      ${gites.length ? `<h3>${gites.length} gîte${gites.length > 1 ? 's' : ''}</h3><p style="margin:0">${gites.map(g => `${esc(g)} <span class="cap">(${CAPACITE[g] || ''})</span>`).join(' · ')}</p>` : ''}
       ${salles.length ? `<h3>Salles</h3><p style="margin:0">${salles.map(esc).join(' · ')}</p>` : ''}
     </section>
 
@@ -261,7 +305,9 @@ function rendre() {
 
     <section class="carte" aria-labelledby="t-conditions">
       <h2 id="t-conditions">${doc === 'devis' ? 'Conditions du devis' : 'Conditions de location'}</h2>
-      <p class="s ecran-seul" style="margin-top:0">Touchez un titre pour lire le détail.</p>
+      <h3 style="margin-top:0">L’essentiel</h3>
+      ${blocEssentiel(s)}
+      <p class="s ecran-seul">Le détail, point par point (touchez un titre pour l’ouvrir) :</p>
       ${blocConditions(s)}
     </section>
 
@@ -273,6 +319,7 @@ function rendre() {
           <div><span class="tag ok">Signé</span><br>par <strong>${esc(sig.nom)}</strong><br>le ${new Date(sig.le).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}</div>
         </div>
         <p class="s">Empreinte du document : ${esc(String(sig.empreinte || '').slice(0, 16))}… · conditions ${esc(sig.version || '')}</p>
+        <p class="s ecran-seul">Ce lien reste valable : vous retrouverez ici votre ${doc} signé à tout moment.</p>
         <div class="actions ecran-seul"><button type="button" onclick="window.print()">Imprimer ou enregistrer en PDF</button></div>`
       : `
         <form id="form-signature" novalidate>
@@ -300,7 +347,7 @@ function rendre() {
       <p class="s" style="margin-top:0">Indiquez les prénoms par gîte : nous préparons les lits en conséquence. Vous pouvez revenir modifier jusqu’à l’arrivée.</p>
       ${s.rooming ? `<p><a class="bouton" href="${esc(s.rooming)}" target="_blank" rel="noopener">Remplir la fiche des chambres</a></p>` : ''}
       <form id="form-repartition">
-        ${gites.map((g, i) => `<div class="gite"><label for="rep-${i}">${esc(g)}</label>
+        ${gites.map((g, i) => `<div class="gite"><label for="rep-${i}">${esc(g)} <span class="cap">· ${CAPACITE[g] || ''}</span></label>
           <textarea id="rep-${i}" data-gite="${esc(g)}" rows="2" placeholder="Prénoms des personnes">${esc(s.espace?.repartition?.[g] || '')}</textarea></div>`).join('')}
         <div class="actions"><button type="submit" class="plein">Enregistrer la répartition</button></div>
         <div class="message" id="rep-message" role="status"></div>
@@ -309,6 +356,7 @@ function rendre() {
 
     <section class="carte" id="carte-infos" aria-labelledby="t-infos">
       <h2 id="t-infos">Pour bien vous accueillir</h2>
+      <p class="s" style="margin-top:0">Tout est facultatif, et vous pourrez revenir modifier ces informations jusqu’à votre arrivée.</p>
       <form id="form-infos">
         <div class="ligne-2">
           <div><label for="inf-heure">Heure d’arrivée prévue</label><input type="time" id="inf-heure" value="${esc(s.espace?.infos?.heure_arrivee || '')}"></div>
@@ -330,6 +378,13 @@ function rendre() {
 
     <section class="carte" aria-labelledby="t-pratique">
       <h2 id="t-pratique">Infos pratiques</h2>
+      <h3 style="margin-top:0">À savoir avant de venir</h3>
+      <ul class="essentiel">
+        <li>Parking sur place, eau, chauffage et internet compris</li>
+        <li>Serviettes de piscine non fournies : pensez à les apporter</li>
+        <li>Le domaine est sur fosse septique : rien d’autre que du papier dans les toilettes</li>
+        <li>Zone à risque d’incendie : on fume dehors, avec un cendrier</li>
+      </ul>
       <p style="margin:0"><strong>Adresse :</strong> ${ADRESSE}<br>
       <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Domaine Sesquier ' + ADRESSE)}" target="_blank" rel="noopener">Ouvrir l’itinéraire</a></p>
       <p><strong>Nous joindre :</strong> ${em.contacts.map(([n, t]) => `${n} <a href="tel:${t.replace(/\s/g, '')}">${t}</a>`).join(' · ')}<br>
@@ -413,6 +468,8 @@ async function envoyerInfos(e) {
     S.espace = { ...S.espace, repartition, infos, maj_client: new Date().toISOString() };
     msg.className = 'message ok'; msg.textContent = 'C’est enregistré, merci !';
     document.querySelectorAll('.etapes li')[2]?.classList.add('fait');
+    const pe = document.querySelector('.prochaine');
+    if (pe) pe.outerHTML = blocProchaineEtape(S, segmentOf(S) === 'seminaire' ? 'devis' : 'contrat', (S.logements || []).filter(l => GITES.includes(l)));
   } catch (err) {
     msg.className = 'message erreur'; msg.textContent = err.message;
   }
