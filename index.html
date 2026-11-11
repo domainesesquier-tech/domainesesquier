@@ -2493,7 +2493,7 @@
     <div class="sidebar" id="sidebar">
         <div class="logo-area">
             <h1>Domaine Sesquier</h1>
-            <p>Gestion Séminaires</p>
+            <p>Gîtes · Mariages · Séminaires</p>
         </div>
 
         <ul class="nav-list">
@@ -3067,7 +3067,12 @@
                 loadAllRecords(true);
             } else {
                 const planningParam = urlParams.get('planning');
+                // ?vue=… (liens du menu du planning, du ménage et des archives) : ouvre directement la bonne liste
+                const vueParam = urlParams.get('vue');
                 loadAllRecords().then(() => {
+                    const NAV_VUE = { seminaire: 'nav-dossiers', groupe: 'nav-groupes', mariage: 'nav-mariages', tous: 'nav-dossiers-titre' };
+                    if (NAV_VUE[vueParam]) showSegment(vueParam, document.getElementById(NAV_VUE[vueParam]));
+                    else if (vueParam === 'afaire') showAFaire();
                     if (!planningParam) return;
                     const r = allRecords.find(x => x._raw?.fields?.['planning_id'] === planningParam);
                     if (r) openDossier(r.id);
