@@ -830,6 +830,23 @@ export default {
               const m = { deja_signe: "Ce document est déjà signé.", annule: "Cette réservation est annulée." }[out?.erreur] || "Signature impossible, réessayez.";
               return json({ error: { message: m } }, 409, env, requestOrigin);
             }
+            // Alerte « document signé » (script Google NOTIF_URL) : contact@, plus copie au père pour les dossiers OZZA
+            if (env.NOTIF_URL && env.READ_ONLY !== "true") {
+              const t = String(sejour.type || "").toLowerCase();
+              const emetteur = sejour.dossier?.companyProfile
+                || ((!t || t.includes("séminaire") || t.includes("pro")) ? "foudre" : "ozza");
+              const f = sejour.dossier?.financials || {};
+              const alerte = fetch(env.NOTIF_URL, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  evenement: "signature", id: out.id, emetteur, signataire: nom,
+                  nom_client: sejour.nom_client, type: sejour.type,
+                  date_arrivee: sejour.arrivee, date_depart: sejour.depart, personnes: sejour.personnes,
+                  total_ttc: f.totalTTC || null, acompte: sejour.acompte_montant || f.acompte30 || null,
+                }),
+              }).catch(e => console.error("Alerte signature :", e.message));
+              if (ctx && ctx.waitUntil) ctx.waitUntil(alerte); else await alerte;
+            }
             return json({ ok: true, empreinte }, 200, env, requestOrigin);
           }
 

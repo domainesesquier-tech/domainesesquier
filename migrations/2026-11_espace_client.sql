@@ -86,7 +86,7 @@ begin
     update public.planning set statut = 'Confirmé'
      where id::text = r.planning_id::text and coalesce(statut, '') not in ('Annulé', 'Archivé');
   end if;
-  return jsonb_build_object('ok', true);
+  return jsonb_build_object('ok', true, 'id', r.id);  -- id : pour l'alerte mail, le Worker ne le renvoie pas au client
 end
 $$;
 

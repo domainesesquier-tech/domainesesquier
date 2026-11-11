@@ -32,6 +32,7 @@ const dateLongue = (v, annee) => {
 function doPost(e) {
   const d = JSON.parse(e.postData.contents || '{}');
   if (d.lead) { traiterLead(d); return ContentService.createTextOutput('ok'); }
+  if (d.evenement === 'signature') { alerteSignature(d); return ContentService.createTextOutput('ok'); }
   const accuse = d.email ? envoyerAccuse(d) : false;
   envoyerAlerte(d, accuse);
   return ContentService.createTextOutput('ok');
@@ -178,6 +179,42 @@ function versBoiteDeReception(sujet) {
   } catch (err) {
     console.error('versBoiteDeReception : ' + err);
   }
+}
+
+// ── Signature dans l'espace client « Mon séjour » (Worker, route /api/public/sejour/signer, 11/11/2026) ──
+// Alerte déposée dans contact@ pour tous les dossiers ; copie envoyée au père pour les dossiers OZZA (gîtes, groupes, mariages).
+const COPIE_OZZA = 'smali@domainesesquier.com';
+function alerteSignature(d) {
+  const doc = d.emetteur === 'foudre' ? 'Devis' : 'Contrat';
+  const euros = v => v ? Number(v).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' € TTC' : '—';
+  const lignes = [
+    ['Client', d.nom_client],
+    ['Signé par', d.signataire],
+    ['Le', Utilities.formatDate(new Date(), 'Europe/Paris', "dd/MM/yyyy 'à' HH'h'mm")],
+    ['Dates', date(d.date_arrivee) + ' → ' + date(d.date_depart)],
+    ['Personnes', d.personnes || '—'],
+    ['Total', euros(d.total_ttc)],
+    ['Acompte attendu', euros(d.acompte)],
+    ['Société', d.emetteur === 'foudre' ? 'Foudre Society' : 'OZZA'],
+  ].map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;color:#6b7280">${k}</td><td style="padding:4px 0"><b>${esc(v)}</b></td></tr>`).join('');
+  const lien = TABLEAU_DE_BORD + '?id=' + encodeURIComponent(d.id || '');
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1f2a1c">
+    <h2 style="color:#2C4226;margin:0 0 12px">✓ ${doc} signé en ligne : ${esc(d.nom_client)}</h2>
+    <table>${lignes}</table>
+    <p style="margin-top:16px">Le dossier est passé en « devis signé » et le séjour en « Confirmé » au planning.<br>
+    Prochaine étape : vérifier l'arrivée de l'acompte, puis cocher « Acompte reçu » dans l'onglet Espace client du dossier.</p>
+    <p><a href="${esc(lien)}" style="color:#2C4226">Ouvrir le dossier</a></p>
+  </div>`;
+  const sujet = `✓ ${doc} signé — ${d.nom_client} (${date(d.date_arrivee)})`;
+  deposerAlerte({ sujet, html, nom: 'Espace client Sesquier' });
+  if (d.emetteur !== 'foudre' && COPIE_OZZA) {
+    MailApp.sendEmail({ to: COPIE_OZZA, subject: sujet, htmlBody: html, body: html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(), name: 'Domaine Sesquier' });
+  }
+}
+// Test depuis l'éditeur : alerte dans contact@ seulement (émetteur Foudre, donc pas de copie OZZA).
+function testSignature() {
+  alerteSignature({ evenement: 'signature', id: 'recTEST', emetteur: 'foudre', signataire: 'Test Claude', nom_client: 'TEST signature',
+    date_arrivee: '2027-03-12', date_depart: '2027-03-14', personnes: 20, total_ttc: 4300, acompte: 1290 });
 }
 
 // Pour tester depuis l'éditeur (bouton Exécuter sur cette fonction) : alerte + accusé envoyés à DESTINATAIRE.
