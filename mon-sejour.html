@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Mon séjour — Domaine Sesquier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --vert: #2D4A30; --nuit: #131E13; --texte: #333; --doux: #6B7360; --sauge: #9BAA90;
+    --fond: #F7F3EF; --fond-2: #EDF0E4; --blanc: #fff; --ligne: #DDE2D2; --alerte: #B46E53; --ok: #2D6A4F;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fond); color: var(--texte); font-family: 'Hanken Grotesk', sans-serif; font-size: 16px; line-height: 1.5; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 20px 16px 64px; }
+  h1, h2, h3 { font-family: 'Newsreader', serif; font-weight: 500; color: var(--vert); letter-spacing: -0.01em; margin: 0; }
+  h1 { font-size: clamp(30px, 7vw, 44px); line-height: 1.05; }
+  h2 { font-size: 24px; margin-bottom: 12px; }
+  h3 { font-size: 18px; margin: 14px 0 4px; }
+  a { color: var(--vert); }
+  .marque { font-family: 'Newsreader', serif; font-size: 18px; color: var(--vert); margin-bottom: 18px; }
+  .chapo { font-size: 18px; color: var(--nuit); margin: 10px 0 0; }
+  .etapes { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 8px; padding: 0; list-style: none; }
+  .etapes li { border: 1px solid var(--nuit); border-radius: 100px; padding: 6px 14px; font-size: 14px; background: var(--blanc); }
+  .etapes li.fait { background: var(--vert); border-color: var(--vert); color: #fff; }
+  .etapes li.fait::before { content: '✓ '; }
+  .carte { background: var(--blanc); border: 1px solid var(--ligne); border-radius: 16px; padding: 22px; margin-top: 16px; }
+  .grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .k { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--doux); }
+  .v { font-family: 'Newsreader', serif; font-size: 22px; color: var(--vert); line-height: 1.2; }
+  .s { font-size: 14px; color: var(--doux); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  td { padding: 7px 0; border-bottom: 1px solid var(--ligne); vertical-align: top; }
+  td.n { text-align: right; white-space: nowrap; padding-left: 12px; }
+  tr.cat td { font-weight: 700; color: var(--vert); border-bottom: none; padding-top: 14px; }
+  tr.total td { font-weight: 700; font-size: 17px; border-top: 1px solid var(--nuit); border-bottom: none; }
+  tr.sous td { color: var(--doux); font-size: 14px; }
+  .qte { color: var(--doux); font-size: 13px; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 100px; padding: 2px 10px; }
+  .tag.ok { background: var(--ok); color: #fff; }
+  .tag.attente { background: var(--fond-2); color: var(--vert); }
+  .iban { background: var(--fond-2); border-radius: 12px; padding: 12px 14px; font-size: 14px; margin-top: 12px; word-break: break-word; }
+  details { border-top: 1px solid var(--ligne); padding: 10px 0; }
+  details:last-child { border-bottom: 1px solid var(--ligne); }
+  summary { cursor: pointer; font-weight: 600; color: var(--nuit); }
+  details p, details li { font-size: 15px; }
+  label { display: block; font-weight: 600; font-size: 14px; margin: 12px 0 4px; }
+  input[type=text], input[type=tel], input[type=time], input[type=number], textarea {
+    width: 100%; font: inherit; font-size: 16px; padding: 10px 12px; border: 1px solid #B9C0AE; border-radius: 10px; background: #fff; color: var(--texte);
+  }
+  textarea { min-height: 64px; resize: vertical; }
+  input:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible, canvas:focus-visible { outline: 3px solid var(--sauge); outline-offset: 2px; }
+  .ligne-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ligne-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .case { display: flex; gap: 10px; align-items: flex-start; font-weight: 500; font-size: 15px; margin-top: 14px; }
+  .case input { width: 22px; height: 22px; margin-top: 1px; flex-shrink: 0; accent-color: var(--vert); }
+  .pad { position: relative; margin-top: 6px; }
+  canvas { width: 100%; height: 170px; border: 1px dashed var(--doux); border-radius: 12px; background: #fff; touch-action: none; display: block; }
+  .pad .aide-pad { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; color: #B0B6A5; pointer-events: none; font-size: 15px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
+  button, .bouton { font: inherit; font-size: 15px; border-radius: 100px; padding: 12px 24px; cursor: pointer; border: 1px solid var(--nuit); background: transparent; color: var(--nuit); text-decoration: none; display: inline-block; }
+  button.plein, .bouton.plein { background: var(--vert); border-color: var(--vert); color: #fff; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.lien { border: none; padding: 6px 2px; text-decoration: underline; }
+  .message { font-size: 14px; margin-top: 8px; min-height: 20px; }
+  .message.erreur { color: var(--alerte); }
+  .message.ok { color: var(--ok); }
+  .signe { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .signe img { max-width: 220px; max-height: 80px; border: 1px solid var(--ligne); border-radius: 8px; background: #fff; }
+  .gite { border-bottom: 1px solid var(--ligne); padding-bottom: 8px; }
+  .etat { text-align: center; padding: 80px 16px; color: var(--doux); }
+  .pied { margin-top: 28px; font-size: 13px; color: var(--doux); text-align: center; }
+  .imprimer-seul { display: none; }
+  @media (max-width: 520px) { .ligne-2, .ligne-3 { grid-template-columns: 1fr; } .carte { padding: 18px; } }
+  @media print {
+    body { background: #fff; font-size: 12px; }
+    .wrap { padding: 0; max-width: none; }
+    .carte { border: none; padding: 0; margin-top: 14px; break-inside: avoid; }
+    .ecran-seul, .etapes, button, .bouton, form, #carte-repartition, #carte-infos { display: none !important; }
+    details { border: none; padding: 4px 0; }
+    details > *:not(summary) { display: block; }
+    .imprimer-seul { display: block; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap" id="app" aria-live="polite">
+  <div class="etat">Chargement de votre séjour…</div>
+</main>
+
+<script>
+'use strict';
+// ── Accès : lien privé mon-sejour?c=<clé de 24 caractères> (?demo=1 : données fictives, rien n'est envoyé)
+const API_BASE = (location.hostname === 'localhost' ? 'http://localhost:8788'
+  : (location.hostname.startsWith('v2.') || location.hostname.endsWith('.pages.dev'))
+    ? 'https://domainesesquier-api-v2.domainesesquier.workers.dev'
+    : 'https://domainesesquier-api.domainesesquier.workers.dev') + '/api/public/sejour';
+const params = new URLSearchParams(location.search);
+const CLE  = params.get('c') || '';
+const DEMO = params.get('demo') === '1';
+const VERSION_CG = 'CG-2026-11';
+
+const EMETTEURS = {
+  ozza:   { nom: 'OZZA SASU', siret: '903 246 478 00015', banque: 'BNP Paribas', iban: 'FR76 3000 4006 4000 0107 8926 886', bic: 'BNPAFRPPXXX',
+            contacts: [['Najat', '06 22 02 05 25'], ['Noureddine', '07 68 77 85 27']], email: 'smali@domainesesquier.com' },
+  foudre: { nom: 'FOUDRE SOCIETY SASU', siret: '106 513 450 00010', banque: 'Qonto', iban: 'FR76 1695 8000 0151 7488 5807 771', bic: 'QNTOFRP1XXX',
+            contacts: [['Domaine Sesquier', '06 83 96 80 56']], email: 'smali@domainesesquier.com' },
+};
+const ADRESSE = '4 plan du Sesquier, 34140 Mèze';
+const GITES = ['Acacia', 'Hibiscus', 'Pivoine', 'Belle de nuit', 'Iris', 'Rose', 'Figuier', 'Jasmin', 'Clos Josette', 'Sous les toits'];
+
+// ── Outils ──
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const eur = v => (Number(v) || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const JOURS = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const dt = s => { const [y, m, d] = String(s).slice(0, 10).split('-').map(Number); return new Date(y, m - 1, d); };
+const dLong = s => { const x = dt(s); return `${JOURS[x.getDay()]} ${x.getDate()} ${MOIS[x.getMonth()]} ${x.getFullYear()}`; };
+const dCourt = s => { const x = dt(s); return `${x.getDate()} ${MOIS[x.getMonth()]}`; };
+const avant = (s, jours) => { const x = dt(s); x.setDate(x.getDate() - jours); return `${x.getDate()} ${MOIS[x.getMonth()]} ${x.getFullYear()}`; };
+
+let S = null; // données du séjour
+
+function segmentOf(s) {
+  if (['seminaire', 'groupe', 'mariage'].includes(s.segment)) return s.segment;
+  const t = String(s.type || '').toLowerCase();
+  return t.includes('mariage') ? 'mariage' : (!t || t.includes('séminaire') || t.includes('pro')) ? 'seminaire' : 'groupe';
+}
+
+async function api(chemin, corps) {
+  const rep = await fetch(API_BASE + chemin + (corps ? '' : `?c=${encodeURIComponent(CLE)}`), corps
+    ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ c: CLE, ...corps }) }
+    : {});
+  const data = await rep.json().catch(() => ({}));
+  if (!rep.ok) throw new Error(data?.error?.message || `Erreur ${rep.status}`);
+  return data;
+}
+
+// ── Prix : lignes du devis (catégories, lignes, options non comprises) ──
+function blocPrix(s) {
+  const f = s.dossier?.financials || {};
+  const ttc = !!s.dossier?.prixTTC || segmentOf(s) !== 'seminaire';
+  const lignes = Array.isArray(f.lines) ? f.lines : [];
+  const prixLigne = l => {
+    const q = Number(l.qty) || 0;
+    const puTTC = l.unitPriceTTC != null ? Number(l.unitPriceTTC) : (Number(l.unitPriceHT) || 0) * (1 + (Number(l.tvaRate) || 0) / 100);
+    return { q, pu: ttc ? puTTC : (Number(l.unitPriceHT) || 0), total: q * (ttc ? puTTC : (Number(l.unitPriceHT) || 0)) };
+  };
+  // Titre de catégorie affiché seulement si une ligne comprise le suit (les options partent dans leur propre tableau)
+  let html = '', options = '', cat = '';
+  lignes.forEach(l => {
+    if (l.type === 'category') cat = `<tr class="cat"><td colspan="2">${esc(l.title || l.label)}</td></tr>`;
+    if (l.type !== 'pricing') return;
+    const p = prixLigne(l);
+    if (!p.q && !l.option) return;
+    const row = `<tr><td>${esc(l.label)}${p.q > 1 ? ` <span class="qte">${p.q} × ${eur(p.pu)}</span>` : ''}</td><td class="n">${eur(p.total)}</td></tr>`;
+    if (l.option) options += row; else { html += cat + row; cat = ''; }
+  });
+  const totalTTC = Number(f.totalTTC) || 0;
+  html += ttc
+    ? `<tr class="total"><td>Total TTC</td><td class="n">${eur(totalTTC)}</td></tr>`
+    : `<tr class="sous"><td>Total HT</td><td class="n">${eur(f.totalHT)}</td></tr>
+       <tr class="sous"><td>TVA</td><td class="n">${eur(f.totalTVA)}</td></tr>
+       <tr class="total"><td>Total TTC</td><td class="n">${eur(totalTTC)}</td></tr>`;
+  return `<table>${html}</table>${options ? `<h3>En option (non compris)</h3><table>${options}</table>` : ''}`;
+}
+
+function montants(s) {
+  const f = s.dossier?.financials || {};
+  const total = Number(f.totalTTC) || 0;
+  const acompte = Number(s.acompte_montant) || Number(f.acompte30) || Math.round(total * 30) / 100;
+  return { total, acompte, solde: Math.max(0, Math.round((total - acompte) * 100) / 100) };
+}
+
+function blocPaiements(s, em) {
+  const seg = segmentOf(s), m = montants(s);
+  const acompteTag = s.acompte_paye ? '<span class="tag ok">reçu, merci</span>' : '<span class="tag attente">à régler à la signature</span>';
+  let lignes = `<tr><td>Acompte ${acompteTag}</td><td class="n">${eur(m.acompte)}</td></tr>`;
+  if (seg === 'mariage' && m.total) {
+    const deuxieme = Math.round(m.total * 40) / 100;
+    lignes += `<tr><td>Deuxième versement, au plus tard le ${avant(s.arrivee, 180)}</td><td class="n">${eur(deuxieme)}</td></tr>
+               <tr><td>Solde, au plus tard le ${avant(s.arrivee, 30)}</td><td class="n">${eur(m.solde - deuxieme)}</td></tr>`;
+  } else {
+    lignes += `<tr><td>Solde, ${seg === 'seminaire' ? `sur facture, au plus tard le ${avant(s.arrivee, 7)}` : 'au plus tard le jour de l’arrivée'}</td><td class="n">${eur(m.solde)}</td></tr>`;
+  }
+  lignes += `<tr><td>Dépôt de garantie, non encaissé, rendu après l’état des lieux</td><td class="n">${eur(seg === 'mariage' ? 2000 : 1000)}</td></tr>`;
+  return `<table>${lignes}</table>
+    <div class="iban">Par virement à <strong>${em.nom}</strong> — ${em.banque}<br>IBAN <strong>${em.iban}</strong> — BIC ${em.bic}<br>
+    Merci d’indiquer « ${esc(s.nom_client)} » en référence. Un reçu vous est envoyé pour chaque versement.</div>`;
+}
+
+// ── Conditions : location de gîtes (groupes, mariages) ou devis séminaire ──
+function blocConditions(s) {
+  const seg = segmentOf(s);
+  const art = (titre, texte) => `<details><summary>${titre}</summary><p>${texte}</p></details>`;
+  if (seg === 'seminaire') return [
+    art('Validité et réservation', 'Le devis est valable 15 jours. La réservation est ferme à la signature et au versement de l’acompte de 30 %.'),
+    art('Effectif', `L’effectif du devis est le minimum facturable. L’effectif définitif est à confirmer par écrit au plus tard le ${avant(s.arrivee, 30)} ; une réduction notifiée avant cette date ajuste l’hébergement et la restauration. Les prestations forfaitaires (accès au domaine, coordination, animations, transport) restent dues.`),
+    art('Règlement', `Acompte de 30 % à la signature. Solde sur facture, au plus tard le ${avant(s.arrivee, 7)}. Consommations sur place facturées après le séjour. Pénalités de retard : taux directeur de la BCE majoré de 10 points, plus une indemnité forfaitaire de 40 € pour frais de recouvrement.`),
+    art('Annulation', 'Plus de 30 jours avant l’arrivée : l’acompte est conservé. De J-29 à J-15 : 50 % du total. De J-14 à J-8 : 75 %. À 7 jours ou moins : 100 %.'),
+    art('Horaires et caution', 'Chambres disponibles à partir de 15 h le jour d’arrivée et libérées à 11 h le jour du départ, avec de la souplesse selon le déroulé. Caution de 1 000 € demandée à l’arrivée, rendue après l’état des lieux.'),
+  ].join('');
+  return [
+    art('Nature de la location', 'Location saisonnière de logements meublés pour la durée indiquée, non renouvelable, régie par ce contrat et, à défaut, par le Code civil. Le contrat est personnel : sous-location et cession interdites. Le nombre de personnes ne doit pas dépasser celui convenu.'),
+    art('Arrivée, départ et état des lieux', 'Arrivée à partir de 15 h, départ avant 11 h. Les clés sont remises en mains propres après paiement du solde et remise du dépôt de garantie. Un état des lieux est fait à l’arrivée et au départ ; vous avez 24 h pour nous signaler toute anomalie à l’arrivée.'),
+    art('Paiement et dépôt de garantie', 'La réservation est ferme à la signature et à réception de l’acompte ; sans acompte sous 7 jours, les dates peuvent être proposées à d’autres clients. Le dépôt de garantie couvre dégradations, pertes de clés ou d’objets et ménage supplémentaire si les lieux sont laissés très sales. Il n’est pas encaissé et il est rendu au plus tard 7 jours après le départ, déduction faite des sommes justifiées.'),
+    art('Annulation', 'Plus de 15 jours avant l’arrivée : l’acompte reste acquis, rien d’autre n’est dû. À 15 jours ou moins : le prix total est dû. En cas de force majeure (mesure sanitaire ou administrative, ou état de santé du locataire ou d’un proche, avec certificat médical), le loueur peut renoncer à tout ou partie du montant. Un séjour écourté n’ouvre pas droit à remboursement.'),
+    art('Assurance et responsabilité', 'Vous êtes responsable des dommages causés pendant le séjour et devez être couvert en responsabilité civile (souvent l’option « villégiature » de l’assurance habitation). Une assurance annulation est conseillée. En cas de manquement grave (sécurité, nombre de personnes, nuisances répétées), le loueur peut mettre fin au séjour après un avertissement resté sans effet 48 h.'),
+    art('Règles de vie au domaine', 'Pas de musique ni de bruit amplifié dehors après 22 h ; dans la salle, volume raisonnable (100 dB(A) en moyenne sur 15 minutes au maximum, 94 dB(A) avec des enfants de moins de 6 ans). Zone à risque d’incendie : gîtes non-fumeurs, cendriers dehors, barbecue sous surveillance. Piscine non surveillée : enfants toujours accompagnés d’un adulte, alarme branchée. Fosse septique : uniquement du papier toilette. Aire de jeux et animaux sous la responsabilité des parents.'),
+    art('Litiges', 'Le contrat est soumis au droit français. En cas de désaccord, nous cherchons d’abord une solution amiable.'),
+  ].join('');
+}
+
+// ── Rendu ──
+function rendre() {
+  const s = S, seg = segmentOf(s);
+  const em = EMETTEURS[s.dossier?.companyProfile] || EMETTEURS[seg === 'seminaire' ? 'foudre' : 'ozza'];
+  const sig = s.espace?.signature;
+  const nuits = s.arrivee && s.depart ? Math.round((dt(s.depart) - dt(s.arrivee)) / 86400000) : 0;
+  const gites = (s.logements || []).filter(l => GITES.includes(l));
+  const salles = (s.logements || []).filter(l => !GITES.includes(l));
+  const doc = seg === 'seminaire' ? 'devis' : 'contrat';
+  const etapes = [
+    [`${doc === 'devis' ? 'Devis' : 'Contrat'} signé`, !!sig],
+    ['Acompte reçu', !!s.acompte_paye],
+    ['Infos du séjour', !!(s.espace?.maj_client)],
+  ];
+
+  $('#app').innerHTML = `
+    <div class="marque">Domaine Sesquier</div>
+    <h1>${s.prenom ? `Bonjour ${esc(s.prenom)}` : esc(s.nom_client)}</h1>
+    <p class="chapo">${s.arrivee ? `Votre séjour du ${dLong(s.arrivee)} au ${dLong(s.depart)}` : 'Votre séjour au Domaine Sesquier'}</p>
+    <ul class="etapes ecran-seul" aria-label="Où en est votre réservation">${etapes.map(([t, ok]) => `<li class="${ok ? 'fait' : ''}">${t}</li>`).join('')}</ul>
+
+    ${s.dossier?.motAccueil ? `<section class="carte"><p style="margin:0;white-space:pre-line">${esc(s.dossier.motAccueil)}</p></section>` : ''}
+
+    <section class="carte" aria-labelledby="t-sejour">
+      <h2 id="t-sejour">Votre séjour</h2>
+      <div class="grille">
+        <div><div class="k">Arrivée</div><div class="v">${s.arrivee ? dCourt(s.arrivee) : '—'}</div><div class="s">à partir de 15 h</div></div>
+        <div><div class="k">Départ</div><div class="v">${s.depart ? dCourt(s.depart) : '—'}</div><div class="s">avant 11 h${nuits ? ` · ${nuits} nuit${nuits > 1 ? 's' : ''}` : ''}</div></div>
+        <div><div class="k">Personnes</div><div class="v">${s.personnes || '—'}</div><div class="s">au maximum</div></div>
+      </div>
+      ${gites.length ? `<h3>Gîtes</h3><p style="margin:0">${gites.map(esc).join(' · ')}</p>` : ''}
+      ${salles.length ? `<h3>Salles</h3><p style="margin:0">${salles.map(esc).join(' · ')}</p>` : ''}
+    </section>
+
+    <section class="carte" aria-labelledby="t-prix">
+      <h2 id="t-prix">Le prix</h2>
+      ${blocPrix(s)}
+    </section>
+
+    <section class="carte" aria-labelledby="t-paiements">
+      <h2 id="t-paiements">Les paiements</h2>
+      ${blocPaiements(s, em)}
+    </section>
+
+    <section class="carte" aria-labelledby="t-conditions">
+      <h2 id="t-conditions">${doc === 'devis' ? 'Conditions du devis' : 'Conditions de location'}</h2>
+      <p class="s ecran-seul" style="margin-top:0">Touchez un titre pour lire le détail.</p>
+      ${blocConditions(s)}
+    </section>
+
+    <section class="carte" id="carte-signature" aria-labelledby="t-signature">
+      <h2 id="t-signature">${sig ? 'Signature' : `Signer le ${doc}`}</h2>
+      ${sig ? `
+        <div class="signe">
+          ${sig.image ? `<img src="${esc(sig.image)}" alt="Signature de ${esc(sig.nom)}">` : ''}
+          <div><span class="tag ok">Signé</span><br>par <strong>${esc(sig.nom)}</strong><br>le ${new Date(sig.le).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}</div>
+        </div>
+        <p class="s">Empreinte du document : ${esc(String(sig.empreinte || '').slice(0, 16))}… · conditions ${esc(sig.version || '')}</p>
+        <div class="actions ecran-seul"><button type="button" onclick="window.print()">Imprimer ou enregistrer en PDF</button></div>`
+      : `
+        <form id="form-signature" novalidate>
+          <label class="case"><input type="checkbox" id="sig-accepte" required>
+            <span>J’ai lu le récapitulatif, le prix, les paiements et les conditions ci-dessus, et je les accepte.</span></label>
+          <label for="sig-nom">Votre nom et prénom</label>
+          <input type="text" id="sig-nom" autocomplete="name" required value="${esc([s.prenom, s.nom].filter(Boolean).join(' '))}">
+          <label for="sig-pad" id="sig-pad-label">Votre signature</label>
+          <div class="pad">
+            <canvas id="sig-pad" tabindex="0" aria-labelledby="sig-pad-label" aria-describedby="sig-pad-aide"></canvas>
+            <div class="aide-pad" id="sig-pad-aide">Signez ici avec le doigt ou la souris</div>
+          </div>
+          <div class="actions">
+            <button type="submit" class="plein" id="sig-envoyer">Signer le ${doc}</button>
+            <button type="button" class="lien" id="sig-effacer">Effacer la signature</button>
+          </div>
+          <div class="message" id="sig-message" role="status"></div>
+          <p class="s">Signature électronique : nous enregistrons votre nom, la date, l’heure et l’adresse de connexion avec le document signé.</p>
+        </form>`}
+    </section>
+
+    ${gites.length ? `
+    <section class="carte" id="carte-repartition" aria-labelledby="t-repartition">
+      <h2 id="t-repartition">Qui dort où ?</h2>
+      <p class="s" style="margin-top:0">Indiquez les prénoms par gîte : nous préparons les lits en conséquence. Vous pouvez revenir modifier jusqu’à l’arrivée.</p>
+      ${s.rooming ? `<p><a class="bouton" href="${esc(s.rooming)}" target="_blank" rel="noopener">Remplir la fiche des chambres</a></p>` : ''}
+      <form id="form-repartition">
+        ${gites.map((g, i) => `<div class="gite"><label for="rep-${i}">${esc(g)}</label>
+          <textarea id="rep-${i}" data-gite="${esc(g)}" rows="2" placeholder="Prénoms des personnes">${esc(s.espace?.repartition?.[g] || '')}</textarea></div>`).join('')}
+        <div class="actions"><button type="submit" class="plein">Enregistrer la répartition</button></div>
+        <div class="message" id="rep-message" role="status"></div>
+      </form>
+    </section>` : ''}
+
+    <section class="carte" id="carte-infos" aria-labelledby="t-infos">
+      <h2 id="t-infos">Pour bien vous accueillir</h2>
+      <form id="form-infos">
+        <div class="ligne-2">
+          <div><label for="inf-heure">Heure d’arrivée prévue</label><input type="time" id="inf-heure" value="${esc(s.espace?.infos?.heure_arrivee || '')}"></div>
+          <div><label for="inf-tel">Téléphone le jour J</label><input type="tel" id="inf-tel" autocomplete="tel" value="${esc(s.espace?.infos?.telephone_jour_j || '')}"></div>
+        </div>
+        <div class="ligne-3">
+          <div><label for="inf-adultes">Adultes</label><input type="number" min="0" max="500" id="inf-adultes" value="${esc(s.espace?.infos?.adultes ?? '')}"></div>
+          <div><label for="inf-enfants">Enfants</label><input type="number" min="0" max="200" id="inf-enfants" value="${esc(s.espace?.infos?.enfants ?? '')}"></div>
+          <div><label for="inf-bebes">Bébés (lit parapluie)</label><input type="number" min="0" max="50" id="inf-bebes" value="${esc(s.espace?.infos?.bebes ?? '')}"></div>
+        </div>
+        <label for="inf-regime">Allergies, régimes alimentaires</label>
+        <textarea id="inf-regime" rows="2">${esc(s.espace?.infos?.regime || '')}</textarea>
+        <label for="inf-message">Autre chose à nous dire ?</label>
+        <textarea id="inf-message" rows="3">${esc(s.espace?.infos?.message || '')}</textarea>
+        <div class="actions"><button type="submit" class="plein">Enregistrer</button></div>
+        <div class="message" id="inf-message-etat" role="status"></div>
+      </form>
+    </section>
+
+    <section class="carte" aria-labelledby="t-pratique">
+      <h2 id="t-pratique">Infos pratiques</h2>
+      <p style="margin:0"><strong>Adresse :</strong> ${ADRESSE}<br>
+      <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Domaine Sesquier ' + ADRESSE)}" target="_blank" rel="noopener">Ouvrir l’itinéraire</a></p>
+      <p><strong>Nous joindre :</strong> ${em.contacts.map(([n, t]) => `${n} <a href="tel:${t.replace(/\s/g, '')}">${t}</a>`).join(' · ')}<br>
+      <a href="mailto:${em.email}">${em.email}</a></p>
+    </section>
+
+    <p class="pied">${em.nom} — SIRET ${em.siret} — ${ADRESSE}<br>Ce lien est personnel : merci de ne pas le partager en dehors de votre groupe.</p>`;
+
+  if (!sig) brancherSignature(doc);
+  $('#form-repartition')?.addEventListener('submit', envoyerInfos);
+  $('#form-infos').addEventListener('submit', envoyerInfos);
+}
+
+// ── Signature : tracé au doigt / à la souris ──
+function brancherSignature(doc) {
+  const cv = $('#sig-pad'), ctx = cv.getContext('2d');
+  let dessine = false, traits = 0;
+  const taille = () => {
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#131E13';
+    traits = 0; $('#sig-pad-aide').style.display = '';
+  };
+  taille();
+  const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  cv.addEventListener('pointerdown', e => { dessine = true; cv.setPointerCapture(e.pointerId); ctx.beginPath(); ctx.moveTo(...pos(e)); });
+  cv.addEventListener('pointermove', e => {
+    if (!dessine) return;
+    ctx.lineTo(...pos(e)); ctx.stroke();
+    traits++; if (traits === 1) $('#sig-pad-aide').style.display = 'none';
+  });
+  const fin = () => { dessine = false; };
+  cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', fin);
+  $('#sig-effacer').addEventListener('click', () => { ctx.clearRect(0, 0, cv.width, cv.height); taille(); });
+
+  $('#form-signature').addEventListener('submit', async e => {
+    e.preventDefault();
+    const msg = $('#sig-message'), btn = $('#sig-envoyer');
+    const nom = $('#sig-nom').value.trim();
+    msg.className = 'message erreur';
+    if (!$('#sig-accepte').checked) { msg.textContent = 'Cochez la case pour accepter les conditions.'; $('#sig-accepte').focus(); return; }
+    if (nom.length < 3) { msg.textContent = 'Indiquez votre nom et prénom.'; $('#sig-nom').focus(); return; }
+    if (traits < 8) { msg.textContent = 'Tracez votre signature dans le cadre.'; cv.focus(); return; }
+    const image = reduire(cv);
+    btn.disabled = true; btn.textContent = 'Signature en cours…';
+    try {
+      if (DEMO) S.espace = { ...S.espace, signature: { nom, le: new Date().toISOString(), image, empreinte: 'demo', version: VERSION_CG } };
+      else { await api('/signer', { accepte: true, nom, image, version: VERSION_CG }); await charger(); }
+      rendre();
+      $('#carte-signature').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+      msg.textContent = err.message; btn.disabled = false; btn.textContent = `Signer le ${doc}`;
+    }
+  });
+}
+
+// Signature copiée sur un canevas plus petit (PNG léger, < 90 000 caractères)
+function reduire(cv) {
+  const out = document.createElement('canvas');
+  out.width = 480; out.height = Math.round(480 * cv.height / cv.width);
+  out.getContext('2d').drawImage(cv, 0, 0, out.width, out.height);
+  return out.toDataURL('image/png');
+}
+
+async function envoyerInfos(e) {
+  e.preventDefault();
+  const form = e.target, msg = form.querySelector('.message');
+  const btn = form.querySelector('button[type=submit]');
+  const repartition = {};
+  document.querySelectorAll('#form-repartition textarea').forEach(t => { if (t.value.trim()) repartition[t.dataset.gite] = t.value.trim(); });
+  const n = id => { const v = $(id).value; return v === '' ? null : Math.max(0, parseInt(v, 10) || 0); };
+  const infos = {
+    heure_arrivee: $('#inf-heure').value, telephone_jour_j: $('#inf-tel').value.trim(),
+    adultes: n('#inf-adultes'), enfants: n('#inf-enfants'), bebes: n('#inf-bebes'),
+    regime: $('#inf-regime').value.trim(), message: $('#inf-message').value.trim(),
+  };
+  btn.disabled = true; msg.className = 'message'; msg.textContent = 'Enregistrement…';
+  try {
+    if (!DEMO) await api('/infos', { repartition, infos });
+    S.espace = { ...S.espace, repartition, infos, maj_client: new Date().toISOString() };
+    msg.className = 'message ok'; msg.textContent = 'C’est enregistré, merci !';
+    document.querySelectorAll('.etapes li')[2]?.classList.add('fait');
+  } catch (err) {
+    msg.className = 'message erreur'; msg.textContent = err.message;
+  }
+  btn.disabled = false;
+}
+
+// ── Chargement ──
+async function charger() {
+  if (DEMO) { S = S || DEMO_DATA; return; }
+  S = (await api('')).sejour;
+}
+
+const DEMO_DATA = {
+  nom_client: 'Famille Laribau', prenom: 'Olivia', nom: 'Compan', segment: 'groupe', type: 'séjour de groupe', statut: 'devis envoyé',
+  arrivee: '2027-06-18', depart: '2027-06-20', personnes: 40, acompte_paye: false, acompte_montant: null,
+  dossier: { companyProfile: 'ozza', prixTTC: true, motAccueil: 'Merci pour votre confiance ! Voici le récapitulatif de votre week-end au domaine.',
+    financials: { totalTTC: 4300, acompte30: 1290, lines: [
+      { type: 'category', title: 'Le domaine' },
+      { type: 'pricing', label: 'Forfait domaine entier, par nuit', qty: 2, unitPriceHT: 1590.91, tvaRate: 10, unitPriceTTC: 1750 },
+      { type: 'pricing', label: 'Ménage de fin de séjour', qty: 1, unitPriceHT: 416.67, tvaRate: 20, unitPriceTTC: 500 },
+      { type: 'pricing', label: 'Draps', qty: 30, unitPriceHT: 8.33, tvaRate: 20, unitPriceTTC: 10 },
+      { type: 'category', title: 'Options' },
+      { type: 'pricing', label: 'Salle Archipel pour la soirée', qty: 1, unitPriceHT: 500, tvaRate: 20, unitPriceTTC: 600, option: true },
+    ] } },
+  logements: ['Acacia', 'Hibiscus', 'Pivoine', 'Belle de nuit', 'Iris', 'Rose', 'Figuier', 'Jasmin', "Champs d'Olivier", 'Archipel'],
+  rooming: null, espace: {},
+};
+
+(async () => {
+  if (!DEMO && !/^[A-Za-z0-9]{24}$/.test(CLE)) {
+    $('#app').innerHTML = '<div class="etat">Ce lien n’est pas valide. Utilisez le lien reçu par e-mail, ou contactez-nous au 06 83 96 80 56.</div>';
+    return;
+  }
+  try { await charger(); rendre(); }
+  catch (e) { $('#app').innerHTML = `<div class="etat">Impossible d’afficher votre séjour (${esc(e.message)}).<br>Contactez-nous au 06 83 96 80 56.</div>`; }
+})();
+</script>
+</body>
+</html>

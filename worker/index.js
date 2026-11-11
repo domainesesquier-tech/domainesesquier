@@ -219,6 +219,8 @@ function rowToRecord(row) {
       'Suivi Log':                row.suivi_log,
       'est_archive':              row.est_archive,
       'Acompte Payé':             row.acompte_paye,
+      'Espace clé':               row.espace_cle,
+      'Espace JSON':              row.espace_json,   // lecture seule : écrit uniquement par l'espace client
       'Acompte Montant':          row.acompte_montant,
       'Created':                  row.created_at,
       'Updated':                  row.updated_at,
@@ -272,6 +274,7 @@ const FIELD_MAP = {
   'Suivi Log':                'suivi_log',
   'est_archive':              'est_archive',
   'Acompte Payé':             'acompte_paye',
+  'Espace clé':               'espace_cle',
   'Acompte Montant':          'acompte_montant',
   'planning_id':              'planning_id',
   'Température':              'temperature',
@@ -362,6 +365,10 @@ const PUBLIC_ROUTES = [
   { path: "/api/public/disponibilites.ics", methods: ["GET"] },
   { path: "/api/public/demande",        methods: ["POST"] },
   { path: "/api/public/lead",           methods: ["POST"] },
+  // Espace client « Mon séjour » : la clé du lien (24 caractères) sert d'accès
+  { path: "/api/public/sejour",         methods: ["GET"] },
+  { path: "/api/public/sejour/signer",  methods: ["POST"] },
+  { path: "/api/public/sejour/infos",   methods: ["POST"] },
 ];
 
 function isPublicRoute(pathname, method) {
@@ -773,6 +780,79 @@ export default {
           if (ctx && ctx.waitUntil) ctx.waitUntil(alerte); else await alerte;
         }
         return json({ ok: true }, 201, env, requestOrigin);
+      }
+
+      // ── ESPACE CLIENT « Mon séjour » (mon-sejour.html) ──
+      // Lien privé par dossier ; lecture, signature et infos passent par des fonctions SQL
+      // security definer (migrations/2026-11_espace_client.sql) qui ne renvoient que les champs utiles.
+      if (url.pathname.startsWith("/api/public/sejour")) {
+        const cleOk = c => /^[A-Za-z0-9]{24}$/.test(c || "");
+        const introuvable = () => json({ error: { message: "Lien invalide ou expiré" } }, 404, env, requestOrigin);
+        const lire = c => sbFetch(env, `/rpc/public_sejour`, { method: "POST", body: JSON.stringify({ p_cle: c }) });
+
+        if (url.pathname === "/api/public/sejour" && method === "GET") {
+          const c = url.searchParams.get("c");
+          if (!cleOk(c)) return introuvable();
+          const sejour = await lire(c);
+          return sejour ? json({ sejour }, 200, env, requestOrigin) : introuvable();
+        }
+
+        if (method === "POST") {
+          const raw = await request.text();
+          if (raw.length > 120000) return json({ error: { message: "Envoi trop volumineux" } }, 413, env, requestOrigin);
+          let p;
+          try { p = JSON.parse(raw); } catch { return json({ error: { message: "JSON invalide" } }, 400, env, requestOrigin); }
+          if (!cleOk(p?.c)) return introuvable();
+          const txt = (v, n = 200) => String(v ?? "").trim().slice(0, n);
+
+          if (url.pathname === "/api/public/sejour/signer") {
+            const nom = txt(p.nom, 120), version = txt(p.version, 40);
+            const image = typeof p.image === "string" && p.image.length <= 90000
+              && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(p.image) ? p.image : "";
+            if (p.accepte !== true || nom.length < 3 || !image) {
+              return json({ error: { message: "Signature incomplète : case, nom et signature sont nécessaires." } }, 400, env, requestOrigin);
+            }
+            // Empreinte SHA-256 du document signé : le séjour tel qu'affiché (sans l'espace client) + version des conditions
+            const sejour = await lire(p.c);
+            if (!sejour) return introuvable();
+            const { espace, ...doc } = sejour;
+            const octets = new TextEncoder().encode(JSON.stringify({ doc, version }));
+            const empreinte = [...new Uint8Array(await crypto.subtle.digest("SHA-256", octets))]
+              .map(b => b.toString(16).padStart(2, "0")).join("");
+            const out = await sbFetch(env, `/rpc/public_sejour_signer`, {
+              method: "POST",
+              body: JSON.stringify({ p_cle: p.c, p: {
+                nom, image, version, empreinte,
+                ip: request.headers.get("CF-Connecting-IP") || "", ua: txt(request.headers.get("User-Agent"), 300),
+              } }),
+            });
+            if (!out?.ok) {
+              const m = { deja_signe: "Ce document est déjà signé.", annule: "Cette réservation est annulée." }[out?.erreur] || "Signature impossible, réessayez.";
+              return json({ error: { message: m } }, 409, env, requestOrigin);
+            }
+            return json({ ok: true, empreinte }, 200, env, requestOrigin);
+          }
+
+          if (url.pathname === "/api/public/sejour/infos") {
+            // Répartition { gîte: "prénoms" } et infos pratiques : textes courts uniquement
+            const repartition = {};
+            Object.entries(p.repartition && typeof p.repartition === "object" ? p.repartition : {}).slice(0, 20)
+              .forEach(([k, v]) => { const g = txt(k, 40); if (g) repartition[g] = txt(v, 600); });
+            const i = p.infos && typeof p.infos === "object" ? p.infos : {};
+            const n = (v, max) => v === null || v === "" || v === undefined ? null : Math.max(0, Math.min(max, parseInt(v, 10) || 0));
+            const infos = {
+              heure_arrivee: /^\d{2}:\d{2}$/.test(i.heure_arrivee || "") ? i.heure_arrivee : "",
+              telephone_jour_j: txt(i.telephone_jour_j, 40),
+              adultes: n(i.adultes, 500), enfants: n(i.enfants, 200), bebes: n(i.bebes, 50),
+              regime: txt(i.regime, 600), message: txt(i.message, 2000),
+            };
+            const out = await sbFetch(env, `/rpc/public_sejour_infos`, {
+              method: "POST", body: JSON.stringify({ p_cle: p.c, p: { repartition, infos } }),
+            });
+            return out?.ok ? json({ ok: true }, 200, env, requestOrigin) : introuvable();
+          }
+        }
+        return json({ error: { message: "Route inconnue" } }, 404, env, requestOrigin);
       }
 
       // Leads du site, avant la demande de devis : demande commencée (questionnaire), brochure, estimation, rappel.

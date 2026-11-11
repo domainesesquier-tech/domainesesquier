@@ -2773,6 +2773,9 @@
             </div>
             <div class="iframe-nav-tabs" id="iframe-nav-tabs"></div>
             <div class="iframe-container">
+                <div class="suivi-panel dossier-panel" id="panel-espace" style="display:none;">
+                    <div class="rooming-inner" id="espace-inner"></div>
+                </div>
                 <div class="suivi-panel dossier-panel" id="panel-rooming" style="display:none;">
                     <div class="rooming-inner" id="rooming-inner"></div>
                 </div>
@@ -3249,7 +3252,8 @@
                 { groupe: '', docs: [{ type: 'suivi', label: 'Suivi', icon: 'fa-clipboard-list' }] },
                 { groupe: 'Vente', docs: [
                     { type: 'client', label: 'Infos', icon: 'fa-address-card', done: !!f["Email"] },
-                    { type: 'devis', label: 'Devis', icon: 'fa-file-lines', done: f["Total TTC"] > 0 }] },
+                    { type: 'devis', label: 'Devis', icon: 'fa-file-lines', done: f["Total TTC"] > 0 },
+                    { type: 'espace', label: 'Espace client', icon: 'fa-user-check', done: !!espaceData(f).signature }] },
                 { groupe: 'Facturation', docs: [
                     { type: 'proforma', label: 'Proforma', icon: 'fa-file-invoice', done: /"pf"/.test(f["Numeros JSON"] || '') },
                     { type: 'facture', label: 'Acompte', icon: 'fa-file-invoice-dollar', done: !!f["Acompte Payé"] },
@@ -3349,6 +3353,99 @@
             document.querySelectorAll('#iframe-layer iframe').forEach(fr => fr.style.display = 'none');
             document.querySelectorAll('.dossier-panel').forEach(p => p.style.display = p.id === panelId ? 'block' : 'none');
             activeIframeId = null;
+        }
+
+        // ── Espace client « Mon séjour » : lien privé (mon-sejour?c=<clé>), signature en ligne, répartition, infos ──
+        // La clé est rangée dans « Espace clé » ; « Espace JSON » (signature, répartition, infos) n'est écrit que par le client.
+        function espaceData(f) {
+            const raw = f && f["Espace JSON"];
+            if (!raw) return {};
+            if (typeof raw === 'object') return raw;
+            try { return JSON.parse(raw) || {}; } catch (_) { return {}; }
+        }
+        function lienEspace(f) {
+            const cle = f && f["Espace clé"];
+            return cle ? `${location.origin}/mon-sejour?c=${cle}` : '';
+        }
+        function nouvelleCleEspace() {
+            const alpha = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+            const octets = crypto.getRandomValues(new Uint8Array(24));
+            return Array.from(octets, o => alpha[o % alpha.length]).join('');
+        }
+
+        function showEspace(id) {
+            showPanel('panel-espace');
+            const record = allRecords.find(r => r.id === id);
+            const f = record ? record.fields : {};
+            const box = document.getElementById('espace-inner');
+            const titre = '<div class="rooming-titre"><i class="fa-solid fa-user-check"></i> Espace client</div>';
+            const url = lienEspace(f);
+            if (!url) {
+                const sansDevis = !(f["Total TTC"] > 0);
+                box.innerHTML = `<div class="rooming-card">${titre}
+                    <p class="rooming-texte">Un lien privé pour le client : récapitulatif et prix du devis, signature en ligne, IBAN, répartition des gîtes et infos d'arrivée. Pas de compte à créer.</p>
+                    ${sansDevis ? '<p class="rooming-texte" style="color:var(--warning)">Prépare d\'abord le devis : l\'espace client reprend ses lignes et ses montants.</p>' : ''}
+                    <div class="rooming-actions"><button class="btn-etape" onclick="creerEspace('${id}')" ${sansDevis ? 'disabled' : ''}><i class="fa-solid fa-link"></i> Créer le lien de l'espace client</button></div>
+                </div>`;
+                return;
+            }
+            const e = espaceData(f), sig = e.signature, inf = e.infos || {}, rep = e.repartition || {};
+            const quand = v => v ? new Date(v).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' }) : '';
+            const ligne = (k, v) => v || v === 0 ? `<div><span style="color:var(--text-muted)">${k} :</span> ${escapeHtml(String(v))}</div>` : '';
+            box.innerHTML = `<div class="rooming-card">${titre}
+                <div class="rooming-actions">
+                    <button class="btn-etape" onclick="copierLienEspace('${id}')"><i class="fa-regular fa-copy"></i> Copier le lien pour le client</button>
+                    <a class="btn-secondaire" href="${escapeHtml(url)}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Voir comme le client</a>
+                    <button class="btn-lien" onclick="rafraichirEspace('${id}')">Actualiser</button>
+                </div>
+                <div class="rooming-url">${escapeHtml(url)}</div>
+
+                <div class="rooming-titre" style="margin-top:8px"><i class="fa-solid fa-signature"></i> Signature</div>
+                ${sig ? `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+                        ${sig.image ? `<img src="${escapeHtml(sig.image)}" alt="Signature" style="max-width:180px;max-height:64px;border:1px solid var(--border);border-radius:8px;background:#fff">` : ''}
+                        <div><strong>Signé par ${escapeHtml(sig.nom || '')}</strong><br>le ${quand(sig.le)}<br>
+                        <span style="color:var(--text-muted);font-size:12px">IP ${escapeHtml(sig.ip || '?')} · empreinte ${escapeHtml(String(sig.empreinte || '').slice(0, 16))}… · ${escapeHtml(sig.version || '')}</span></div></div>`
+                    : '<p class="rooming-texte">Pas encore signé.</p>'}
+
+                <div class="rooming-titre" style="margin-top:8px"><i class="fa-solid fa-euro-sign"></i> Acompte</div>
+                <label style="display:flex;gap:8px;align-items:center;cursor:pointer">
+                    <input type="checkbox" ${f["Acompte Payé"] ? 'checked' : ''} onchange="fastUpdateRecord('${id}', 'Acompte Payé', this.checked, this).then(() => showEspace('${id}'))" style="width:18px;height:18px">
+                    Acompte reçu — le client le voit dans son espace
+                </label>
+
+                <div class="rooming-titre" style="margin-top:8px"><i class="fa-solid fa-clipboard-list"></i> Infos du client ${e.maj_client ? `<span style="font-weight:400;font-size:12px;color:var(--text-muted)">mises à jour le ${quand(e.maj_client)}</span>` : ''}</div>
+                ${e.maj_client ? `<div style="font-size:14px;line-height:1.6">
+                        ${ligne('Arrivée prévue', inf.heure_arrivee)}${ligne('Téléphone jour J', inf.telephone_jour_j)}
+                        ${ligne('Adultes', inf.adultes)}${ligne('Enfants', inf.enfants)}${ligne('Bébés', inf.bebes)}
+                        ${ligne('Allergies, régimes', inf.regime)}${ligne('Message', inf.message)}
+                        ${Object.keys(rep).length ? `<div style="margin-top:6px"><span style="color:var(--text-muted)">Répartition :</span>${Object.entries(rep).map(([g, n]) => `<div><strong>${escapeHtml(g)}</strong> — ${escapeHtml(n)}</div>`).join('')}</div>` : ''}
+                    </div>` : '<p class="rooming-texte">Rien de rempli pour l\'instant.</p>'}
+
+                <div class="rooming-actions" style="margin-top:6px"><button class="btn-lien" onclick="desactiverEspace('${id}')">Désactiver le lien</button></div>
+            </div>`;
+        }
+
+        async function creerEspace(id) {
+            await fastUpdateRecord(id, 'Espace clé', nouvelleCleEspace());
+            showEspace(id);
+            renderDossierTabs(id, allRecords.find(r => r.id === id));
+        }
+        async function rafraichirEspace(id) {
+            const rep = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${id}`);
+            const idx = allRecords.findIndex(r => r.id === id);
+            if (rep?.records?.[0] && idx !== -1) allRecords[idx] = normalizeRecord(rep.records[0]);
+            renderDossierBar(id);
+            showEspace(id);
+        }
+        async function desactiverEspace(id) {
+            if (!confirm('Désactiver ce lien ? Le client ne pourra plus ouvrir son espace (la signature reste enregistrée).')) return;
+            await fastUpdateRecord(id, 'Espace clé', null);
+            showEspace(id);
+        }
+        function copierLienEspace(id) {
+            const record = allRecords.find(r => r.id === id);
+            const url = record ? lienEspace(record.fields) : '';
+            if (url) navigator.clipboard.writeText(url).then(() => showSyncBanner('Lien de l\'espace client copié'));
         }
 
         // ── Rooming : lien vers la copie Google Sheets du modèle, rangé dans « Rooming JSON » (clé lienSheet) ──
@@ -4151,6 +4248,7 @@
             renderDossierBar(id);
             if (type === 'suivi') return showSuivi(id);
             if (type === 'rooming') return showRooming(id);
+            if (type === 'espace') return showEspace(id);
             switchTab('iframe-' + type, navSegment(), id);
         }
 
@@ -4289,7 +4387,8 @@
                         await SesquierUtils.fetchJson(API_PLANNING, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: planningId, fields: planningFields }),
+                            // Logements : posés à la création seulement, ensuite réglés au planning (gîtes libérés…)
+                            body: JSON.stringify({ id: planningId, fields: (({ Logements, ...reste }) => reste)(planningFields) }),
                         });
                     } catch (patchErr) {
                         // planning_id orphelin (entrée supprimée côté planning) → auto-réparation
