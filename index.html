@@ -4243,7 +4243,7 @@
             // Annulé → ne pas sync (ne doit pas apparaître dans le planning)
             if (statutRaw.toLowerCase() === 'annulé') return;
             // Validé (devis signé, ou ancien confirmé / acompte reçu) → "confirmé" au planning, le reste → "Option"
-            const statut = ['devis signé', 'confirmé', 'acompte reçu'].includes(statutRaw.toLowerCase()) ? 'confirmé' : 'Option';
+            const statut = ['devis signé', 'confirmé', 'acompte reçu'].includes(statutRaw.toLowerCase()) ? 'Confirmé' : 'Option';
             const planningId = f['planning_id'];
 
             const planningFields = {

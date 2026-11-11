@@ -60,6 +60,8 @@
       --type-gite-bg:        oklch(0.55 0.12 175 / 8%);
       --type-bloque:         oklch(0.55 0 0);
       --type-bloque-bg:      oklch(0.55 0 0 / 8%);
+      --type-mariage:        oklch(0.55 0.17 350);
+      --type-mariage-bg:     oklch(0.55 0.17 350 / 10%);
       --statut-annule-bg:    oklch(0.94 0.01 30);
       --statut-annule-border: oklch(0.65 0.03 30);
       --statut-annule-text:  oklch(0.42 0.02 30);
@@ -466,119 +468,69 @@
     }
     .cell.free.weekend:hover { background: var(--green-light); }
 
-    .cell.today-border {
-      box-shadow: inset 0 0 0 2px var(--green-mid);
-    }
+    /* Aujourd'hui : simple teinte de la colonne (l'en-tête est déjà en bleu) */
+    .cell.free.today { background: oklch(0.5 0.15 264 / 7%); }
+    .cell.free.today:hover { background: var(--green-light); }
+    .cell:focus-visible { outline: 2px solid var(--type-seminaire); outline-offset: -2px; z-index: 5; }
 
-    /* Fusion visuelle : les jours consécutifs d'une même réservation
-       forment un seul bloc bordé, sans coupure interne. Deux réservations
-       différentes qui se suivent dans le même logement restent, elles,
-       visuellement séparées par une bordure de chaque côté. */
-    .cell.occupied {
-      border-left: none;
-      border-right: none;
-      border-top: 1.5px solid rgba(0, 0, 0, 0.12);
-      border-bottom: 1.5px solid rgba(0, 0, 0, 0.12);
-    }
-    .cell.occupied.block-start {
-      border-left: 1.5px solid rgba(0, 0, 0, 0.12);
-      border-top-left-radius: 6px;
-      border-bottom-left-radius: 6px;
-    }
-    .cell.occupied.block-end {
-      border-right: 1.5px solid rgba(0, 0, 0, 0.12);
-      border-top-right-radius: 6px;
-      border-bottom-right-radius: 6px;
-    }
-
-    /* Couleur par bucket de type — injectée par cellule via variables CSS
-       inline (--type-color / --type-bg), les 3 règles de statut ci-dessous
-       s'appliquent ensuite génériquement à tous les buckets. */
-    .cell.occupied.statut-confirme {
-      background: var(--type-color);
-      color: var(--type-text, #fff);
-    }
-    /* Date demandée (questionnaire du site) : contour pointillé, fond clair, pas encore d'option posée */
-    .cell.occupied.statut-demande {
-      background: repeating-linear-gradient(45deg, var(--type-bg), var(--type-bg) 4px, #fff 4px, #fff 8px);
-      color: var(--type-color);
-      border-top-color: var(--type-color);    border-top-style: dotted;
-      border-bottom-color: var(--type-color); border-bottom-style: dotted;
-    }
-    .cell.occupied.statut-option {
-      background: var(--type-bg);
-      color: var(--type-color);
-      border-top-color: var(--type-color);    border-top-style: dashed;
-      border-bottom-color: var(--type-color); border-bottom-style: dashed;
-    }
-    .cell.occupied.statut-option.block-start {
-      border-left-color: var(--type-color); border-left-style: dashed;
-    }
-    .cell.occupied.statut-option.block-end {
-      border-right-color: var(--type-color); border-right-style: dashed;
-    }
-    .cell.occupied.statut-annule {
-      background: var(--statut-annule-bg);
-      color: var(--statut-annule-text);
-      border-top-color: var(--statut-annule-border);    border-top-style: dashed;
-      border-bottom-color: var(--statut-annule-border); border-bottom-style: dashed;
-    }
-    .cell.occupied.statut-annule.block-start {
-      border-left-color: var(--statut-annule-border); border-left-style: dashed;
-    }
-    .cell.occupied.statut-annule.block-end {
-      border-right-color: var(--statut-annule-border); border-right-style: dashed;
-    }
-    .cell.occupied.statut-annule .chip-type,
-    .cell.occupied.statut-annule .chip-name {
-      text-decoration: line-through;
-    }
-
-    /* Étiquette (1er jour visible du bloc) : abréviation du type + prénom */
-    .cell-chip {
+    /* Séjours : une cellule par séjour (colspan), barre colorée à l'intérieur,
+       nom complet affiché sur toute la durée. */
+    .cell.occupied { padding: 3px 1px; background: transparent; }
+    .bar {
+      height: 30px;
+      box-sizing: border-box;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      height: 100%;
-      padding: 0 4px;
+      padding: 0 6px;
+      border-radius: 6px;
+      border: 1.5px solid transparent;
       overflow: hidden;
       font-family: var(--font-display);
     }
-    .chip-type {
-      font-size: 8.5px;
-      font-weight: 800;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      opacity: .85;
-      line-height: 1.3;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .bar.cont-left  { border-top-left-radius: 0;  border-bottom-left-radius: 0; }
+    .bar.cont-right { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+    .statut-confirme .bar { background: var(--type-color); color: var(--type-text, #fff); }
+    .statut-option .bar   { background: var(--type-bg); color: var(--type-color); border: 1.5px dashed var(--type-color); }
+    .statut-demande .bar  {
+      background: repeating-linear-gradient(45deg, var(--type-bg), var(--type-bg) 4px, #fff 4px, #fff 8px);
+      color: var(--type-color); border: 1.5px dotted var(--type-color);
     }
-    .chip-name {
-      font-size: 11px;
-      font-weight: 700;
-      line-height: 1.25;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .statut-annule .bar   { background: var(--statut-annule-bg); color: var(--statut-annule-text); border: 1.5px dashed var(--statut-annule-border); }
+    .statut-annule .bar-name, .statut-annule .bar-type { text-decoration: line-through; }
+    /* Gîte ou salle compris dans un séjour « domaine entier » : teinte légère,
+       le nom est sur la ligne « Domaine entier » en haut. */
+    .bar.bar-covered { background: color-mix(in oklch, var(--type-color) 16%, white); border: none; }
+    .statut-option .bar.bar-covered,
+    .statut-demande .bar.bar-covered {
+      background: color-mix(in oklch, var(--type-color) 6%, white);
+      border: 1px dashed color-mix(in oklch, var(--type-color) 45%, white);
     }
-
-    /* Jours de continuation : un simple point, pas de texte */
-    .cell-dot-wrap {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
+    .statut-annule .bar.bar-covered { background: var(--statut-annule-bg); }
+    .bar-type {
+      font-size: 8.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+      opacity: .85; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .cell-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: currentColor;
-      display: block;
+    .bar-name {
+      font-size: 11.5px; font-weight: 700; line-height: 1.2;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-
+    /* Séjour court (1 à 3 nuits) : nom sur deux lignes, sans l'abréviation du type */
+    .bar.bar-short .bar-name {
+      white-space: normal; hyphens: auto; overflow-wrap: anywhere; line-height: 1.15;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    .bar.bar-tiny { padding: 0 2px; }
+    .bar.bar-tiny .bar-name { font-size: 9.5px; }
+    /* Ligne « Domaine entier » en tête de grille */
+    tr.domaine-row .cell { height: 46px; }
+    tr.domaine-row .bar { height: 38px; }
+    tr.domaine-row .bar-name { font-size: 12px; }
+    tr.domaine-row .bar.bar-short .bar-name { -webkit-line-clamp: 3; }
+    tr.domaine-row .bar.bar-tiny .bar-name { font-size: 9.5px; }
+    tr.domaine-row .col-logement { background: var(--beige-light); }
+    tr.domaine-row > * { border-bottom: 2px solid var(--beige-dark); }
+    tbody th.col-logement { text-align: left; font-weight: 400; }
     tbody tr:hover .col-logement {
       background: var(--beige-light);
     }
@@ -637,9 +589,9 @@
     /* ------------------------------------------------------------------ */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 14px;
-      padding: 16px 20px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding: 12px 20px;
       background: var(--beige-light);
       border-bottom: 1px solid var(--border);
     }
@@ -647,7 +599,7 @@
     .kpi-card {
       background: var(--surface);
       border-radius: var(--radius);
-      padding: 18px 20px;
+      padding: 12px 16px;
       box-shadow: var(--shadow-xs);
       border: 1px solid var(--border-light);
       position: relative;
@@ -657,10 +609,10 @@
       align-items: flex-start;
       gap: 14px;
     }
-    .kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
 
     .kpi-icon {
-      width: 42px; height: 42px;
+      width: 34px; height: 34px;
       border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
       font-size: 16px; flex-shrink: 0;
@@ -684,7 +636,7 @@
     }
 
     .kpi-value {
-      font-size: 26px;
+      font-size: 22px;
       font-weight: 800;
       color: var(--text);
       line-height: 1.1;
@@ -713,22 +665,23 @@
     /* ------------------------------------------------------------------ */
     /*  DETAIL HINT / DETAIL CARD (en tête de page, remplace le survol)     */
     /* ------------------------------------------------------------------ */
-    .detail-hint {
-      padding: 4px 20px 14px;
-      font-size: 12.5px;
-      color: var(--text-muted);
-      font-family: var(--font-display);
-    }
-
+    .legend-hint { margin-left: auto; font-size: 12px; color: var(--text-muted); font-family: var(--font-display); }
+    /* Fiche du séjour : panneau à droite, la grille reste visible et cliquable */
     .detail-card {
-      margin: 0 20px 16px;
+      position: fixed;
+      top: 0; right: 0; bottom: 0;
+      width: min(400px, 100vw);
+      box-sizing: border-box;
+      overflow-y: auto;
+      z-index: 250;
       background: #1a1a1a;
       color: #fff;
-      border-radius: 12px;
-      padding: 18px 22px;
+      padding: 22px 22px 28px;
       font-family: var(--font-display);
-      animation: modalIn .18s ease;
+      box-shadow: -8px 0 30px rgba(0,0,0,.25);
+      animation: drawerIn .18s ease;
     }
+    @keyframes drawerIn { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
     .detail-card-header {
       display: flex;
       align-items: flex-start;
@@ -1195,6 +1148,12 @@
 
       /* --- Table cells --- */
       .cell { height: 32px; font-size: 9px; }
+      .bar { height: 24px; }
+      tr.domaine-row .cell { height: 38px; }
+      tr.domaine-row .bar { height: 32px; }
+      .legend-hint { display: none; }
+      thead .col-logement { overflow: hidden; text-overflow: ellipsis; padding: 0 4px; font-size: 9px; }
+      .detail-card { top: auto; height: 82vh; width: 100vw; border-radius: 14px 14px 0 0; }
       tbody .col-logement { height: 32px; width: var(--col-left); max-width: var(--col-left); }
       .cell-label { line-height: 32px; font-size: 9px; }
       .day-name { font-size: 8px; }
@@ -1269,7 +1228,7 @@
   <aside class="sidebar">
     <div class="logo-area">
       <h1>Domaine Sesquier</h1>
-      <p>Gestion Séminaires</p>
+      <p>Gîtes · Mariages · Séminaires</p>
     </div>
     <ul class="nav-list">
       <li class="nav-item active">
@@ -1296,14 +1255,14 @@
 
   <!-- MONTH NAV BAR -->
   <div class="month-bar">
-    <button class="btn btn-icon" id="btn-prev" title="Mois précédent">&#8249;</button>
+    <button class="btn btn-icon" id="btn-prev" title="Mois précédent" aria-label="Mois précédent">&#8249;</button>
     <span class="month-label" id="month-label">— —</span>
-    <button class="btn btn-icon" id="btn-next" title="Mois suivant">&#8250;</button>
+    <button class="btn btn-icon" id="btn-next" title="Mois suivant" aria-label="Mois suivant">&#8250;</button>
     <button class="btn" id="btn-today">Aujourd'hui</button>
     <a href="archives.html" class="btn" style="margin-left:auto;">Archives</a>
     <button class="btn btn-primary" id="btn-new">+ Nouvelle réservation</button>
-    <button class="btn" id="btn-legend" style="display:none;" title="Légende">?</button>
-    <button class="btn btn-icon" id="btn-fullscreen" title="Plein écran" onclick="toggleFullscreen()">⛶</button>
+    <button class="btn" id="btn-legend" style="display:none;" title="Légende" aria-label="Légende">?</button>
+    <button class="btn btn-icon" id="btn-fullscreen" title="Plein écran" aria-label="Plein écran" onclick="toggleFullscreen()">⛶</button>
   </div>
 
   <!-- MOBILE KPI STRIP -->
@@ -1311,61 +1270,51 @@
 
   <!-- MOBILE WEEK NAV -->
   <div class="mobile-week-nav" id="mobile-week-nav">
-    <button id="btn-week-prev">&#8249;</button>
+    <button id="btn-week-prev" aria-label="Semaine précédente">&#8249;</button>
     <span class="week-label" id="week-label">—</span>
-    <button id="btn-week-next">&#8250;</button>
+    <button id="btn-week-next" aria-label="Semaine suivante">&#8250;</button>
   </div>
 
   <!-- KPI CARDS -->
   <div class="kpi-grid" id="summary">
     <div class="kpi-card">
-      <div class="kpi-icon kpi-icon-seminaire"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div class="kpi-icon kpi-icon-gite" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
       <div class="kpi-content">
-        <div class="kpi-label">Nuits disponibles</div>
-        <div class="kpi-value" id="sum-dispo">—</div>
-        <div class="kpi-sub">Ce mois-ci</div>
+        <div class="kpi-label">Nuits libres</div>
+        <div class="kpi-value" id="sum-libres">—</div>
+        <div class="kpi-sub" id="sum-libres-sub">Aucun gîte pris</div>
       </div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-icon kpi-icon-gite"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div class="kpi-icon kpi-icon-gite" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
       <div class="kpi-content">
         <div class="kpi-label">Nuits occupées</div>
         <div class="kpi-value" id="sum-occ">—</div>
-        <div class="kpi-sub">≥ 1 gîte réservé</div>
+        <div class="kpi-sub" id="sum-occ-sub">Au moins 1 gîte confirmé</div>
       </div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-icon kpi-icon-weekend"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+      <div class="kpi-icon kpi-icon-seminaire" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
       <div class="kpi-content">
-        <div class="kpi-label">Taux d'occupation</div>
-        <div class="kpi-value" id="sum-taux">—</div>
-        <div class="kpi-sub">Sur le mois</div>
-      </div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-icon kpi-icon-seminaire"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-      <div class="kpi-content">
-        <div class="kpi-label">CA Séminaire</div>
+        <div class="kpi-label">CA Séminaires</div>
         <div class="kpi-value" id="sum-ca-sem">—</div>
-        <div class="kpi-sub">Confirmé</div>
+        <div class="kpi-sub" id="sum-ca-sem-sub">HT, confirmé</div>
       </div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-icon kpi-icon-weekend"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      <div class="kpi-icon kpi-icon-weekend" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
       <div class="kpi-content">
-        <div class="kpi-label">CA Autres</div>
-        <div class="kpi-value" id="sum-ca-autres">—</div>
-        <div class="kpi-sub">Privé, mariage, week-end…</div>
+        <div class="kpi-label">CA Gîtes &amp; mariages</div>
+        <div class="kpi-value" id="sum-ca-gite">—</div>
+        <div class="kpi-sub" id="sum-ca-gite-sub">Confirmé</div>
       </div>
     </div>
   </div>
-
   <!-- LEGEND -->
   <div class="legend" id="legend"></div>
 
   <!-- DETAIL CARD : remplace ce texte au clic sur une case du planning -->
-  <p class="detail-hint" id="detail-hint">Clique un bloc du planning pour voir le détail complet ici (nom, dates, personnes, montant, statut).</p>
-  <div class="detail-card" id="detail-card" style="display:none;"></div>
+  <div class="detail-card" id="detail-card" style="display:none;" role="dialog" aria-labelledby="detail-title"></div>
 
   <!-- MAIN CALENDAR AREA -->
   <div class="main">
@@ -1386,7 +1335,7 @@
 <!--  MODAL OVERLAY                                                    -->
 <!-- ================================================================ -->
 <div class="modal-overlay" id="modal-overlay">
-  <div class="modal" id="modal-box" role="dialog" aria-modal="true">
+  <div class="modal" id="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <!-- content injected by JS -->
   </div>
 </div>
@@ -1407,11 +1356,8 @@ const API_BASE = (typeof SesquierUtils !== 'undefined' ? SesquierUtils.API_BASE
   : (location.hostname.startsWith('v2.') || location.hostname.endsWith('.pages.dev'))
     ? 'https://domainesesquier-api-v2.domainesesquier.workers.dev'
     : 'https://domainesesquier-api.domainesesquier.workers.dev') + '/api';
-const AUTH_KEY  = 'planning_auth';
-const AUTH_CODE = '2026';
-
 const LOGEMENTS = [
-  // ── Gîtes ──────────────────────────────────────────
+  // ── Gîtes (capacités en format familial) ───────────
   { name: 'Acacia',            capacity: '6p',  type: 'gite' },
   { name: 'Hibiscus',          capacity: '8p',  type: 'gite' },
   { name: 'Pivoine',           capacity: '4p',  type: 'gite' },
@@ -1421,34 +1367,44 @@ const LOGEMENTS = [
   { name: 'Figuier',           capacity: '2p',  type: 'gite' },
   { name: 'Jasmin',            capacity: '4p',  type: 'gite' },
   { name: 'Clos Josette',      capacity: '2p',  type: 'gite' },
-  { name: 'Sous les toits',    capacity: '4ch', type: 'gite' },
+  { name: 'Sous les toits',    capacity: 'Maison · 4 ch', type: 'gite' },
   // ── Salles de réception ────────────────────────────
   { name: "Champs d'Olivier",  capacity: 'Salle', type: 'salle' },
   { name: 'Archipel',          capacity: 'Salle', type: 'salle' },
 ];
+const GITE_NAMES    = LOGEMENTS.filter(l => l.type === 'gite').map(l => l.name);
+const ALL_LOGEMENTS = LOGEMENTS.map(l => l.name);
 
-const COLORS = {
-  'Airbnb':              { bg: '#FFC4C6', text: '#7A1A1A' },
-  'Booking':             { bg: '#BDD7FF', text: '#1A3A72' },
-  'Elloha':              { bg: '#B8EDD6', text: '#1A5C3A' },
-  'Séminaire':           { bg: '#D4C5F9', text: '#3D1F8A' },
-  'Week-end privé':      { bg: '#FFB8D9', text: '#7A1A52' },
-  'Bloqué':              { bg: '#D0D0D0', text: '#444444' },
-  'Réservation directe': { bg: '#FFDDB3', text: '#7A3D00' },
-  'Mariage':             { bg: '#F5E6A3', text: '#6B4F00' },
-};
+// Ligne virtuelle en tête de grille : séjours qui prennent tous les gîtes
+const DOMAINE_ROW = '__domaine';
+function isDomaineEntier(res) {
+  const logs = res.logements || [];
+  return GITE_NAMES.every(n => logs.includes(n));
+}
 
-const TYPES   = Object.keys(COLORS);
+// Types proposés dans le formulaire (le 1er = valeur par défaut)
+const TYPES   = ['Réservation directe', 'Airbnb', 'Booking', 'Elloha', 'Particulier',
+                 'Week-end privé', 'Mariage', 'Séminaire', 'Bloqué'];
 const STATUTS = ['Confirmé', 'Option', 'Demandé', 'Bloqué', 'Annulé', 'Archivé'];
 
-// ── Regroupement visuel : les 8 types se répartissent dans 3 couleurs ──
-// (Séminaire / Week-end privé / Gîte individuel), + un 4e neutre pour les
-// blocages administratifs. Le Type précis reste stocké et affiché tel quel
-// dans le détail — seul le rendu de la grille utilise ce regroupement.
+// Types écrits par la synchro des dossiers (index.html) : seuls eux ont un dossier à ouvrir
+const DOSSIER_TYPES = ['Séminaire', 'Mariage', 'Week-end privé'];
+
+// Les anciens dossiers écrivaient « confirmé » en minuscule : on ramène tout à la forme canonique
+const STATUT_CANON = { confirme: 'Confirmé', option: 'Option', demande: 'Demandé',
+                       bloque: 'Bloqué', annule: 'Annulé', archive: 'Archivé' };
+function normStatut(s) {
+  const k = String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+  return STATUT_CANON[k] || (s ? String(s) : 'Confirmé');
+}
+
+// Couleur de la grille par famille de types. Le type précis reste stocké et
+// s'affiche dans l'étiquette (AIRBNB, BOOKING…) et dans la fiche.
 const TYPE_BUCKET = {
   'Séminaire':           'seminaire',
   'Week-end privé':      'weekend',
-  'Mariage':             'weekend',
+  'Particulier':         'weekend',
+  'Mariage':             'mariage',
   'Airbnb':              'gite',
   'Booking':             'gite',
   'Elloha':              'gite',
@@ -1457,19 +1413,26 @@ const TYPE_BUCKET = {
 };
 function bucketOf(type) { return TYPE_BUCKET[type] || 'gite'; }
 
-const BUCKET_STYLE = {
-  seminaire: { label: 'Séminaire',       abbr: 'SÉM',  color: 'var(--type-seminaire)', bg: 'var(--type-seminaire-bg)', text: '#fff' },
-  weekend:   { label: 'Week-end privé',  abbr: 'W-E',  color: 'var(--type-weekend)',   bg: 'var(--type-weekend-bg)',   text: 'var(--type-weekend-text)' },
-  gite:      { label: 'Gîte individuel', abbr: 'GÎTE', color: 'var(--type-gite)',      bg: 'var(--type-gite-bg)',      text: '#fff' },
-  bloque:    { label: 'Bloqué',          abbr: 'BLOQ', color: 'var(--type-bloque)',    bg: 'var(--type-bloque-bg)',    text: '#fff' },
+const TYPE_ABBR = {
+  'Séminaire': 'SÉM', 'Week-end privé': 'W-E', 'Particulier': 'PRIVÉ', 'Mariage': 'MARIAGE',
+  'Airbnb': 'AIRBNB', 'Booking': 'BOOKING', 'Elloha': 'ELLOHA', 'Réservation directe': 'DIRECT', 'Bloqué': 'BLOQUÉ',
 };
+function abbrOf(type) { return TYPE_ABBR[type] || String(type || 'Gîte').toUpperCase(); }
 
+const BUCKET_STYLE = {
+  seminaire: { label: 'Séminaire',      color: 'var(--type-seminaire)', bg: 'var(--type-seminaire-bg)', text: '#fff' },
+  weekend:   { label: 'Week-end privé', color: 'var(--type-weekend)',   bg: 'var(--type-weekend-bg)',   text: 'var(--type-weekend-text)' },
+  mariage:   { label: 'Mariage',        color: 'var(--type-mariage)',   bg: 'var(--type-mariage-bg)',   text: '#fff' },
+  gite:      { label: 'Gîte (Airbnb, Booking, direct…)', color: 'var(--type-gite)', bg: 'var(--type-gite-bg)', text: '#fff' },
+  bloque:    { label: 'Bloqué',         color: 'var(--type-bloque)',    bg: 'var(--type-bloque-bg)',    text: '#fff' },
+};
 const MONTHS_FR = [
   'Janvier','Février','Mars','Avril','Mai','Juin',
   'Juillet','Août','Septembre','Octobre','Novembre','Décembre'
 ];
 
 const DAYS_SHORT = ['Di','Lu','Ma','Me','Je','Ve','Sa'];
+const DAYS_LONG  = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
 
 /* ------------------------------------------------------------------ */
 /*  STATE                                                               */
@@ -1505,7 +1468,7 @@ function goToPrevWeek() {
     loadPlanning(); return;
   }
   renderWeekLabel();
-  renderCalendar();
+  renderGrid();
 }
 
 function goToNextWeek() {
@@ -1520,25 +1483,11 @@ function goToNextWeek() {
     loadPlanning(); return;
   }
   renderWeekLabel();
-  renderCalendar();
+  renderGrid();
 }
 let reservations = [];
 let isLoading    = false;
 
-/* ------------------------------------------------------------------ */
-/*  AUTH GATE                                                           */
-/* ------------------------------------------------------------------ */
-function checkAuth() {
-  if (localStorage.getItem(AUTH_KEY) === 'true') return true;
-  const code = prompt('🔒 Accès protégé — Entrez le code à 4 chiffres :');
-  if (code === AUTH_CODE) {
-    localStorage.setItem(AUTH_KEY, 'true');
-    return true;
-  }
-  document.body.innerHTML =
-    '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#666;font-size:18px;">Accès refusé.</div>';
-  return false;
-}
 
 /* ------------------------------------------------------------------ */
 /*  DATE HELPERS                                                        */
@@ -1548,7 +1497,8 @@ function daysInMonth(year, month) {
 }
 
 function toYMD(date) {
-  return date.toISOString().split('T')[0];
+  // Date locale (toISOString passait en UTC : la veille entre minuit et 1-2 h)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 function parseYMD(str) {
@@ -1574,7 +1524,7 @@ function recordToRes(record) {
     depart:    f['Date départ']  || '',
     personnes: f['Nb personnes'] || 0,
     montant:   f['Montant']      || 0,
-    statut:    f['Statut']       || 'Confirmé',
+    statut:    normStatut(f['Statut']),
     notes:       f['Notes']        || '',
     contact_tel: f['Contact tél']  || '',
     draps:       f['Draps']        || false,
@@ -1614,7 +1564,8 @@ async function loadPlanning() {
     // en base (créés avant le fix du planning_id), on ne garde que le premier.
     const seen = new Set();
     reservations = (data.records || []).map(recordToRes).filter(r => {
-      const key = `${r.nom}|${r.arrivee}|${r.depart}`;
+      // Doublon = même nom, type, dates ET logements (deux gîtes loués au même nom restent visibles)
+      const key = `${r.nom}|${r.type}|${r.arrivee}|${r.depart}|${[...(r.logements || [])].sort().join(',')}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -1657,25 +1608,17 @@ async function deleteReservation(id) {
 /* ------------------------------------------------------------------ */
 function renderLegend() {
   const el = document.getElementById('legend');
-  const buckets = ['seminaire', 'weekend', 'gite'];
-  el.innerHTML = buckets.map(key => {
+  const items = ['seminaire', 'weekend', 'mariage', 'gite'].map(key => {
     const b = BUCKET_STYLE[key];
-    return `<div class="legend-item">
-      <span class="legend-dot" style="background:${b.color};"></span>
-      <span>${b.label}</span>
-    </div>`;
-  }).join('');
-  el.innerHTML += `
-    <div class="legend-item">
-      <span class="legend-dot legend-dot-dashed"></span>
-      <span>En option</span>
-    </div>
-    <div class="legend-item">
-      <span class="legend-dot legend-dot-annule"></span>
-      <span>Annulé</span>
-    </div>`;
+    return `<div class="legend-item"><span class="legend-dot" style="background:${b.color};"></span><span>${b.label}</span></div>`;
+  });
+  items.push(
+    '<div class="legend-item"><span class="legend-dot legend-dot-dashed"></span><span>En option</span></div>',
+    '<div class="legend-item"><span class="legend-dot legend-dot-annule"></span><span>Annulé</span></div>',
+    '<div class="legend-hint">Clic sur un séjour : sa fiche · clic sur une case vide : nouvelle réservation</div>',
+  );
+  el.innerHTML = items.join('');
 }
-
 /* ------------------------------------------------------------------ */
 /*  MONTH LABEL                                                         */
 /* ------------------------------------------------------------------ */
@@ -1689,70 +1632,57 @@ function renderMonthLabel() {
 /* ------------------------------------------------------------------ */
 /*  BUILD GRID DATA STRUCTURE                                           */
 /* ------------------------------------------------------------------ */
+function visibleDaysOf(res) {
+  const out = [];
+  if (!res.arrivee || !res.depart) return out;
+  const dep = parseYMD(res.depart);
+  for (let cur = parseYMD(res.arrivee); cur < dep; cur.setDate(cur.getDate() + 1)) {
+    if (cur.getFullYear() === currentYear && cur.getMonth() + 1 === currentMonth) out.push(cur.getDate());
+  }
+  return out;
+}
+
 function buildGrid() {
-  const dim  = daysInMonth(currentYear, currentMonth);
-  const grid = {};
+  const grid = { [DOMAINE_ROW]: {} };
   LOGEMENTS.forEach(l => { grid[l.name] = {}; });
-
-  reservations.forEach(res => {
-    if (res.statut === 'Archivé') return;
-    if (!res.arrivee || !res.depart) return;
-    const arrDate = parseYMD(res.arrivee);
-    const depDate = parseYMD(res.depart);
-
-    (res.logements || []).forEach(logName => {
-      if (!grid[logName]) return;
-
-      // Jours de cette réservation visibles dans le mois affiché.
-      // isFirst/isLast sont relatifs à ce qui est VISIBLE (pas à la réservation
-      // entière) : un séjour qui déborde du mois précédent affiche quand même
-      // son étiquette sur le 1er du mois, et son bloc se termine proprement
-      // sur le dernier jour visible.
-      const visibleDays = [];
-      for (let cur = new Date(arrDate); cur < depDate; cur.setDate(cur.getDate() + 1)) {
-        if (cur.getFullYear() !== currentYear || cur.getMonth() + 1 !== currentMonth) continue;
-        const day = cur.getDate();
-        if (day < 1 || day > dim) continue;
-        visibleDays.push(day);
-      }
-
-      visibleDays.forEach((day, idx) => {
-        grid[logName][day] = {
-          reservation: res,
-          isFirst: idx === 0,
-          isLast:  idx === visibleDays.length - 1,
-        };
+  // Ordre d'écriture (la dernière écrite gagne la case) : annulés d'abord, puis
+  // séjours « domaine entier », puis réservations individuelles — un Airbnb
+  // posé sur un gîte reste lisible par-dessus un séjour domaine entier.
+  const rank = r => (r.statut === 'Annulé' ? 0 : 2) + (isDomaineEntier(r) ? 0 : 1);
+  reservations
+    .filter(r => r.statut !== 'Archivé' && r.arrivee && r.depart)
+    .sort((a, b) => rank(a) - rank(b))
+    .forEach(res => {
+      const days = visibleDaysOf(res);
+      if (!days.length) return;
+      const domaine = isDomaineEntier(res);
+      if (domaine) days.forEach(d => { grid[DOMAINE_ROW][d] = { reservation: res, covered: false }; });
+      (res.logements || []).forEach(log => {
+        if (!grid[log]) return;
+        days.forEach(d => { grid[log][d] = { reservation: res, covered: domaine }; });
       });
     });
-  });
-
   return grid;
 }
 
 function buildConflicts() {
-  const dim = daysInMonth(currentYear, currentMonth);
-  const map = {};
+  const map = { [DOMAINE_ROW]: {} };
   LOGEMENTS.forEach(l => { map[l.name] = {}; });
   reservations.forEach(res => {
-    if (res.statut === 'Archivé' || res.statut === 'Annulé' || !res.arrivee || !res.depart) return;
-    const arr = parseYMD(res.arrivee), dep = parseYMD(res.depart);
-    (res.logements || []).forEach(logName => {
-      if (!map[logName]) return;
-      for (let cur = new Date(arr); cur < dep; cur.setDate(cur.getDate() + 1)) {
-        if (cur.getFullYear() !== currentYear || cur.getMonth() + 1 !== currentMonth) continue;
-        const d = cur.getDate();
-        if (!map[logName][d]) map[logName][d] = [];
-        if (!map[logName][d].find(r => r.id === res.id)) map[logName][d].push(res);
-      }
+    if (res.statut === 'Archivé' || res.statut === 'Annulé') return;
+    const rows = (res.logements || []).filter(l => map[l]);
+    if (isDomaineEntier(res)) rows.push(DOMAINE_ROW);
+    visibleDaysOf(res).forEach(d => {
+      rows.forEach(row => {
+        const list = (map[row][d] = map[row][d] || []);
+        if (!list.some(r => r.id === res.id)) list.push(res);
+      });
     });
   });
   const conflicts = {};
-  Object.entries(map).forEach(([log, days]) => {
-    Object.entries(days).forEach(([d, arr]) => {
-      if (arr.length >= 2) {
-        if (!conflicts[log]) conflicts[log] = {};
-        conflicts[log][parseInt(d)] = arr;
-      }
+  Object.entries(map).forEach(([row, days]) => {
+    Object.entries(days).forEach(([d, list]) => {
+      if (list.length >= 2) (conflicts[row] = conflicts[row] || {})[+d] = list;
     });
   });
   return conflicts;
@@ -1761,6 +1691,52 @@ function buildConflicts() {
 /* ------------------------------------------------------------------ */
 /*  RENDER CALENDAR GRID                                                */
 /* ------------------------------------------------------------------ */
+function dateLongue(d) {
+  const date = new Date(currentYear, currentMonth - 1, d);
+  return `${DAYS_LONG[date.getDay()]} ${d} ${MONTHS_FR[currentMonth - 1].toLowerCase()}`;
+}
+
+function freeCellHtml(row, d, isToday) {
+  const dow = new Date(currentYear, currentMonth - 1, d).getDay();
+  const cls = ['cell', 'free', (dow === 0 || dow === 6) ? 'weekend' : '', isToday ? 'today' : ''].filter(Boolean).join(' ');
+  const label = `${row.label || row.name}, ${dateLongue(d)} : libre`;
+  return `<td class="${cls}" data-logement="${esc(row.name)}" data-day="${d}" data-span="1" role="gridcell" tabindex="-1" aria-label="${esc(label)}"></td>`;
+}
+
+// Nom court pour les séjours d'une nuit : sans civilité, « Famille », ni parenthèses
+function shortName(nom) {
+  const s = String(nom || '').replace(/\(.*?\)/g, ' ')
+    .replace(/(^|\s)(famille|m\.|mme|mlle|mr|monsieur|madame|société|sas|sarl|maison mère)(?=\s|$)/gi, ' ')
+    .replace(/\s+/g, ' ').trim();
+  return s.split(' ')[0] || String(nom || '—').trim();
+}
+
+function barCellHtml(row, cell, d, span, rowConflicts) {
+  const res    = cell.reservation;
+  const bucket = BUCKET_STYLE[bucketOf(res.type)];
+  const ids = new Set();
+  for (let k = 0; k < span; k++) (rowConflicts?.[d + k] || []).forEach(r => ids.add(r.id));
+  const conflict  = ids.size >= 2;
+  const contLeft  = parseYMD(res.arrivee) < new Date(currentYear, currentMonth - 1, d);
+  const contRight = parseYMD(res.depart)  > new Date(currentYear, currentMonth - 1, d + span);
+  const tdCls  = ['cell', 'occupied', statutCellClass(res.statut), conflict ? 'has-conflict' : ''].filter(Boolean).join(' ');
+  const barCls = ['bar', contLeft ? 'cont-left' : '', contRight ? 'cont-right' : '',
+                  cell.covered ? 'bar-covered' : '', span <= 3 ? 'bar-short' : '', span === 1 ? 'bar-tiny' : '']
+                  .filter(Boolean).join(' ');
+  // Séjour long : type + nom complet ; 2-3 nuits : nom complet sur 2 lignes ; 1 nuit : nom court
+  const inner = cell.covered ? '' :
+    (span >= 4 ? `<span class="bar-type">${esc(abbrOf(res.type))}</span>` : '') +
+    `<span class="bar-name">${esc(span === 1 ? shortName(res.nom) : (res.nom || '—'))}</span>`;
+  const label = `${res.nom || 'Sans nom'}, ${res.type || 'type inconnu'}, ${res.statut}, `
+    + `du ${formatDateFr(res.arrivee)} au ${formatDateFr(res.depart)}`
+    + `${conflict ? ', conflit de réservation' : ''} (${row.label || row.name})`;
+  return `<td colspan="${span}" class="${tdCls}"
+    style="--type-color:${bucket.color};--type-bg:${bucket.bg};--type-text:${bucket.text};"
+    data-res-id="${esc(res.id)}" data-logement="${esc(row.name)}" data-day="${d}" data-span="${span}"
+    data-conflict-ids="${conflict ? esc([...ids].join(',')) : ''}"
+    role="gridcell" tabindex="-1" aria-label="${esc(label)}"><div class="${barCls}">${inner}</div>${conflict ? `<span class="conflict-badge" aria-hidden="true">⚠ ${ids.size}</span>` : ''}</td>`;
+}
+
 function renderGrid() {
   const container = document.getElementById('calendar-container');
 
@@ -1775,8 +1751,7 @@ function renderGrid() {
 
   const dim   = daysInMonth(currentYear, currentMonth);
   const today = new Date();
-  const isThisMonth =
-    today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth;
+  const isThisMonth = today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth;
   const todayDay = today.getDate();
 
   // Mobile : vue semaine (7 jours) — desktop : vue mois entier
@@ -1786,91 +1761,50 @@ function renderGrid() {
 
   renderWeekLabel();
 
-  const grid = buildGrid();
+  const grid      = buildGrid();
   const conflicts = buildConflicts();
 
-  let html = '<table class="calendar-table" role="grid"><thead><tr>';
+  let html = `<table class="calendar-table" role="grid" aria-label="Planning ${MONTHS_FR[currentMonth - 1]} ${currentYear}"><thead><tr>`;
   html += '<th class="col-logement" scope="col">Logement</th>';
-
   for (let d = startDay; d <= endDay; d++) {
-    const date    = new Date(currentYear, currentMonth - 1, d);
-    const dayIdx  = date.getDay();
-    const weekend = dayIdx === 0 || dayIdx === 6;
-    const isToday = isThisMonth && d === todayDay;
-    const cls     = ['col-day', weekend ? 'weekend' : '', isToday ? 'today' : '']
-                      .filter(Boolean).join(' ');
-    html += `<th class="${cls}" scope="col">
+    const dayIdx = new Date(currentYear, currentMonth - 1, d).getDay();
+    const cls = ['col-day', (dayIdx === 0 || dayIdx === 6) ? 'weekend' : '', isThisMonth && d === todayDay ? 'today' : '']
+                  .filter(Boolean).join(' ');
+    html += `<th class="${cls}" scope="col" abbr="${esc(dateLongue(d))}">
       <span class="day-name">${DAYS_SHORT[dayIdx]}</span>
       <span class="day-num">${d}</span>
     </th>`;
   }
   html += '</tr></thead><tbody>';
 
+  const rows = [{ name: DOMAINE_ROW, label: 'Domaine entier', capacity: 'Tous les gîtes', type: 'domaine' }, ...LOGEMENTS];
   let prevType = null;
-  LOGEMENTS.forEach(logement => {
-    if (prevType === 'gite' && logement.type === 'salle') {
-      html += `<tr class="separator-row">
-        <td colspan="${numCols + 1}" style="background:var(--section-divider);color:rgba(255,255,255,.7);font-size:10px;font-weight:700;font-family:var(--font-display);letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;height:24px;border:none;">
-          🏛 Salles de réception
-        </td>
-      </tr>`;
+  rows.forEach(row => {
+    if (row.type === 'salle' && prevType !== 'salle') {
+      html += `<tr class="separator-row"><td colspan="${numCols + 1}">Salles de réception</td></tr>`;
     }
-    prevType = logement.type;
+    prevType = row.type;
+    const isSalle = row.type === 'salle';
+    const rowCls  = isSalle ? 'salle-row' : row.type === 'domaine' ? 'domaine-row' : '';
+    html += `<tr class="${rowCls}">
+      <th scope="row" class="col-logement${isSalle ? ' salle' : ''}">
+        <span class="logement-name">${esc(row.label || row.name)}</span>
+        <span class="logement-cap${isSalle ? ' salle-tag' : ''}">${esc(row.capacity)}</span>
+      </th>`;
 
-    const isSalle = logement.type === 'salle';
-    const rowCls  = isSalle ? ' class="salle-row"' : '';
-    const colCls  = isSalle ? 'col-logement salle' : 'col-logement';
-    const capCls  = isSalle ? 'logement-cap salle-tag' : 'logement-cap';
-
-    html += `<tr${rowCls}>
-      <td class="${colCls}">
-        <span class="logement-name">${esc(logement.name)}</span>
-        <span class="${capCls}">${logement.capacity}</span>
-      </td>`;
-
-    for (let d = startDay; d <= endDay; d++) {
-      const isToday   = isThisMonth && d === todayDay;
-      const cell      = grid[logement.name][d];
-      const todayCls  = isToday ? ' today-border' : '';
-      const dayIdx2   = new Date(currentYear, currentMonth - 1, d).getDay();
-      const weekendCl = (dayIdx2 === 0 || dayIdx2 === 6) ? ' weekend' : '';
-
-      if (cell) {
-        const res    = cell.reservation;
-        const bucket = BUCKET_STYLE[bucketOf(res.type)];
-        const sCls   = statutCellClass(res.statut);
-        const blockCls      = `${cell.isFirst ? ' block-start' : ''}${cell.isLast ? ' block-end' : ''}`;
-        const conflictList  = conflicts[logement.name]?.[d] || [];
-        const conflictCls   = conflictList.length >= 2 ? ' has-conflict' : '';
-        const conflictBadge = conflictList.length >= 2
-          ? `<span class="conflict-badge">⚠ ${conflictList.length}</span>` : '';
-        // 1er jour visible du bloc : étiquette (type abrégé + prénom).
-        // Jours suivants : simple point de couleur, pas de texte répété.
-        const inner = cell.isFirst
-          ? `<div class="cell-chip">
-               <span class="chip-type">${esc(bucket.abbr)}</span>
-               <span class="chip-name">${esc((res.nom || '').split(' ')[0])}</span>
-             </div>`
-          : `<div class="cell-dot-wrap"><span class="cell-dot"></span></div>`;
-        html += `<td
-          class="cell occupied${todayCls} ${sCls}${blockCls}${conflictCls}"
-          style="--type-color:${bucket.color};--type-bg:${bucket.bg};--type-text:${bucket.text};"
-          data-res-id="${esc(res.id)}"
-          data-logement="${esc(logement.name)}"
-          data-day="${d}"
-          data-conflict-ids="${conflictList.length >= 2 ? conflictList.map(r => r.id).join(',') : ''}"
-          role="gridcell"
-          tabindex="0"
-        >${inner}${conflictBadge}</td>`;
-      } else {
-        html += `<td
-          class="cell free${todayCls}${weekendCl}"
-          data-logement="${esc(logement.name)}"
-          data-day="${d}"
-          role="gridcell"
-          tabindex="0"
-        ></td>`;
+    // Les jours consécutifs d'un même séjour forment une seule cellule (colspan)
+    let d = startDay;
+    while (d <= endDay) {
+      const cell = grid[row.name][d];
+      if (!cell) { html += freeCellHtml(row, d, isThisMonth && d === todayDay); d++; continue; }
+      let span = 1;
+      while (d + span <= endDay) {
+        const nx = grid[row.name][d + span];
+        if (!nx || nx.reservation.id !== cell.reservation.id || nx.covered !== cell.covered) break;
+        span++;
       }
+      html += barCellHtml(row, cell, d, span, conflicts[row.name]);
+      d += span;
     }
     html += '</tr>';
   });
@@ -1878,37 +1812,51 @@ function renderGrid() {
   html += '</tbody></table>';
   container.innerHTML = html;
 
+  // Clavier : une seule case dans l'ordre de tabulation, les flèches font le reste
+  const start = container.querySelector('td.cell.today') || container.querySelector('td.cell');
+  if (start) start.tabIndex = 0;
+
+  // Survol : résumé du séjour (le clic ouvre la fiche à droite)
   container.querySelectorAll('td.cell.occupied').forEach(td => {
     const res = reservations.find(r => r.id === td.dataset.resId);
-    if (res) {
-      const conflictList  = conflicts[td.dataset.logement]?.[parseInt(td.dataset.day)] || [];
-      const conflictNames = conflictList.filter(r => r.id !== res.id).map(r => r.nom);
-      const tip = buildTooltip(res, conflictNames);
-      td.addEventListener('mouseenter', e => showGanttTooltip(tip, e));
-      td.addEventListener('mousemove',  e => moveGanttTooltip(e));
-      td.addEventListener('mouseleave', hideGanttTooltip);
-      td.addEventListener('touchstart', e => {
-        e.preventDefault();
-        const t = e.touches[0];
-        showGanttTooltip(tip, { clientX: t.clientX, clientY: t.clientY });
-        setTimeout(hideGanttTooltip, 3000);
-      }, { passive: false });
-      td.addEventListener('touchend', e => {
-        e.preventDefault();
-        hideGanttTooltip();
-        const conflictIds = (td.dataset.conflictIds || '').split(',').filter(Boolean);
-        if (conflictIds.length >= 2) openConflictModal(conflictIds);
-        else showDetailCard(res);
-      }, { passive: false });
-    }
-  });
-
-  container.addEventListener('click', onCellClick);
-  container.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') onCellClick(e);
+    if (!res) return;
+    const others = (td.dataset.conflictIds || '').split(',').filter(id => id && id !== res.id)
+      .map(id => reservations.find(r => r.id === id)?.nom).filter(Boolean);
+    const tip = buildTooltip(res, others);
+    td.addEventListener('mouseenter', e => showGanttTooltip(tip, e));
+    td.addEventListener('mousemove',  moveGanttTooltip);
+    td.addEventListener('mouseleave', hideGanttTooltip);
   });
 }
 
+// Flèches : se déplacer dans la grille ; Entrée / Espace : ouvrir
+function onGridKeydown(e) {
+  const cell = e.target.closest('td.cell');
+  if (!cell) return;
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCellClick(e); return; }
+  const row = cell.parentElement;
+  const cellsOf = tr => [...tr.querySelectorAll('td.cell')];
+  let next = null;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    const list = cellsOf(row);
+    next = list[list.indexOf(cell) + (e.key === 'ArrowRight' ? 1 : -1)];
+  } else if (e.key === 'Home') {
+    next = cellsOf(row)[0];
+  } else if (e.key === 'End') {
+    next = cellsOf(row).pop();
+  } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    const day = +cell.dataset.day;
+    let tr = row;
+    do { tr = e.key === 'ArrowDown' ? tr.nextElementSibling : tr.previousElementSibling; }
+    while (tr && !tr.querySelector('td.cell'));
+    if (tr) next = cellsOf(tr).find(td => +td.dataset.day <= day && day < +td.dataset.day + +td.dataset.span);
+  }
+  if (!next) return;
+  e.preventDefault();
+  cell.tabIndex = -1;
+  next.tabIndex = 0;
+  next.focus();
+}
 function formatDateFr(str) {
   if (!str) return '—';
   const mois = ['jan.','fév.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
@@ -1967,7 +1915,7 @@ function openConflictModal(ids) {
 
   openModal(`
     <div class="modal-header">
-      <span class="modal-title">⚠ Conflits sur cette date</span>
+      <span class="modal-title" id="modal-title">⚠ Conflits sur cette date</span>
       <button class="modal-close" onclick="closeModal()" title="Fermer">&#x2715;</button>
     </div>
     <div style="padding:0 4px;">${rows}</div>
@@ -1983,93 +1931,86 @@ function onCellClick(e) {
   const cell = e.target.closest('td.cell');
   if (!cell) return;
 
-  const logement = cell.dataset.logement;
-  const day      = parseInt(cell.dataset.day, 10);
-  const resId    = cell.dataset.resId;
+  // La case cliquée devient le point d'entrée clavier de la grille
+  document.querySelectorAll('#calendar-container td.cell[tabindex="0"]').forEach(td => { td.tabIndex = -1; });
+  cell.tabIndex = 0;
 
+  const resId = cell.dataset.resId;
   if (resId) {
     const conflictIds = (cell.dataset.conflictIds || '').split(',').filter(Boolean);
-    if (conflictIds.length >= 2) {
-      openConflictModal(conflictIds);
-    } else {
-      const res = reservations.find(r => r.id === resId);
-      if (res) showDetailCard(res);
-    }
+    if (conflictIds.length >= 2) openConflictModal(conflictIds);
+    else showDetailCard(reservations.find(r => r.id === resId));
   } else {
-    if (window.innerWidth > 768) {
-      const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      openCreateModal(logement, dateStr);
-    }
+    const day = parseInt(cell.dataset.day, 10);
+    const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    openCreateModal(cell.dataset.logement === DOMAINE_ROW ? ALL_LOGEMENTS : [cell.dataset.logement], dateStr);
   }
 }
-
 /* ------------------------------------------------------------------ */
 /*  SUMMARY                                                             */
 /* ------------------------------------------------------------------ */
 function renderSummary() {
-  const dim   = daysInMonth(currentYear, currentMonth);
-  const gites = LOGEMENTS.filter(l => l.type === 'gite');
-  // Disponibilité en jours calendaires du mois (et non en nuitées-gîtes).
-  const total = dim;
-
-  // Un jour est "occupé" dès qu'au moins un gîte y est réservé (confirmé).
-  const occupiedDays = new Set();
-  let caSeminaire = 0;   // CA des séminaires
-  let caAutres    = 0;   // CA de tout le reste (privé, mariage, week-end, airbnb…)
+  const dim = daysInMonth(currentYear, currentMonth);
+  const prises   = new Set();  // nuits avec au moins un gîte pris (confirmé, option, demandé, bloqué)
+  const occupees = new Set();  // nuits avec au moins un gîte confirmé
+  let caSem = 0, caSemOpt = 0, caGite = 0, caGiteOpt = 0;
 
   reservations.forEach(res => {
-    if (res.statut === 'Confirmé') {
-      const arr = parseYMD(res.arrivee);
-      const dep = parseYMD(res.depart);
-      const touchesGite = (res.logements || []).some(l =>
-        gites.some(lg => lg.name === l)
-      );
-      if (touchesGite) {
-        for (let cur = new Date(arr); cur < dep; cur.setDate(cur.getDate() + 1)) {
-          if (cur.getFullYear() === currentYear && cur.getMonth() + 1 === currentMonth) {
-            occupiedDays.add(cur.getDate());
-          }
-        }
-      }
-      const m = Number(res.montant) || 0;
-      if (bucketOf(res.type) === 'seminaire') caSeminaire += m;
-      else                                    caAutres    += m;
+    if (!res.arrivee || !res.depart || res.statut === 'Archivé' || res.statut === 'Annulé') return;
+    if ((res.logements || []).some(l => GITE_NAMES.includes(l))) {
+      visibleDaysOf(res).forEach(d => {
+        prises.add(d);
+        if (res.statut === 'Confirmé') occupees.add(d);
+      });
     }
+    // CA : compté une seule fois, au mois d'arrivée (un séjour à cheval n'est pas compté deux fois)
+    if (bucketOf(res.type) === 'bloque' || res.statut === 'Bloqué') return;
+    const [y, m] = res.arrivee.split('-').map(Number);
+    if (y !== currentYear || m !== currentMonth) return;
+    const montant  = Number(res.montant) || 0;
+    const confirme = res.statut === 'Confirmé';
+    if (bucketOf(res.type) === 'seminaire') { if (confirme) caSem += montant; else caSemOpt += montant; }
+    else                                    { if (confirme) caGite += montant; else caGiteOpt += montant; }
   });
 
-  const occupied = occupiedDays.size;
-  const taux = total > 0 ? Math.round((occupied / total) * 100) : 0;
+  const taux = dim ? Math.round((occupees.size / dim) * 100) : 0;
   const fmtEuro = v => v.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
 
-  document.getElementById('sum-dispo').textContent = total;
-  document.getElementById('sum-occ').textContent   = occupied;
-  document.getElementById('sum-taux').textContent  = taux + ' %';
-  document.getElementById('sum-ca-sem').textContent    = fmtEuro(caSeminaire);
-  document.getElementById('sum-ca-autres').textContent = fmtEuro(caAutres);
+  set('sum-libres',      dim - prises.size);
+  set('sum-libres-sub',  `sur ${dim}, aucun gîte pris`);
+  set('sum-occ',         occupees.size);
+  set('sum-occ-sub',     `${taux} % du mois · confirmé`);
+  set('sum-ca-sem',      fmtEuro(caSem));
+  set('sum-ca-sem-sub',  caSemOpt  ? `HT · + ${fmtEuro(caSemOpt)} en option`  : 'HT, confirmé');
+  set('sum-ca-gite',     fmtEuro(caGite));
+  set('sum-ca-gite-sub', caGiteOpt ? `+ ${fmtEuro(caGiteOpt)} en option` : 'Confirmé, montants saisis');
 
-  // Mobile KPI strip
   const strip = document.getElementById('mobile-kpi-strip');
   if (strip) {
-    const monthLabel = `${MONTHS_FR[currentMonth - 1]} ${currentYear}`;
-    strip.textContent = `${monthLabel} — ${taux}% occupation • ${fmtEuro(caSeminaire + caAutres)}`;
+    strip.textContent = `${MONTHS_FR[currentMonth - 1]} ${currentYear} — ${taux} % occupé • Sém. ${fmtEuro(caSem)} • Gîtes ${fmtEuro(caGite)}`;
   }
 }
-
 /* ------------------------------------------------------------------ */
 /*  MODALS                                                              */
 /* ------------------------------------------------------------------ */
 const overlay  = document.getElementById('modal-overlay');
 const modalBox = document.getElementById('modal-box');
+let lastFocus = null;
 
 function openModal(html) {
+  if (!overlay.classList.contains('open')) lastFocus = document.activeElement;
   modalBox.innerHTML = html;
   overlay.classList.add('open');
-  modalBox.querySelector('.modal-close')?.focus();
+  (modalBox.querySelector('input:not([type=checkbox]), select, textarea') || modalBox.querySelector('.modal-close'))?.focus();
 }
 
 function closeModal() {
+  if (!overlay.classList.contains('open')) return;
   overlay.classList.remove('open');
   modalBox.innerHTML = '';
+  if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+  lastFocus = null;
 }
 
 overlay.addEventListener('click', e => {
@@ -2077,64 +2018,53 @@ overlay.addEventListener('click', e => {
 });
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Escape') {
+    if (overlay.classList.contains('open')) closeModal();
+    else hideDetailCard();
+    return;
+  }
+  // Tab reste dans la fenêtre ouverte
+  if (e.key === 'Tab' && overlay.classList.contains('open')) {
+    const f = [...modalBox.querySelectorAll('button, input, select, textarea, a[href]')].filter(el => !el.disabled);
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
 });
+/* ----  FICHE DU SÉJOUR (panneau à droite)  ---- */
+let detailReturnFocus = null;
 
-/* ----  DETAIL MODAL  ---- */
-/* ----  DETAIL CARD (en tête de page, remplace le modal + le survol)  ---- */
 function showDetailCard(res) {
+  if (!res) return;
   const bucket = BUCKET_STYLE[bucketOf(res.type)];
-  const sBadge = statutBadgeClass(res.statut);
-
-  const hint = document.getElementById('detail-hint');
-  const card = document.getElementById('detail-card');
-  if (hint) hint.style.display = 'none';
+  const card   = document.getElementById('detail-card');
+  if (card.style.display !== 'block') detailReturnFocus = document.activeElement;
+  const id     = esc(res.id);
+  const nuits  = (res.arrivee && res.depart) ? Math.round((parseYMD(res.depart) - parseYMD(res.arrivee)) / 86400000) : 0;
+  const item   = (label, value) => `<div class="detail-card-item"><div class="dc-label">${label}</div><div class="dc-value">${value}</div></div>`;
 
   card.innerHTML = `
     <div class="detail-card-header">
-      <div class="detail-card-name">${esc(res.nom)}</div>
-      <button class="detail-card-close" onclick="hideDetailCard()" title="Fermer">&#x2715;</button>
+      <div class="detail-card-name" id="detail-title">${esc(res.nom)}</div>
+      <button class="detail-card-close" onclick="hideDetailCard()" title="Fermer" aria-label="Fermer la fiche">&#x2715;</button>
     </div>
 
     <div class="detail-card-grid">
-      <div class="detail-card-item">
-        <div class="dc-label">Type</div>
-        <div class="dc-value"><span class="detail-card-badge" style="background:${bucket.color};color:${bucket.text};">${esc(res.type)}</span></div>
-      </div>
-      <div class="detail-card-item">
-        <div class="dc-label">Statut</div>
-        <div class="dc-value"><span class="statut-badge ${sBadge}">${esc(res.statut)}</span></div>
-      </div>
-      <div class="detail-card-item">
-        <div class="dc-label">Arrivée</div>
-        <div class="dc-value">${formatDate(res.arrivee)}</div>
-      </div>
-      <div class="detail-card-item">
-        <div class="dc-label">Départ</div>
-        <div class="dc-value">${formatDate(res.depart)}</div>
-      </div>
-      <div class="detail-card-item">
-        <div class="dc-label">Personnes</div>
-        <div class="dc-value">${res.personnes || '—'}</div>
-      </div>
-      <div class="detail-card-item">
-        <div class="dc-label">Montant</div>
-        <div class="dc-value">${res.montant ? Number(res.montant).toLocaleString('fr-FR', {style:'currency',currency:'EUR',maximumFractionDigits:0}) : '—'}</div>
-      </div>
-      ${res.contact_tel ? `
-      <div class="detail-card-item">
-        <div class="dc-label">Contact tél</div>
-        <div class="dc-value">${esc(res.contact_tel)}</div>
-      </div>` : ''}
-      <div class="detail-card-item">
-        <div class="dc-label">Draps</div>
-        <div class="dc-value">${res.draps ? '✓ Oui' : '—'}</div>
-      </div>
+      ${item('Type', `<span class="detail-card-badge" style="background:${bucket.color};color:${bucket.text};">${esc(res.type || '—')}</span>`)}
+      ${item('Statut', `<span class="statut-badge ${statutBadgeClass(res.statut)}">${esc(res.statut)}</span>`)}
+      ${item('Arrivée', formatDate(res.arrivee))}
+      ${item('Départ', formatDate(res.depart))}
+      ${item('Nuits', nuits || '—')}
+      ${item('Personnes', res.personnes || '—')}
+      ${item('Montant', res.montant ? Number(res.montant).toLocaleString('fr-FR', {style:'currency',currency:'EUR',maximumFractionDigits:0}) : '—')}
+      ${res.contact_tel ? item('Contact tél', `<a href="tel:${esc(res.contact_tel.replace(/\s+/g, ''))}" style="color:#fff;">${esc(res.contact_tel)}</a>`) : ''}
+      ${item('Draps', res.draps ? '✓ Oui' : '—')}
     </div>
 
     ${(res.logements && res.logements.length) ? `
     <div style="margin-bottom:14px;">
-      <div class="dc-label" style="margin-bottom:6px;">Logements</div>
+      <div class="dc-label" style="margin-bottom:6px;">${isDomaineEntier(res) ? 'Domaine entier' : 'Logements'}</div>
       <div class="logements-tags">
         ${res.logements.map(l => `<span class="logement-tag" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#fff;">${esc(l)}</span>`).join('')}
       </div>
@@ -2143,37 +2073,38 @@ function showDetailCard(res) {
     ${res.notes ? `
     <div style="margin-bottom:14px;">
       <div class="dc-label" style="margin-bottom:6px;">Notes</div>
-      <div class="notes-box" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:#fff;">${esc(res.notes)}</div>
+      <div class="notes-box" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:#fff;white-space:pre-wrap;">${esc(res.notes)}</div>
     </div>` : ''}
 
     <div class="detail-card-actions">
-      <button class="btn btn-danger" onclick="confirmDelete('${res.id}')">Supprimer</button>
-      <button class="btn" onclick="confirmArchive('${res.id}')">Archiver</button>
-      <button class="btn" onclick="hideDetailCard()">Fermer</button>
-      <button class="btn btn-primary" onclick="openEditModal('${esc(res.id)}')">Modifier</button>
-      <a class="btn btn-primary" href="index.html?planning=${encodeURIComponent(res.id)}" style="text-decoration:none;">Ouvrir le dossier</a>
+      <button class="btn btn-primary" onclick="openEditModal('${id}')">Modifier</button>
+      ${DOSSIER_TYPES.includes(res.type) ? `<a class="btn btn-primary" href="index.html?planning=${encodeURIComponent(res.id)}" style="text-decoration:none;">Ouvrir le dossier</a>` : ''}
+      <button class="btn" onclick="confirmArchive('${id}')">Archiver</button>
+      <button class="btn btn-danger" onclick="confirmDelete('${id}')">Supprimer</button>
     </div>`;
 
   card.style.display = 'block';
-  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  card.querySelector('.detail-card-close').focus();
 }
 
 function hideDetailCard() {
   const card = document.getElementById('detail-card');
+  if (card.style.display !== 'block') return;
   card.style.display = 'none';
   card.innerHTML = '';
-  const hint = document.getElementById('detail-hint');
-  if (hint) hint.style.display = 'block';
+  if (detailReturnFocus && document.contains(detailReturnFocus)) detailReturnFocus.focus();
+  detailReturnFocus = null;
 }
 
 /* ----  FORM MODAL (create / edit)  ---- */
-function openCreateModal(logement, dateStr) {
-  const res = {
-    id: null,
-    nom: '', type: TYPES[0], logements: [logement],
-    arrivee: dateStr, depart: '', personnes: '', montant: '', statut: 'Confirmé', notes: '',
-  };
-  openFormModal(res, false);
+function openCreateModal(logements, dateStr) {
+  const all = logements.length >= ALL_LOGEMENTS.length;
+  const dep = dateStr ? parseYMD(dateStr) : null;
+  if (dep) dep.setDate(dep.getDate() + 1);
+  openFormModal({
+    id: null, nom: '', type: all ? 'Week-end privé' : TYPES[0], logements,
+    arrivee: dateStr, depart: dep ? toYMD(dep) : '', personnes: '', montant: '', statut: 'Confirmé', notes: '',
+  }, false);
 }
 
 function openEditModal(id) {
@@ -2183,10 +2114,16 @@ function openEditModal(id) {
   setTimeout(() => openFormModal(res, true), 50);
 }
 
+function toggleAllLogements(form) {
+  const boxes = [...form.querySelectorAll('input[name="logements"]')];
+  const all = boxes.every(b => b.checked);
+  boxes.forEach(b => { b.checked = !all; });
+}
 function openFormModal(res, isEdit) {
   const title = isEdit ? 'Modifier la réservation' : 'Nouvelle réservation';
 
-  const typeOptions = TYPES.map(t =>
+  // Type inconnu de la liste (ex. ancien enregistrement) : conservé tel quel au lieu de basculer sur le 1er
+  const typeOptions = (res.type && !TYPES.includes(res.type) ? [res.type, ...TYPES] : TYPES).map(t =>
     `<option value="${esc(t)}" ${res.type === t ? 'selected' : ''}>${esc(t)}</option>`
   ).join('');
 
@@ -2206,7 +2143,7 @@ function openFormModal(res, isEdit) {
     `<label class="checkbox-item" style="background:#FEF9EC;">
       <input type="checkbox" name="logements" value="${esc(l.name)}"
         ${(res.logements || []).includes(l.name) ? 'checked' : ''}>
-      🏛 ${esc(l.name)} <span style="color:#8B6914;font-size:11px;">(Salle)</span>
+      ${esc(l.name)} <span style="color:#8B6914;font-size:11px;">(Salle)</span>
     </label>`
   ).join('');
 
@@ -2219,7 +2156,7 @@ function openFormModal(res, isEdit) {
 
   const html = `
     <div class="modal-header">
-      <span class="modal-title">${title}</span>
+      <span class="modal-title" id="modal-title">${title}</span>
       <button class="modal-close" onclick="closeModal()" title="Fermer">&#x2715;</button>
     </div>
 
@@ -2247,8 +2184,11 @@ function openFormModal(res, isEdit) {
       </div>
 
       <div class="form-row" style="margin-top:14px;">
-        <label class="form-label">Logements *</label>
-        <div class="checkboxes-grid">${logementChecks}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <span class="form-label" id="f-logements-label">Logements *</span>
+          <button type="button" class="btn" style="font-size:11px;padding:3px 10px;" onclick="toggleAllLogements(this.form)">Tout le domaine</button>
+        </div>
+        <div class="checkboxes-grid" role="group" aria-labelledby="f-logements-label">${logementChecks}</div>
       </div>
 
       <div class="form-row-2" style="margin-top:14px;">
@@ -2505,7 +2445,8 @@ function goToToday() {
 /*  INIT                                                                */
 /* ------------------------------------------------------------------ */
 function init() {
-  if (!checkAuth()) return;
+  // Ancien code d'accès à 4 chiffres supprimé : la connexion (assets/auth.js) suffit
+  try { localStorage.removeItem('planning_auth'); } catch (e) { /* stockage indisponible */ }
 
   const now    = new Date();
   currentYear  = now.getFullYear();
@@ -2517,13 +2458,14 @@ function init() {
   document.getElementById('btn-prev').addEventListener('click', goToPrev);
   document.getElementById('btn-next').addEventListener('click', goToNext);
   document.getElementById('btn-today').addEventListener('click', goToToday);
-  document.getElementById('btn-new').addEventListener('click', () => {
-    openCreateModal(LOGEMENTS[0].name, toYMD(new Date()));
-  });
-  const fabMobile = document.getElementById('fab-mobile');
-  if (fabMobile) fabMobile.addEventListener('click', () => {
-    openCreateModal(LOGEMENTS[0].name, toYMD(new Date()));
-  });
+  const nouvelle = () => openCreateModal([], toYMD(new Date()));
+  document.getElementById('btn-new').addEventListener('click', nouvelle);
+  document.getElementById('fab-mobile')?.addEventListener('click', nouvelle);
+
+  // Grille : un seul écouteur pour tous les rendus (clic + clavier)
+  const cal = document.getElementById('calendar-container');
+  cal.addEventListener('click', onCellClick);
+  cal.addEventListener('keydown', onGridKeydown);
 
   // Mobile week navigation
   document.getElementById('btn-week-prev').addEventListener('click', goToPrevWeek);
@@ -2531,17 +2473,13 @@ function init() {
 
   // Legend overlay toggle
   document.getElementById('btn-legend').addEventListener('click', () => {
-    const overlay = document.getElementById('legend-overlay');
-    // Copy legend items into overlay
-    const inner = document.getElementById('legend-overlay-inner');
-    inner.innerHTML = document.getElementById('legend').innerHTML;
-    overlay.classList.add('open');
+    document.getElementById('legend-overlay-inner').innerHTML = document.getElementById('legend').innerHTML;
+    document.getElementById('legend-overlay').classList.add('open');
   });
 
   // Init week start at today's Monday — goToToday() appelle déjà loadPlanning()
   goToToday();
 }
-
 function toggleFullscreen() {
   const btn = document.getElementById('btn-fullscreen');
   if (!document.fullscreenElement) {
@@ -2561,7 +2499,7 @@ document.addEventListener('fullscreenchange', () => {
   }
 });
 </script>
-<div id="gantt-tooltip"></div>
+<div id="gantt-tooltip" aria-hidden="true"></div>
 <button class="fab-mobile" id="fab-mobile" aria-label="Nouvelle réservation">＋</button>
 
 <!-- MOBILE BOTTOM NAV -->
