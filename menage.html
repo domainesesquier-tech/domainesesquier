@@ -248,6 +248,7 @@
     .flash.show { opacity: 1; }
     .flash.success { background: #059669; color: #fff; }
     .flash.error   { background: #EF4444; color: #fff; }
+    .opt { font-style: italic; opacity: .7; }
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
@@ -311,6 +312,9 @@
         <span>Arrivée (logement à préparer)</span>
       </div>
       <div class="legend-item">
+        <span class="opt">Nom en italique</span>&nbsp;<span>= option, pas encore confirmée</span>
+      </div>
+      <div class="legend-item">
         <span class="legend-dot" style="background:linear-gradient(135deg,#FFF3E2 50%,#ECFDF5 50%);border:1px solid #9CA3AF;"></span>
         <span>Rotation (départ + arrivée)</span>
       </div>
@@ -365,8 +369,6 @@ const API_BASE = (typeof SesquierUtils !== 'undefined' ? SesquierUtils.API_BASE
   : (location.hostname.startsWith('v2.') || location.hostname.endsWith('.pages.dev'))
     ? 'https://domainesesquier-api-v2.domainesesquier.workers.dev'
     : 'https://domainesesquier-api.domainesesquier.workers.dev') + '/api';
-const AUTH_KEY  = 'planning_auth';
-const AUTH_CODE = '2026';
 
 const LOGEMENTS = [
   { name: 'Acacia',            capacity: '6p',    type: 'gite'  },
@@ -392,17 +394,11 @@ let weekOffset = 0;       // 0 = current week
 let reservations = [];
 let isLoading    = false;
 
-/* ── AUTH ── */
-function checkAuth() {
-  if (localStorage.getItem(AUTH_KEY) === 'true') return true;
-  const code = prompt('🔒 Accès protégé — Entrez le code à 4 chiffres :');
-  if (code === AUTH_CODE) { localStorage.setItem(AUTH_KEY, 'true'); return true; }
-  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#666;font-size:18px;">Accès refusé.</div>';
-  return false;
-}
-
 /* ── DATE HELPERS ── */
-function toYMD(d) { return d.toISOString().split('T')[0]; }
+// Date locale (toISOString passait en UTC : tout s'affichait un jour plus tard)
+function toYMD(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 function parseYMD(str) {
   const [y, m, d] = str.split('-').map(Number);
@@ -437,6 +433,18 @@ function formatDateFr(d) {
   return `${d.getDate()} ${mois[d.getMonth()]}`;
 }
 
+/* ── STATUTS ── */
+// Même règle que planning.html : un Statut vide vaut Confirmé.
+const STATUT_CANON = { confirme: 'Confirmé', option: 'Option', demande: 'Demandé',
+                       bloque: 'Bloqué', annule: 'Annulé', archive: 'Archivé' };
+function normStatut(s) {
+  const k = String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+  return STATUT_CANON[k] || (s ? String(s) : 'Confirmé');
+}
+// Ménage seulement pour les séjours confirmés ou en option (pas annulé, demandé, bloqué, archivé)
+const STATUTS_MENAGE = new Set(['Confirmé', 'Option']);
+function optCls(res) { return res && res.statut === 'Option' ? ' opt' : ''; }
+
 /* ── LOAD DATA ── */
 async function apiFetch(url) {
   // Jeton de session (assets/auth.js) — exigé par le Worker.
@@ -459,7 +467,7 @@ function recordToRes(record) {
     logements: f['Logements']    || [],
     arrivee:   f['Date arrivée'] || '',
     depart:    f['Date départ']  || '',
-    statut:    f['Statut']       || '',
+    statut:    normStatut(f['Statut']),
     type:      f['Type']         || '',
   };
 }
@@ -508,7 +516,7 @@ function buildGrid(days) {
   });
 
   reservations.forEach(res => {
-    if (res.statut === 'Archivé') return;
+    if (!STATUTS_MENAGE.has(res.statut)) return;
     if (!res.arrivee || !res.depart) return;
 
     const arrStr = res.arrivee;
@@ -619,25 +627,25 @@ function renderGrid() {
         const depName = cell.departs[0].nom;
         const arrName = cell.arrivees[0].nom;
         innerHtml = `<div class="cell-inner">
-          <div class="cell-event ev-depart"><span class="ev-icon">🧹</span><span class="ev-name">${esc(shortName(depName))}</span></div>
-          <div class="cell-event ev-arrivee"><span class="ev-icon">🔑</span><span class="ev-name">${esc(shortName(arrName))}</span></div>
+          <div class="cell-event ev-depart"><span class="ev-icon">🧹</span><span class="ev-name${optCls(cell.departs[0])}">${esc(shortName(depName))}</span></div>
+          <div class="cell-event ev-arrivee"><span class="ev-icon">🔑</span><span class="ev-name${optCls(cell.arrivees[0])}">${esc(shortName(arrName))}</span></div>
         </div>`;
       } else if (hasDep) {
         cellCls = `cell depart${todayCls}`;
         const depName = cell.departs[0].nom;
         innerHtml = `<div class="cell-inner">
-          <div class="cell-event ev-depart"><span class="ev-icon">🧹</span><span class="ev-name">${esc(shortName(depName))}</span></div>
+          <div class="cell-event ev-depart"><span class="ev-icon">🧹</span><span class="ev-name${optCls(cell.departs[0])}">${esc(shortName(depName))}</span></div>
         </div>`;
       } else if (hasArr) {
         cellCls = `cell arrivee${todayCls}`;
         const arrName = cell.arrivees[0].nom;
         innerHtml = `<div class="cell-inner">
-          <div class="cell-event ev-arrivee"><span class="ev-icon">🔑</span><span class="ev-name">${esc(shortName(arrName))}</span></div>
+          <div class="cell-event ev-arrivee"><span class="ev-icon">🔑</span><span class="ev-name${optCls(cell.arrivees[0])}">${esc(shortName(arrName))}</span></div>
         </div>`;
       } else if (isOcc) {
         cellCls = `cell occupied${todayCls}`;
         const occName = cell.occupied.nom;
-        innerHtml = `<span class="occ-label">${esc(shortName(occName))}</span>`;
+        innerHtml = `<span class="occ-label${optCls(cell.occupied)}">${esc(shortName(occName))}</span>`;
       } else {
         cellCls = `cell free${todayCls}`;
         innerHtml = '';
@@ -660,7 +668,7 @@ function renderKpi() {
   LOGEMENTS.forEach(l => {
     let hasDep = false, hasArr = false;
     reservations.forEach(res => {
-      if (res.statut === 'Archivé') return;
+      if (!STATUTS_MENAGE.has(res.statut)) return;
       if (!(res.logements || []).includes(l.name)) return;
       if (res.depart  === todayStr) hasDep = true;
       if (res.arrivee === todayStr) hasArr = true;
@@ -703,7 +711,6 @@ function goToToday() { weekOffset = 0; renderWeekLabel(); loadData(); }
 
 /* ── INIT ── */
 function init() {
-  if (!checkAuth()) return;
   renderWeekLabel();
   document.getElementById('btn-prev').addEventListener('click', goToPrev);
   document.getElementById('btn-next').addEventListener('click', goToNext);
