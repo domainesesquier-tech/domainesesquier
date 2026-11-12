@@ -281,6 +281,12 @@
   const today = new Date();
   let currentYear  = today.getFullYear();
   let currentMonth = today.getMonth() + 1;
+  // ?mois=AAAA-MM (lien du mail d'accusé) : ouvre directement le mois des dates demandées
+  const moisDemande = (new URLSearchParams(location.search).get('mois') || '').match(/^(\d{4})-(\d{2})$/);
+  if (moisDemande && +moisDemande[2] >= 1 && +moisDemande[2] <= 12) {
+    currentYear = +moisDemande[1];
+    currentMonth = +moisDemande[2];
+  }
 
   /* ── Logique métier ──────────────────────────────────────────── */
   // Le Domaine se loue toujours en intégralité (chaque réservation couvre
