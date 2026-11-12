@@ -99,7 +99,7 @@
   // Page d'accueil selon le compte : en arrivant sur l'accueil (adresse nue, sans paramètre),
   // ces comptes vont au planning plutôt qu'aux dossiers séminaires. Une seule fois par onglet,
   // pour que le lien « Dossiers » du menu mène bien aux dossiers ensuite.
-  var ACCUEIL_PLANNING = ['smali.najat@gmail.com'];
+  var ACCUEIL_PLANNING = ['smali.najat@gmail.com', 'smali@domainesesquier.com'];
   function allerAccueilPerso(session) {
     try {
       var email = String((session && session.user && session.user.email) || '').toLowerCase();
