@@ -1,4 +1,5 @@
 import { rediger } from "./redaction.js";
+import { lireFiche } from "./rooming.js";
 // ============================================================
 // Domaine Sesquier — Cloudflare Worker (Supabase backend)
 // ============================================================
@@ -521,6 +522,23 @@ export default {
       }
 
       // ── PLANNING (table dédiée) ────────────────────────────
+      // ── MÉNAGE : lits et occupants lus dans les fiches rooming (Google Sheets) ──
+      // ?ids=<id planning>,… → { rooming: { <id planning>: { gites } | { erreur } } }
+      if (url.pathname === "/api/menage/rooming" && method === "GET") {
+        const ids = [...new Set((url.searchParams.get("ids") || "").split(","))]
+          .map(s => s.trim()).filter(s => /^[A-Za-z0-9_-]{1,64}$/.test(s)).slice(0, 30);
+        const rooming = {};
+        if (ids.length) {
+          const rows = await sbFetch(env, `/reservations?planning_id=in.(${ids.join(",")})&select=planning_id,rooming_json`);
+          await Promise.all((Array.isArray(rows) ? rows : []).map(async row => {
+            let rj = row.rooming_json;
+            if (typeof rj === "string") { try { rj = JSON.parse(rj); } catch (_) { rj = null; } }
+            if (row.planning_id && rj && rj.lienSheet) rooming[row.planning_id] = await lireFiche(rj.lienSheet);
+          }));
+        }
+        return json({ rooming }, 200, env, requestOrigin);
+      }
+
       if (url.pathname === "/api/planning" && method === "GET") {
         const id   = url.searchParams.get("id");
         const mois = url.searchParams.get("mois");

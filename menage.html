@@ -249,6 +249,15 @@
     .flash.success { background: #059669; color: #fff; }
     .flash.error   { background: #EF4444; color: #fff; }
     .opt { font-style: italic; opacity: .7; }
+    /* ── LITS (fiches rooming) ── */
+    .lits { padding: 18px 20px 32px; max-width: 900px; position: sticky; left: 0; }
+    .lits h2 { font-size: 15px; color: var(--green-dark); margin: 0 0 4px; }
+    .lits-note { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; }
+    .lits-sejour { background: #fff; border: 1px solid var(--beige); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+    .lits-titre { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+    .lits-info { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+    .lits-gite { font-size: 13px; margin: 8px 0 2px; }
+    .lits-ch { font-size: 12px; color: var(--text-secondary); margin-left: 14px; line-height: 1.6; }
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
@@ -349,6 +358,7 @@
             Chargement…
           </div>
         </div>
+        <div id="lits-container"></div>
       </div>
     </div>
 
@@ -393,6 +403,9 @@ const DAYS_SHORT = ['Di','Lu','Ma','Me','Je','Ve','Sa'];
 let weekOffset = 0;       // 0 = current week
 let reservations = [];
 let isLoading    = false;
+let rooming      = {};          // { id planning: { gites } | { erreur } } — fiches rooming des dossiers
+let roomingEtat  = 'chargement'; // chargement | ok | erreur
+let chargement   = 0;           // ignore les réponses d'une semaine déjà quittée
 
 /* ── DATE HELPERS ── */
 // Date locale (toISOString passait en UTC : tout s'affichait un jour plus tard)
@@ -465,6 +478,7 @@ function recordToRes(record) {
     id:        record.id,
     nom:       f['Nom']          || '',
     logements: f['Logements']    || [],
+    logementsDossier: f['Logements'] || [],
     arrivee:   f['Date arrivée'] || '',
     depart:    f['Date départ']  || '',
     statut:    normStatut(f['Statut']),
@@ -473,7 +487,9 @@ function recordToRes(record) {
 }
 
 async function loadData() {
+  const tour = ++chargement;
   isLoading = true;
+  rooming = {}; roomingEtat = 'chargement';
   renderGrid();
 
   const days   = getWeekDates();
@@ -484,6 +500,7 @@ async function loadData() {
   try {
     const fetches = months.map(m => apiFetch(`${API_BASE}/planning?mois=${m}`));
     const results = await Promise.all(fetches);
+    if (tour !== chargement) return;
     const seen    = new Set();
     reservations  = [];
     results.forEach(data => {
@@ -502,6 +519,81 @@ async function loadData() {
   isLoading = false;
   renderGrid();
   renderKpi();
+  renderLits();
+  await chargerRooming(tour);
+}
+
+/* ── ROOMING (fiches Google Sheets liées aux dossiers) ── */
+// Fiche remplie → seuls les gîtes où dort quelqu'un sont à préparer, avec le détail des lits.
+// Fiche absente, vide ou illisible → on garde les logements du dossier.
+const SALLES = new Set(LOGEMENTS.filter(l => l.type === 'salle').map(l => l.name));
+const cleGite = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+function occupantsGite(g) { return ((g && g.chambres) || []).reduce((n, c) => n + (c.occupants || 0), 0); }
+function gitesOccupes(rm) {
+  if (!rm || !rm.gites) return [];
+  return LOGEMENTS.filter(l => l.type === 'gite')
+    .map(l => ({ nom: l.name, g: rm.gites[cleGite(l.name)] }))
+    .filter(x => occupantsGite(x.g) > 0);
+}
+
+async function chargerRooming(tour) {
+  const ids = reservations.filter(r => STATUTS_MENAGE.has(r.statut)).map(r => r.id);
+  let data = {};
+  try {
+    if (ids.length) data = (await apiFetch(`${API_BASE}/menage/rooming?ids=${ids.map(encodeURIComponent).join(',')}`)).rooming || {};
+  } catch (e) {
+    if (tour !== chargement) return;
+    roomingEtat = 'erreur';
+    renderLits();
+    return;
+  }
+  if (tour !== chargement) return;
+  rooming = data; roomingEtat = 'ok';
+  reservations.forEach(res => {
+    const occ = gitesOccupes(rooming[res.id]);
+    if (occ.length) res.logements = [...res.logementsDossier.filter(n => SALLES.has(n)), ...occ.map(x => x.nom)];
+  });
+  renderGrid();
+  renderKpi();
+  renderLits();
+}
+
+function renderLits() {
+  const el = document.getElementById('lits-container');
+  if (!el) return;
+  const jours = getWeekDates().map(toYMD);
+  const arrivees = reservations
+    .filter(r => STATUTS_MENAGE.has(r.statut) && jours.includes(r.arrivee))
+    .sort((a, b) => a.arrivee.localeCompare(b.arrivee));
+  if (!arrivees.length) { el.innerHTML = ''; return; }
+
+  let html = `<div class="lits"><h2>🛏️ Lits à préparer — arrivées de la semaine</h2>
+    <div class="lits-note">D'après la fiche rooming de chaque séjour : seules les chambres où dort quelqu'un.</div>`;
+  arrivees.forEach(res => {
+    const d  = parseYMD(res.arrivee);
+    const rm = rooming[res.id];
+    html += `<div class="lits-sejour"><div class="lits-titre${optCls(res)}">🔑 ${DAYS_FR[d.getDay()]} ${formatDateFr(d)} — ${esc(res.nom)}</div>`;
+    if (roomingEtat === 'chargement') html += '<div class="lits-info">Lecture de la fiche rooming…</div>';
+    else if (roomingEtat === 'erreur') html += '<div class="lits-info">Rooming indisponible pour le moment.</div>';
+    else if (!rm) html += '<div class="lits-info">Pas de fiche rooming pour ce séjour.</div>';
+    else if (rm.erreur) html += '<div class="lits-info">Fiche rooming illisible : vérifier qu\'elle est partagée à « tous les utilisateurs disposant du lien ».</div>';
+    else {
+      const occ = gitesOccupes(rm);
+      if (!occ.length) html += '<div class="lits-info">Fiche rooming pas encore remplie : tous les gîtes du dossier restent affichés.</div>';
+      else {
+        const total = occ.reduce((n, x) => n + occupantsGite(x.g), 0);
+        html += `<div class="lits-info">${total} pers. dans ${occ.length} gîte${occ.length > 1 ? 's' : ''}</div>`;
+        occ.forEach(({ nom, g }) => {
+          html += `<div class="lits-gite"><strong>${esc(nom)}</strong> — ${occupantsGite(g)} pers.</div>`;
+          g.chambres.filter(c => c.occupants > 0).forEach(c => {
+            html += `<div class="lits-ch">${esc(c.nom)} · ${esc(c.lits || 'lits ?')} · ${c.occupants} pers.</div>`;
+          });
+        });
+      }
+    }
+    html += '</div>';
+  });
+  el.innerHTML = html + '</div>';
 }
 
 /* ── BUILD GRID ── */
