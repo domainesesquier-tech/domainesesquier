@@ -734,6 +734,15 @@
       font-weight: 700;
     }
 
+    .dc-rooming { margin-bottom: 14px; }
+    .dc-rooming-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 12px 14px; border-radius: 10px;
+      background: var(--green); color: #fff; font-weight: 600; text-decoration: none;
+      border: 1px solid rgba(255,255,255,.18);
+    }
+    .dc-rooming-btn:hover { filter: brightness(1.12); }
+    .dc-rooming-vide { color: rgba(255,255,255,.6); font-size: 14px; }
     .detail-card-actions {
       display: flex;
       gap: 8px;
@@ -2084,6 +2093,12 @@ function showDetailCard(res) {
       <div class="notes-box" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:#fff;white-space:pre-wrap;">${esc(res.notes)}</div>
     </div>` : ''}
 
+    ${DOSSIER_TYPES.includes(res.type) ? `
+    <div class="dc-rooming" id="dc-rooming" data-planning="${id}">
+      <div class="dc-label" style="margin-bottom:6px;">Rooming</div>
+      <div class="dc-rooming-vide">Chargement…</div>
+    </div>` : ''}
+
     <div class="detail-card-actions">
       <button class="btn btn-primary" onclick="openEditModal('${id}')">Modifier</button>
       ${DOSSIER_TYPES.includes(res.type) ? `<a class="btn btn-primary" href="index.html?planning=${encodeURIComponent(res.id)}" style="text-decoration:none;">Ouvrir le dossier</a>` : ''}
@@ -2093,6 +2108,38 @@ function showDetailCard(res) {
 
   card.style.display = 'block';
   card.querySelector('.detail-card-close').focus();
+  if (DOSSIER_TYPES.includes(res.type)) afficherRooming(res.id);
+}
+
+/* Fiche rooming (Google Sheets) du dossier lié : qui dort dans quel gîte, pour la logistique et les ménages.
+   Les liens sont lus dans les dossiers (Rooming JSON → lienSheet) et gardés 2 minutes. */
+let roomingCache = null, roomingCacheAt = 0;
+async function liensRooming() {
+  if (roomingCache && Date.now() - roomingCacheAt < 120000) return roomingCache;
+  const data = await apiFetch(`${API_BASE}/reservations`);
+  const map = {};
+  (data.records || []).forEach(r => {
+    const f = r.fields || {};
+    let rj = f['Rooming JSON'];
+    if (typeof rj === 'string') { try { rj = JSON.parse(rj); } catch (_) { rj = null; } }
+    if (f.planning_id && rj && rj.lienSheet) map[f.planning_id] = rj.lienSheet;
+  });
+  roomingCache = map; roomingCacheAt = Date.now();
+  return map;
+}
+async function afficherRooming(planningId) {
+  let html;
+  try {
+    const url = (await liensRooming())[planningId];
+    html = (url && /^https:\/\//.test(url))
+      ? `<a class="dc-rooming-btn" href="${esc(url)}" target="_blank" rel="noopener">🛏️ Voir le rooming (qui dort où)</a>`
+      : `<div class="dc-rooming-vide">Pas encore de fiche rooming pour ce séjour.</div>`;
+  } catch (_) {
+    html = `<div class="dc-rooming-vide">Rooming indisponible pour le moment.</div>`;
+  }
+  const box = document.getElementById('dc-rooming');
+  const cible = box && box.dataset.planning === String(planningId) && box.querySelector('.dc-rooming-vide');
+  if (cible) cible.outerHTML = html;
 }
 
 function hideDetailCard() {
