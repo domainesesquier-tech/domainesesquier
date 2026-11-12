@@ -96,6 +96,24 @@
     },
   };
 
+  // Page d'accueil selon le compte : en arrivant sur l'accueil (adresse nue, sans paramètre),
+  // ces comptes vont au planning plutôt qu'aux dossiers séminaires. Une seule fois par onglet,
+  // pour que le lien « Dossiers » du menu mène bien aux dossiers ensuite.
+  var ACCUEIL_PLANNING = ['smali.najat@gmail.com'];
+  function allerAccueilPerso(session) {
+    try {
+      var email = String((session && session.user && session.user.email) || '').toLowerCase();
+      var surAccueil = /^\/(index(\.html)?)?$/.test(location.pathname) && !location.search;
+      var deja = sessionStorage.getItem('ds-accueil');
+      sessionStorage.setItem('ds-accueil', '1');
+      if (surAccueil && !deja && ACCUEIL_PLANNING.indexOf(email) !== -1) {
+        location.replace('planning');
+        return true;
+      }
+    } catch (e) { /* stockage indisponible : on reste sur la page demandée */ }
+    return false;
+  }
+
   function showApp() {
     root.style.visibility = '';
   }
@@ -324,6 +342,7 @@
         showNewPassword();
       } else if (session) {
         if (/access_token=/.test(urlHash)) cleanUrl();
+        if (allerAccueilPerso(session)) return;
         showApp();
       } else {
         showLogin();
