@@ -28,7 +28,9 @@
   // Retour d'un lien reçu par email : Supabase place le résultat dans le
   // fragment d'URL (#...). On le lit AVANT que la librairie ne le nettoie.
   var urlHash = location.hash || '';
-  var isRecovery = /type=recovery/.test(urlHash);
+  // Lien d'invitation (compte créé par Waël depuis Supabase) : même écran que le mot de passe oublié,
+  // la personne choisit son mot de passe en arrivant.
+  var isRecovery = /type=(recovery|invite)/.test(urlHash);
   var linkError = /error_code=|error=/.test(urlHash)
     ? decodeURIComponent((urlHash.match(/error_description=([^&]*)/) || [])[1] || '').replace(/\+/g, ' ')
     : '';
