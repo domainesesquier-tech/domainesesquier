@@ -921,6 +921,22 @@ export default {
         if (raw.length > 12000) return json({ error: { message: "Demande trop volumineuse" } }, 413, env, requestOrigin);
         let p;
         try { p = JSON.parse(raw); } catch { return json({ error: { message: "JSON invalide" } }, 400, env, requestOrigin); }
+        // Formulaires « Brochure … » du site (Elementor, action Crochet web) : { formData: { <id du champ>: valeur }, formName }.
+        // Champs dans l'ordre prénom, e-mail, téléphone ; type et espace tirés du nom du formulaire.
+        // Pas d'alerte du script Google (Elementor écrit déjà à contact@) ni de mail automatique au client :
+        // Waël l'envoie depuis l'onglet Suivi du dossier (panneau « Mail brochure »).
+        if (p && !p.kind && p.formData && typeof p.formData === "object") {
+          const nomForm = String(p.formName || "");
+          const vals = Object.values(p.formData).map(v => String((v && typeof v === "object" ? (Array.isArray(v) ? v.join(" ") : v.value) : v) ?? "").trim());
+          const email = vals.find(v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) || "";
+          const telephone = vals.find(v => v !== email && /^\+?[\d\s.()-]{9,}$/.test(v)) || "";
+          p = {
+            kind: /brochure/i.test(nomForm) ? "brochure" : null,
+            segment: /mariage/i.test(nomForm) ? "mariage" : /groupe/i.test(nomForm) ? "groupe" : "seminaire",
+            prenom: vals.find(v => v && v !== email && v !== telephone) || "", email, telephone,
+            origine: `Formulaire du site : ${nomForm}`, source: "elementor",
+          };
+        }
         const txt = (v, n = 200) => String(v ?? "").trim().slice(0, n);
         const iso = v => /^\d{4}-\d{2}-\d{2}$/.test(v || "") ? v : null;
         const kind = ["partiel", "brochure", "estimation", "rappel"].includes(p?.kind) ? p.kind : null;
@@ -937,7 +953,7 @@ export default {
         const est = p.estimation && typeof p.estimation === "object" ? p.estimation : null;
         const creneau = txt(p.creneau, 60), resume = txt(p.resume, 120);
         const message = [
-          { partiel: "Demande commencée sur le questionnaire, pas encore envoyée.", brochure: "Brochure séminaire demandée sur le site.",
+          { partiel: "Demande commencée sur le questionnaire, pas encore envoyée.", brochure: `Brochure ${{ seminaire: "séminaire", groupe: "groupe", mariage: "mariage" }[seg]} demandée sur le site.`,
             estimation: "Estimation de budget faite sur le site.", rappel: "Demande de rappel téléphonique." }[kind],
           est?.min_pp && est?.max_pp ? `Estimation affichée : ${Math.round(est.min_pp)} à ${Math.round(est.max_pp)} € HT / pers.${resume ? ` (${resume})` : ""}` : "",
           creneau ? `Créneau souhaité : ${creneau}` : "",
@@ -958,7 +974,7 @@ export default {
           estimation_ht: est?.ht ? Math.round(est.ht) : null,
         };
         await sbFetch(env, `/rpc/public_lead`, { method: "POST", body: JSON.stringify({ p: row }) });
-        if (kind !== "partiel" && env.NOTIF_URL && env.NOTIF_LEADS === "true" && env.READ_ONLY !== "true") {
+        if (kind !== "partiel" && p.source !== "elementor" && env.NOTIF_URL && env.NOTIF_LEADS === "true" && env.READ_ONLY !== "true") {
           const alerte = fetch(env.NOTIF_URL, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

@@ -3630,6 +3630,7 @@
             const signature = record && !record.estArchive ? manqueSignature(record) : null;
             if (!record || record.estArchive || (!['à traiter', 'devis envoyé'].includes(record.statut) && !signature)) { el.style.display = 'none'; return; }
             if (signature) return renderRelanceSignature(el, record, signature);
+            if (typeLead(record) === 'brochure' && relanceMode !== 'devis') return renderMailBrochure(el, record);
             const f = record.fields || record._raw?.fields || {};
             const dateEnvoi = dateEnvoiDevis(record);
             const envoye = !!dateEnvoi || record.statut === 'devis envoyé';
@@ -3723,6 +3724,48 @@
             el.style.display = '';
         }
 
+        // Lead « brochure » (formulaire du site) : mail au client relu puis envoyé depuis ici (contact@, signature Gmail)
+        const BROCHURES_PDF = {
+            seminaire: 'https://domainesesquier.com/wp-content/uploads/2026/10/brochure-seminaire-domaine-sesquier-2027-v2.pdf',
+            groupe: 'https://domainesesquier.com/wp-content/uploads/2026/10/brochure-groupe-domaine-sesquier-2027.pdf',
+            mariage: 'https://domainesesquier.com/wp-content/uploads/2026/10/brochure-mariage-domaine-sesquier-2027.pdf',
+        };
+        function segBrochure(record) { return BROCHURES_PDF[record.segment] ? record.segment : 'seminaire'; }
+        function sujetBrochure(record) { return `Votre brochure ${objetRelance(record) === 'séjour' ? 'groupe' : objetRelance(record)} 2027 – Domaine Sesquier`; }
+        function modeleBrochure(record) {
+            const f = record.fields || record._raw?.fields || {};
+            const prenom = String(f['Prénom contact'] || '').trim();
+            const seg = segBrochure(record);
+            const devis = `https://domainesesquier.com/demande-de-devis/?type=${seg}&depuis=mail-brochure`;
+            const corps = {
+                mariage: `Merci pour votre intérêt pour le Domaine Sesquier ! Voici notre brochure mariage 2027 :\n${BROCHURES_PDF.mariage}\n\nVous y trouverez nos espaces de réception, l'hébergement sur place (40 couchages) et le déroulé d'un mariage au domaine.\n\nVotre date est-elle encore libre ? Dites-moi simplement la date envisagée et le nombre d'invités, je vous réponds rapidement. Et si vous souhaitez découvrir les lieux, nous pouvons organiser une visite.\n\nPour recevoir un devis détaillé, vous pouvez aussi décrire votre projet ici :\n${devis}`,
+                groupe: `Merci pour votre intérêt pour le Domaine Sesquier ! Voici notre brochure groupe 2027 :\n${BROCHURES_PDF.groupe}\n\nVous y trouverez nos gîtes (40 couchages), les espaces communs et les formules pour votre séjour.\n\nDites-moi simplement vos dates et le nombre de personnes : je vérifie les disponibilités et je vous réponds rapidement. Pour un devis détaillé, vous pouvez aussi décrire votre projet ici :\n${devis}`,
+                seminaire: `Merci pour votre intérêt pour le Domaine Sesquier ! Voici notre brochure séminaire 2027 :\n${BROCHURES_PDF.seminaire}\n\nVous y trouverez le domaine, les salles, l'hébergement, la restauration et les activités.\n\nPour recevoir un devis détaillé, décrivez votre projet en 3 minutes (dates, effectif, programme), je vous réponds sous 24 h :\n${devis}`,
+            }[seg];
+            return `Bonjour${prenom ? ' ' + prenom : ''},\n\n${corps}\n\nBien cordialement,`;
+        }
+        function renderMailBrochure(el, record) {
+            const f = record.fields || record._raw?.fields || {};
+            const id = record.id, cle = id + ':brochure';
+            const envoi = ((f['Suivi Log'] || '').match(/\d{2}\/\d{2}\/\d{4}(?= : Mail brochure envoyé)/g) || []).pop();
+            const etat = envoi ? `Mail brochure envoyé le ${envoi}.` : `Brochure ${objetRelance(record) === 'séjour' ? 'groupe' : objetRelance(record)} téléchargée sur le site : pas encore de mail au client.`;
+            el.innerHTML = `
+                <div class="docs-panel-header"><div class="docs-panel-title"><i class="fa-solid fa-book-open"></i> Mail brochure</div></div>
+                <div class="relance-body">
+                    <div class="relance-etat ${envoi ? '' : 'retard'}">${envoi ? '' : '<i class="fa-regular fa-bell"></i> '}${etat}</div>
+                    <textarea id="relance-texte" class="relance-texte" rows="14" oninput="relanceBrouillons['${cle}'] = this.value">${escapeHtml(relanceBrouillons[cle] ?? modeleBrochure(record))}</textarea>
+                    <button class="btn-upload" onclick="envoyerRelanceDirecte('${id}', this, 'brochure')" ${record.email ? '' : 'disabled'}><i class="fa-solid fa-paper-plane"></i> Envoyer le mail</button>
+                    <span class="relance-note">${record.email ? `À ${escapeHtml(record.email)}, depuis contact@ avec ta signature Gmail. Le Journal se met à jour.` : "Pas d'adresse e-mail sur ce dossier : à remplir dans Infos."}</span>
+                    <div class="relance-liens">
+                        <button class="relance-autre" onclick="brouillonRelance('${id}', this, 'brochure')" ${record.email ? '' : 'disabled'}>Ouvrir en brouillon dans Gmail</button>
+                        <button class="relance-autre" onclick="relanceBrouillons['${cle}'] = undefined; renderRelance(allRecords.find(r => r.id === '${id}'))">Remettre le modèle</button>
+                        <button class="relance-autre" onclick="marquerEnvoiSuivi('${id}', 'brochure', null, ' (envoyé à la main)')">Noter comme envoyé (Gmail ou à la main)</button>
+                        <button class="relance-autre" onclick="relanceMode = 'devis'; renderRelance(allRecords.find(r => r.id === '${id}'))">Passer à l'envoi du devis</button>
+                    </div>
+                </div>`;
+            el.style.display = '';
+        }
+
         // Relances : texte tiré du guide de ton (docs/ton-redactionnel.md), modifiable avant l'envoi
         const relanceBrouillons = {};
         const MOIS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -3763,7 +3806,7 @@
         }
 
         // Brouillon Gmail (même fil, même signature), ouvert dans un nouvel onglet ; le suivi se note après l'envoi depuis Gmail
-        async function brouillonRelance(id, btn) {
+        async function brouillonRelance(id, btn, mode = 'relance') {
             const record = allRecords.find(r => r.id === id);
             const texte = document.getElementById('relance-texte')?.value.trim();
             if (!record || !texte) return;
@@ -3773,7 +3816,7 @@
             try {
                 const r = await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/relance`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, texte, sujet: sujetRelance(record), brouillon: true })
+                    body: JSON.stringify({ id, texte, sujet: mode === 'brochure' ? sujetBrochure(record) : sujetRelance(record), brouillon: true })
                 });
                 const url = r.messageId ? `https://mail.google.com/mail/?authuser=domainesesquier@gmail.com#drafts?compose=${encodeURIComponent(r.messageId)}`
                     : 'https://mail.google.com/mail/?authuser=domainesesquier@gmail.com#drafts';
@@ -3790,18 +3833,18 @@
             const record = allRecords.find(r => r.id === id);
             const texte = document.getElementById('relance-texte')?.value.trim();
             if (!record || !texte) return;
-            if (!confirm(`Envoyer cette relance à ${record.email} ?`)) return;
+            if (!confirm(`Envoyer ${mode === 'brochure' ? 'le mail brochure' : 'cette relance'} à ${record.email} ?`)) return;
             const label = btn.innerHTML;
             btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Envoi…';
             try {
                 const r = await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/relance`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, texte, sujet: sujetRelance(record) })
+                    body: JSON.stringify({ id, texte, sujet: mode === 'brochure' ? sujetBrochure(record) : sujetRelance(record) })
                 });
-                delete relanceBrouillons[mode === 'signature' ? id + ':signature' : id];
+                delete relanceBrouillons[mode === 'signature' || mode === 'brochure' ? `${id}:${mode}` : id];
                 await marquerEnvoiSuivi(id, mode, null, r.simulation ? ' (simulation locale, rien n\'est parti)' : r.fil ? ` dans le fil « ${r.sujet} »` : ' (nouveau mail)');
             } catch (e) {
-                showSyncBanner('Relance non envoyée : ' + e.message, true);
+                showSyncBanner((mode === 'brochure' ? 'Mail non envoyé : ' : 'Relance non envoyée : ') + e.message, true);
                 btn.disabled = false; btn.innerHTML = label;
             }
         }
@@ -3860,7 +3903,7 @@
             const journal = (f['Suivi Log'] || '').trim();
             const relances = (journal.split('Devis envoyé').pop().match(/Relance envoyée/g) || []).length + (mode === 'relance' ? 1 : 0);
             const nSign = (journal.match(/Relance signature envoyée/g) || []).length + 1;
-            const evenement = mode === 'devis' ? 'Devis envoyé' : mode === 'signature' ? `Relance signature envoyée (${nSign})` : `Relance envoyée (${relances})`;
+            const evenement = mode === 'brochure' ? 'Mail brochure envoyé' : mode === 'devis' ? 'Devis envoyé' : mode === 'signature' ? `Relance signature envoyée (${nSign})` : `Relance envoyée (${relances})`;
             const fields = { 'Suivi Log': `${journal}\n${new Date().toLocaleDateString('fr-FR')} : ${evenement}`.trim() };
             let note;
             if (mode === 'signature') {
@@ -3868,6 +3911,8 @@
                     ? { 'Suivi Date relance': isoJour(7), 'Suivi Prochaine action': `Relance signature ${nSign + 1}` }
                     : { 'Suivi Date relance': null, 'Suivi Prochaine action': 'Signature : 3 relances faites' });
                 note = `✉ Relance signature ${nSign} envoyée${detail}` + (nSign < 3 ? ` — relance ${nSign + 1} prévue le ${fr(isoJour(7))}` : ' — dernière relance');
+            } else if (mode === 'brochure') {
+                note = `✉ Mail brochure envoyé${detail}`;
             } else if (mode === 'devis') {
                 Object.assign(fields, { 'Suivi Date devis': isoJour(), 'Suivi Date relance': isoJour(3), 'Suivi Prochaine action': 'Relance 1' });
                 if (record.statut === 'à traiter') fields['Statut'] = 'devis envoyé';
