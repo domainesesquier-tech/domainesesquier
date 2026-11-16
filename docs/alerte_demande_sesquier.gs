@@ -349,7 +349,7 @@ function envoyerRelance(d) {
       const mid = dernier.getHeader('Message-ID');
       if (mid) reponse.push(`In-Reply-To: ${mid}`, `References: ${[dernier.getHeader('References'), mid].filter(Boolean).join(' ')}`);
     }
-    const html = `<div dir="ltr">${esc(corps).replace(/\n/g, '<br>')}</div>` + (signature ? `<br><div class="gmail_signature">${signature}</div>` : '');
+    const html = `<div dir="ltr">${esc(corps).replace(/https?:\/\/[^\s<]+/g, u => `<a href="${u}">${u}</a>`).replace(/\n/g, '<br>')}</div>` + (signature ? `<br><div class="gmail_signature">${signature}</div>` : '');
     const texte = corps + (signature ? '\n\n' + signature.replace(/<br\s*\/?>|<\/(p|div|tr)>/gi, '\n').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim() : '');
     const b64 = s => Utilities.base64Encode(s || '', Utilities.Charset.UTF_8).replace(/.{76}/g, '$&\r\n');
     const entete = s => '=?UTF-8?B?' + Utilities.base64Encode(s, Utilities.Charset.UTF_8) + '?=';

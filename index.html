@@ -3627,14 +3627,17 @@
         function renderRelance(record) {
             const el = document.getElementById('relance-panel');
             if (!el) return;
-            if (!record || record.estArchive || !['à traiter', 'devis envoyé'].includes(record.statut)) { el.style.display = 'none'; return; }
+            const signature = record && !record.estArchive ? manqueSignature(record) : null;
+            if (!record || record.estArchive || (!['à traiter', 'devis envoyé'].includes(record.statut) && !signature)) { el.style.display = 'none'; return; }
+            if (signature) return renderRelanceSignature(el, record, signature);
             const f = record.fields || record._raw?.fields || {};
-            const envoye = !!f['Suivi Date devis'];
+            const dateEnvoi = dateEnvoiDevis(record);
+            const envoye = !!dateEnvoi || record.statut === 'devis envoyé';
             const relance = (relanceMode || (envoye ? 'relance' : 'devis')) === 'relance';
             const fr = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
             const action = escapeHtml(f['Suivi Prochaine action'] || 'Relance');
             const etat = !envoye ? 'Devis pas encore envoyé.'
-                : `Devis envoyé le ${fr(f['Suivi Date devis'])}` + (f['Suivi Date relance'] ? ` · ${action} le ${fr(f['Suivi Date relance'])}` : (f['Suivi Prochaine action'] ? ` · ${action}` : ''));
+                : (dateEnvoi ? `Devis envoyé le ${fr(dateEnvoi)}` : 'Devis envoyé') + (f['Suivi Date relance'] ? ` · ${action} le ${fr(f['Suivi Date relance'])}` : (f['Suivi Prochaine action'] ? ` · ${action}` : ''));
             const retard = envoye && f['Suivi Date relance'] && f['Suivi Date relance'] <= isoJour();
             const id = record.id;
             const autreMode = envoye ? `<button class="relance-autre" onclick="relanceMode = '${relance ? 'devis' : 'relance'}'; renderRelance(allRecords.find(r => r.id === '${id}'))">${relance ? 'Renvoyer le devis' : "Faire une relance plutôt qu'un nouvel envoi"}</button>` : '';
@@ -3662,6 +3665,60 @@
                 <div class="docs-panel-header"><div class="docs-panel-title"><i class="fa-solid fa-paper-plane"></i> Suivi &amp; relance</div></div>
                 <div class="relance-body">
                     <div class="relance-etat ${retard ? 'retard' : ''}">${retard ? '<i class="fa-regular fa-bell"></i> ' : ''}${etat}</div>${corps}
+                </div>`;
+            el.style.display = '';
+        }
+
+        // Date d'envoi du devis : suivi, sinon passage en « devis envoyé » noté au Journal (dossiers d'avant le suivi)
+        function dateEnvoiDevis(record) {
+            const f = record.fields || record._raw?.fields || {};
+            if (f['Suivi Date devis']) return f['Suivi Date devis'];
+            const l = (record.timeline || []).filter(x => /→ \*\*devis envoyé\*\*/.test(x.text || '')).pop();
+            return l ? new Date(l.date).toLocaleDateString('sv-SE') : null;
+        }
+
+        // Dossier validé mais pas encore signé en ligne ou sans acompte : relance « signature »
+        function manqueSignature(record) {
+            if (record.statut !== 'devis signé') return null;
+            const f = record.fields || record._raw?.fields || {};
+            const m = { signer: !espaceData(f).signature, acompte: !f['Acompte Payé'] };
+            return (m.signer || m.acompte) ? m : null;
+        }
+        function modeleSignature(record, m) {
+            const f = record.fields || record._raw?.fields || {};
+            const n = ((f['Suivi Log'] || '').match(/Relance signature envoyée/g) || []).length + 1;
+            const prenom = String(f['Prénom contact'] || '').trim();
+            const projet = `votre ${objetRelance(record)} ${periodeFr(f['Date arrivée'], f['Date départ'])}`.trim();
+            const montant = Number(f['Acompte Montant']) || Number(record.dossier?.financials?.acompte30) || 0;
+            const acompte = `l'acompte${montant ? ' de ' + montant.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €' : ''}`;
+            const reste = m.signer && m.acompte ? `à signer le devis et à régler ${acompte}` : m.signer ? 'à signer le devis' : `à régler ${acompte}`;
+            const lien = lienEspace(f);
+            const intro = n === 1 ? `Je reviens vers vous au sujet de ${projet}.` : `J'espère que vous allez bien. Je me permets de revenir vers vous au sujet de ${projet}.`;
+            return `Bonjour${prenom ? ' ' + prenom : ''},\n\n${intro}\n\nPour confirmer définitivement votre réservation, il reste ${reste}.`
+                + (lien ? ` Tout est réuni dans votre espace client :\n${lien}` : '')
+                + `\n\nN'hésitez pas à me dire si vous avez la moindre question.\n\nBien cordialement,`;
+        }
+        function renderRelanceSignature(el, record, m) {
+            const f = record.fields || record._raw?.fields || {};
+            const id = record.id;
+            const fr = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+            const prevue = /^Relance signature/.test(f['Suivi Prochaine action'] || '') && f['Suivi Date relance'];
+            const retard = prevue && f['Suivi Date relance'] <= isoJour();
+            const etat = `Validé · ${m.signer ? 'devis pas encore signé en ligne' : 'devis signé'} · ${m.acompte ? 'acompte non reçu' : 'acompte reçu'}`
+                + (prevue ? ` · ${escapeHtml(f['Suivi Prochaine action'])} le ${fr(f['Suivi Date relance'])}` : '');
+            const cle = id + ':signature';
+            el.innerHTML = `
+                <div class="docs-panel-header"><div class="docs-panel-title"><i class="fa-solid fa-file-signature"></i> Suivi &amp; relance</div></div>
+                <div class="relance-body">
+                    <div class="relance-etat ${retard ? 'retard' : ''}">${retard ? '<i class="fa-regular fa-bell"></i> ' : ''}${etat}</div>
+                    <textarea id="relance-texte" class="relance-texte" rows="11" oninput="relanceBrouillons['${cle}'] = this.value">${escapeHtml(relanceBrouillons[cle] ?? modeleSignature(record, m))}</textarea>
+                    <button class="btn-upload" onclick="envoyerRelanceDirecte('${id}', this, 'signature')" ${record.email ? '' : 'disabled'}><i class="fa-solid fa-paper-plane"></i> Envoyer la relance</button>
+                    <span class="relance-note">${record.email ? `À ${escapeHtml(record.email)}, depuis contact@ avec ta signature Gmail, dans le fil du dernier mail envoyé. Le suivi et le Journal se mettent à jour.` : "Pas d'adresse e-mail sur ce dossier : à remplir dans Infos."}${lienEspace(f) ? '' : ' Pas encore d\'espace client : crée-le dans l\'onglet Espace client pour ajouter le lien de signature au message.'}</span>
+                    <div class="relance-liens">
+                        <button class="relance-autre" onclick="brouillonRelance('${id}', this)" ${record.email ? '' : 'disabled'}>Ouvrir en brouillon dans Gmail</button>
+                        <button class="relance-autre" onclick="relanceBrouillons['${cle}'] = undefined; renderRelance(allRecords.find(r => r.id === '${id}'))">Remettre le modèle</button>
+                        <button class="relance-autre" onclick="marquerEnvoiSuivi('${id}', 'signature', null, ' (envoyée à la main)')">Noter comme envoyée (Gmail ou à la main)</button>
+                    </div>
                 </div>`;
             el.style.display = '';
         }
@@ -3729,7 +3786,7 @@
         }
 
         // Envoi direct : Worker /api/relance → script Google (contact@, signature Gmail, fil du devis), puis suivi + Journal
-        async function envoyerRelanceDirecte(id, btn) {
+        async function envoyerRelanceDirecte(id, btn, mode = 'relance') {
             const record = allRecords.find(r => r.id === id);
             const texte = document.getElementById('relance-texte')?.value.trim();
             if (!record || !texte) return;
@@ -3741,8 +3798,8 @@
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id, texte, sujet: sujetRelance(record) })
                 });
-                delete relanceBrouillons[id];
-                await marquerEnvoiSuivi(id, 'relance', null, r.simulation ? ' (simulation locale, rien n\'est parti)' : r.fil ? ` dans le fil « ${r.sujet} »` : ' (nouveau mail)');
+                delete relanceBrouillons[mode === 'signature' ? id + ':signature' : id];
+                await marquerEnvoiSuivi(id, mode, null, r.simulation ? ' (simulation locale, rien n\'est parti)' : r.fil ? ` dans le fil « ${r.sujet} »` : ' (nouveau mail)');
             } catch (e) {
                 showSyncBanner('Relance non envoyée : ' + e.message, true);
                 btn.disabled = false; btn.innerHTML = label;
@@ -3802,9 +3859,16 @@
             const fr = iso => iso.split('-').reverse().join('/');
             const journal = (f['Suivi Log'] || '').trim();
             const relances = (journal.split('Devis envoyé').pop().match(/Relance envoyée/g) || []).length + (mode === 'relance' ? 1 : 0);
-            const fields = { 'Suivi Log': `${journal}\n${new Date().toLocaleDateString('fr-FR')} : ${mode === 'devis' ? 'Devis envoyé' : `Relance envoyée (${relances})`}`.trim() };
+            const nSign = (journal.match(/Relance signature envoyée/g) || []).length + 1;
+            const evenement = mode === 'devis' ? 'Devis envoyé' : mode === 'signature' ? `Relance signature envoyée (${nSign})` : `Relance envoyée (${relances})`;
+            const fields = { 'Suivi Log': `${journal}\n${new Date().toLocaleDateString('fr-FR')} : ${evenement}`.trim() };
             let note;
-            if (mode === 'devis') {
+            if (mode === 'signature') {
+                Object.assign(fields, nSign < 3
+                    ? { 'Suivi Date relance': isoJour(7), 'Suivi Prochaine action': `Relance signature ${nSign + 1}` }
+                    : { 'Suivi Date relance': null, 'Suivi Prochaine action': 'Signature : 3 relances faites' });
+                note = `✉ Relance signature ${nSign} envoyée${detail}` + (nSign < 3 ? ` — relance ${nSign + 1} prévue le ${fr(isoJour(7))}` : ' — dernière relance');
+            } else if (mode === 'devis') {
                 Object.assign(fields, { 'Suivi Date devis': isoJour(), 'Suivi Date relance': isoJour(3), 'Suivi Prochaine action': 'Relance 1' });
                 if (record.statut === 'à traiter') fields['Statut'] = 'devis envoyé';
                 note = `✉ Devis envoyé — relance 1 prévue le ${fr(isoJour(3))}`;
@@ -4147,7 +4211,8 @@
             return (FILTER_GROUPS[currentFilter] || [currentFilter]).includes(r.statut);
         }
         function aRelancer(r) {
-            return !r.estArchive && r.statut === 'devis envoyé' && !!r.dateRelance && r.dateRelance <= jourISO();
+            return !r.estArchive && !!r.dateRelance && r.dateRelance <= jourISO()
+                && (r.statut === 'devis envoyé' || (r.statut === 'devis signé' && /^Relance signature/.test(r.prochaineAction || '')));
         }
         function enRetard(r) {
             return !r.estArchive && r.statut === 'à traiter' && !typeLead(r) && !!r.creeLe && Date.now() - new Date(r.creeLe) > 86400000;
