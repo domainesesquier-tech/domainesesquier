@@ -917,24 +917,35 @@ export default {
       // Alerte à Waël + mail au client par le script Google seulement si NOTIF_LEADS = "true" (script mis à jour) ;
       // jamais pour une demande commencée (elle devient souvent une demande complète quelques minutes après).
       if (url.pathname === "/api/public/lead" && method === "POST") {
-        const raw = await request.text();
-        if (raw.length > 12000) return json({ error: { message: "Demande trop volumineuse" } }, 413, env, requestOrigin);
-        let p;
-        try { p = JSON.parse(raw); } catch { return json({ error: { message: "JSON invalide" } }, 400, env, requestOrigin); }
-        // Formulaires « Brochure … » du site (Elementor, action Crochet web) : { formData: { <id du champ>: valeur }, formName }.
-        // Champs dans l'ordre prénom, e-mail, téléphone ; type et espace tirés du nom du formulaire.
+        // JSON (pages du site) ; le Crochet web d'Elementor 4.3 envoie un formulaire encodé (ou multipart)
+        const ct = (request.headers.get("Content-Type") || "").toLowerCase();
+        let p = null;
+        if (ct.includes("multipart/form-data")) {
+          const fd = await request.formData().catch(() => null);
+          if (fd) p = Object.fromEntries([...fd.entries()].filter(([, v]) => typeof v === "string"));
+        } else {
+          const raw = await request.text();
+          if (raw.length > 12000) return json({ error: { message: "Demande trop volumineuse" } }, 413, env, requestOrigin);
+          try { p = JSON.parse(raw); } catch { if (raw.includes("=")) p = Object.fromEntries(new URLSearchParams(raw)); }
+        }
+        if (!p || typeof p !== "object") return json({ error: { message: "JSON invalide", recu: ct } }, 400, env, requestOrigin);
+        // Formulaires « Brochure … » du site (Elementor, action Crochet web, URL ?source=elementor&kind=brochure&segment=mariage) :
+        // champs dans l'ordre prénom, e-mail, téléphone (formData{} en JSON, formData[…] ou champs à plat en formulaire encodé).
         // Pas d'alerte du script Google (Elementor écrit déjà à contact@) ni de mail automatique au client :
         // Waël l'envoie depuis l'onglet Suivi du dossier (panneau « Mail brochure »).
-        if (p && !p.kind && p.formData && typeof p.formData === "object") {
-          const nomForm = String(p.formName || "");
-          const vals = Object.values(p.formData).map(v => String((v && typeof v === "object" ? (Array.isArray(v) ? v.join(" ") : v.value) : v) ?? "").trim());
+        const qp = url.searchParams;
+        if (!p.kind && (qp.get("source") === "elementor" || (p.formData && typeof p.formData === "object"))) {
+          const nomForm = String(p.formName || p.form_name || "");
+          const META = /^(postId|formId|formName|timestamp|siteUrl|post_id|form_id|form_name|action|_nonce|referer_title|referrer)$/;
+          const brut = p.formData && typeof p.formData === "object" ? Object.values(p.formData) : Object.entries(p).filter(([k]) => !META.test(k)).map(([, v]) => v);
+          const vals = brut.map(v => String((v && typeof v === "object" ? (Array.isArray(v) ? v.join(" ") : v.value) : v) ?? "").trim());
           const email = vals.find(v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) || "";
           const telephone = vals.find(v => v !== email && /^\+?[\d\s.()-]{9,}$/.test(v)) || "";
+          const kind = qp.get("kind") || (/brochure/i.test(nomForm) ? "brochure" : null);
+          const segment = qp.get("segment") || (/mariage/i.test(nomForm) ? "mariage" : /groupe/i.test(nomForm) ? "groupe" : "seminaire");
           p = {
-            kind: /brochure/i.test(nomForm) ? "brochure" : null,
-            segment: /mariage/i.test(nomForm) ? "mariage" : /groupe/i.test(nomForm) ? "groupe" : "seminaire",
-            prenom: vals.find(v => v && v !== email && v !== telephone) || "", email, telephone,
-            origine: `Formulaire du site : ${nomForm}`, source: "elementor",
+            kind, segment, prenom: vals.find(v => v && v !== email && v !== telephone) || "", email, telephone,
+            origine: `Formulaire du site : ${nomForm || segment}`, source: "elementor", _cles: Object.keys(p).slice(0, 12),
           };
         }
         const txt = (v, n = 200) => String(v ?? "").trim().slice(0, n);
@@ -945,7 +956,7 @@ export default {
         const email = txt(p.email), tel = txt(p.telephone, 40);
         const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
         if (kind === "rappel" ? tel.replace(/\D/g, "").length < 9 : !emailOk) {
-          return json({ error: { message: "Champs requis manquants" } }, 400, env, requestOrigin);
+          return json({ error: { message: "Champs requis manquants", cles: p._cles } }, 400, env, requestOrigin);
         }
         const q = p.reponses && typeof p.reponses === "object" ? p.reponses : {};
         const nb = Math.max(0, Math.min(500, parseInt(q.participants ?? p.participants, 10) || 0));
