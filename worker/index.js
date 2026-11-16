@@ -436,7 +436,7 @@ export default {
 
     // Copie de travail V2 : READ_ONLY=true → dossiers et calendrier en bac à sable (mémoire),
     // toute autre écriture est refusée. Rien n'est jamais écrit dans la base de production.
-    const SANDBOX_ROUTES = ["/api/reservations", "/api/planning", "/api/next-number", "/api/public/demande", "/api/public/lead", "/api/ia/redaction"];
+    const SANDBOX_ROUTES = ["/api/reservations", "/api/planning", "/api/next-number", "/api/public/demande", "/api/public/lead", "/api/ia/redaction", "/api/relance"];
     if (env.READ_ONLY === "true" && method !== "GET" && method !== "OPTIONS" && !SANDBOX_ROUTES.some(r => url.pathname.startsWith(r))) {
       return json({ error: { message: "Copie V2 en lecture seule : aucune écriture en base." } }, 403, env, requestOrigin);
     }
@@ -522,6 +522,28 @@ export default {
       }
 
       // ── PLANNING (table dédiée) ────────────────────────────
+      // ── RELANCE : envoi direct depuis l'onglet Suivi (script Google NOTIF_URL, action « relance », 16/11/2026) ──
+      // L'adresse vient de la base (jamais du navigateur), le texte est celui relu par Waël.
+      // Le script envoie depuis contact@ avec la signature Gmail, dans le fil du devis s'il le trouve ;
+      // brouillon: true → brouillon Gmail au lieu de l'envoi (le tableau de bord l'ouvre).
+      if (url.pathname === "/api/relance" && method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const texte = String(body.texte || "").trim().slice(0, 5000);
+        if (!body.id || !texte) return json({ error: { message: "{ id, texte } requis" } }, 400, env, requestOrigin);
+        const rows = await sbFetch(env, `/reservations?id=eq.${encodeURIComponent(body.id)}&select=email`);
+        const email = String((Array.isArray(rows) && rows[0] && rows[0].email) || "").trim();
+        if (!email) return json({ error: { message: "Pas d'adresse e-mail sur ce dossier" } }, 404, env, requestOrigin);
+        if (env.READ_ONLY === "true") return json({ ok: true, simulation: true, brouillon: !!body.brouillon, fil: false, email }, 200, env, requestOrigin);
+        if (!env.NOTIF_URL || !env.RELANCE_CLE) return json({ error: { message: "Envoi non configuré (secrets NOTIF_URL et RELANCE_CLE)" } }, 503, env, requestOrigin);
+        const r = await fetch(env.NOTIF_URL, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "relance", cle: env.RELANCE_CLE, email, sujet: String(body.sujet || "").slice(0, 200), texte, brouillon: !!body.brouillon }),
+        });
+        const out = await r.json().catch(() => null);
+        if (!out || !out.ok) return json({ error: { message: (out && out.erreur) || `Script Google : réponse ${r.status}` } }, 502, env, requestOrigin);
+        return json({ ...out, email }, 200, env, requestOrigin);
+      }
+
       // ── MÉNAGE : lits et occupants lus dans les fiches rooming (Google Sheets) ──
       // ?ids=<id planning>,… → { rooming: { <id planning>: { gites } | { erreur } } }
       if (url.pathname === "/api/menage/rooming" && method === "GET") {

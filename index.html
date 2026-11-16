@@ -804,6 +804,18 @@
         .btn-lien { background: none; border: none; color: var(--text-muted); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
         .suivi-inner { display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
         .suivi-col .docs-panel { margin-top: 0; }
+        .suivi-col .relance-panel { margin-bottom: 20px; }
+        .relance-body { padding: 14px 18px 16px; font-size: 13px; }
+        .relance-etat { margin-bottom: 12px; color: var(--text-muted, #6b7280); }
+        .relance-etat.retard { color: var(--warning, #b45309); font-weight: 600; }
+        .relance-etapes { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 12px; line-height: 1.45; }
+        .relance-etapes span { display: block; margin-top: 4px; font-size: 12px; color: var(--text-muted, #6b7280); }
+        .relance-etapes a { color: var(--primary, #3A5538); font-weight: 600; }
+        .relance-etapes .btn-relance-ok { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--primary, #3A5538); background: transparent; color: var(--primary, #3A5538); font: inherit; font-weight: 600; cursor: pointer; }
+        .relance-texte { width: 100%; box-sizing: border-box; padding: 10px 12px; margin-bottom: 10px; border: 1px solid var(--border, #e5e7eb); border-radius: 8px; font: inherit; font-size: 13px; line-height: 1.5; resize: vertical; background: var(--bg-card, #fff); color: inherit; }
+        .relance-note { display: block; margin-top: 6px; font-size: 12px; color: var(--text-muted, #6b7280); }
+        .relance-liens { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+        .relance-autre { margin-top: 12px; background: none; border: none; padding: 0; color: var(--text-muted, #6b7280); font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; }
         @media (max-width: 768px) {
             .dossier-bar .btn-back span { display: none; }
             #iframe-nav-tabs { padding: 8px 16px; }
@@ -2802,6 +2814,8 @@
                 </div>
                         </div>
                         <div class="suivi-col">
+                <!-- Suivi & relance : brouillon Gmail via Claude Code, puis « ✓ envoyé » (rempli par renderRelance) -->
+                <div class="docs-panel visible relance-panel" id="relance-panel" style="display:none;"></div>
                 <!-- Documents panel -->
                 <div class="docs-panel visible" id="docs-panel">
                     <div class="docs-panel-header">
@@ -3338,13 +3352,10 @@
             await fastUpdateRecord(id, 'Statut', etape.statut, document.querySelector('#dossier-bar-actions .btn-etape'));
         }
 
-        // Ouvre le devis puis son panneau « Envoyer » (envoi : brouillon Gmail via Claude Code, puis « ✓ Devis envoyé »)
+        // « Envoyer le devis » (en-tête) et « ✉ Envoyer / Relancer » (devis) : module Suivi & relance de l'onglet Suivi
         function ouvrirEnvoiDevis(id) {
-            const fr = document.getElementById('iframe-devis');
-            const dejaCharge = (fr.getAttribute('src') || '').includes('id=' + id);
-            openDocForRecord('devis', id);
-            const go = () => fr.contentWindow && fr.contentWindow.postMessage({ type: 'OUVRIR_ENVOI' }, '*');
-            if (dejaCharge) go(); else fr.addEventListener('load', go, { once: true });
+            openDocForRecord('suivi', id);
+            document.getElementById('relance-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         function showPanel(panelId) {
@@ -3602,9 +3613,228 @@
 
         function showSuivi(id) {
             showPanel('panel-suivi');
+            relanceMode = null;
             const record = allRecords.find(r => r.id === id);
             if (record) renderTimeline(record);
             openDocsPanel(id);
+        }
+
+        // ── Suivi & relance : prépare le texte pour Claude Code (/sesquier-redaction → brouillon Gmail signé),
+        // puis « ✓ envoyé » pose le suivi (relance à J+3, puis tous les 7 jours, 3 relances au plus) ──
+        let relanceMode = null; // null = choisi selon le suivi (devis pas envoyé → envoi, sinon relance)
+        const isoJour = (n = 0) => { const d = new Date(); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+        function renderRelance(record) {
+            const el = document.getElementById('relance-panel');
+            if (!el) return;
+            if (!record || record.estArchive || !['à traiter', 'devis envoyé'].includes(record.statut)) { el.style.display = 'none'; return; }
+            const f = record.fields || record._raw?.fields || {};
+            const envoye = !!f['Suivi Date devis'];
+            const relance = (relanceMode || (envoye ? 'relance' : 'devis')) === 'relance';
+            const fr = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+            const action = escapeHtml(f['Suivi Prochaine action'] || 'Relance');
+            const etat = !envoye ? 'Devis pas encore envoyé.'
+                : `Devis envoyé le ${fr(f['Suivi Date devis'])}` + (f['Suivi Date relance'] ? ` · ${action} le ${fr(f['Suivi Date relance'])}` : (f['Suivi Prochaine action'] ? ` · ${action}` : ''));
+            const retard = envoye && f['Suivi Date relance'] && f['Suivi Date relance'] <= isoJour();
+            const id = record.id;
+            const autreMode = envoye ? `<button class="relance-autre" onclick="relanceMode = '${relance ? 'devis' : 'relance'}'; renderRelance(allRecords.find(r => r.id === '${id}'))">${relance ? 'Renvoyer le devis' : "Faire une relance plutôt qu'un nouvel envoi"}</button>` : '';
+            const corps = relance ? `
+                    <textarea id="relance-texte" class="relance-texte" rows="11" oninput="relanceBrouillons['${id}'] = this.value">${escapeHtml(relanceBrouillons[id] ?? modeleRelance(record))}</textarea>
+                    <button class="btn-upload" onclick="envoyerRelanceDirecte('${id}', this)" ${record.email ? '' : 'disabled title="Pas d\'adresse e-mail : à remplir dans Infos"'}><i class="fa-solid fa-paper-plane"></i> Envoyer la relance</button>
+                    <span class="relance-note">${record.email ? `À ${escapeHtml(record.email)}, depuis contact@ avec ta signature Gmail, dans le fil du mail du devis. Le suivi et le Journal se mettent à jour.` : "Pas d'adresse e-mail sur ce dossier : à remplir dans Infos."}</span>
+                    <div class="relance-liens">
+                        <button class="relance-autre" onclick="brouillonRelance('${id}', this)" ${record.email ? '' : 'disabled'}>Ouvrir en brouillon dans Gmail</button>
+                        <button class="relance-autre" onclick="preparerRedaction('${id}', 'relance', this)">Rédiger avec Claude Code</button>
+                        <button class="relance-autre" onclick="relanceBrouillons['${id}'] = undefined; renderRelance(allRecords.find(r => r.id === '${id}'))">Remettre le modèle</button>
+                        <button class="relance-autre" onclick="marquerEnvoiSuivi('${id}', 'relance', null, ' (envoyée à la main)')">Noter comme envoyée (Gmail ou à la main)</button>
+                        ${autreMode}
+                    </div>` : `
+                    <ol class="relance-etapes">
+                        <li><button class="btn-upload" onclick="preparerRedaction('${id}', 'devis', this)"><i class="fa-regular fa-copy"></i> Préparer le mail</button>
+                            <span>Colle (⌘V) dans Claude Code : il crée le brouillon Gmail avec ta signature et te donne le mot d'accueil à coller en tête du devis (onglet Devis, puis Enregistrer).</span></li>
+                        <li><a href="https://mail.google.com/mail/?authuser=domainesesquier@gmail.com#drafts" target="_blank" rel="noopener">Ouvre tes brouillons Gmail</a>
+                            <span>Relis, joins le PDF du devis et envoie.</span></li>
+                        <li><button class="btn-relance-ok" onclick="marquerEnvoiSuivi('${id}', 'devis', this)"><i class="fa-solid fa-check"></i> Devis envoyé</button>
+                            <span>Passe le dossier en « Envoyé » et programme la relance à J+3.</span></li>
+                    </ol>
+                    ${autreMode}`;
+            el.innerHTML = `
+                <div class="docs-panel-header"><div class="docs-panel-title"><i class="fa-solid fa-paper-plane"></i> Suivi &amp; relance</div></div>
+                <div class="relance-body">
+                    <div class="relance-etat ${retard ? 'retard' : ''}">${retard ? '<i class="fa-regular fa-bell"></i> ' : ''}${etat}</div>${corps}
+                </div>`;
+            el.style.display = '';
+        }
+
+        // Relances : texte tiré du guide de ton (docs/ton-redactionnel.md), modifiable avant l'envoi
+        const relanceBrouillons = {};
+        const MOIS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+        function periodeFr(a, b) {
+            if (!a) return '';
+            const d1 = new Date(a + 'T12:00:00'), d2 = b ? new Date(b + 'T12:00:00') : d1;
+            const j = d => d.getDate() === 1 ? '1er' : String(d.getDate());
+            const m = d => MOIS_FR[d.getMonth()], y = d => d.getFullYear();
+            if (d2 <= d1) return `du ${j(d1)} ${m(d1)} ${y(d1)}`;
+            const lien = Math.round((d2 - d1) / 86400000) === 1 ? ['des', 'et'] : ['du', 'au'];
+            const debut = y(d1) !== y(d2) ? `${j(d1)} ${m(d1)} ${y(d1)}` : d1.getMonth() !== d2.getMonth() ? `${j(d1)} ${m(d1)}` : j(d1);
+            return `${lien[0]} ${debut} ${lien[1]} ${j(d2)} ${m(d2)} ${y(d2)}`;
+        }
+        function objetRelance(record) {
+            return record.segment === 'mariage' ? 'mariage' : record.segment === 'groupe' ? 'séjour' : 'séminaire';
+        }
+        function sujetRelance(record) {
+            const f = record.fields || record._raw?.fields || {};
+            return `Votre ${objetRelance(record)} ${periodeFr(f['Date arrivée'], f['Date départ'])} – Domaine Sesquier`.replace(/\s+/g, ' ');
+        }
+        function modeleRelance(record) {
+            const f = record.fields || record._raw?.fields || {};
+            const n = ((f['Suivi Log'] || '').split('Devis envoyé').pop().match(/Relance envoyée/g) || []).length + 1;
+            const prenom = String(f['Prénom contact'] || '').trim();
+            const projet = `votre ${objetRelance(record)} ${periodeFr(f['Date arrivée'], f['Date départ'])}`.trim();
+            const pers = record.nbPersonnes ? ` (${record.nbPersonnes} personnes)` : '';
+            // Fin d'option = date du devis + 15 jours, comme dans le devis ; rappelée seulement si elle n'est pas passée
+            let option = '';
+            const dd = record.dossier?.meta?.dateDevis;
+            if (dd) {
+                const fin = new Date(dd + 'T12:00:00'); fin.setDate(fin.getDate() + 15);
+                if (fin.toLocaleDateString('sv-SE') >= isoJour()) option = `Vos dates restent réservées jusqu'au ${fin.getDate() === 1 ? '1er' : fin.getDate()} ${MOIS_FR[fin.getMonth()]}. `;
+            }
+            const bonjour = `Bonjour${prenom ? ' ' + prenom : ''},`;
+            if (n === 1) return `${bonjour}\n\nJe reviens vers vous au sujet de notre proposition pour ${projet}${pers}.\n\nEst-ce que vous avez bien reçu mon offre ? Correspond-elle à vos attentes ?\n\n${option}N'hésitez pas à me recontacter si vous souhaitez plus d'informations ou ajuster la proposition.\n\nBien cordialement,`;
+            if (n === 2) return `${bonjour}\n\nJ'espère que vous allez bien. Est-ce que vous avez du nouveau de votre côté concernant ${projet} ?\n\n${option}Je reste à votre disposition pour en parler ou ajuster la proposition.\n\nBien cordialement,`;
+            return `${bonjour}\n\nJ'espère que vous allez bien. Je me permets de revenir vers vous une dernière fois au sujet de ${projet}.\n\nSi votre projet a évolué, un simple mot de votre part me permettra de libérer vos dates. Et si vous souhaitez ajuster la proposition, je reste bien sûr à votre disposition.\n\nBien cordialement,`;
+        }
+
+        // Brouillon Gmail (même fil, même signature), ouvert dans un nouvel onglet ; le suivi se note après l'envoi depuis Gmail
+        async function brouillonRelance(id, btn) {
+            const record = allRecords.find(r => r.id === id);
+            const texte = document.getElementById('relance-texte')?.value.trim();
+            if (!record || !texte) return;
+            const onglet = window.open('about:blank', '_blank'); // ouvert pendant le clic, sinon bloqué
+            const label = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Création du brouillon…';
+            try {
+                const r = await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/relance`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, texte, sujet: sujetRelance(record), brouillon: true })
+                });
+                const url = r.messageId ? `https://mail.google.com/mail/?authuser=domainesesquier@gmail.com#drafts?compose=${encodeURIComponent(r.messageId)}`
+                    : 'https://mail.google.com/mail/?authuser=domainesesquier@gmail.com#drafts';
+                if (onglet) onglet.location.href = url; else window.open(url, '_blank');
+                showSyncBanner(r.simulation ? 'Brouillon simulé (local)' : 'Brouillon créé dans Gmail : envoie-le, puis « Noter comme envoyée »');
+            } catch (e) {
+                if (onglet) onglet.close();
+                showSyncBanner('Brouillon non créé : ' + e.message, true);
+            } finally { btn.disabled = false; btn.textContent = label; }
+        }
+
+        // Envoi direct : Worker /api/relance → script Google (contact@, signature Gmail, fil du devis), puis suivi + Journal
+        async function envoyerRelanceDirecte(id, btn) {
+            const record = allRecords.find(r => r.id === id);
+            const texte = document.getElementById('relance-texte')?.value.trim();
+            if (!record || !texte) return;
+            if (!confirm(`Envoyer cette relance à ${record.email} ?`)) return;
+            const label = btn.innerHTML;
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Envoi…';
+            try {
+                const r = await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/relance`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, texte, sujet: sujetRelance(record) })
+                });
+                delete relanceBrouillons[id];
+                await marquerEnvoiSuivi(id, 'relance', null, r.simulation ? ' (simulation locale, rien n\'est parti)' : r.fil ? ` dans le fil « ${r.sujet} »` : ' (nouveau mail)');
+            } catch (e) {
+                showSyncBanner('Relance non envoyée : ' + e.message, true);
+                btn.disabled = false; btn.innerHTML = label;
+            }
+        }
+
+        // Contexte pour /sesquier-redaction : la page du devis si elle est ouverte (texte exact), sinon la dernière version enregistrée
+        function contexteRedaction(record, mode) {
+            const frame = document.getElementById('iframe-devis');
+            try {
+                if ((frame.getAttribute('src') || '').includes('id=' + record.id) && typeof frame.contentWindow?.contexteIA === 'function') return frame.contentWindow.contexteIA(mode);
+            } catch (_) {}
+            const f = record.fields || record._raw?.fields || {};
+            const d = record.dossier || {}, fin = d.financials || {};
+            let details = {};
+            try { const raw = f['Détails JSON'] || f['Details JSON']; details = typeof raw === 'string' ? JSON.parse(raw) : (raw || {}); } catch (_) {}
+            const eur = n => (Number(n) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+            const ligne = l => l.type === 'category' ? { section: l.title }
+                : l.type === 'pricing' ? { libelle: String(l.label || '').replace(/<[^>]+>/g, '').trim(), detail: l.subtitle || undefined, qte: String(l.qty),
+                    pu: String(d.prixTTC && l.unitPriceTTC != null ? l.unitPriceTTC : l.unitPriceHT), tva: `${l.tvaRate}%`, option: l.option || undefined }
+                : null;
+            const type = Array.isArray(f['Type']) ? f['Type'][0] : f['Type'];
+            return {
+                mode,
+                dossier: {
+                    id: record.id, email: f['Email'] || record.email, type, organisation: f['Entreprise'] || f['Nom client'] || record.nomClient,
+                    prenom: f['Prénom contact'], nom: f['Nom contact'], dateArrivee: f['Date arrivée'], dateDepart: f['Date départ'],
+                    personnes: record.nbPersonnes, messageClient: f['Message'], questionnaire: details.questionnaire?.reponses,
+                    dateEnvoiDevis: f['Suivi Date devis'], journalSuivi: f['Suivi Log'], prochaineAction: f['Suivi Prochaine action'],
+                },
+                devis: {
+                    prix: d.prixTTC ? 'TTC' : 'HT', lignes: [...(fin.lines || []), ...(fin.activitesLines || [])].map(ligne).filter(Boolean),
+                    totalHT: eur(fin.totalHT), totalTTC: eur(fin.totalTTC),
+                    parPersonne: fin.prixParPersonneHT ? `Soit ${Math.round(fin.prixParPersonneHT)} € HT / personne` : undefined,
+                },
+            };
+        }
+
+        async function preparerRedaction(id, mode, btn) {
+            const record = allRecords.find(r => r.id === id);
+            if (!record) return;
+            const texte = `/sesquier-redaction ${mode}\n${JSON.stringify(contexteRedaction(record, mode))}`;
+            try { await navigator.clipboard.writeText(texte); btn.innerHTML = '<i class="fa-solid fa-check"></i> Copié — colle dans Claude Code'; }
+            catch (e) { prompt('Copie ce texte :', texte); }
+            // Envoi du devis : le cadre du mot d'accueil s'affiche dans le devis (déjà ouvert ou à son prochain chargement)
+            if (mode === 'devis') {
+                window._afficherMotAccueil = id;
+                try { const ma = document.getElementById('iframe-devis').contentDocument?.getElementById('mot-accueil');
+                      if (ma && !ma.innerText.trim()) { ma.style.display = 'block'; ma.dataset.placeholder = "Colle ici le mot d'accueil rédigé par Claude"; } } catch (_) {}
+            }
+        }
+
+        async function marquerEnvoiSuivi(id, mode, btn, detail = '') {
+            const record = allRecords.find(r => r.id === id);
+            if (!record) return;
+            const f = record.fields || record._raw?.fields || {};
+            const fr = iso => iso.split('-').reverse().join('/');
+            const journal = (f['Suivi Log'] || '').trim();
+            const relances = (journal.split('Devis envoyé').pop().match(/Relance envoyée/g) || []).length + (mode === 'relance' ? 1 : 0);
+            const fields = { 'Suivi Log': `${journal}\n${new Date().toLocaleDateString('fr-FR')} : ${mode === 'devis' ? 'Devis envoyé' : `Relance envoyée (${relances})`}`.trim() };
+            let note;
+            if (mode === 'devis') {
+                Object.assign(fields, { 'Suivi Date devis': isoJour(), 'Suivi Date relance': isoJour(3), 'Suivi Prochaine action': 'Relance 1' });
+                if (record.statut === 'à traiter') fields['Statut'] = 'devis envoyé';
+                note = `✉ Devis envoyé — relance 1 prévue le ${fr(isoJour(3))}`;
+            } else if (relances < 3) {
+                Object.assign(fields, { 'Suivi Date relance': isoJour(7), 'Suivi Prochaine action': `Relance ${relances + 1}` });
+                note = `✉ Relance ${relances} envoyée${detail} — relance ${relances + 1} prévue le ${fr(isoJour(7))}`;
+            } else {
+                Object.assign(fields, { 'Suivi Date relance': null, 'Suivi Prochaine action': 'Sans réponse après 3 relances' });
+                note = `✉ Relance ${relances} envoyée${detail} — dernière relance`;
+            }
+            if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+            try {
+                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, fields })
+                });
+                await autoLogTimeline(id, fields['Statut'] ? `${note} · statut **à traiter** → **devis envoyé**` : note);
+                const raw = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${id}`);
+                const idx = allRecords.findIndex(r => r.id === id);
+                if (raw?.records?.[0] && idx !== -1) allRecords[idx] = normalizeRecord(raw.records[0]);
+                relanceMode = null;
+                if (fields['Statut']) syncToPlanning(id);
+                updateKPIs(); updateFilters();
+                if (typeof currentViewMode !== 'undefined' && currentViewMode === 'calendar') renderCalendar(); else renderTable();
+                renderDossierBar(id);
+                renderTimeline(allRecords.find(r => r.id === id));
+                showSyncBanner(mode === 'devis' ? 'Devis noté comme envoyé' : 'Relance notée');
+            } catch (e) {
+                showSyncBanner('Suivi non enregistré : ' + e.message, true);
+                if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+            }
         }
 
         function openDossier(id) {
@@ -3612,6 +3842,7 @@
         }
 
         function renderTimeline(record) {
+            renderRelance(record);
             const container = document.getElementById('dossier-timeline');
             const countLabel = document.getElementById('log-count');
             const logs = record.timeline || [];

@@ -32,6 +32,7 @@ const dateLongue = (v, annee) => {
 
 function doPost(e) {
   const d = JSON.parse(e.postData.contents || '{}');
+  if (d.action === 'relance') return ContentService.createTextOutput(JSON.stringify(envoyerRelance(d))).setMimeType(ContentService.MimeType.JSON);
   if (d.lead) { traiterLead(d); return ContentService.createTextOutput('ok'); }
   if (d.evenement === 'signature') { alerteSignature(d); return ContentService.createTextOutput('ok'); }
   const accuse = d.email ? envoyerAccuse(d) : false;
@@ -319,4 +320,69 @@ function envoyerMailLead(d, m) {
 function testLead() {
   traiterLead({ lead: 'estimation', id: 'recTEST', segment: 'seminaire', prenom: 'Test', email: DESTINATAIRE, nom_client: 'Test estimation',
     personnes: 20, resume: '20 pers. · 2 jours / 1 nuit', estimation: { min_pp: 325, max_pp: 415, min: 6500, max: 8300 } });
+}
+
+// ─── Relance d'un devis, envoyée depuis l'onglet Suivi du tableau de bord (Worker /api/relance, 16/11/2026) ───
+// Part de contact@ avec la signature Gmail, en réponse dans le dernier fil envoyé au client (le mail du devis),
+// sinon en nouveau mail. Le texte est celui relu par Waël ; l'adresse vient de la base (Worker).
+// d.brouillon = true : brouillon Gmail (même fil, même signature) au lieu de l'envoi ; le tableau de bord l'ouvre.
+// Clé : Paramètres du projet > Propriétés du script > RELANCE_CLE = secret Worker RELANCE_CLE.
+function envoyerRelance(d) {
+  const cle = PropertiesService.getScriptProperties().getProperty('RELANCE_CLE');
+  if (!cle || d.cle !== cle) return { ok: false, erreur: 'Clé refusée par le script Google (RELANCE_CLE)' };
+  const email = String(d.email || '').trim();
+  const corps = String(d.texte || '').trim();
+  if (!/^[^@\s<>,;]+@[^@\s<>,;]+\.[^@\s<>,;]+$/.test(email) || !corps) return { ok: false, erreur: 'Adresse ou texte manquant' };
+  const cache = CacheService.getScriptCache();
+  if (!d.brouillon && cache.get('relance:' + email)) return { ok: false, erreur: 'Une relance vient déjà de partir vers cette adresse (moins de 2 minutes)' };
+  try {
+    const comptes = Gmail.Users.Settings.SendAs.list('me').sendAs || [];
+    const exp = comptes.find(c => c.sendAsEmail === DESTINATAIRE) || comptes.find(c => c.isDefault) || { sendAsEmail: DESTINATAIRE };
+    const signature = exp.signature || '';
+    const fil = GmailApp.search(`in:sent to:${email} newer_than:120d`, 0, 1)[0];
+    let sujet = String(d.sujet || 'Votre projet au Domaine Sesquier').slice(0, 200);
+    const reponse = [];
+    if (fil) {
+      const s = fil.getFirstMessageSubject();
+      sujet = /^re\s*:/i.test(s) ? s : 'Re: ' + s;
+      const dernier = fil.getMessages().pop();
+      const mid = dernier.getHeader('Message-ID');
+      if (mid) reponse.push(`In-Reply-To: ${mid}`, `References: ${[dernier.getHeader('References'), mid].filter(Boolean).join(' ')}`);
+    }
+    const html = `<div dir="ltr">${esc(corps).replace(/\n/g, '<br>')}</div>` + (signature ? `<br><div class="gmail_signature">${signature}</div>` : '');
+    const texte = corps + (signature ? '\n\n' + signature.replace(/<br\s*\/?>|<\/(p|div|tr)>/gi, '\n').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim() : '');
+    const b64 = s => Utilities.base64Encode(s || '', Utilities.Charset.UTF_8).replace(/.{76}/g, '$&\r\n');
+    const entete = s => '=?UTF-8?B?' + Utilities.base64Encode(s, Utilities.Charset.UTF_8) + '?=';
+    const frontiere = 'sesquier-' + Utilities.getUuid();
+    const mime = [
+      `From: ${exp.displayName ? entete(exp.displayName) + ' ' : ''}<${exp.sendAsEmail}>`,
+      `To: ${email}`,
+      `Subject: ${entete(sujet)}`,
+      `Date: ${new Date().toUTCString()}`,
+      ...reponse,
+      'MIME-Version: 1.0',
+      `Content-Type: multipart/alternative; boundary="${frontiere}"`,
+      '',
+      `--${frontiere}`, 'Content-Type: text/plain; charset=UTF-8', 'Content-Transfer-Encoding: base64', '', b64(texte),
+      `--${frontiere}`, 'Content-Type: text/html; charset=UTF-8', 'Content-Transfer-Encoding: base64', '', b64(html),
+      `--${frontiere}--`, '',
+    ].join('\r\n');
+    const envoi = { raw: Utilities.base64EncodeWebSafe(mime) };
+    if (fil) envoi.threadId = fil.getId();
+    if (d.brouillon) {
+      const brouillon = Gmail.Users.Drafts.create({ message: envoi }, 'me');
+      return { ok: true, brouillon: true, messageId: brouillon.message.id, fil: !!fil, sujet };
+    }
+    Gmail.Users.Messages.send(envoi, 'me');
+    cache.put('relance:' + email, '1', 120);
+    return { ok: true, fil: !!fil, sujet };
+  } catch (err) {
+    console.error('envoyerRelance : ' + err);
+    return { ok: false, erreur: String((err && err.message) || err) };
+  }
+}
+// Test depuis l'éditeur : relance envoyée à contact@ lui-même (aucun client), avec la signature
+function testRelance() {
+  PropertiesService.getScriptProperties().getProperty('RELANCE_CLE') || PropertiesService.getScriptProperties().setProperty('RELANCE_CLE', Utilities.getUuid());
+  console.log(envoyerRelance({ cle: PropertiesService.getScriptProperties().getProperty('RELANCE_CLE'), email: DESTINATAIRE, sujet: 'Test relance tableau de bord', texte: 'Bonjour,\n\nTest de relance envoyée depuis le tableau de bord.\n\nBien cordialement,' }));
 }

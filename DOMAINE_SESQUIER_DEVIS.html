@@ -611,7 +611,7 @@
             </svg>
             Télécharger PDF
         </button>
-        <button class="btn btn-primary" id="btn-envoyer" onclick="ouvrirMailClient()" title="Préparer le mail avec Claude Code (brouillon Gmail), puis marquer l'envoi">✉ Envoyer</button>
+        <button class="btn btn-primary" id="btn-envoyer" onclick="ouvrirMailClient()" title="Ouvre le module Suivi & relance (onglet Suivi du dossier)">✉ Envoyer</button>
         <div class="menu-plus">
             <button class="btn btn-contour" onclick="event.stopPropagation(); document.getElementById('menu-plus-devis').classList.toggle('show')" title="Plus d'actions">⋯</button>
             <div class="menu-plus-liste" id="menu-plus-devis" onclick="event.stopPropagation()">
@@ -1461,7 +1461,12 @@
             if (typeof majBoutonEnvoyer === 'function') majBoutonEnvoyer();
             setPrixTTC(!!dossier.prixTTC);
             const ma = document.getElementById('mot-accueil');
-            if (ma) { ma.innerText = dossier.motAccueil || ''; ma.style.display = dossier.motAccueil ? 'block' : 'none'; }
+            if (ma) {
+                // Mot d'accueil demandé depuis l'onglet Suivi (« Préparer le mail ») : cadre affiché même vide, pour y coller le texte
+                let demande = false; try { demande = window.parent !== window && window.parent._afficherMotAccueil === currentRequestId; } catch (_) {}
+                ma.innerText = dossier.motAccueil || ''; ma.style.display = (dossier.motAccueil || demande) ? 'block' : 'none';
+                if (demande && !dossier.motAccueil) ma.dataset.placeholder = "Colle ici le mot d'accueil rédigé par Claude";
+            }
 
             // 1. META — numéro selon le profil (séquentiel FOUDRE / historique OZZA)
             applyDevisNumber();
@@ -3258,6 +3263,8 @@
         if (btn) btn.textContent = f['Suivi Date devis'] ? '✉ Relancer' : '✉ Envoyer';
     }
     function ouvrirMailClient(mode) {
+        // Dans le tableau de bord : le module Suivi & relance est dans l'onglet Suivi du dossier
+        try { if (!mode && window.parent !== window && typeof window.parent.ouvrirEnvoiDevis === 'function') return window.parent.ouvrirEnvoiDevis(currentRequestId); } catch (_) {}
         const f = window._liveFields || currentRecord?.fields || {};
         const envoye = !!f['Suivi Date devis'];
         modeEnvoi = mode || (envoye ? 'relance' : 'devis');
