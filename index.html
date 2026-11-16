@@ -1270,7 +1270,6 @@
 
         .badge-suivi { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; background: #FEF3C7; color: #92400E; vertical-align: middle; }
         .badge-suivi.retard { background: #FEE2E2; color: #991B1B; }
-        .badge-suivi.pf { background: #E0E7FF; color: #3730A3; }
         .badge-suivi.lead { background: #E0E7FF; color: #3730A3; }
         .row-client-org {
             font-size: 11px;
@@ -4264,8 +4263,7 @@
                         ? `<span class="badge-suivi ${typeLead(r) === 'rappel' ? 'retard' : 'lead'}" title="${escapeHtml(r.message || '')}">${LEAD_LIBELLE[typeLead(r)] || 'Lead'}</span>`
                         : aRelancer(r)
                         ? `<span class="badge-suivi" title="${escapeHtml(r.prochaineAction || 'Relance')} prévue le ${r.dateRelance.split('-').reverse().join('/')}">À relancer</span>`
-                        : enRetard(r) ? '<span class="badge-suivi retard" title="Demande reçue il y a plus de 24 h, devis promis sous 24 h">+24 h</span>' : ''}${r.proforma
-                        ? `<span class="badge-suivi pf" title="Facture proforma ${escapeHtml(r.proforma)} émise">PROFORMA</span>` : ''}
+                        : enRetard(r) ? '<span class="badge-suivi retard" title="Demande reçue il y a plus de 24 h, devis promis sous 24 h">+24 h</span>' : ''}
                     <div style="display:flex; align-items:center; gap:6px;">
                         <span class="row-client-org">${escapeHtml(r.entreprise || 'Particulier')}</span>
                     </div>
@@ -4484,7 +4482,7 @@
                 if (rid) openDocForRecord(event.data.tab, rid);
                 else switchTab('iframe-' + event.data.tab, navSegment());
             }
-            if (event.data.type === 'PROFORMA_EMISE') refreshData(); // badge PROFORMA dans la liste
+            if (event.data.type === 'PROFORMA_EMISE') refreshData(); // coche l'étape Proforma du dossier
             if (event.data.type === 'RECORD_UPDATED') {
                 // 1. Mettre à jour le dashboard (liste) puis syncer le planning
                 if (typeof loadAllRecords === 'function') {
