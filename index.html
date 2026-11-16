@@ -3174,8 +3174,8 @@
             try {
                 const defaultFields = {
                     [SesquierRecords.FIELDS.NOM]: "Nouveau Dossier " + new Date().toLocaleDateString('fr-FR'),
-                    [SesquierRecords.FIELDS.STATUT]: ["à traiter"],
-                    [SesquierRecords.FIELDS.TYPE]: [SEGMENTS[currentSegment].typeDossier]
+                    [SesquierRecords.FIELDS.STATUT]: "à traiter",
+                    [SesquierRecords.FIELDS.TYPE]: SEGMENTS[currentSegment].typeDossier
                 };
 
                 const res = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
@@ -3704,7 +3704,7 @@
                     'Date départ': f['Date départ'] || null,
                     'Nombre de personnes': f['Nombre de personnes'] || null,
                     'Message': f['Message'] || '',
-                    'Statut': ['à traiter'],
+                    'Statut': 'à traiter',
                     'JSON': f['JSON'] || '',
                     'DOSSIER JSON': f['DOSSIER JSON'] || '',
                 };

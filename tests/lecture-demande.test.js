@@ -54,6 +54,21 @@ Ce message répond à votre annonce (Domaine Sesquier, 06 83 96 80 56, contact@d
     ['Date passée ignorée, nuits', `Le 15 octobre 2026 vous m'aviez répondu. Nous voudrions finalement venir le 8 avril pour 3 jours, 20 à 22 personnes.`, {
         participants: 22, dateArrivee: '2027-04-08', dateDepart: '2027-04-10',
     }],
+    ['Mariage « nous nous marions », samedi → vendredi-dimanche', `Bonjour, nous nous marions le samedi 4 septembre 2027, environ 60 personnes.`, {
+        type: 'mariage', participants: 60, dateArrivee: '2027-09-03', dateDepart: '2027-09-05',
+    }],
+    ['Mariage « on se marie », jour J seul', `On se marie le 12 juin 2027, 80 invités, arrivée le vendredi et départ le dimanche.`, {
+        type: 'mariage', participants: 80, dateArrivee: '2027-06-11', dateDepart: '2027-06-13',
+    }],
+    ['Mariage « notre union », nuits précisées', `Nous souhaitons célébrer notre union le 3 juillet 2027, 70 invités, 3 nuits sur place.`, {
+        type: 'mariage', participants: 70, dateArrivee: '2027-07-02', dateDepart: '2027-07-05',
+    }],
+    ['Prénom Marie : pas un mariage', `Marie Durand, séminaire de 20 personnes du 5 au 7 mai 2027.`, {
+        type: 'seminaire', dateArrivee: '2027-05-05', dateDepart: '2027-05-07',
+    }],
+    ['Anniversaire de mariage = groupe', `Anniversaire de mariage de nos parents, 30 personnes du 7 au 9 mai 2027.`, {
+        type: 'groupe', participants: 30,
+    }],
 ];
 
 let ko = 0;

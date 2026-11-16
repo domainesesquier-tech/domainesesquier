@@ -146,7 +146,7 @@
         // ── Type de demande ──
         const compte = re => (p.match(re) || []).length;
         const mariage = /anniversaire de mariage|noces d'(?:or|argent)/.test(p) ? 0
-            : compte(/\bmariage|\bnoces?\b|wedding|\bpacs\b|vin d'honneur|futurs? (?:maries|epoux)|ceremonie laique|nous marier|se marier/g);
+            : compte(/\bmariage|\bnoces?\b|wedding|\bpacs\b|vin d'honneur|futurs? (?:maries|epoux)|ceremonie (?:laique|civile|religieuse)|(?:nous|vous) marier|nous marions|se marie(?:r|nt)?\b|(?<!saintes?[- ])\bmaries\b|notre union|\bepouser|epousailles/g);
         const seminaire = compte(/seminaire|team.?building|incentive|off.?site|\bcodir\b|comite de direction|convention|kick.?off|journee d'etude|collaborateurs|salaries|\bentreprise|\bcse\b|reunion de travail|formation|force de vente|equipe commerciale|workshop|pleniere|\bagence\b/g);
         const groupe = compte(/anniversaire|week.?end|famille|familial|cousinade|\bamis\b|\bevjf\b|\bevg\b|vie de (?:jeune fille|garcon)|retrouvailles|association|\bclub\b|chorale|\bstage\b|yoga|\bfete\b|vacances/g);
         if (mariage) out.type = 'mariage';
@@ -208,6 +208,13 @@
             }
             if (fin !== ds[0]) out.dateDepart = iso(fin.date);
             else if (nuits !== null && nuits >= 0 && nuits <= 14) out.dateDepart = iso(new Date(ds[0].a, ds[0].m - 1, ds[0].j + nuits));
+            // Mariage avec une seule date = le jour J : un samedi, on arrive la veille ; deux nuits au minimum
+            if (out.type === 'mariage' && fin === ds[0]) {
+                const arrivee = new Date(ds[0].a, ds[0].m - 1, ds[0].j - (ds[0].date.getDay() === 6 ? 1 : 0));
+                const n = nuits >= 2 && nuits <= 14 ? nuits : 2;
+                out.dateArrivee = iso(arrivee);
+                out.dateDepart = iso(new Date(arrivee.getFullYear(), arrivee.getMonth(), arrivee.getDate() + n));
+            }
         }
 
         out.message = 'Demande collée dans le tableau de bord :\n\n' + texte.replace(/\n{3,}/g, '\n\n').slice(0, 6000);
