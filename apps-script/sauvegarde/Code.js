@@ -3,7 +3,7 @@
  * Compte : domainesesquier@gmail.com (projet Apps Script séparé de l'alerte mail)
  *
  * Installation (une fois) :
- *  1. script.google.com → Nouveau projet « Sesquier - sauvegarde Supabase » → coller ce fichier.
+ *  1. Projet créé depuis le dépôt (apps-script/sauvegarde, clasp) ; mise à jour : npm run deploy.
  *  2. Paramètres du projet → Propriétés du script :
  *       SUPABASE_URL          = https://ymwebdihbmzrcaivldxu.supabase.co
  *       SUPABASE_SERVICE_KEY  = clé « service_role » (Supabase → Project Settings → API). Ne jamais la partager.

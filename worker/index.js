@@ -820,7 +820,7 @@ export default {
         // Demande commencée ou estimation faite avec le même e-mail : remplacées par cette demande complète
         if (!interne) await sbFetch(env, `/rpc/public_lead_convertir`, { method: "POST", body: JSON.stringify({ p_email: row.email }) })
           .catch(e => console.error("Leads convertis :", e.message));
-        // Alerte à Waël + accusé de réception au client via Google Apps Script (NOTIF_URL = URL du déploiement web, secret Worker ; code : docs/alerte_demande_sesquier.gs).
+        // Alerte à Waël + accusé de réception au client via Google Apps Script (NOTIF_URL = URL du déploiement web, secret Worker ; code : apps-script/n3/Code.js).
         // Envoyée après l'enregistrement, sans bloquer la réponse ; un échec n'annule jamais la demande.
         // Saisie interne : Waël est déjà en contact, ni alerte ni accusé de réception.
         if (env.NOTIF_URL && env.READ_ONLY !== "true" && !interne) {
