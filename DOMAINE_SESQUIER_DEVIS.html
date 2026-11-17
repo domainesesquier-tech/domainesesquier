@@ -979,6 +979,7 @@
         let currentDossier = null; // Dossier complet chargé — source de vérité pour la sauvegarde
         let pricingMap = {}; // { CODE: { pu, tva } } — rempli depuis /api/pricing
         let hasUnsavedChanges = false;
+        let jamaisEnregistre = false; // devis calculé à la volée, pas encore de DOSSIER JSON en base
         let suppressDirtyFlag = false; // pour ne pas marquer pendant le chargement initial
         let mealGridHidden = false; // true si "Planning prévisionnel de la restauration" a été supprimé manuellement
         const urlParams = new URLSearchParams(window.location.search);
@@ -998,8 +999,13 @@
             hasUnsavedChanges = false;
             const etat = document.getElementById('save-state');
             const btn = document.getElementById('btn-save-devis');
-            if (etat) etat.style.display = '';
-            if (btn) { btn.style.display = 'none'; btn.classList.remove('has-changes'); }
+            if (!currentRequestId) jamaisEnregistre = false; // aperçu sans dossier : rien à enregistrer
+            if (etat) {
+                etat.style.display = '';
+                etat.textContent = jamaisEnregistre ? 'Pas encore enregistré' : '✓ Enregistré';
+                etat.style.color = jamaisEnregistre ? '#b45309' : '';
+            }
+            if (btn) { btn.style.display = jamaisEnregistre ? '' : 'none'; btn.classList.toggle('has-changes', jamaisEnregistre); }
         }
         // Capter tous les types de modifications dans le devis (édition, drag, ajout, suppression)
         document.addEventListener('input',  (e) => { if (e.target.closest('#pdf-wrapper')) markDirty(); }, true);
@@ -1209,10 +1215,14 @@
             if (fields["DOSSIER JSON"]) {
                 try {
                     const dossier = JSON.parse(fields["DOSSIER JSON"]);
-                    console.log('[DEVIS] Dossier JSON chargé directement —', dossier.financials?.lines?.length || 0, 'lignes');
-                    renderFromDossier(dossier, fields);
-                    setTimeout(() => { suppressDirtyFlag = false; markClean(); window.devisPret = true; }, 50);
-                    return;
+                    if (dossier?.financials) {
+                        console.log('[DEVIS] Dossier JSON chargé directement —', dossier.financials.lines?.length || 0, 'lignes');
+                        jamaisEnregistre = false;
+                        renderFromDossier(dossier, fields);
+                        setTimeout(() => { suppressDirtyFlag = false; markClean(); window.devisPret = true; }, 50);
+                        return;
+                    }
+                    console.warn('[DEVIS] Dossier JSON sans financials : calcul à la volée');
                 } catch (e) {
                     console.warn('[DEVIS] Erreur lecture Dossier JSON, fallback legacy...', e);
                 }
@@ -1385,7 +1395,8 @@
             // Nouveau dossier séminaire : pré-remplir hébergement et espaces avec la grille 2027
             applyGrille2027({ silent: true });
             renderSeminaireExtras(fields);
-            // Fin du rendu initial : réactiver le tracking et marquer "propre"
+            // Fin du rendu initial : réactiver le tracking. Devis calculé à la volée → « Pas encore enregistré »
+            jamaisEnregistre = true;
             setTimeout(() => { suppressDirtyFlag = false; markClean(); window.devisPret = true; }, 50);
         }
         // =====================================================================
@@ -2481,6 +2492,7 @@
 
                 _ignoreSelfUpdate = true; // Ne pas recharger après notre propre sauvegarde
                 SesquierUtils.broadcast('RECORD_UPDATED', { id: currentRequestId, fields: payload.fields });
+                jamaisEnregistre = false;
                 markClean(); // ✅ Plus de modifications non sauvegardées
                 // Nouvelle version enregistrée : date du devis et date d'option à jour
                 dateDevisISO = dossier.meta.dateDevis; afficherDateDevis();
@@ -3382,7 +3394,7 @@
         const f = window._liveFields || (typeof currentRecord !== 'undefined' && currentRecord?.fields) || {};
         const pp = txt('price-per-person');
         box.innerHTML = `
-            <div class="vt-entete"><span class="vt-titre">Devis</span>${hasUnsavedChanges ? '<button class="vt-btn" onclick="saveToAirtable()">Enregistrer</button>' : '<span class="vt-ok">✓ Enregistré</span>'}</div>
+            <div class="vt-entete"><span class="vt-titre">Devis</span>${hasUnsavedChanges || jamaisEnregistre ? '<button class="vt-btn" onclick="saveToAirtable()">Enregistrer</button>' : '<span class="vt-ok">✓ Enregistré</span>'}</div>
             <div class="vt-carte">
                 <div class="vt-label">Total</div>
                 <div class="vt-total">${echapTel(txt('display-total-ht'))} HT</div>
