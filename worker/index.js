@@ -561,6 +561,25 @@ export default {
         return json({ ...out, email }, 200, env, requestOrigin);
       }
 
+      // ── JOURNAL UNIQUE (table evenements, migrations/2026-11_consolidation_1.sql) ──
+      // GET ?dossier=<id> → { evenements: [...] } du plus récent au plus ancien
+      // POST { dossier_id, detail, type? } → type déduit du texte par la base si absent
+      if (url.pathname === "/api/evenements" && method === "GET") {
+        const id = url.searchParams.get("dossier");
+        if (!id) return json({ error: { message: "?dossier=<id> requis" } }, 400, env, requestOrigin);
+        const rows = await sbFetch(env, `/evenements?dossier_id=eq.${encodeURIComponent(id)}&order=quand.desc&limit=500`);
+        return json({ evenements: Array.isArray(rows) ? rows : [] }, 200, env, requestOrigin);
+      }
+      if (url.pathname === "/api/evenements" && method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const detail = String(body.detail || "").trim().slice(0, 5000);
+        if (!body.dossier_id || !detail) return json({ error: { message: "{ dossier_id, detail } requis" } }, 400, env, requestOrigin);
+        const TYPES = ["creation", "statut", "devis_envoye", "relance", "relance_signature", "mail_brochure", "signature", "paiement", "note"];
+        const row = { dossier_id: String(body.dossier_id), detail, type: TYPES.includes(body.type) ? body.type : "auto" };
+        const out = await sbFetch(env, `/evenements`, { method: "POST", body: JSON.stringify(row) });
+        return json({ evenement: Array.isArray(out) ? out[0] : out }, 201, env, requestOrigin);
+      }
+
       // ── MÉNAGE : lits et occupants lus dans les fiches rooming (Google Sheets) ──
       // ?ids=<id planning>,… → { rooming: { <id planning>: { gites } | { erreur } } }
       if (url.pathname === "/api/menage/rooming" && method === "GET") {

@@ -322,6 +322,15 @@
             }
         }
 
+        // Journal unique (table evenements) : écrit en parallèle de l'ancien journal (Timeline JSON) pendant la transition.
+        // Sans réponse attendue : un échec ici ne bloque jamais l'action en cours.
+        function journalEvenement(dossierId, detail, type) {
+            SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/evenements`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dossier_id: dossierId, detail, ...(type ? { type } : {}) })
+            }).catch(e => console.warn('[evenements]', e.message));
+        }
+
         async function autoLogTimeline(recordId, text) {
             const record = allRecords.find(r => r.id === recordId);
             if (!record) return;
@@ -329,6 +338,7 @@
             
             logs.push({ date: new Date().toISOString(), text: text });
             
+            journalEvenement(recordId, text); // journal unique (table evenements), en plus de l'ancien
             try {
                 await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                     method: 'PATCH',
@@ -4081,6 +4091,7 @@
 
             const newLog = { date: new Date().toISOString(), text };
             logs.push(newLog);
+            journalEvenement(activeRecordId, text, 'note');
 
             _timelineSubmitting = true;
             try {
