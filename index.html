@@ -3857,7 +3857,10 @@
             if (!record || !texte) return;
             if (!record.dossier?.financials) { showSyncBanner("Devis jamais enregistré : ouvre l'onglet Devis, vérifie-le et clique sur Enregistrer", true); return; }
             if (!brouillon && !confirm(`Envoyer le devis (PDF joint) à ${record.email} ?`)) return;
-            // Pas d'onglet ouvert d'avance : le tableau de bord passerait en arrière-plan et Chrome y suspend la fabrication du PDF
+            // Onglet ouvert pendant le clic (sinon Chrome le bloque), avec un message d'attente ; il part sur le brouillon une fois créé.
+            // Le tableau de bord passe en arrière-plan : la fabrication du PDF a un repli par minuterie (requestAnimationFrame y est suspendu).
+            const onglet = brouillon ? window.open('', '_blank') : null;
+            try { onglet?.document.write('<title>Brouillon du devis…</title><p style="font:16px system-ui,sans-serif;color:#2f4a3a;padding:48px">Préparation du PDF du devis et du brouillon Gmail…<br><small style="color:#888">Cette page s\'ouvrira sur le brouillon dans quelques secondes.</small></p>'); } catch (_) {}
             const label = btn.innerHTML;
             btn.parentElement?.querySelector('.lien-brouillon')?.remove();
             btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> PDF du devis…';
@@ -3874,14 +3877,14 @@
                     btn.disabled = false; btn.innerHTML = label;
                     const lien = Object.assign(document.createElement('a'), { href: url, target: '_blank', rel: 'noopener', className: 'relance-autre lien-brouillon', textContent: '→ Ouvrir le brouillon dans Gmail' });
                     btn.after(lien);
-                    // Ouverture auto seulement si le clic est encore « frais » (sinon Chrome bloque la fenêtre) ; le lien reste là
-                    if (navigator.userActivation?.isActive) window.open(url, '_blank');
-                    showSyncBanner(r.simulation ? 'Brouillon simulé (local)' : 'Brouillon créé dans Gmail avec le PDF : clique sur « Ouvrir le brouillon », envoie-le, puis « Noter comme envoyé »');
+                    if (onglet && !onglet.closed) onglet.location.href = url; // le lien reste là si l'onglet a été fermé
+                    showSyncBanner(r.simulation ? 'Brouillon simulé (local)' : 'Brouillon créé dans Gmail avec le PDF : envoie-le depuis Gmail, puis « Noter comme envoyé »');
                     return;
                 }
                 delete relanceBrouillons[`${id}:devis`];
                 await marquerEnvoiSuivi(id, 'devis', null, r.simulation ? ' (simulation locale, rien n\'est parti)' : r.fil ? ` dans le fil « ${r.sujet} »` : ' (nouveau mail)');
             } catch (e) {
+                try { onglet?.close(); } catch (_) {}
                 showSyncBanner((brouillon ? 'Brouillon non créé : ' : 'Devis non envoyé : ') + e.message, true);
                 btn.disabled = false; btn.innerHTML = label;
             }
