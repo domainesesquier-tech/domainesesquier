@@ -123,6 +123,9 @@ function listerBucket_(prefix, acc) {
 
 function sauvegardeDocuments() {
   const debut = Date.now();
+  // Une seule copie à la fois (passage horaire encore en cours, ou installer() lancé deux fois)
+  const verrou = LockService.getScriptLock();
+  if (!verrou.tryLock(1000)) { console.log('Documents : une copie est déjà en cours, passage ignoré'); return; }
   try {
     const dos = dossier_('documents');
     const idxIt = dos.getFilesByName('_index.json');
@@ -143,7 +146,7 @@ function sauvegardeDocuments() {
     const txt = JSON.stringify(index);
     if (idxFile) idxFile.setContent(txt); else dos.createFile('_index.json', txt, MimeType.PLAIN_TEXT);
     console.log('Documents : ' + copies + ' copiés, ' + restants + ' au prochain passage, ' + Object.keys(index).length + ' au total');
-  } catch (e) { alerte_('documents', e); throw e; }
+  } catch (e) { alerte_('documents', e); throw e; } finally { verrou.releaseLock(); }
 }
 
 /** Compare la dernière sauvegarde avec la base en direct. */
@@ -161,9 +164,14 @@ function verifier() {
 }
 
 function installer() {
+  programmer();
+  sauvegardeBase();
+  sauvegardeDocuments();
+}
+
+/** (Re)crée exactement 2 déclencheurs : base chaque nuit vers 3 h, documents toutes les heures. Sans lancer de sauvegarde. */
+function programmer() {
   ScriptApp.getProjectTriggers().forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('sauvegardeBase').timeBased().everyDays(1).atHour(3).inTimezone('Europe/Paris').create();
   ScriptApp.newTrigger('sauvegardeDocuments').timeBased().everyHours(1).create();
-  sauvegardeBase();
-  sauvegardeDocuments();
 }
