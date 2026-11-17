@@ -421,8 +421,8 @@ html.embed .wrap { padding: 12px 16px 32px; }
 
   // Anti-robot Cloudflare Turnstile (clé publique du widget créé dans le tableau de bord Cloudflare).
   // Vide = désactivé. Le Worker l'exige dès que son secret TURNSTILE_SECRET est posé : mettre la clé ici AVANT le secret.
-  // En local : clé de test Cloudflare qui passe toujours.
-  const TURNSTILE_SITEKEY = location.hostname === 'localhost' ? '1x00000000000000000000AA' : '';
+  // Clé de site Turnstile (publique, widget « Questionnaire Sesquier », admin.domainesesquier.com) ; en local : clé de test qui passe toujours.
+  const TURNSTILE_SITEKEY = location.hostname === 'localhost' ? '1x00000000000000000000AA' : '0x4AAAAAAGFF3FbsefifTIY-';
   if (!ADMIN && TURNSTILE_SITEKEY) {
     window.onTurnstile = () => turnstile.render('#widget-turnstile', { sitekey: TURNSTILE_SITEKEY, language: 'fr' });
     const s = document.createElement('script');
@@ -738,6 +738,7 @@ html.embed .wrap { padding: 12px 16px 32px; }
       if (!res.ok && !test) throw new Error(res.status);
     } catch (e) {
       document.getElementById('err-envoi').textContent = 'L\'envoi a échoué. Réessayez, ou écrivez-nous à contact@domainesesquier.com.';
+      try { window.turnstile?.reset?.(); } catch (_) {} // jeton à usage unique : un nouveau pour le prochain essai
       btnNext.disabled = false;
       return;
     }
