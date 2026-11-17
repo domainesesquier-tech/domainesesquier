@@ -4229,7 +4229,12 @@
                     updateKPIs();
                     updateFilters();
                     majCompteurAFaire();
-                    if (activeRecordId && !document.getElementById('iframe-layer').classList.contains('hidden')) renderDossierBar(activeRecordId);
+                    if (activeRecordId && !document.getElementById('iframe-layer').classList.contains('hidden')) {
+                        renderDossierBar(activeRecordId);
+                        // Lien direct (?id=…&tab=suivi) : le Suivi s'est affiché avant l'arrivée des dossiers → on le redessine
+                        const actif = allRecords.find(r => r.id === activeRecordId);
+                        if (actif && activeDocType === 'suivi') renderTimeline(actif);
+                    }
                     if (currentViewMode === 'list') {
                         renderTable();
                     } else {
