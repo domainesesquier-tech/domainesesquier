@@ -326,6 +326,7 @@
         // Source de vérité du journal affiché et des comptages (relances, relances signature, mail brochure, envoi du devis).
         // « Suivi Log » n'est plus qu'un champ de notes libres (onglet Infos) ; « Timeline JSON » n'est plus écrit.
         let evenementsParDossier = {};
+        const _complets = new Set(); // dossiers chargés en entier (voir chargerDossierComplet)
         const evts = id => evenementsParDossier[id] || [];
         async function chargerEvenements() {
             try {
@@ -4119,6 +4120,7 @@
 
         async function duplicateDossier() {
             if (!activeRecordId) return;
+            await chargerDossierComplet(activeRecordId); // la copie doit reprendre le devis complet, pas le résumé de la liste
             const record = allRecords.find(r => r.id === activeRecordId);
             if (!record) return;
             const btn = document.getElementById('btn-duplicate-dossier');
@@ -4217,10 +4219,12 @@
             if (refreshBtn) refreshBtn.classList.add('spinning');
 
             try {
-                const data = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL);
+                const data = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?vue=liste`);
                 if (data && data.records) {
                     allRecords = data.records.map(normalizeRecord);
+                    _complets.clear();
                     await chargerEvenements();
+                    if (activeRecordId) await chargerDossierComplet(activeRecordId).catch(() => {});
                     sortRecords();
                     updateKPIs();
                     updateFilters();
@@ -4726,8 +4730,19 @@
             </div>`;
         }
 
-        function openDocForRecord(type, id) {
+        // Liste allégée (?vue=liste) : le dossier complet (devis, déroulé, rooming) n'est chargé qu'à son ouverture
+        // (_complets est déclaré dans le premier script de la page, avant tout chargement)
+        async function chargerDossierComplet(id) {
+            if (!id || _complets.has(id)) return allRecords.find(r => r.id === id);
+            const raw = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${encodeURIComponent(id)}`);
+            const idx = allRecords.findIndex(r => r.id === id);
+            if (raw?.records?.[0] && idx !== -1) { allRecords[idx] = normalizeRecord(raw.records[0]); _complets.add(id); }
+            return allRecords[idx];
+        }
+
+        async function openDocForRecord(type, id) {
             if (!id) return;
+            try { await chargerDossierComplet(id); } catch (e) { console.warn('[dossier complet]', e.message); }
             if (type === 'documents') type = 'suivi';
             document.getElementById('dev-id-input').value = id;
             sessionStorage.setItem('currentDossierId', id);

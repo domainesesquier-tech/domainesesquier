@@ -372,6 +372,18 @@ const PUBLIC_ROUTES = [
   { path: "/api/public/sejour/infos",   methods: ["POST"] },
 ];
 
+// Ligne de reservations allégée pour la liste du tableau de bord (≈ 600 Ko → ≈ 150 Ko pour 84 dossiers)
+function alleger(row) {
+  let d = null;
+  try { d = typeof row.dossier_json === "string" ? JSON.parse(row.dossier_json) : row.dossier_json; } catch (_) {}
+  const fin = (d && d.financials) || {};
+  const resume = d ? JSON.stringify({
+    version: d.version, companyProfile: d.companyProfile, prixTTC: d.prixTTC, meta: d.meta, resume: true,
+    financials: { totalHT: fin.totalHT, totalTTC: fin.totalTTC, totalTVA: fin.totalTVA, acompte30: fin.acompte30, solde: fin.solde, prixParPersonneHT: fin.prixParPersonneHT },
+  }) : row.dossier_json;
+  return { ...row, dossier_json: resume, deroule_json: row.deroule_json ? "1" : null, rooming_json: null, timeline_json: null };
+}
+
 function isPublicRoute(pathname, method) {
   return PUBLIC_ROUTES.some(r => r.path === pathname && r.methods.includes(method));
 }
@@ -465,7 +477,10 @@ export default {
           return json({ records: [rowToRecord(rows[0])] }, 200, env, requestOrigin);
         }
         const rows = await sbFetch(env, `/reservations?order=created_at.desc`);
-        return json({ records: rows.map(rowToRecord) }, 200, env, requestOrigin);
+        // ?vue=liste (liste du tableau de bord) : devis réduit à ses totaux, sans déroulé, rooming ni ancien journal ;
+        // le dossier complet est relu par ?id= à son ouverture
+        const allege = url.searchParams.get("vue") === "liste";
+        return json({ records: rows.map(r => rowToRecord(allege ? alleger(r) : r)) }, 200, env, requestOrigin);
       }
 
       if (url.pathname === "/api/reservations" && method === "POST") {
