@@ -326,6 +326,7 @@ function testLead() {
 // Part de contact@ avec la signature Gmail, en réponse dans le dernier fil envoyé au client (le mail du devis),
 // sinon en nouveau mail. Le texte est celui relu par Waël ; l'adresse vient de la base (Worker).
 // d.brouillon = true : brouillon Gmail (même fil, même signature) au lieu de l'envoi ; le tableau de bord l'ouvre.
+// d.pj = { nom, base64 } : PDF joint (envoi du devis, 17/11/2026) ; message alors téléversé en message/rfc822.
 // Clé : Paramètres du projet > Propriétés du script > RELANCE_CLE = secret Worker RELANCE_CLE.
 function envoyerRelance(d) {
   const cle = PropertiesService.getScriptProperties().getProperty('RELANCE_CLE');
@@ -354,6 +355,8 @@ function envoyerRelance(d) {
     const b64 = s => Utilities.base64Encode(s || '', Utilities.Charset.UTF_8).replace(/.{76}/g, '$&\r\n');
     const entete = s => '=?UTF-8?B?' + Utilities.base64Encode(s, Utilities.Charset.UTF_8) + '?=';
     const frontiere = 'sesquier-' + Utilities.getUuid();
+    const pj = d.pj && /^[\w.-]{1,150}\.pdf$/i.test(String(d.pj.nom || '')) && d.pj.base64 ? d.pj : null;
+    const mixte = 'sesquier-pj-' + Utilities.getUuid();
     const mime = [
       `From: ${exp.displayName ? entete(exp.displayName) + ' ' : ''}<${exp.sendAsEmail}>`,
       `To: ${email}`,
@@ -361,19 +364,24 @@ function envoyerRelance(d) {
       `Date: ${new Date().toUTCString()}`,
       ...reponse,
       'MIME-Version: 1.0',
+      ...(pj ? [`Content-Type: multipart/mixed; boundary="${mixte}"`, '', `--${mixte}`] : []),
       `Content-Type: multipart/alternative; boundary="${frontiere}"`,
       '',
       `--${frontiere}`, 'Content-Type: text/plain; charset=UTF-8', 'Content-Transfer-Encoding: base64', '', b64(texte),
       `--${frontiere}`, 'Content-Type: text/html; charset=UTF-8', 'Content-Transfer-Encoding: base64', '', b64(html),
       `--${frontiere}--`, '',
+      ...(pj ? [`--${mixte}`, `Content-Type: application/pdf; name="${pj.nom}"`, `Content-Disposition: attachment; filename="${pj.nom}"`,
+        'Content-Transfer-Encoding: base64', '', String(pj.base64).replace(/.{76}/g, '$&\r\n'), `--${mixte}--`, ''] : []),
     ].join('\r\n');
-    const envoi = { raw: Utilities.base64EncodeWebSafe(mime) };
+    // Avec PDF : téléversement du message brut (pas de limite de taille du champ raw)
+    const envoi = pj ? {} : { raw: Utilities.base64EncodeWebSafe(mime) };
     if (fil) envoi.threadId = fil.getId();
+    const media = pj ? Utilities.newBlob(mime, 'message/rfc822') : null;
     if (d.brouillon) {
-      const brouillon = Gmail.Users.Drafts.create({ message: envoi }, 'me');
+      const brouillon = media ? Gmail.Users.Drafts.create({ message: envoi }, 'me', media) : Gmail.Users.Drafts.create({ message: envoi }, 'me');
       return { ok: true, brouillon: true, messageId: brouillon.message.id, fil: !!fil, sujet };
     }
-    Gmail.Users.Messages.send(envoi, 'me');
+    if (media) Gmail.Users.Messages.send(envoi, 'me', media); else Gmail.Users.Messages.send(envoi, 'me');
     cache.put('relance:' + email, '1', 120);
     return { ok: true, fil: !!fil, sujet };
   } catch (err) {

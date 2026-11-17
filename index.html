@@ -3653,14 +3653,15 @@
                         <button class="relance-autre" onclick="marquerEnvoiSuivi('${id}', 'relance', null, ' (envoyée à la main)')">Noter comme envoyée (Gmail ou à la main)</button>
                         ${autreMode}
                     </div>` : `
-                    <ol class="relance-etapes">
-                        <li><button class="btn-upload" onclick="preparerRedaction('${id}', 'devis', this)"><i class="fa-regular fa-copy"></i> Préparer le mail</button>
-                            <span>Colle (⌘V) dans Claude Code : il crée le brouillon Gmail avec ta signature et te donne le mot d'accueil à coller en tête du devis (onglet Devis, puis Enregistrer).</span></li>
-                        <li><a href="https://mail.google.com/mail/?authuser=domainesesquier@gmail.com#drafts" target="_blank" rel="noopener">Ouvre tes brouillons Gmail</a>
-                            <span>Relis, joins le PDF du devis et envoie.</span></li>
-                        <li><button class="btn-relance-ok" onclick="marquerEnvoiSuivi('${id}', 'devis', this)"><i class="fa-solid fa-check"></i> Devis envoyé</button>
-                            <span>Passe le dossier en « Envoyé » et programme la relance à J+3.</span></li>
-                    </ol>
+                    <textarea id="relance-texte" class="relance-texte" rows="11" oninput="relanceBrouillons['${id}:devis'] = this.value">${escapeHtml(relanceBrouillons[`${id}:devis`] ?? modeleEnvoiDevis(record))}</textarea>
+                    <button class="btn-upload" onclick="envoyerDevis('${id}', this)" ${record.email ? '' : 'disabled title="Pas d\'adresse e-mail : à remplir dans Infos"'}><i class="fa-solid fa-paper-plane"></i> Envoyer le devis</button>
+                    <span class="relance-note">${record.email ? `À ${escapeHtml(record.email)}, depuis contact@ avec ta signature Gmail, avec le PDF du devis enregistré en pièce jointe. Le dossier passe en « Envoyé » et la relance 1 est prévue à J+3.` : "Pas d'adresse e-mail sur ce dossier : à remplir dans Infos."}</span>
+                    <div class="relance-liens">
+                        <button class="relance-autre" onclick="envoyerDevis('${id}', this, true)" ${record.email ? '' : 'disabled'}>Ouvrir en brouillon dans Gmail (PDF joint)</button>
+                        <button class="relance-autre" onclick="preparerRedaction('${id}', 'devis', this)">Rédiger avec Claude Code</button>
+                        <button class="relance-autre" onclick="relanceBrouillons['${id}:devis'] = undefined; renderRelance(allRecords.find(r => r.id === '${id}'))">Remettre le modèle</button>
+                        <button class="relance-autre" onclick="marquerEnvoiSuivi('${id}', 'devis', null, ' (envoyé à la main)')">Noter comme envoyé (Gmail ou à la main)</button>
+                    </div>
                     ${autreMode}`;
             el.innerHTML = `
                 <div class="docs-panel-header"><div class="docs-panel-title"><i class="fa-solid fa-paper-plane"></i> Suivi &amp; relance</div></div>
@@ -3805,6 +3806,84 @@
             return `${bonjour}\n\nJ'espère que vous allez bien. Je me permets de revenir vers vous une dernière fois au sujet de ${projet}.\n\nSi votre projet a évolué, un simple mot de votre part me permettra de libérer vos dates. Et si vous souhaitez ajuster la proposition, je reste bien sûr à votre disposition.\n\nBien cordialement,`;
         }
 
+        // Mail d'envoi du devis : version courte tirée du guide de ton (le détail est dans le PDF joint)
+        function modeleEnvoiDevis(record) {
+            const f = record.fields || record._raw?.fields || {};
+            const prenom = String(f['Prénom contact'] || '').trim();
+            const projet = `votre ${objetRelance(record)} ${periodeFr(f['Date arrivée'], f['Date départ'])}`.replace(/\s+/g, ' ').trim();
+            const pers = record.nbPersonnes ? ` (${record.nbPersonnes} personnes)` : '';
+            let option = '';
+            const dd = record.dossier?.meta?.dateDevis;
+            if (dd) {
+                const fin = new Date(dd + 'T12:00:00'); fin.setDate(fin.getDate() + 15);
+                if (fin.toLocaleDateString('sv-SE') >= isoJour()) option = `Vos dates restent réservées jusqu'au ${fin.getDate() === 1 ? '1er' : fin.getDate()} ${MOIS_FR[fin.getMonth()]}. `;
+            }
+            const pivot = record.segment === 'mariage' || record.segment === 'groupe' ? ''
+                : `Elle a été construite pour que vous n'ayez rien à gérer sur place : hébergement en gîtes tout confort, repas à la table du Domaine (cuisine maison de saison préparée par notre chef), salle de travail équipée et un interlocuteur unique pendant tout votre séjour.\n\n`;
+            return `Bonjour${prenom ? ' ' + prenom : ''},\n\nMerci pour votre demande. Vous trouverez ci-joint notre proposition pour ${projet}${pers}.\n\n${pivot}${option}Je reste à votre disposition pour ajuster la proposition.\n\nBien cordialement,`;
+        }
+
+        // PDF du devis ENREGISTRÉ : la page Devis est chargée dans un cadre caché puis exportée (copie aussi rangée dans Documents)
+        async function pdfDuDevis(id) {
+            const ouvert = document.getElementById('iframe-devis');
+            let modifie = false;
+            try { modifie = (ouvert.getAttribute('src') || '').includes('id=' + id) && !!ouvert.contentWindow?.devisModifie?.(); } catch (_) {}
+            if (modifie) throw new Error("le devis a des modifications non enregistrées : clique sur Enregistrer dans l'onglet Devis");
+            const cadre = document.createElement('iframe');
+            cadre.style.cssText = 'position:fixed; left:-10000px; top:0; width:1280px; height:900px; border:0;';
+            cadre.src = `DOMAINE_SESQUIER_DEVIS.html?id=${encodeURIComponent(id)}&t=${Date.now()}`;
+            document.body.appendChild(cadre);
+            try {
+                const t0 = Date.now();
+                for (;;) {
+                    const w = cadre.contentWindow;
+                    if (w?.devisErreur) throw new Error('devis : ' + w.devisErreur);
+                    if (w?.devisPret && typeof w.generatePDF === 'function') break;
+                    if (Date.now() - t0 > 45000) throw new Error('le devis met trop de temps à se charger');
+                    await new Promise(r => setTimeout(r, 300));
+                }
+                try { await cadre.contentWindow.document.fonts.ready; } catch (_) {}
+                await new Promise(r => setTimeout(r, 600)); // logos et photos
+                const pj = await cadre.contentWindow.generatePDF({ retour: true });
+                if (!pj?.base64) throw new Error('PDF du devis non généré');
+                return pj;
+            } finally { cadre.remove(); }
+        }
+
+        // Envoi du devis (ou brouillon Gmail) : même circuit que les relances, avec le PDF en pièce jointe
+        async function envoyerDevis(id, btn, brouillon = false) {
+            const record = allRecords.find(r => r.id === id);
+            const texte = document.getElementById('relance-texte')?.value.trim();
+            if (!record || !texte) return;
+            if (!record.dossier?.financials) { showSyncBanner("Devis jamais enregistré : ouvre l'onglet Devis, vérifie-le et clique sur Enregistrer", true); return; }
+            if (!brouillon && !confirm(`Envoyer le devis (PDF joint) à ${record.email} ?`)) return;
+            const onglet = brouillon ? window.open('about:blank', '_blank') : null; // ouvert pendant le clic, sinon bloqué
+            const label = btn.innerHTML;
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> PDF du devis…';
+            try {
+                const pieceJointe = await pdfDuDevis(id);
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${brouillon ? 'Création du brouillon…' : 'Envoi…'}`;
+                const r = await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/relance`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, texte, sujet: sujetRelance(record), brouillon, pieceJointe })
+                });
+                if (brouillon) {
+                    const url = r.messageId ? `https://mail.google.com/mail/?authuser=domainesesquier@gmail.com#drafts?compose=${encodeURIComponent(r.messageId)}`
+                        : 'https://mail.google.com/mail/?authuser=domainesesquier@gmail.com#drafts';
+                    if (onglet) onglet.location.href = url; else window.open(url, '_blank');
+                    showSyncBanner(r.simulation ? 'Brouillon simulé (local)' : 'Brouillon créé dans Gmail avec le PDF : envoie-le, puis « Noter comme envoyé »');
+                    btn.disabled = false; btn.innerHTML = label;
+                    return;
+                }
+                delete relanceBrouillons[`${id}:devis`];
+                await marquerEnvoiSuivi(id, 'devis', null, r.simulation ? ' (simulation locale, rien n\'est parti)' : r.fil ? ` dans le fil « ${r.sujet} »` : ' (nouveau mail)');
+            } catch (e) {
+                if (onglet) onglet.close();
+                showSyncBanner((brouillon ? 'Brouillon non créé : ' : 'Devis non envoyé : ') + e.message, true);
+                btn.disabled = false; btn.innerHTML = label;
+            }
+        }
+
         // Brouillon Gmail (même fil, même signature), ouvert dans un nouvel onglet ; le suivi se note après l'envoi depuis Gmail
         async function brouillonRelance(id, btn, mode = 'relance') {
             const record = allRecords.find(r => r.id === id);
@@ -3916,7 +3995,7 @@
             } else if (mode === 'devis') {
                 Object.assign(fields, { 'Suivi Date devis': isoJour(), 'Suivi Date relance': isoJour(3), 'Suivi Prochaine action': 'Relance 1' });
                 if (record.statut === 'à traiter') fields['Statut'] = 'devis envoyé';
-                note = `✉ Devis envoyé — relance 1 prévue le ${fr(isoJour(3))}`;
+                note = `✉ Devis envoyé${detail} — relance 1 prévue le ${fr(isoJour(3))}`;
             } else if (relances < 3) {
                 Object.assign(fields, { 'Suivi Date relance': isoJour(7), 'Suivi Prochaine action': `Relance ${relances + 1}` });
                 note = `✉ Relance ${relances} envoyée${detail} — relance ${relances + 1} prévue le ${fr(isoJour(7))}`;

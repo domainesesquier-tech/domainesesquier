@@ -533,11 +533,20 @@ export default {
         const rows = await sbFetch(env, `/reservations?id=eq.${encodeURIComponent(body.id)}&select=email`);
         const email = String((Array.isArray(rows) && rows[0] && rows[0].email) || "").trim();
         if (!email) return json({ error: { message: "Pas d'adresse e-mail sur ce dossier" } }, 404, env, requestOrigin);
-        if (env.READ_ONLY === "true") return json({ ok: true, simulation: true, brouillon: !!body.brouillon, fil: false, email }, 200, env, requestOrigin);
+        // Envoi du devis : PDF généré par le tableau de bord, joint par le script Google
+        let pj = null;
+        if (body.pieceJointe) {
+          const nom = String(body.pieceJointe.nom || ""), b64 = String(body.pieceJointe.base64 || "");
+          if (!/^[\w.-]{1,150}\.pdf$/i.test(nom) || !b64 || b64.length > 24000000 || !/^[A-Za-z0-9+/]+=*$/.test(b64)) {
+            return json({ error: { message: "Pièce jointe refusée (un PDF de 18 Mo maximum)" } }, 400, env, requestOrigin);
+          }
+          pj = { nom, base64: b64 };
+        }
+        if (env.READ_ONLY === "true") return json({ ok: true, simulation: true, brouillon: !!body.brouillon, fil: false, email, pieceJointe: pj ? pj.nom : null }, 200, env, requestOrigin);
         if (!env.NOTIF_URL || !env.RELANCE_CLE) return json({ error: { message: "Envoi non configuré (secrets NOTIF_URL et RELANCE_CLE)" } }, 503, env, requestOrigin);
         const r = await fetch(env.NOTIF_URL, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "relance", cle: env.RELANCE_CLE, email, sujet: String(body.sujet || "").slice(0, 200), texte, brouillon: !!body.brouillon }),
+          body: JSON.stringify({ action: "relance", cle: env.RELANCE_CLE, email, sujet: String(body.sujet || "").slice(0, 200), texte, brouillon: !!body.brouillon, pj }),
         });
         const out = await r.json().catch(() => null);
         if (!out || !out.ok) return json({ error: { message: (out && out.erreur) || `Script Google : réponse ${r.status}` } }, 502, env, requestOrigin);

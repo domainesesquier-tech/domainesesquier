@@ -1153,6 +1153,7 @@
                 populateDevis(currentRecord.fields);
             } catch (err) {
                 console.error("Erreur de chargement:", err);
+                window.devisErreur = err.message; // lu par l'envoi du devis depuis l'onglet Suivi
                 if (clientInfoEl) {
                     clientInfoEl.innerHTML = `
                         <div style="color: #e74c3c; padding: 10px; border: 1px solid #e74c3c; border-radius: 4px; background: rgba(231, 76, 60, 0.05);">
@@ -1210,7 +1211,7 @@
                     const dossier = JSON.parse(fields["DOSSIER JSON"]);
                     console.log('[DEVIS] Dossier JSON chargé directement —', dossier.financials?.lines?.length || 0, 'lignes');
                     renderFromDossier(dossier, fields);
-                    setTimeout(() => { suppressDirtyFlag = false; markClean(); }, 50);
+                    setTimeout(() => { suppressDirtyFlag = false; markClean(); window.devisPret = true; }, 50);
                     return;
                 } catch (e) {
                     console.warn('[DEVIS] Erreur lecture Dossier JSON, fallback legacy...', e);
@@ -1385,7 +1386,7 @@
             applyGrille2027({ silent: true });
             renderSeminaireExtras(fields);
             // Fin du rendu initial : réactiver le tracking et marquer "propre"
-            setTimeout(() => { suppressDirtyFlag = false; markClean(); }, 50);
+            setTimeout(() => { suppressDirtyFlag = false; markClean(); window.devisPret = true; }, 50);
         }
         // =====================================================================
         // 🧠 RENDER FROM DOSSIER — Rendu direct depuis l'objet dossier
@@ -2495,9 +2496,13 @@
 
 
 
-        async function generatePDF() {
+        // État lu par l'onglet Suivi avant d'envoyer le devis (le PDF doit être celui enregistré)
+        window.devisModifie = () => hasUnsavedChanges;
+
+        // opts.retour : pas de téléchargement, renvoie { nom, base64 } (envoi du devis depuis l'onglet Suivi)
+        async function generatePDF(opts = {}) {
             const numEl = document.getElementById('devis-number');
-            if (!numEl) { alert('Erreur : impossible de trouver le numéro de devis.'); return; }
+            if (!numEl) { if (opts.retour) throw new Error('numéro de devis introuvable'); alert('Erreur : impossible de trouver le numéro de devis.'); return; }
 
             // FOUDRE : garantir un numéro séquentiel figé avant d'imprimer le PDF
             if (profilCourant === 'foudre' && currentRecord?.fields) {
@@ -2685,7 +2690,7 @@
                     pdf.addImage(imgData, 'JPEG', MARGIN_PT, MARGIN_PT, CONTENT_W_PT, sliceH_pt);
                 }
 
-                pdf.save(fileName);
+                if (!opts.retour) pdf.save(fileName);
 
                 // Upload automatique vers Supabase Storage
                 if (currentRequestId) {
@@ -2703,6 +2708,7 @@
                         });
                     } catch (_) { /* upload silencieux, ne bloque pas le téléchargement */ }
                 }
+                if (opts.retour) return { nom: fileName, base64: pdf.output('datauristring').split(',')[1] };
 
             } finally {
                 // ── ÉTAPE 4 : Restaurer le DOM réel ───────────────────────────
