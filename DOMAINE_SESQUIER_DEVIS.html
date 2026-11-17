@@ -2595,7 +2595,8 @@
                 hideEls.forEach(el => { el.style.display = 'none'; });
 
                 // Forcer un relayout complet avant mesure et capture
-                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+                // (repli par minuterie : un onglet en arrière-plan ne déclenche jamais requestAnimationFrame)
+                await new Promise(r => { requestAnimationFrame(() => requestAnimationFrame(r)); setTimeout(r, 150); });
 
                 breakEls.forEach(el => {
                     el.style.breakInside     = 'auto';
