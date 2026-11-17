@@ -41,7 +41,8 @@ function sb_(path, opts) {
     method: o.method || 'get',
     contentType: 'application/json',
     payload: o.body ? JSON.stringify(o.body) : undefined,
-    headers: { apikey: c.key, Authorization: 'Bearer ' + c.key },
+    // Ancienne clé service_role (JWT « eyJ… ») : aussi en Bearer ; nouvelle clé secrète « sb_secret_… » : apikey seule
+    headers: Object.assign({ apikey: c.key }, /^eyJ/.test(c.key) ? { Authorization: 'Bearer ' + c.key } : {}),
     muteHttpExceptions: true,
   });
   if (res.getResponseCode() >= 300) throw new Error(path + ' → HTTP ' + res.getResponseCode() + ' ' + res.getContentText().slice(0, 200));
