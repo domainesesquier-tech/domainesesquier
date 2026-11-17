@@ -18,6 +18,12 @@ NOTIF_LEADS = "true"
 # Adresse de test V2 (npx wrangler deploy --env staging) → worker séparé « domainesesquier-api-v2 »
 # La prod (domainesesquier-api) n'est pas touchée. READ_ONLY=true : lectures réelles, écritures en bac à sable.
 # Passer READ_ONLY à "false" seulement quand la V2 est validée.
+# Limite anti-abus des routes publiques (10 requêtes / minute / IP / route)
+[[ratelimits]]
+name = "LIMITE_PUBLIC"
+namespace_id = "1001"
+simple = { limit = 10, period = 60 }
+
 [env.staging]
 name = "domainesesquier-api-v2"
 

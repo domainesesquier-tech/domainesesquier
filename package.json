@@ -3,5 +3,12 @@
   "private": true,
   "dependencies": {
     "@anthropic-ai/sdk": "0.135.0"
+  },
+  "devDependencies": {
+    "@google/clasp": "^3.4.1"
+  },
+  "scripts": {
+    "test": "for t in tests/*.test.js; do node \"$t\" || exit 1; done",
+    "deploy": "sh scripts/deploy.sh"
   }
 }

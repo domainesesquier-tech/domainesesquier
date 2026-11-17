@@ -434,6 +434,14 @@ export default {
       return json({ error: { message: "Authentification requise" } }, 401, env, requestOrigin);
     }
 
+    // Routes publiques d'écriture (questionnaire, leads, espace client) : 10 requêtes par minute et par adresse IP
+    // (binding LIMITE_PUBLIC de wrangler.toml ; absent en dev/staging → pas de limite)
+    if (method === "POST" && url.pathname.startsWith("/api/public/") && !user && env.LIMITE_PUBLIC) {
+      const ip = request.headers.get("CF-Connecting-IP") || "inconnue";
+      const { success } = await env.LIMITE_PUBLIC.limit({ key: `${url.pathname}:${ip}` });
+      if (!success) return json({ error: { message: "Trop de demandes en peu de temps, réessayez dans une minute." } }, 429, env, requestOrigin);
+    }
+
     // Copie de travail V2 : READ_ONLY=true → dossiers et calendrier en bac à sable (mémoire),
     // toute autre écriture est refusée. Rien n'est jamais écrit dans la base de production.
     const SANDBOX_ROUTES = ["/api/reservations", "/api/planning", "/api/next-number", "/api/public/demande", "/api/public/lead", "/api/ia/redaction", "/api/relance"];
