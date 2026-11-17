@@ -144,7 +144,7 @@
                 // Logs auto
                 if (field === SesquierRecords.FIELDS.STATUT) {
                     await autoLogTimeline(id, `Statut changé : **${currentVal || 'Inconnu'}** → **${newVal}**`
-                        + (motif ? ` — motif : **${motif.categorie}**${motif.detail ? ' (' + motif.detail + ')' : ''}` : ''));
+                        + (motif ? ` — motif : **${motif.categorie}**${motif.detail ? ' (' + motif.detail + ')' : ''}` : ''), 'statut');
                     if (newVal.toLowerCase() === 'annulé') {
                         // Refusé/annulé → supprimer du planning (mais NE PAS re-synchroniser)
                         const planningId = record._raw?.fields?.['planning_id'];
@@ -322,35 +322,54 @@
             }
         }
 
-        // Journal unique (table evenements) : écrit en parallèle de l'ancien journal (Timeline JSON) pendant la transition.
-        // Sans réponse attendue : un échec ici ne bloque jamais l'action en cours.
-        function journalEvenement(dossierId, detail, type) {
-            SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/evenements`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dossier_id: dossierId, detail, ...(type ? { type } : {}) })
-            }).catch(e => console.warn('[evenements]', e.message));
-        }
-
-        async function autoLogTimeline(recordId, text) {
-            const record = allRecords.find(r => r.id === recordId);
-            if (!record) return;
-            let logs = record.timeline || [];
-            
-            logs.push({ date: new Date().toISOString(), text: text });
-            
-            journalEvenement(recordId, text); // journal unique (table evenements), en plus de l'ancien
+        // ── Journal unique (table evenements, chargé une fois avec les dossiers) ──
+        // Source de vérité du journal affiché et des comptages (relances, relances signature, mail brochure, envoi du devis).
+        // « Suivi Log » n'est plus qu'un champ de notes libres (onglet Infos) ; « Timeline JSON » n'est plus écrit.
+        let evenementsParDossier = {};
+        const evts = id => evenementsParDossier[id] || [];
+        async function chargerEvenements() {
             try {
-                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id: recordId,
-                        fields: { [SesquierRecords.FIELDS.TIMELINE_JSON]: JSON.stringify(logs) }
-                    })
+                const r = await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/evenements`);
+                const m = {};
+                (r.evenements || []).forEach(e => (m[e.dossier_id] ||= []).push(e));
+                Object.values(m).forEach(l => l.sort((a, b) => new Date(a.quand) - new Date(b.quand)));
+                evenementsParDossier = m;
+            } catch (e) {
+                console.warn('[evenements]', e.message);
+                showSyncBanner('Journal des dossiers non chargé : les numéros de relance peuvent être faux, recharge la page', true);
+            }
+        }
+        // Relances depuis le dernier envoi du devis, relances signature, dernier mail brochure
+        function compteJournal(id) {
+            const l = evts(id);
+            const iDevis = l.map(e => e.type).lastIndexOf('devis_envoye');
+            return {
+                relances: l.slice(iDevis + 1).filter(e => e.type === 'relance').length,
+                signatures: l.filter(e => e.type === 'relance_signature').length,
+                brochure: l.filter(e => e.type === 'mail_brochure').pop()?.quand || null,
+            };
+        }
+        // Ajout au journal : visible tout de suite (comptages compris), enregistré en arrière-plan
+        async function journalEvenement(dossierId, detail, type = 'note') {
+            const local = { dossier_id: dossierId, quand: new Date().toISOString(), type, detail };
+            (evenementsParDossier[dossierId] ||= []).push(local);
+            try {
+                const r = await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/evenements`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dossier_id: dossierId, detail, type })
                 });
-                // On met à jour localement
-                record.timeline = logs;
-            } catch(e) { console.error("AutoLog failed", e); }
+                if (r?.evenement) Object.assign(local, r.evenement);
+                return true;
+            } catch (e) {
+                evenementsParDossier[dossierId] = evts(dossierId).filter(x => x !== local);
+                showSyncBanner('Journal non enregistré : ' + e.message, true);
+                return false;
+            }
+        }
+        async function autoLogTimeline(recordId, text, type = 'note') {
+            await journalEvenement(recordId, text, type);
+            const record = allRecords.find(r => r.id === recordId);
+            if (record && recordId === activeRecordId) renderTimeline(record);
         }
 
         function handleRowClick(event, id) {
@@ -3685,8 +3704,8 @@
         function dateEnvoiDevis(record) {
             const f = record.fields || record._raw?.fields || {};
             if (f['Suivi Date devis']) return f['Suivi Date devis'];
-            const l = (record.timeline || []).filter(x => /→ \*\*devis envoyé\*\*/.test(x.text || '')).pop();
-            return l ? new Date(l.date).toLocaleDateString('sv-SE') : null;
+            const l = evts(record.id).filter(e => e.type === 'devis_envoye' || /→ \*\*devis envoyé\*\*/.test(e.detail || '')).pop();
+            return l ? new Date(l.quand).toLocaleDateString('sv-SE') : null;
         }
 
         // Dossier validé mais pas encore signé en ligne ou sans acompte : relance « signature »
@@ -3698,7 +3717,7 @@
         }
         function modeleSignature(record, m) {
             const f = record.fields || record._raw?.fields || {};
-            const n = ((f['Suivi Log'] || '').match(/Relance signature envoyée/g) || []).length + 1;
+            const n = compteJournal(record.id).signatures + 1;
             const prenom = String(f['Prénom contact'] || '').trim();
             const projet = `votre ${objetRelance(record)} ${periodeFr(f['Date arrivée'], f['Date départ'])}`.trim();
             const montant = Number(f['Acompte Montant']) || Number(record.dossier?.financials?.acompte30) || 0;
@@ -3758,7 +3777,7 @@
         function renderMailBrochure(el, record) {
             const f = record.fields || record._raw?.fields || {};
             const id = record.id, cle = id + ':brochure';
-            const envoi = ((f['Suivi Log'] || '').match(/\d{2}\/\d{2}\/\d{4}(?= : Mail brochure envoyé)/g) || []).pop();
+            const b = compteJournal(id).brochure, envoi = b ? new Date(b).toLocaleDateString('fr-FR') : null;
             const etat = envoi ? `Mail brochure envoyé le ${envoi}.` : `Brochure ${objetRelance(record) === 'séjour' ? 'groupe' : objetRelance(record)} téléchargée sur le site : pas encore de mail au client.`;
             el.innerHTML = `
                 <div class="docs-panel-header"><div class="docs-panel-title"><i class="fa-solid fa-book-open"></i> Mail brochure</div></div>
@@ -3799,7 +3818,7 @@
         }
         function modeleRelance(record) {
             const f = record.fields || record._raw?.fields || {};
-            const n = ((f['Suivi Log'] || '').split('Devis envoyé').pop().match(/Relance envoyée/g) || []).length + 1;
+            const n = compteJournal(record.id).relances + 1;
             const prenom = String(f['Prénom contact'] || '').trim();
             const projet = `votre ${objetRelance(record)} ${periodeFr(f['Date arrivée'], f['Date départ'])}`.trim();
             const pers = record.nbPersonnes ? ` (${record.nbPersonnes} personnes)` : '';
@@ -3966,7 +3985,7 @@
                     id: record.id, email: f['Email'] || record.email, type, organisation: f['Entreprise'] || f['Nom client'] || record.nomClient,
                     prenom: f['Prénom contact'], nom: f['Nom contact'], dateArrivee: f['Date arrivée'], dateDepart: f['Date départ'],
                     personnes: record.nbPersonnes, messageClient: f['Message'], questionnaire: details.questionnaire?.reponses,
-                    dateEnvoiDevis: f['Suivi Date devis'], journalSuivi: f['Suivi Log'], prochaineAction: f['Suivi Prochaine action'],
+                    dateEnvoiDevis: f['Suivi Date devis'], journalSuivi: [f['Suivi Log'], ...evts(record.id).map(e => `${new Date(e.quand).toLocaleDateString('fr-FR')} : ${e.detail}`)].filter(Boolean).join('\n'), prochaineAction: f['Suivi Prochaine action'],
                 },
                 devis: {
                     prix: d.prixTTC ? 'TTC' : 'HT', lignes: [...(fin.lines || []), ...(fin.activitesLines || [])].map(ligne).filter(Boolean),
@@ -3995,11 +4014,11 @@
             if (!record) return;
             const f = record.fields || record._raw?.fields || {};
             const fr = iso => iso.split('-').reverse().join('/');
-            const journal = (f['Suivi Log'] || '').trim();
-            const relances = (journal.split('Devis envoyé').pop().match(/Relance envoyée/g) || []).length + (mode === 'relance' ? 1 : 0);
-            const nSign = (journal.match(/Relance signature envoyée/g) || []).length + 1;
-            const evenement = mode === 'brochure' ? 'Mail brochure envoyé' : mode === 'devis' ? 'Devis envoyé' : mode === 'signature' ? `Relance signature envoyée (${nSign})` : `Relance envoyée (${relances})`;
-            const fields = { 'Suivi Log': `${journal}\n${new Date().toLocaleDateString('fr-FR')} : ${evenement}`.trim() };
+            const cj = compteJournal(id);
+            const relances = cj.relances + (mode === 'relance' ? 1 : 0);
+            const nSign = cj.signatures + 1;
+            const fields = {};
+            const typeJournal = { brochure: 'mail_brochure', devis: 'devis_envoye', signature: 'relance_signature' }[mode] || 'relance';
             let note;
             if (mode === 'signature') {
                 Object.assign(fields, nSign < 3
@@ -4021,10 +4040,10 @@
             }
             if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
             try {
-                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
+                if (Object.keys(fields).length) await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, fields })
                 });
-                await autoLogTimeline(id, fields['Statut'] ? `${note} · statut **à traiter** → **devis envoyé**` : note);
+                await autoLogTimeline(id, fields['Statut'] ? `${note} · statut **à traiter** → **devis envoyé**` : note, typeJournal);
                 const raw = await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}?id=${id}`);
                 const idx = allRecords.findIndex(r => r.id === id);
                 if (raw?.records?.[0] && idx !== -1) allRecords[idx] = normalizeRecord(raw.records[0]);
@@ -4049,7 +4068,7 @@
             renderRelance(record);
             const container = document.getElementById('dossier-timeline');
             const countLabel = document.getElementById('log-count');
-            const logs = record.timeline || [];
+            const logs = evts(record.id);
 
             if (countLabel) countLabel.innerText = `${logs.length} entrée${logs.length > 1 ? 's' : ''}`;
 
@@ -4060,10 +4079,10 @@
                 return;
             }
 
-            container.innerHTML = logs.sort((a, b) => new Date(b.date) - new Date(a.date)).map(l => `
+            container.innerHTML = [...logs].sort((a, b) => new Date(b.quand) - new Date(a.quand)).map(l => `
                 <div class="timeline-item">
-                    <div class="timeline-date">${new Date(l.date).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
-                    <div class="timeline-text">${escapeHtml(String(l.text || '')).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</div>
+                    <div class="timeline-date">${new Date(l.quand).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                    <div class="timeline-text">${escapeHtml(String(l.detail || '')).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</div>
                 </div>
             `).join('');
         }
@@ -4081,37 +4100,13 @@
             const record = allRecords.find(r => r.id === activeRecordId);
             if (!record) return;
 
-            let logs = [];
-            try {
-                logs = record.fields["Timeline JSON"] ? JSON.parse(record.fields["Timeline JSON"]) : [];
-                if (logs.length === 0 && record.fields["Notes"]) {
-                    logs = [{ date: new Date().toISOString(), text: "Ancienne note : " + record.fields["Notes"] }];
-                }
-            } catch (e) { }
-
-            const newLog = { date: new Date().toISOString(), text };
-            logs.push(newLog);
-            journalEvenement(activeRecordId, text, 'note');
-
             _timelineSubmitting = true;
             try {
-                // Bug fix: fetch() brut remplacé par SesquierUtils.fetchJson
-                // pour détecter les erreurs HTTP (400/500) et pas seulement réseau.
-                await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id: activeRecordId,
-                        fields: { "Timeline JSON": JSON.stringify(logs) }
-                    })
-                });
-
-                record.fields["Timeline JSON"] = JSON.stringify(logs);
-                input.value = "";
+                if (await journalEvenement(activeRecordId, text, 'note')) {
+                    input.value = "";
+                    showSyncBanner("Journal mis à jour !");
+                }
                 renderTimeline(record);
-                showSyncBanner("Journal mis à jour !");
-            } catch (e) {
-                alert("Erreur lors de l'enregistrement du journal : " + e.message);
             } finally {
                 _timelineSubmitting = false;
             }
@@ -4225,6 +4220,7 @@
                 const data = await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL);
                 if (data && data.records) {
                     allRecords = data.records.map(normalizeRecord);
+                    await chargerEvenements();
                     sortRecords();
                     updateKPIs();
                     updateFilters();

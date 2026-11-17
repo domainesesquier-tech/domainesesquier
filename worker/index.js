@@ -562,12 +562,12 @@ export default {
       }
 
       // ── JOURNAL UNIQUE (table evenements, migrations/2026-11_consolidation_1.sql) ──
-      // GET ?dossier=<id> → { evenements: [...] } du plus récent au plus ancien
+      // GET ?dossier=<id> → { evenements: [...] } du plus récent au plus ancien ; sans ?dossier → tout le journal (ordre chronologique)
       // POST { dossier_id, detail, type? } → type déduit du texte par la base si absent
       if (url.pathname === "/api/evenements" && method === "GET") {
         const id = url.searchParams.get("dossier");
-        if (!id) return json({ error: { message: "?dossier=<id> requis" } }, 400, env, requestOrigin);
-        const rows = await sbFetch(env, `/evenements?dossier_id=eq.${encodeURIComponent(id)}&order=quand.desc&limit=500`);
+        const rows = await sbFetch(env, id ? `/evenements?dossier_id=eq.${encodeURIComponent(id)}&order=quand.desc&limit=500`
+          : `/evenements?select=id,dossier_id,quand,type,detail&order=quand.asc&limit=10000`);
         return json({ evenements: Array.isArray(rows) ? rows : [] }, 200, env, requestOrigin);
       }
       if (url.pathname === "/api/evenements" && method === "POST") {
