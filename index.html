@@ -106,7 +106,6 @@
         async function fastUpdateRecord(id, field, value, element = null) {
             const record = allRecords.find(r => r.id === id);
             if (!record) return;
-            let skipPlanningSync = false;
 
             // Utilisation de la couche de normalisation pour préparer le payload
             const updatePayload = SesquierRecords.prepareUpdate(field, value);
@@ -145,21 +144,6 @@
                 if (field === SesquierRecords.FIELDS.STATUT) {
                     await autoLogTimeline(id, `Statut changé : **${currentVal || 'Inconnu'}** → **${newVal}**`
                         + (motif ? ` — motif : **${motif.categorie}**${motif.detail ? ' (' + motif.detail + ')' : ''}` : ''), 'statut');
-                    if (newVal.toLowerCase() === 'annulé') {
-                        // Refusé/annulé → supprimer du planning (mais NE PAS re-synchroniser)
-                        const planningId = record._raw?.fields?.['planning_id'];
-                        if (planningId) {
-                            try {
-                                await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/planning`, {
-                                    method: 'DELETE',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ id: planningId }),
-                                });
-                                if (record._raw) record._raw.fields['planning_id'] = null;
-                            } catch(e) { console.warn('[annulé] planning delete failed', e.message); }
-                        }
-                        skipPlanningSync = true; // pas de syncToPlanning, mais on rafraîchit quand même l'UI
-                    }
                 }
 
                 // Mise à jour locale (on repasse par normalize pour être sûr)
@@ -175,8 +159,6 @@
                     element.style.pointerEvents = 'auto';
                 }
                 showSyncBanner(`${field} mis à jour !`);
-                const syncFields = ['Date arrivée', 'Date départ', 'Statut', 'Montant Hébergement HT', 'Nom client', 'Nb personnes'];
-                if (syncFields.includes(field) && !skipPlanningSync) syncToPlanning(id);
                 
                 updateKPIs();
                 updateFilters();
@@ -286,28 +268,12 @@
             }
 
             try {
-                // Récupérer le planning_id avant suppression
-                const record = allRecords.find(r => r.id === id);
-                const planningId = record?._raw?.fields?.['planning_id'];
-
                 // 1. Supprimer d'Airtable
                 await SesquierUtils.fetchJson(`${SesquierUtils.API_RESERVATIONS_URL}/${id}`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' }
                 });
 
-                // 2. Supprimer de Supabase planning si lié
-                if (planningId) {
-                    try {
-                        await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/planning`, {
-                            method: 'DELETE',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: planningId }),
-                        });
-                    } catch (supaErr) {
-                        console.warn('[deleteRecord] Supabase planning delete failed:', supaErr.message);
-                    }
-                }
 
                 // Retirer localement
                 allRecords = allRecords.filter(r => r.id !== id);
@@ -3248,9 +3214,6 @@
             if (!activeRecordId) return;
             if (!confirm("Êtes-vous sûr de vouloir supprimer définitivement ce dossier ?")) return;
 
-            const record = allRecords.find(r => r.id === activeRecordId);
-            const planningId = record?._raw?.fields?.['planning_id'];
-
             try {
                 await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
                     method: 'DELETE',
@@ -3258,17 +3221,6 @@
                     body: JSON.stringify({ id: activeRecordId })
                 });
 
-                if (planningId) {
-                    try {
-                        await SesquierUtils.fetchJson(`${SesquierUtils.API_BASE}/api/planning`, {
-                            method: 'DELETE',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: planningId }),
-                        });
-                    } catch (supaErr) {
-                        console.warn('[confirmDeleteActiveDossier] Supabase planning delete failed:', supaErr.message);
-                    }
-                }
 
                 closeDossier();
                 loadAllRecords();
@@ -4049,7 +4001,6 @@
                 const idx = allRecords.findIndex(r => r.id === id);
                 if (raw?.records?.[0] && idx !== -1) allRecords[idx] = normalizeRecord(raw.records[0]);
                 relanceMode = null;
-                if (fields['Statut']) syncToPlanning(id);
                 updateKPIs(); updateFilters();
                 if (typeof currentViewMode !== 'undefined' && currentViewMode === 'calendar') renderCalendar(); else renderTable();
                 renderDossierBar(id);
@@ -4825,95 +4776,7 @@
             setTimeout(() => b.classList.remove('show'), 2000);
         }
 
-        // =====================================================================
-        // PLANNING SYNC
-        // =====================================================================
-        // PLANNING SYNC
-        // =====================================================================
-        const PLANNING_LOGEMENTS_DEFAULT = [
-            'Acacia', 'Hibiscus', 'Pivoine', 'Belle de nuit',
-            'Iris', 'Rose', 'Figuier', 'Jasmin',
-            'Clos Josette', 'Sous les toits', "Champs d'Olivier", 'Archipel'
-        ];
-
-        async function syncToPlanning(recordId) {
-            const record = allRecords.find(r => r.id === recordId);
-            if (!record) return;
-
-            const f = record._raw?.fields || {};
-            const arrivee = f['Date arrivée'];
-            const depart  = f['Date départ'];
-            if (!arrivee || !depart) return;
-
-            const statutRaw = Array.isArray(f['Statut']) ? f['Statut'][0] : (f['Statut'] || '');
-            // Annulé → ne pas sync (ne doit pas apparaître dans le planning)
-            if (statutRaw.toLowerCase() === 'annulé') return;
-            // Validé (devis signé, ou ancien confirmé / acompte reçu) → "confirmé" au planning, le reste → "Option"
-            const statut = ['devis signé', 'confirmé', 'acompte reçu'].includes(statutRaw.toLowerCase()) ? 'Confirmé' : 'Option';
-            const planningId = f['planning_id'];
-
-            const planningFields = {
-                'Nom':          f['Nom client'] || '',
-                'Type':         (() => {
-                    const t = String(Array.isArray(f['Type']) ? f['Type'][0] : (f['Type'] || '')).toLowerCase();
-                    return t.includes('mariage') ? 'Mariage'
-                        : (!t || t.includes('séminaire') || t.includes('professionnel')) ? 'Séminaire' : 'Week-end privé';
-                })(),
-                'Date arrivée': arrivee,
-                'Date départ':  depart,
-                'Statut':       statut,
-                'Logements':    PLANNING_LOGEMENTS_DEFAULT,
-                // Montant = total devis HT (DOSSIER JSON financials.totalHT, sinon
-                // somme des champs plats HT) — et non l'hébergement seul.
-                'Montant':      record.totalHT || (parseFloat(f['Montant Hébergement HT']) || 0) + (parseFloat(f['Montant Repas HT']) || 0) + (parseFloat(f['Montant Options HT']) || 0),
-                'Nb personnes': parseInt(f['Nb personnes'] || f['Nombre de personnes'], 10) || 0,
-            };
-
-            const API_PLANNING = SesquierUtils.API_BASE + '/api/planning';
-
-            // Crée une nouvelle entrée planning et lie son id à la réservation
-            async function createPlanningEntry() {
-                const res = await SesquierUtils.fetchJson(API_PLANNING, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ fields: planningFields }),
-                });
-                const newId = res?.record?.id || res?.id;
-                if (newId) {
-                    await SesquierUtils.fetchJson(SesquierUtils.API_RESERVATIONS_URL, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: recordId, fields: { 'planning_id': newId } }),
-                    });
-                    if (record._raw) record._raw.fields['planning_id'] = newId;
-                }
-            }
-
-            try {
-                if (planningId) {
-                    try {
-                        await SesquierUtils.fetchJson(API_PLANNING, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            // Logements : posés à la création seulement, ensuite réglés au planning (gîtes libérés…)
-                            body: JSON.stringify({ id: planningId, fields: (({ Logements, ...reste }) => reste)(planningFields) }),
-                        });
-                    } catch (patchErr) {
-                        // planning_id orphelin (entrée supprimée côté planning) → auto-réparation
-                        if (/introuvable|not found|404/i.test(patchErr.message || '')) {
-                            console.warn('[syncToPlanning] planning_id orphelin, recréation:', planningId);
-                            await createPlanningEntry();
-                        } else {
-                            throw patchErr;
-                        }
-                    }
-                } else {
-                    await createPlanningEntry();
-                }
-            } catch (e) {
-                console.error('[syncToPlanning]', e.message);
-            }
-        }
+        // Planning : synchronisé par la base (déclencheur reservations_vers_planning, migration consolidation 4)
 
         // =====================================================================
         // IFRAME COMMUNICATION
@@ -4937,12 +4800,8 @@
             }
             if (event.data.type === 'PROFORMA_EMISE') refreshData(); // coche l'étape Proforma du dossier
             if (event.data.type === 'RECORD_UPDATED') {
-                // 1. Mettre à jour le dashboard (liste) puis syncer le planning
-                if (typeof loadAllRecords === 'function') {
-                    loadAllRecords().then(() => syncToPlanning(event.data.id));
-                } else {
-                    syncToPlanning(event.data.id);
-                }
+                // 1. Mettre à jour le dashboard (liste) — le planning suit tout seul (déclencheur en base)
+                if (typeof loadAllRecords === 'function') loadAllRecords();
                 
                 // 2. Propager à tous les AUTRES iframes chargés
                 document.querySelectorAll('#iframe-layer iframe').forEach(frame => {
