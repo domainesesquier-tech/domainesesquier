@@ -2159,13 +2159,20 @@
                 const id = firstSubtotal(CIBLES[l.cat] || []);
                 if (id) (parSection[id] = parSection[id] || []).push(l);
             });
+            // Petit-déjeuner, déjeuner, dîner : description reprise de la bibliothèque
+            if (lignes.some(l => MEAL_KEYS[l.code] && catsAjour.includes(l.cat))) await loadLibrary();
+
             // On vide chaque section concernée une seule fois, puis on la remplit
             [...new Set(catsAjour.map(c => firstSubtotal(CIBLES[c])).filter(Boolean))].forEach(id => {
                 const subTr = clearSection(id);
                 if (!subTr) return;
                 (parSection[id] || []).forEach(l => {
                     const mk = l.mealKey || MEAL_KEYS[l.code] || null;
-                    subTr.parentNode.insertBefore(createPricingRow(l.label, l.qte, l.pu, `${l.tva}%`, mk), subTr);
+                    const row = createPricingRow(l.label, l.qte, l.pu, `${l.tva}%`, mk);
+                    const desc = MEAL_KEYS[l.code] ? descriptionRepasBibliotheque(l.label, l.code) : '';
+                    const sousTitre = desc && row.querySelector('.row-subtitle');
+                    if (sousTitre) sousTitre.innerText = desc;
+                    subTr.parentNode.insertBefore(row, subTr);
                 });
             });
 
@@ -2808,6 +2815,18 @@
             order[cat] = ids;
             saveLibOrder(order);
             renderLibrary(document.getElementById('lib-search-input')?.value || '');
+        }
+
+        // Description d'un repas (petit_dej, dejeuner, diner) telle qu'écrite dans la bibliothèque :
+        // même nom que la ligne du moteur, sinon premier repas Restauration du même type
+        function descriptionRepasBibliotheque(label, code) {
+            const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+            const resto = libraryData.filter(i => i.categorie === 'Restauration' && i.nom && i.description);
+            const exact = resto.find(i => norm(i.nom) === norm(label));
+            if (exact) return exact.description;
+            const prefixe = { petit_dej: 'petit-dej', dejeuner: 'dejeuner', diner: 'diner' }[code];
+            const proche = prefixe && resto.find(i => norm(i.nom).startsWith(prefixe) && !norm(i.nom).includes('panier'));
+            return proche ? proche.description : '';
         }
 
         async function loadLibrary() {
