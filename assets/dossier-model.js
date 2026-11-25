@@ -221,6 +221,8 @@ const DossierModel = {
         const s = dossier.sejour;
         const jourTxt = s.days > 1 ? 'jours' : 'jour';
         const nuitTxt = s.nights > 1 ? 'nuits' : 'nuit';
+        // Mariage : des invités, pas de formule repas (traiteur à part)
+        if (/mariage/i.test(String(dossier.meta.typeLabel))) return `Mariage de ${s.participants} invités — ${s.days} ${jourTxt} / ${s.nights} ${nuitTxt}`;
         return `${dossier.meta.typeLabel} de ${s.participants} personnes — ${s.days} ${jourTxt} / ${s.nights} ${nuitTxt} — ${s.mealModeLabel}`;
     },
 
