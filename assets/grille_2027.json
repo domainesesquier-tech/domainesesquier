@@ -364,19 +364,29 @@
     "packs": {
       "champs_olivier": {
         "label": "Pack réception Champs d'olivier (mobilier, mise en place, son et lumière)",
+        "nom": "salle Champs d'olivier",
+        "detail": "mobilier, mise en place, son et lumière",
         "pu": 1250,
         "tva": 20,
         "max": 40
       },
       "archipel": {
         "label": "Pack réception Archipel (salle, scène, son, lumière, bar + mobilier)",
+        "nom": "salle Archipel",
+        "detail": "scène, son, lumière, bar et mobilier",
         "pu": 2500,
         "tva": 20
       }
     },
+    "libelles": {
+      "hebergement": "Le domaine, 2 nuits",
+      "hebergement_detail": "Gîtes pour 40 personnes avec linge de lit, ménage de fin de séjour · Champs d'olivier, oliveraie, guinguette, piscine et jardins",
+      "reception": "Forfait réception, {salle}",
+      "reception_detail": "{pack} · accès dès 12h {arrivee}, départ à 16h {depart} · accompagnement : 3 visites, visite technique, référent à l'installation et au départ · remise en état après la réception"
+    },
     "seconde_soiree_archipel": 1250,
     "convive_sup": {
-      "label": "Convives sur site au-delà de 40",
+      "label": "Invités au-delà de 40",
       "pu": 20,
       "tva": 20,
       "seuil": 40

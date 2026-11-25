@@ -128,7 +128,6 @@
         const s = g.mariage, base = 'TTC', L = out.lignes, m = d.mariage || {};
         const convives = Math.max(m.vinHonneur || 0, m.diner || 0, d.personnes || 0);
         const forfait = [];
-        s.base.forEach(b => forfait.push(ligne(base, b.label, 1, b.pu, b.tva, b.cat)));
 
         let packKey = m.pack || (convives <= s.packs.champs_olivier.max ? 'champs_olivier' : 'archipel');
         if (packKey === 'champs_olivier' && convives > s.packs.champs_olivier.max) {
@@ -136,7 +135,23 @@
             out.notes.push(`Plus de ${s.packs.champs_olivier.max} convives : pack Archipel obligatoire`);
         }
         const pack = s.packs[packKey];
-        forfait.push(ligne(base, pack.label, 1, pack.pu, pack.tva, 'lieu'));
+        // Deux blocs lisibles : le domaine (TVA 10 %) et le forfait réception (TVA 20 %),
+        // qui regroupent les éléments de prix de la grille (s.base + pack)
+        const lib = s.libelles;
+        const somme = cat => s.base.filter(b => b.cat === cat).reduce((t, b) => t + b.pu, 0);
+        const tvaDe = cat => s.base.find(b => b.cat === cat).tva;
+        const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+        const jour = dec => {
+            if (!d.dateArrivee) return null;
+            const x = new Date(d.dateArrivee + 'T12:00:00');
+            x.setDate(x.getDate() + dec);
+            return 'le ' + JOURS[x.getDay()];
+        };
+        const remplir = (t, v) => t.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? '');
+        const vars = { salle: pack.nom, pack: pack.detail,
+            arrivee: jour(0) || "le jour d'arrivée", depart: jour(2 + (m.nuitsSup || 0)) || 'le jour du départ' };
+        forfait.push({ ...ligne(base, lib.hebergement, 1, somme('hebergement'), tvaDe('hebergement'), 'hebergement'), detail: lib.hebergement_detail });
+        forfait.push({ ...ligne(base, remplir(lib.reception, vars), 1, somme('lieu') + pack.pu, pack.tva, 'lieu'), detail: remplir(lib.reception_detail, vars) });
         if (m.secondeSoiree) forfait.push(ligne(base, 'Seconde soirée en salle Archipel', 1, s.seconde_soiree_archipel, 20, 'lieu'));
         if (convives > s.convive_sup.seuil) {
             forfait.push(ligne(base, s.convive_sup.label, convives - s.convive_sup.seuil, s.convive_sup.pu, s.convive_sup.tva, 'lieu'));
@@ -145,7 +160,10 @@
 
         if (out.basse_saison) {
             const r = g.basse_saison.remise;
-            forfait.forEach(x => Object.assign(x, ligne(base, `${x.label} (basse saison −${r * 100} %)`, x.qte, x.pu * (1 - r), x.tva, x.cat)));
+            const avant = forfait.reduce((t, x) => t + x.ttc, 0);
+            // Prix déjà remisés ; la remise est annoncée une seule fois (encadré « Inclus » du devis)
+            forfait.forEach(x => Object.assign(x, ligne(base, x.label, x.qte, x.pu * (1 - r), x.tva, x.cat)));
+            out.remise = { taux: r, avant: r2(avant), economie: r2(avant - forfait.reduce((t, x) => t + x.ttc, 0)) };
         }
         L.push(...forfait);
         if (m.traiteurExterieur) { const t = s.traiteur_exterieur; L.push(ligne(base, t.label, 1, t.pu, t.tva, 'lieu')); }
