@@ -12,6 +12,7 @@
 // L'URL du déploiement sert de clé : ne la partage pas.
 
 const DESTINATAIRE = 'contact@domainesesquier.com';
+const COPIE_DEVIS = 'smali@domainesesquier.com'; // copie cachée de chaque devis envoyé (PDF joint) depuis le tableau de bord, 25/11/2026
 const TABLEAU_DE_BORD = 'https://admin.domainesesquier.com/';
 const CALENDRIER = 'https://admin.domainesesquier.com/CALENDRIER_PUBLIC.html';
 const BROCHURES = {
@@ -360,6 +361,7 @@ function envoyerRelance(d) {
     const mime = [
       `From: ${exp.displayName ? entete(exp.displayName) + ' ' : ''}<${exp.sendAsEmail}>`,
       `To: ${email}`,
+      ...(pj ? [`Bcc: ${COPIE_DEVIS}`] : []),
       `Subject: ${entete(sujet)}`,
       `Date: ${new Date().toUTCString()}`,
       ...reponse,
