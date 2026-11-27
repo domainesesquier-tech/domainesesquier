@@ -2471,11 +2471,16 @@
 
                 // 5. Lire les infos client depuis le DOM
                 const clientInfoEl = document.querySelector('.client-info');
-                const tds = clientInfoEl ? [...clientInfoEl.querySelectorAll('td')] : [];
-                const org      = tds[1]?.innerText?.trim() || currentDossier?.client?.organisation || '';
-                const fullName = tds[3]?.innerText?.trim() || currentDossier?.client?.fullName || '';
-                const email    = tds[5]?.innerText?.trim() || currentDossier?.client?.email || '';
-                const phone    = tds[7]?.innerText?.trim() || currentDossier?.client?.phone || '';
+                // Lecture par libellé (et non par position) : une ligne ajoutée ou retirée ne décale rien
+                const lireClient = (re) => {
+                    const tr = clientInfoEl ? [...clientInfoEl.querySelectorAll('tr')].find(r => re.test(r.cells[0]?.textContent || '')) : null;
+                    const v = tr?.cells[1]?.innerText?.trim() || '';
+                    return v === '—' ? '' : v;
+                };
+                const org      = lireClient(/Organisation/) || currentDossier?.client?.organisation || '';
+                const fullName = lireClient(/référent|^\s*Nom\s*:/i) || currentDossier?.client?.fullName || '';
+                const email    = lireClient(/Mail/) || currentDossier?.client?.email || '';
+                const phone    = lireClient(/Téléphone/) || currentDossier?.client?.phone || '';
 
                 // 6. Construire le dossier complet (on part de currentDossier pour garder sejour/sleeping/options)
                 // Si currentDossier est null (nouveau record), reconstruire sejour depuis les champs du record
