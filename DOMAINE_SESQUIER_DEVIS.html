@@ -1447,7 +1447,7 @@
             document.querySelectorAll('.client-info tr').forEach(tr => {
                 const k = tr.cells[0]?.textContent || '';
                 if (/Organisation/.test(k) && (tr.cells[1]?.textContent || '').trim() === '—') tr.remove();
-                else if (/référent/.test(k)) tr.cells[0].textContent = 'Nom :';
+                else if (/référent|contact/.test(k)) tr.cells[0].textContent = 'Nom :';
             });
         }
 
@@ -1517,7 +1517,7 @@
                     `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; line-height:1.8;">
                         <tr><td style="opacity:0.65; width:45%; white-space:nowrap;">Organisation :</td><td><strong>${c.organisation || '—'}</strong></td></tr>
                         ${ligneRefClient(c.reference)}
-                        <tr><td style="opacity:0.65; white-space:nowrap;">Nom du référent :</td><td>${referentNom(c, fields)}</td></tr>
+                        <tr><td style="opacity:0.65; white-space:nowrap;">Nom du contact :</td><td>${referentNom(c, fields)}</td></tr>
                         <tr><td style="opacity:0.65; white-space:nowrap;">Mail :</td><td>${c.email || '—'}</td></tr>
                         <tr><td style="opacity:0.65; white-space:nowrap;">Téléphone :</td><td>${c.phone || '—'}</td></tr>
                     </table>`;
@@ -1757,7 +1757,7 @@
                     `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; line-height:1.8;">
                         <tr><td style="opacity:0.65; width:45%; white-space:nowrap;">Organisation :</td><td><strong>${org || "—"}</strong></td></tr>
                         ${ligneRefClient(currentDossier?.client?.reference)}
-                        <tr><td style="opacity:0.65; white-space:nowrap;">Nom du référent :</td><td>${ref || "—"}</td></tr>
+                        <tr><td style="opacity:0.65; white-space:nowrap;">Nom du contact :</td><td>${ref || "—"}</td></tr>
                         <tr><td style="opacity:0.65; white-space:nowrap;">Mail :</td><td>${mail || "—"}</td></tr>
                         <tr><td style="opacity:0.65; white-space:nowrap;">Téléphone :</td><td>${tel || "—"}</td></tr>
                     </table>`;
@@ -2478,7 +2478,7 @@
                     return v === '—' ? '' : v;
                 };
                 const org      = lireClient(/Organisation/) || currentDossier?.client?.organisation || '';
-                const fullName = lireClient(/référent|^\s*Nom\s*:/i) || currentDossier?.client?.fullName || '';
+                const fullName = lireClient(/référent|contact|^\s*Nom\s*:/i) || currentDossier?.client?.fullName || '';
                 const email    = lireClient(/Mail/) || currentDossier?.client?.email || '';
                 const phone    = lireClient(/Téléphone/) || currentDossier?.client?.phone || '';
 

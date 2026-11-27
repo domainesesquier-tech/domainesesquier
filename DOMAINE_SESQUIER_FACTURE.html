@@ -535,7 +535,7 @@
                 <table style="width:100%;border-collapse:collapse;font-size:9.5pt;line-height:1.8;">
                     <tr><td style="opacity:.65;width:45%;white-space:nowrap;">Organisation :</td><td><strong>${c.organisation || '—'}</strong></td></tr>
                     ${String(c.reference || '').trim() ? `<tr><td style="opacity:.65;white-space:nowrap;">Référence :</td><td>${String(c.reference).trim().replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]))}</td></tr>` : ''}
-                    <tr><td style="opacity:.65;white-space:nowrap;">Nom du référent :</td><td>${c.fullName || '—'}</td></tr>
+                    <tr><td style="opacity:.65;white-space:nowrap;">Nom du contact :</td><td>${c.fullName || '—'}</td></tr>
                     <tr><td style="opacity:.65;white-space:nowrap;">Mail :</td><td>${c.email || '—'}</td></tr>
                     <tr><td style="opacity:.65;white-space:nowrap;">Téléphone :</td><td>${c.phone || '—'}</td></tr>
                 </table>`;
