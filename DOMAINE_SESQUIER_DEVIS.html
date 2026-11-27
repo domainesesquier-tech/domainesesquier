@@ -480,6 +480,7 @@
         .lib-btn-primary:hover { background: #4a4e40; border-color: #4a4e40; }
         .lib-btn-danger { background: #ef4444; color: #fff; border-color: #ef4444; }
         .lib-btn-danger:hover { background: #dc2626; border-color: #dc2626; }
+        #client-ref:empty::before { content: attr(data-placeholder); color: #9ca3af; font-style: italic; }
     </style>
 <style>
     /* ===== Téléphone : résumé du devis à la place de la page A4 (rien ne change au-dessus de 768 px) ===== */
@@ -1450,6 +1451,16 @@
             });
         }
 
+        // Référence d'achat (bon de commande) : facultative, saisie ici, masquée au PDF si vide, reprise sur proforma/acompte/facture
+        function ligneRefClient(ref) {
+            const v = String(ref || '').trim().replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+            return `<tr class="ligne-ref-client${v ? '' : ' no-print'}"><td style="opacity:0.65; white-space:nowrap;">Référence :</td><td id="client-ref" data-placeholder="facultatif — n° de bon de commande">${v}</td></tr>`;
+        }
+        document.addEventListener('input', (e) => {
+            const td = document.getElementById('client-ref');
+            if (td && e.target.closest?.('.client-info')) td.closest('tr').classList.toggle('no-print', !td.innerText.trim());
+        }, true);
+
         function referentNom(c, fields) {
             const contact = [fields?.['Prénom contact'], fields?.['Nom contact']].filter(Boolean).join(' ').trim();
             const nom = (c?.fullName || '').trim();
@@ -1505,6 +1516,7 @@
                 clientInfoEl.innerHTML =
                     `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; line-height:1.8;">
                         <tr><td style="opacity:0.65; width:45%; white-space:nowrap;">Organisation :</td><td><strong>${c.organisation || '—'}</strong></td></tr>
+                        ${ligneRefClient(c.reference)}
                         <tr><td style="opacity:0.65; white-space:nowrap;">Nom du référent :</td><td>${referentNom(c, fields)}</td></tr>
                         <tr><td style="opacity:0.65; white-space:nowrap;">Mail :</td><td>${c.email || '—'}</td></tr>
                         <tr><td style="opacity:0.65; white-space:nowrap;">Téléphone :</td><td>${c.phone || '—'}</td></tr>
@@ -1744,6 +1756,7 @@
                 clientInfoEl.innerHTML =
                     `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; line-height:1.8;">
                         <tr><td style="opacity:0.65; width:45%; white-space:nowrap;">Organisation :</td><td><strong>${org || "—"}</strong></td></tr>
+                        ${ligneRefClient(currentDossier?.client?.reference)}
                         <tr><td style="opacity:0.65; white-space:nowrap;">Nom du référent :</td><td>${ref || "—"}</td></tr>
                         <tr><td style="opacity:0.65; white-space:nowrap;">Mail :</td><td>${mail || "—"}</td></tr>
                         <tr><td style="opacity:0.65; white-space:nowrap;">Téléphone :</td><td>${tel || "—"}</td></tr>
@@ -2502,6 +2515,7 @@
                     client: {
                         ...(currentDossier?.client || {}),
                         organisation: org,
+                        ...(document.getElementById('client-ref') ? { reference: document.getElementById('client-ref').innerText.trim() } : {}),
                         fullName,
                         email,
                         phone,
