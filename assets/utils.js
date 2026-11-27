@@ -312,6 +312,8 @@ const SesquierUtils = {
                     if (typeof window.updateCalculations === 'function') {
                         window.updateCalculations();
                     }
+                    // Suppression = modification : fait apparaître « Enregistrer » (sinon la ligne revient au rechargement)
+                    if (typeof window.markDirty === 'function') window.markDirty();
                 }
             }
         } catch (e) {
@@ -323,6 +325,8 @@ const SesquierUtils = {
                     if (typeof window.updateCalculations === 'function') {
                         window.updateCalculations();
                     }
+                    // Suppression = modification : fait apparaître « Enregistrer » (sinon la ligne revient au rechargement)
+                    if (typeof window.markDirty === 'function') window.markDirty();
                 }
             }
         }
